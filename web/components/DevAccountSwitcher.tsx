@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAccount, useConnect } from "wagmi";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -55,6 +56,9 @@ function Switcher() {
           ))}
         </div>
         {!active && <span className="opacity-70">Pick a role to start</span>}
+        <Link href="/demo" className="ml-auto font-semibold underline-offset-2 hover:underline" data-testid="dev-play-demo">
+          ▶ Play the demo
+        </Link>
       </div>
     </div>
   );

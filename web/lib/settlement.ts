@@ -16,11 +16,15 @@ export type InspectionResult = {
   inspectorSignature?: Hex;
 };
 
+/** A photo by its content hash, optionally with a room label the inspector can cite in its reasons. */
+export type InspectionPhoto = Hex | { hash: Hex; label?: string };
+const photoRef = (p: InspectionPhoto) => (typeof p === "string" ? { hash: p } : p);
+
 /** Runs the AI move-out inspection over the check-in vs check-out photo hashes. */
 export async function runInspection(input: {
   deposit: bigint;
-  checkIn: Hex[];
-  checkOut: Hex[];
+  checkIn: InspectionPhoto[];
+  checkOut: InspectionPhoto[];
   notes?: string;
 }): Promise<InspectionResult> {
   const res = await fetch("/api/settlement", {
@@ -30,8 +34,8 @@ export async function runInspection(input: {
       deposit: input.deposit.toString(),
       decimals: 6,
       currency: "USDT",
-      checkIn: input.checkIn.map((hash) => ({ hash })),
-      checkOut: input.checkOut.map((hash) => ({ hash })),
+      checkIn: input.checkIn.map(photoRef),
+      checkOut: input.checkOut.map(photoRef),
       ...(input.notes ? { notes: input.notes } : {}),
     }),
   });

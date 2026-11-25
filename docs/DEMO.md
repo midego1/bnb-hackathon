@@ -3,6 +3,13 @@
 A live walkthrough on a **local anvil chain**. No wallet extension, keys or paid APIs are needed: the app's
 yellow **Demo accounts** bar lets you act as the landlord, the tenant or the KeyEscrow dispute desk.
 
+The pitch starts with the **one-click demo**: one button plays the whole story (create, fund, pay out rent,
+AI inspection, settle) with real transactions against the real contracts, switching accounts by itself, while
+the real lease page updates live underneath. The manual click-through further down is the backup and the
+answer to "can I try it myself?".
+
+![The one-click demo's end screen: settled, final balances for tenant, landlord and treasury in THB, USD and USDT](screenshots/demo-summary.png)
+
 ## Setup (before the clock starts)
 
 Requirements: [Foundry](https://book.getfoundry.sh/getting-started/installation), Node 22, pnpm, and a one-time
@@ -73,7 +80,72 @@ Rent periods (30 days) and timeouts run on block time. Advance anvil's clock wit
 cast rpc evm_increaseTime 2592000 && cast rpc evm_mine      # +30 days
 ```
 
-## Script
+## One-click demo
+
+Landing page → **▶ Play the demo** (or open `/demo`; the yellow Demo accounts bar links there too). It exists
+only in local builds: `NEXT_PUBLIC_CHAIN_ID=31337` (the default) and `NEXT_PUBLIC_DEV_ACCOUNTS=1`. Production
+and testnet builds compile it out and `/demo` returns 404.
+
+| Control | What it does |
+| --- | --- |
+| **Story** | *Happy path* (tenant proposes the AI split, landlord accepts), *Dispute path* (landlord disputes, the dispute desk rules on a split), *Landlord ignores it* (7-day fast-forward, then the full deposit goes back to the tenant). |
+| **Speed** | *Normal* holds each caption long enough to read aloud (about a minute for the happy path). *Fast* runs the transactions back to back (about 10 s). |
+| **Mode** | *Autoplay*, or *Step by step*: each step waits for **Next step →**. Best for a live pitch, you talk, then click. |
+| **Pause / Restart** | Pause takes effect after the current transaction. Restart begins again with a fresh lease. |
+| **Retry** | If a step fails (node down, AI route offline, …) the error is shown in plain words with **Retry this step** and **Start over**. Retried steps resume where they stopped: nothing is sent twice. |
+
+What it does, step by step (each run creates a **new lease**, cycling through three Bangkok rentals: a 1-bed
+condo near BTS Ari at ฿18,000, a studio near BTS On Nut at ฿12,500, a 2-bed in Thonglor at ฿32,000; deposit two
+months, 12-month term, KeyEscrow dispute desk as referee):
+
+1. **Landlord offers the lease.** The demo lease PDF and two check-in photos (`web/public/demo/`) go through
+   `POST /api/evidence`; their SHA-256 hashes go on-chain with `EscrowFactory.createLease`.
+2. **Check-in photos on record:** one `addEvidence` per photo.
+3. **Tenant gets demo mUSDT** from the MockUSDT faucet, only if short.
+4. **Tenant funds** deposit + first month (approve, then `fund`).
+5. **Month 1 paid out:** `releaseRent`; the landlord gets the rent minus the one-time 10 % KeyEscrow fee, which goes to the treasury.
+6. **Move-out: check-out photos** (a scuffed wall, a stained floor) uploaded and anchored. No clock is faked
+   here: settling the deposit does not depend on time, so the happy path needs no fast-forward.
+7. **AI inspection** (`POST /api/settlement`, the offline demo inspector without a key) shows its split, one
+   reason per changed photo and the *KeyEscrow Inspector* agent line (signed with its ERC-8004 identity when
+   `INSPECTOR_PRIVATE_KEY` is set; unsigned otherwise, and the page says so).
+8. **Tenant proposes** the split on-chain, with the inspection's report hash.
+9. **Ending:** landlord accepts → settled at once · or landlord disputes → the desk rules (landlord keeps half
+   again the AI estimate) · or *fast-forward 7 days (demo only)* via anvil's `evm_increaseTime` + `evm_mine`,
+   then the tenant claims the timeout and gets the full deposit back.
+10. **Final balances:** what the tenant paid in, got back, what the landlord and the KeyEscrow treasury
+    received, and that the escrow holds nothing, in THB, USD and USDT, with a ✓ when the books add up.
+
+Every transaction is listed under its step with a short hash linking to the lease page and its timeline. The end
+screen offers **Run again**, **Try the dispute path** and **Try: landlord ignores it**. It runs the same code as
+the normal UI: the `useTx` hook (simulate, send, toast), `uploadEvidence`, `runInspection` and the
+`LeaseDetail` page component, rendered live under the narration.
+
+`/demo?autoplay=1` starts on load (the landing button uses it); add `&path=dispute` or `&path=timeout`,
+`&speed=fast` or `&step=1` to preset the controls.
+
+| Start | Mid-run (step by step) | End |
+| --- | --- | --- |
+| ![Play the demo page before starting](screenshots/demo-start.png) | ![Mid-run: AI inspection step, narration, and the live lease page](screenshots/demo-mid-run.png) | ![End summary with final balances](screenshots/demo-summary.png) |
+
+## Script (3 minutes)
+
+Before the clock starts: chain and app running (Setup above), landing page open, **Step by step** if you want
+to pace it by hand. Amounts show THB first; with no price key the badge reads **Demo rates** (1 USDT = 33 THB).
+
+| Time | Who clicks | What happens on screen | What to say |
+| --- | --- | --- | --- |
+| **0:00-0:15** | Nobody. Landing page. | "Rental deposits that neither side can run off with." | "In Bangkok, a deposit is usually two months' rent, and at move-out the landlord holds all of it. KeyEscrow puts the deposit and the rent in a smart contract made for each lease, on BNB Chain, so neither side can move the money alone. Let me play the whole story." |
+| **0:15-0:45** | **▶ Play the demo** | Steps 1-4: the landlord's lease for a ฿18,000 condo near BTS Ari with a ฿36,000 deposit; check-in photos on record; the yellow bar flips to *Tenant*; approve + fund. The lease page below goes *Awaiting funding* → **Active**. | "Every amount in baht, from CoinMarketCap or the Atlas feed, server-side. The PDF and photos are stored off-chain; only fingerprints go on-chain. Funding moves the deposit and month one into this lease's own escrow, not to the landlord." |
+| **0:45-1:05** | (Next step) | Step 5: ฿16,200 to the landlord, ฿1,800 KeyEscrow fee to the treasury, in the timeline. | "Month one is due at the start. Our fee is 10 % of one month's rent, once, from the landlord's first payout. A Bangkok agent charges a full month. The deposit is never touched." |
+| **1:05-1:50** | (Next step) | Steps 6-8: check-out photos with a scuff and a stain; the AI inspection card with its split and reasons and the *KeyEscrow Inspector* line; the tenant proposes on-chain. | "A vision-model agent compares check-in and check-out photos and drafts a split with reasons. It drafts; it never decides. Its signed report hash goes on-chain with the proposal." |
+| **1:50-2:15** | (Next step) | Step 9-10: landlord accepts → **Settled**. End screen: tenant, landlord and treasury balances in THB/USD/USDT, ✓ balances add up, escrow ฿0. | "One transaction pays everyone out: no agent, no court, no weeks of waiting. And the books add up to the satang." |
+| **2:15-2:45** | **Try the dispute path** (switch Speed to *Fast*) | Same story in ~10 s, then the landlord disputes and the dispute desk rules on a split. | "If they disagree, the KeyEscrow dispute desk rules. Two timeouts protect the tenant: if the landlord ignores a proposal for 7 days, or the desk misses its deadline, the full deposit goes back to the tenant." (Optional: **Try: landlord ignores it**, the only step that fast-forwards the local clock, clearly labelled *demo only*.) |
+| **2:45-3:00** | Scroll to the lease page's *Timeline* | Every on-chain event with block numbers (BscScan links on testnet). | "It runs on BNB Chain today, opBNB is next for lower fees. One-time fee at a tenth of an agent's commission, plus dispute-desk revenue. Next step: a testnet pilot with Bangkok landlords." |
+
+## Manual walkthrough (backup, or for Q&A)
+
+The same story by hand, one role at a time.
 
 Amounts show THB first, then USD and the exact mUSDT. With no price key the badge reads **Demo rates**
 (1 USDT = 33 THB), so 441.18 mUSDT shows as ≈ ฿14,559.
@@ -100,5 +172,9 @@ Amounts show THB first, then USD and the exact mUSDT. With no price key the badg
 - **Show the landlord-silence timeout instead:** after the tenant's proposal, run
   `cast rpc evm_increaseTime 604800 && cast rpc evm_mine` (+7 days), then have the tenant click
   *Return full deposit to tenant*. The full deposit goes back to the tenant.
-- **Rehearse without clicking:** `pnpm -C web test:e2e` runs create → fund → pay out → AI proposal → accept
-  in a headless browser against its own throwaway anvil.
+- **One-click demo stuck on a step:** it shows the error in plain words; press **Retry this step**, or
+  **Start over with a fresh lease**. A role switch that times out usually means the Demo accounts bar is
+  hidden (build without `NEXT_PUBLIC_DEV_ACCOUNTS=1`).
+- **Rehearse without clicking:** `pnpm -C web test:e2e` plays the one-click demo (happy, dispute and
+  landlord-ignores-it paths, step by step with a failure + Retry) and the manual create → fund → pay out →
+  AI proposal → accept flow, in a headless browser against its own throwaway anvil.

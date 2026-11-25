@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlayDemoCta } from "@/components/demo/PlayDemoCta";
 import { REPO_URL, docsUrl } from "@/lib/links";
 
 const steps = [
@@ -60,6 +61,7 @@ export default function Home() {
             How the demo works →
           </a>
         </div>
+        <PlayDemoCta />
       </section>
 
       <section className="mt-12" aria-labelledby="how">

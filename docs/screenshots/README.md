@@ -2,10 +2,15 @@
 
 Taken from a throwaway local anvil seeded with `pnpm chain:deploy` + `pnpm chain:seed`, the app built with
 `NEXT_PUBLIC_DEV_ACCOUNTS=1` and served by `next start`, no API keys (so prices show **Demo rates** and the AI
-proposal comes from the deterministic demo inspector). Desktop shots are 1280 px wide, mobile shots 390 px.
+proposal comes from the deterministic demo inspector). Desktop shots are 1280 px wide, mobile shots 390 px. The `demo-*` and `landing-play-demo` shots come from
+`pnpm -C web test:e2e` (`web/e2e/guided-demo.spec.ts`).
 
 | File | What |
 | --- | --- |
+| `landing-play-demo.png` | Landing page of a local dev build, with the **Play the demo** button |
+| `demo-start.png` | One-click demo before starting: story, speed and mode controls, the step rail |
+| `demo-mid-run.png` | One-click demo in step-by-step mode after the AI inspection: narration, inspection card, the live lease page |
+| `demo-summary.png` | One-click demo end screen: settled, final balances for tenant, landlord and treasury in THB/USD/USDT |
 | `landing.png`, `landing-mobile.png` | Landing page: pitch, how it works, the fee in one line |
 | `landlord-create.png`, `landlord-mobile.png` | Landlord: new-lease form with THB hints, fee note, and the landlord's leases |
 | `tenant-fund.png` | Tenant: fund the escrow (deposit + first month), with every disabled button explaining why |

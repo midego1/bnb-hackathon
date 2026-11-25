@@ -19,6 +19,8 @@ type Call = {
 /**
  * Sends a contract call with a pending -> confirmed/failed toast, then refreshes every on-chain query.
  * The call is simulated first so reverts surface as plain-language errors before the wallet prompt.
+ * Failures resolve to `undefined` (the toast says why); pass `{ throwOnError: true }` to get a rejected
+ * promise with the plain-language message instead (the guided demo uses this to offer a Retry).
  */
 export function useTx() {
   const config = useConfig();
@@ -28,9 +30,10 @@ export function useTx() {
   const [pending, setPending] = useState<string | null>(null);
 
   const send = useCallback(
-    async (label: string, call: Call): Promise<TransactionReceipt | undefined> => {
+    async (label: string, call: Call, opts: { throwOnError?: boolean } = {}): Promise<TransactionReceipt | undefined> => {
       if (!account) {
         toasts.push({ kind: "error", title: label, body: "Connect a wallet first." });
+        if (opts.throwOnError) throw new Error("No wallet is connected.");
         return;
       }
       setPending(label);
@@ -45,7 +48,9 @@ export function useTx() {
         await queryClient.invalidateQueries();
         return receipt;
       } catch (err) {
-        toasts.update(id, { kind: "error", body: friendlyError(err) });
+        const message = friendlyError(err);
+        toasts.update(id, { kind: "error", body: message });
+        if (opts.throwOnError) throw new Error(message);
         return undefined;
       } finally {
         setPending(null);
