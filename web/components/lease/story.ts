@@ -1,8 +1,7 @@
-import { keccak256, toBytes, zeroHash, type Address } from "viem";
+import { keccak256, toBytes, zeroHash } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
-import type { RentalSummary } from "@/lib/rentals";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
 import { RENT_PERIOD, releasableMonths, roleName, viewerRole, type Viewer } from "./model";
@@ -210,37 +209,3 @@ export function returnPlan(lease: LeaseData, events: TimelineEvent[] = [], c: Re
 
   return { sub: planned ? r.planned(planned) : c.notStarted, steps: [photos, split, reply, desk, back] };
 }
-
-/** The renter card's sentence and next action, from the chain-index summary (`you`: the viewer is this renter). */
-export function renterLine(rental: RentalSummary, now: bigint, fmt: Fmt, c: RentalCopy, you: boolean): { sentence: string; action: string } {
-  const s = c.renter.s;
-  switch (rental.status) {
-    case LeaseStatus.Created:
-      return { sentence: s.created(you), action: c.renter.pay(fmt(rental.depositAmount + rental.rentAmount)) };
-    case LeaseStatus.Active:
-      if (rental.returnPhotos.length > 0) return { sentence: s.returned, action: c.renter.propose };
-      return {
-        sentence: s.active(fmt(rental.depositAmount), rental.monthsFunded, rental.termMonths, you),
-        action: rental.monthsFunded < rental.termMonths ? c.renter.payMonth(rental.monthsFunded + 1) : c.renter.open,
-      };
-    case LeaseStatus.MoveOut: {
-      const p = rental.proposal;
-      const renterProposed = !!p && p.proposer.toLowerCase() === rental.tenant.toLowerCase();
-      if (p && renterProposed && now >= p.proposedAt + BigInt(rental.responseWindow)) return { sentence: s.closed(you), action: c.renter.claim };
-      return { sentence: s.proposal(fmt(p?.tenantRefund ?? ZERO)), action: c.renter.open };
-    }
-    case LeaseStatus.Disputed:
-      return { sentence: s.disputed, action: c.renter.open };
-    case LeaseStatus.Settled:
-      return { sentence: s.settled(fmt(rental.totals.refunded), you), action: c.renter.seeWhat };
-    case LeaseStatus.Cancelled:
-      return { sentence: s.cancelled, action: c.renter.open };
-  }
-}
-
-/** The rental the renter page shows as a live sample: the newest one that is running, else the newest. */
-export function sampleRental(rentals: RentalSummary[]): RentalSummary | undefined {
-  return rentals.find((r) => r.status === LeaseStatus.Active || r.status === LeaseStatus.MoveOut) ?? rentals[0];
-}
-
-export const isMe = (a: Address, me: string | undefined) => !!me && a.toLowerCase() === me.toLowerCase();

@@ -154,38 +154,6 @@ export const rentalCopy = {
 
   details: "Do it here",
 
-  renter: {
-    heroTitle: "Rent a scooter without leaving your passport.",
-    heroBody:
-      "Your deposit and rent go into a small smart contract made for your rental, not to the shop. The deposit comes back when you return the scooter: only you and the shop together, or a neutral dispute desk, can move it.",
-    connect: "Connect your wallet",
-    demo: "Open the live demo",
-    howItWorks: "How it works, explained simply",
-    devHint: "Local demo: pick Renter in the yellow “Demo accounts” bar to see a renter's rentals.",
-    sampleTitle: "A real rental, live on the chain",
-    sampleNone: "No rentals on this network yet.",
-    yours: "Your rentals",
-    noneYet: "No rentals for this wallet yet. Book a scooter below, or send the shop your wallet address.",
-    perMonth: "per month",
-    depositLabel: "deposit",
-    open: "Open rental",
-    pay: (total: string) => `Pay ${total} to start`,
-    payMonth: (n: number) => `Pay month ${n}`,
-    propose: "Propose the split",
-    claim: "Claim deposit",
-    seeWhat: "See what happened",
-    s: {
-      created: (you: boolean) => (you ? "Waiting for you to pay in the deposit and month 1." : "Waiting for the renter to pay in."),
-      active: (deposit: string, paid: number, term: number, you: boolean) =>
-        `${you ? "Your" : "The"} ${deposit} deposit is locked. Rent is paid through month ${paid} of ${term}.`,
-      returned: "Scooter returned. Next: propose how to split the deposit.",
-      proposal: (back: string) => `Return proposal open: ${back} back to the renter.`,
-      closed: (you: boolean) => (you ? "The owner did not reply in time. Claim your full deposit." : "The owner did not reply in time: the deposit goes back."),
-      disputed: "The dispute desk is deciding how to split the deposit.",
-      settled: (back: string, you: boolean) => `Closed. ${you ? "You" : "The renter"} got ${back} back.`,
-      cancelled: "The owner withdrew the offer.",
-    },
-  },
 };
 
 export type RentalCopy = typeof rentalCopy;

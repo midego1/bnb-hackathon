@@ -2,12 +2,11 @@
 
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { rentalCopy as c } from "@/components/lease/copy";
-import { renterLine } from "@/components/lease/story";
 import { Amount, StatusBadge, useBaht } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import type { Scooter } from "@/lib/fleet";
 import type { RentalSummary } from "@/lib/rentals";
+import { renterCopy as c, renterLine } from "./renterStory";
 
 /** One rental as a big, plain card: the scooter, where it stands in one sentence, the money in baht, the next step. */
 export function RentalCard({ r, scooter, now, you }: { r: RentalSummary; scooter?: Scooter; now: bigint; you: boolean }) {
@@ -27,11 +26,11 @@ export function RentalCard({ r, scooter, now, you }: { r: RentalSummary; scooter
         <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
           <div>
             <Amount value={r.depositAmount} size="lg" />
-            <p className="text-sm text-subtle">{c.renter.depositLabel}</p>
+            <p className="text-sm text-subtle">{c.depositLabel}</p>
           </div>
           <div>
             <Amount value={r.rentAmount} size="lg" />
-            <p className="text-sm text-subtle">{c.renter.perMonth}</p>
+            <p className="text-sm text-subtle">{c.perMonth}</p>
           </div>
         </div>
       </div>

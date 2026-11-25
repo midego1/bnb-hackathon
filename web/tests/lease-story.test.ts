@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { zeroHash, type Address, type Hex } from "viem";
 import { rentalCopy } from "@/components/lease/copy";
-import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, renterLine, returnPlan } from "@/components/lease/story";
+import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, returnPlan } from "@/components/lease/story";
+import { renterCopy, renterLine } from "@/components/roles/renterStory";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
@@ -108,9 +109,9 @@ describe("months, money and the return plan", () => {
 
 describe("renter card line", () => {
   const r = (p: Partial<RentalSummary>) => ({ status: LeaseStatus.Active, depositAmount: DEPOSIT, rentAmount: RENT, monthsFunded: 1, termMonths: 3, returnPhotos: [], tenant: RENTER, responseWindow: 7 * 86_400, totals: { refunded: DEPOSIT }, ...p }) as unknown as RentalSummary;
-  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, rentalCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid through month 1 of 3.", action: "Pay month 2" }));
+  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid through month 1 of 3.", action: "Pay month 2" }));
   it("owner silent past the window: claim", () => {
     const p = { proposer: RENTER, tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: zeroHash, proposedAt: T0, nonce: 1 };
-    expect(renterLine(r({ status: LeaseStatus.MoveOut, proposal: p }), T0 + 8n * DAY, fmt, rentalCopy, true).action).toBe("Claim deposit");
+    expect(renterLine(r({ status: LeaseStatus.MoveOut, proposal: p }), T0 + 8n * DAY, fmt, renterCopy, true).action).toBe("Claim deposit");
   });
 });

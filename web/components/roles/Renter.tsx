@@ -3,7 +3,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
-import { rentalCopy as c } from "@/components/lease/copy";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Notice } from "@/components/ui";
 import { postFleet, scooterState, type Scooter } from "@/lib/fleet";
@@ -12,6 +11,7 @@ import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useRentals } from "@/lib/hooks/useRentals";
 import { usePrices } from "@/lib/usePrices";
 import { RentalCard } from "./RentalCard";
+import { renterCopy as c } from "./renterStory";
 import { useFleet } from "./shared";
 import { ScooterStateBadge, thbToUsdt } from "./FleetOwner";
 
@@ -36,9 +36,9 @@ export function Renter() {
     <div className="space-y-10">
       <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
       <section>
-        <h1 className="mb-4 text-3xl font-semibold tracking-tight">{c.renter.yours}</h1>
+        <h1 className="mb-4 text-3xl font-semibold tracking-tight">{c.yours}</h1>
         {myRentals.length === 0 ? (
-          <p className="text-base text-muted-foreground">{c.renter.noneYet}</p>
+          <p className="text-base text-muted-foreground">{c.noneYet}</p>
         ) : (
           <ul className="space-y-4" data-testid="renter-rentals">
             {myRentals.map((r) => (
