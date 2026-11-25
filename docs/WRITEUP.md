@@ -1,116 +1,48 @@
-# CoinMarketCap x Atlas track: price data in KeyEscrow
+# KeyEscrow: CoinMarketCap x Atlas write-up (one page)
 
-**TL;DR:**
+**Team:** KeyEscrow · contacts: _owner to fill in (names, Telegram/email)_ · repo: this repository · demo: `/integrations` and the owner/renter rental pages.
 
-- KeyEscrow holds rental deposits and rent in a stablecoin on BNB Chain, but owners and renters in
-  Thailand think in **baht**.
-- We use live price data in two places: to show every amount in **THB and USD**, and to convert AI damage
-  estimates quoted in THB into a **fair settlement value** in token units.
-- Price data is fetched **only on the server**, cached, and backed by a fallback chain. It never gates a
-  contract call.
+## Problem and audience
 
-> **Status:**
->
-> - **On `main`:** `GET /api/price` (Atlas feeds → CoinMarketCap → last good quote → static demo rates), cached
->   in memory, and a UI that shows every amount THB first, then USD and the exact USDT, with a source badge:
->   **Atlas feed**, **Live CoinMarketCap** or **Demo rates** (plus *stale* when a live source just failed).
-> - **Roadmap:** typing the rent in THB on the create form, and the THB "fair settlement value" conversion in
->   the AI report (section 2 below).
->
-> During the hackathon we make no calls to paid APIs. Local runs and the demo use the labelled demo rates.
+Tourists renting scooters in Thailand leave their passport as a deposit and face bogus damage claims at return;
+shop owners face real damage with no proof. KeyEscrow holds rent and deposit in a per-rental escrow contract on
+BNB Chain and settles the deposit from an AI photo inspection. The audience is small rental shops (owners), tourists
+and expats (renters), and later fleet investors. Everyone thinks in **baht**, while the deposit sits in a token, so
+the deposit must keep covering a THB repair bill for the whole rental. That is a risk problem, and it needs market data.
 
-## Where price data is used
+## Data used, and why
 
-### 1. THB/USD display
+| Source | Endpoint / feed | Used for | Where |
+|---|---|---|---|
+| CoinMarketCap Pro API | `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | `percent_change_24h/7d/30d` → daily volatility per payment token → **deposit risk buffer** (stablecoin 0 %, BNB ≈ 15–25 % for 30 days, > 60 % rejected) | `web/lib/risk.ts`, `web/lib/server/risk`, `GET /api/risk` |
+| CoinMarketCap Pro API | same, `convert=THB` | THB price of USDT and BNB: every amount shown THB first; the THB deposit converted into tokens | `GET /api/price`, `GET /api/risk` |
+| Atlas push oracle | SingleFeed `latestRoundData()` (AggregatorV3), feeds `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD`, optional `ATLAS_FEED_USD_THB` | First price source for display and deposit valuation, with the Atlas staleness check (`updatedAt` older than `ATLAS_MAX_AGE_SECONDS`, default 1 h, or a never-updated feed is rejected) | `web/lib/server/price` (`readFeed`) |
+| Cournot (bonus) | `POST /intelligence/v1/probability` | "Will BNB fall below the coverage floor before the return date?" → buffer × (1 + p) | `GET /api/risk`, `POST /api/cournot` |
 
-Every amount in the app is stored on-chain in token units (MockUSDT, 6 decimals). The app shows it in three
-units:
+**Core idea:** CoinMarketCap (and Cournot) decide how much risk a rental carries; Atlas supplies the on-chain price that values the deposit.
+All calls are server-side (keys never reach the browser) and every call is logged with endpoint, time, HTTP status and
+CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `/integrations`.
 
-```
-Rent / month   ฿3,300                       [● Live CoinMarketCap]
-               $100.00 · 100.00 USDT
-Deposit        ฿6,600
-               $200.00 · 200.00 USDT
-```
+## BNB Chain contracts and data (BSC testnet, chain 97)
 
-Running text (timeline, fee note, proposals) uses the short form `฿3,300 ($100.00)`. Hovering an amount shows
-the exact on-chain USDT and the rate source; hovering the badge shows the source, its update time and any
-warning.
+| Contract | Address |
+|---|---|
+| EscrowFactory | `0xdf3d62d64407ca5684425E17E78Cde26d3890eca` |
+| RentalEscrow implementation (EIP-1167 clones per rental) | `0x3144c6C05018F376E545a60C1E8F3B6962D04C41` |
+| MockUSDT (test stablecoin, 6 decimals) | `0x7f3F2fE665B8ef85532A1Fa91DAB27fB41201F7B` |
+| ERC-8004 Identity Registry (inspector agent #2921) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Atlas feeds | _not yet: Atlas publishes no BSC testnet feed addresses; to be filled in at the venue_ |
 
-- **Owner** creating a rental: they type the rent and deposit in USDT and see the THB and USD value live
-  underneath, plus the one-time fee in THB. (Typing the rent in THB directly is on the roadmap.)
-- **Renter** funding a rental: before signing the funding transaction, they see the deposit plus first
-  month in THB.
-- **Dispute desk:** compares the claim amounts in THB, the currency in which repair quotes are written.
-- **Every rate shown** carries its **source and age** in the badge. Fallback rates read *Demo rates*; a live
-  source that just failed adds *stale*.
+## Status (be precise for judges)
 
-### 2. Fair settlement value (roadmap)
+- Built and tested: CMC volatility buffer + THB conversion (fixture tests; live once `CMC_API_KEY` is set), Atlas read
+  path with staleness check (unit-tested with a fake feed), call logging, `/integrations` evidence page.
+- Pending the owner: a CMC key (live calls), Atlas BSC testnet feed addresses (and whitelisting if a contract reads them).
 
-The AI inspection estimates damage in THB, for example "respray scratched left side panel ≈ ฿1,500", because
-that is how Thai scooter repair shops quote. To turn this into an on-chain proposal, the server:
+## What we would build next
 
-1. Fetches the current THB-per-USDT quote.
-2. Converts each line item, then caps the total `landlordClaim` at the deposit
-   (`tenantRefund = deposit − landlordClaim`).
-3. Writes the quote into the inspection report JSON as `{source, pair, rate, timestamp}`, next to
-   `reasons[]`.
-4. Hashes the report. The hash goes on-chain as `reportHash` in `propose()`.
-
-This makes the conversion **auditable**. Either party, or the arbiter, can open the report, see which rate
-turned ฿3,000 into how many tokens, and check the report against the on-chain hash. Neither side can later
-claim the rate was invented.
-
-## Sources
-
-| Order | Source | Used for | How |
-| --- | --- | --- | --- |
-| 1 | **Atlas on-chain price feed** | USD price of USDT and BNB, and THB where a USD/THB feed is set | `viem` `readContract` (AggregatorV3 `latestRoundData()`) on `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD` and optionally `ATLAS_FEED_USD_THB` via `ATLAS_RPC_URL`, from the server route. Verifiable on-chain data within the BNB ecosystem. |
-| 2 | **CoinMarketCap Pro API** | THB and USD quotes for USDT and BNB | Server-side request with `CMC_API_KEY` (alias `CMC_PRO_API_KEY`) sent as the `X-CMC_PRO_API_KEY` header. The quotes endpoint with `convert=USD` and `convert=THB`. |
-| 3 | Last good quote | Short outages | In-memory cache, badge shows *stale*. |
-| 4 | Static demo rates | Local dev and the demo without keys | Fixed rates, always labelled *Demo rates*. |
-
-The route reports the source it used, and the UI shows it.
-
-## Server-side only
-
-- **Keys live only on the server.** `CMC_API_KEY` is read inside a Next.js route handler on the
-  server. It is never a `NEXT_PUBLIC_` variable and never reaches the browser bundle.
-  The `ATLAS_*` feed addresses are not secret, but they are read on the server too, so that the fallback logic
-  stays in one place.
-- **The browser calls only `/api/price`.** It never calls CoinMarketCap directly, so the key cannot leak
-  and the CMC rate limits apply to one server, not to every visitor.
-- **The contracts never read a price.** Escrow amounts are fixed in token units when the rental is created.
-  A bad price can at worst make a THB label wrong for a few minutes. It cannot move funds. A settlement
-  always needs a human on each side to sign, or the arbiter.
-
-## Caching
-
-- One in-memory quote (USDT and BNB in USD and THB). Every page load and every rental card reads the same
-  cached value, and the browser refetches once a minute, so upstream traffic depends on the TTL, not on the
-  number of visitors.
-- The TTL is `PRICE_CACHE_TTL_SECONDS` (default 60 s). One CoinMarketCap refresh costs 2 credits, so the
-  default stays inside a free plan's budget. Fiat rates for a stablecoin move slowly.
-- **In-flight de-duplication.** Concurrent requests after expiry share one upstream fetch.
-- **Stale on error.** If every live source fails, the last good live quote is served with a warning before
-  falling back to demo rates.
-- **Roadmap: a `maxAge` for settlement.** When the server prepares a THB-based proposal (section 2), it will
-  refuse quotes older than a short limit and refresh first. A display can tolerate a slightly old rate; a
-  report that moves money cannot.
-
-## Fallback
-
-The route tries the sources in order (Atlas → CoinMarketCap → last good quote → demo rates) and returns the
-first valid one. An Atlas answer of zero or below is rejected. (A sanity band against the last good quote, to
-catch a feed that is 100 times off, is on the roadmap.) If every live source fails:
-
-- **Display:** shows the last good quote with a *stale* badge, or the demo rates with a *Demo rates* badge.
-- **Settlement:** the AI proposal is produced in token units and does not depend on the price route, so no
-  transaction is blocked. (Once the THB conversion of section 2 lands, the report will mark it as unavailable.)
-
-## Why it matters for the track
-
-Price data is what makes KeyEscrow usable for Thai renters. The escrow can settle in a USD stablecoin while
-both parties sign in baht, and the conversion behind every settlement is recorded and can be checked. Both
-CoinMarketCap and the Atlas feed are behind one small, cached server endpoint, so the integration is cheap
-to run and safe to rely on.
+1. On-chain enforcement: the escrow reads the Atlas BNB/USD feed at funding to convert the THB deposit into BNB and
+   rejects stale prices; a deposit health check flags under-collateralised rentals and asks for a top-up.
+2. CMC DEX data (`security_scan`, holder concentration) to screen any extra payment token.
+3. CMC Fear & Greed and OHLCV history (paid tier) for a better volatility model than rolling percent changes.
+4. Fleet vault yield in THB/USD valued with Atlas.
