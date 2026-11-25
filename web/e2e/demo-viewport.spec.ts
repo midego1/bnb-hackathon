@@ -1,9 +1,9 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import path from "node:path";
 import { restoreChainAfterEachTest } from "./chain";
 
 /**
- * /demo is one screen on a laptop or projector: at these viewports the page never scrolls (not during play, not on
+ * /demo is one screen on a laptop or projector (desktop, at least 720px tall): at these viewports the page never scrolls (not during play, not on
  * the end summary) for all three stories. A monitor in the page records the worst overflow after every DOM change.
  *
  * Screenshots of every size go to DEMO_VIEWPORT_SHOTS (default test-results/screenshots/viewport).
@@ -219,5 +219,105 @@ for (const vp of VIEWPORTS) {
     if (vp.width === 1470) await page.screenshot({ path: path.join(SHOTS, `${name}-panel-open-summary.png`) });
     const worst = await worstOverflow(page);
     expect(worst, `worst page overflow with the panel open (at: ${worst.at})`).toMatchObject({ y: 0, x: 0 });
+  });
+}
+
+/*
+ * Short desktop windows: a laptop with toolbars, a zoomed browser, docked devtools, a window that is not maximised.
+ * Below 720px tall the stage is not pinned (app/globals.css, the `stage` variant) and the page scrolls; from 720px it
+ * is pinned and its panels scroll inside. Either way nothing is clipped: the last timeline step and the summary
+ * buttons are reachable with the mouse wheel and with the keyboard.
+ */
+const SHORT = [
+  { width: 1280, height: 600, pinned: false },
+  { width: 1440, height: 700, pinned: false },
+  { width: 1176, height: 664, pinned: false }, // 1470x830 at 125% browser zoom
+  { width: 1024, height: 600, pinned: false },
+  { width: 1024, height: 768, pinned: true }, // pinned, but narrow: the panels scroll inside
+];
+
+/** Fully on screen: IntersectionObserver against the viewport, which also counts clipping by overflow ancestors. */
+const inView = (target: Locator) =>
+  target.evaluate(
+    (el) =>
+      new Promise<boolean>((resolve) => {
+        const io = new IntersectionObserver(([e]) => {
+          io.disconnect();
+          resolve(e.intersectionRatio > 0.99);
+        });
+        io.observe(el);
+      }),
+  );
+
+/** Scroll with the mouse wheel over `over` until `target` is fully on screen. */
+async function wheelUntilVisible(page: Page, over: Locator, target: Locator, what: string) {
+  const vp = page.viewportSize()!;
+  for (let i = 0; i < 40; i++) {
+    if (await inView(target)) return;
+    const b = (await over.boundingBox()) ?? { x: vp.width / 2, y: vp.height / 2, width: 1, height: 1 };
+    const x = Math.min(Math.max(b.x + b.width / 2, 1), vp.width - 1);
+    const y = Math.min(Math.max(b.y + Math.min(b.height / 2, 40), 1), vp.height - 1);
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(0, 250);
+    await page.waitForTimeout(50);
+  }
+  await expect(target, `${what} reachable with the mouse wheel`).toBeInViewport({ ratio: 1 });
+}
+
+for (const vp of SHORT) {
+  const name = `${vp.width}x${vp.height}`;
+  test(`short window ${name}: ${vp.pinned ? "panels scroll" : "page scrolls"}, last timeline step and summary buttons reachable`, async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    await page.goto("/demo");
+    await expect(page.getByTestId("demo-play")).toBeEnabled();
+
+    const layout = await page.evaluate(() => ({
+      pinned: getComputedStyle(document.body).overflowY === "hidden",
+      sw: document.scrollingElement!.scrollWidth,
+      iw: window.innerWidth,
+    }));
+    expect(layout.pinned, `stage pinned at ${name}`).toBe(vp.pinned);
+    expect(layout.sw, "page scrolls sideways").toBeLessThanOrEqual(layout.iw);
+
+    await page.getByTestId("demo-speed-fast").click();
+    await page.getByTestId("demo-mode-auto").click();
+    await page.getByTestId("demo-play").click();
+    const summary = page.getByTestId("demo-summary");
+    await expect(summary).toBeVisible({ timeout: 90_000 });
+    await expect(summary).toHaveAttribute("data-balanced", "true");
+
+    // The page OR the panels scroll: unpinned, the page is taller than the window; pinned, the page never scrolls and a
+    // stage panel that holds more than it shows is a scroll container (never clipped content).
+    const scrolls = await page.evaluate(() => ({
+      page: document.scrollingElement!.scrollHeight > window.innerHeight,
+      clipped: ["demo-rail", "demo-live", "demo-center", "demo-summary", "demo-actors"].filter((id) => {
+        const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+        return !!el && el.scrollHeight > el.clientHeight + 1 && !/auto|scroll/.test(getComputedStyle(el).overflowY);
+      }),
+    }));
+    expect(scrolls.page, `page scrolls at ${name}`).toBe(!vp.pinned);
+    expect(scrolls.clipped, "panels that cut off content without scrolling").toEqual([]);
+
+    // Summary buttons: wheel over the summary until "Run again" and the other stories are on screen.
+    await wheelUntilVisible(page, summary, page.getByTestId("demo-run-again"), "Run again");
+    await wheelUntilVisible(page, summary, page.getByTestId("demo-try-dispute"), "Try the dispute story");
+    await expect(page.getByTestId("demo-balanced")).toBeVisible();
+
+    // Last timeline step: with the wheel over the timeline...
+    const rail = page.getByTestId("demo-rail");
+    const lastStep = page.locator('[data-testid="demo-step"]').last();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await rail.evaluate((el) => (el.scrollTop = 0));
+    await wheelUntilVisible(page, rail, lastStep, "last timeline step");
+    // ...and with the keyboard: the timeline is a focusable scroll region, the arrow keys scroll it (or, unpinned, the
+    // page) down to the last step.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await rail.evaluate((el) => (el.scrollTop = 0));
+    await rail.focus();
+    await expect(rail).toBeFocused();
+    for (let i = 0; i < 80 && !(await inView(lastStep)); i++) await page.keyboard.press("ArrowDown");
+    await expect(lastStep, "last timeline step reachable with the keyboard").toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: path.join(SHOTS, `${name}-short-summary.png`) });
   });
 }

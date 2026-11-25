@@ -62,6 +62,7 @@ export const intro = {
 
 export const panels = {
   story: "The story",
+  stage: "Current step",
   live: "The real rental page, live",
   liveNote: "The same component owner and renter use, re-rendered after every transaction.",
   liveEmpty: "The rental page appears here as soon as the owner has created the rental.",
