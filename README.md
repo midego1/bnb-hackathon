@@ -82,7 +82,8 @@ echo "NEXT_PUBLIC_DEV_ACCOUNTS=1" > web/.env.local   # "Demo accounts" bar: act 
 pnpm dev                                             # http://localhost:3000
 ```
 
-[docs/DEMO.md](docs/DEMO.md) has the seeded accounts and leases and a 3-minute demo script.
+[docs/DEMO.md](docs/DEMO.md) has the seeded accounts and leases and a 3-minute demo script. In a local build the
+landing page has a **▶ Play the demo** button that plays the whole story in one click (`/demo`).
 
 Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
 falls back to a labelled local mock when its key is missing. See [docs/API.md](docs/API.md) for the server API
