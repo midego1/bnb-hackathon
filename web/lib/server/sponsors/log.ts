@@ -1,6 +1,8 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Env } from "../env";
+import { onCloudflare } from "../platform";
+import { getSharedState, update } from "../state";
 
 /** One outbound sponsor API call. Never holds a key, header or full URL with secrets. */
 export interface SponsorCall {
@@ -24,8 +26,12 @@ export function sponsorLogDir(env: Env = process.env): string {
 }
 
 function writesToDisk(env: Env) {
-  return !env.VITEST && env.SPONSOR_LOG_DISABLE !== "1";
+  return !env.VITEST && env.SPONSOR_LOG_DISABLE !== "1" && !onCloudflare();
 }
+
+/** On Cloudflare Workers (no disk, memory per isolate) the log is a bounded list in the KeyEscrowState Durable Object. */
+const SHARED_KEEP = 50;
+const sharedKey = (sponsor: SponsorCall["sponsor"]) => `sponsor-log:${sponsor}`;
 
 /** Record a call in memory and in web/.sponsor-logs/<sponsor>.jsonl (judges' evidence of live calls). */
 export async function logSponsorCall(call: SponsorCall, env: Env = process.env): Promise<void> {
@@ -33,6 +39,14 @@ export async function logSponsorCall(call: SponsorCall, env: Env = process.env):
   if (ring.length > RING) ring.splice(0, ring.length - RING);
   const line = `${JSON.stringify(call)}\n`;
   console.info(`[sponsor:${call.sponsor}] ${call.endpoint} -> ${call.status ?? "ERR"} in ${call.ms}ms${call.note ? ` (${call.note})` : ""}`);
+  if (onCloudflare() && !env.VITEST) {
+    try {
+      await update<SponsorCall[], void>(getSharedState(), sharedKey(call.sponsor), (cur) => ({ value: [...(cur ?? []), call].slice(-SHARED_KEEP), result: undefined }));
+    } catch (err) {
+      console.warn("sponsor log write failed", (err as Error).message);
+    }
+    return;
+  }
   if (!writesToDisk(env)) return;
   try {
     const dir = sponsorLogDir(env);
@@ -46,6 +60,14 @@ export async function logSponsorCall(call: SponsorCall, env: Env = process.env):
 /** Most recent calls, newest first: from this process, falling back to the on-disk log after a restart. */
 export async function recentSponsorCalls(sponsor: SponsorCall["sponsor"], limit = 20, env: Env = process.env): Promise<SponsorCall[]> {
   const mem = ring.filter((c) => c.sponsor === sponsor);
+  if (onCloudflare() && !env.VITEST) {
+    try {
+      const shared = (await getSharedState().get<SponsorCall[]>(sharedKey(sponsor)))?.value ?? [];
+      return shared.slice(-limit).reverse();
+    } catch {
+      return mem.slice(-limit).reverse();
+    }
+  }
   if (mem.length >= limit || !writesToDisk(env)) return mem.slice(-limit).reverse();
   try {
     const text = await readFile(path.join(sponsorLogDir(env), `${sponsor}.jsonl`), "utf8");

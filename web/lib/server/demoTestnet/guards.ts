@@ -124,8 +124,16 @@ export type RunState = {
 export const EXPECTED_RUN_MS = 75_000;
 
 export class RunLock {
-  private run: RunState | undefined;
-  constructor(private readonly limits: Pick<DemoTestnetConfig, "idleMs" | "maxRunMs">) {}
+  /** `run`: restore a lock persisted elsewhere (store.ts SharedRunStore, a Durable Object on Workers). */
+  constructor(
+    private readonly limits: Pick<DemoTestnetConfig, "idleMs" | "maxRunMs">,
+    private run: RunState | undefined = undefined,
+  ) {}
+
+  /** The raw held run (even if lapsed), for persisting the lock. */
+  snapshot(): RunState | undefined {
+    return this.run;
+  }
 
   /** The run holding the lock, or undefined once it went idle or ran out of time (the lock then frees itself). */
   current(now: number): RunState | undefined {
@@ -172,8 +180,16 @@ export class RunLock {
 }
 
 export class RateLimiter {
-  private starts: number[] = [];
-  constructor(private readonly limits: Pick<DemoTestnetConfig, "minGapMs" | "runsPerHour">) {}
+  /** `starts`: restore start times persisted elsewhere (store.ts SharedRunStore). */
+  constructor(
+    private readonly limits: Pick<DemoTestnetConfig, "minGapMs" | "runsPerHour">,
+    private starts: number[] = [],
+  ) {}
+
+  /** Start times within the last hour, for persisting the limiter. */
+  snapshot(now: number): number[] {
+    return this.starts.filter((t) => now - t < 3_600_000);
+  }
 
   /** Seconds until the next run may start (0 = now). */
   waitSec(now: number): number {

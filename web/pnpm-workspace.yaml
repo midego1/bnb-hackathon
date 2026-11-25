@@ -6,3 +6,6 @@ allowBuilds:
   keccak: false
   utf-8-validate: false
   protobufjs: false
+  # esbuild/workerd ship their binaries as optional platform dependencies; their postinstall checks are not needed.
+  esbuild: false
+  workerd: false

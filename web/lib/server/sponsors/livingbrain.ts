@@ -1,6 +1,8 @@
 import { mkdir, readFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import type { Env } from "../env";
+import { onCloudflare } from "../platform";
+import { getSharedState, update } from "../state";
 import { logSponsorCall, sponsorLogDir } from "./log";
 
 /**
@@ -152,8 +154,38 @@ export class LocalInspectionMemory implements InspectionMemory {
   }
 }
 
+/**
+ * The same stand-in on Cloudflare Workers, where there is no disk: entries live in the KeyEscrowState Durable Object
+ * (lib/server/state), newest 500 kept.
+ */
+export class SharedInspectionMemory implements InspectionMemory {
+  static readonly KEY = "inspections";
+  readonly status: MemoryStatus;
+  constructor(reason: string) {
+    this.status = { provider: "local", configured: false, reason };
+  }
+
+  async recall(scooterId: string): Promise<RecalledMemory[]> {
+    const id = scooterId.toLowerCase();
+    const all = (await getSharedState().get<InspectionMemoryEntry[]>(SharedInspectionMemory.KEY))?.value ?? [];
+    return all
+      .filter((e) => e.scooterId.toLowerCase() === id)
+      .slice(-8)
+      .reverse()
+      .map((e) => ({ text: describeEntry(e), at: e.at, source: "local" as const }));
+  }
+
+  async remember(e: InspectionMemoryEntry) {
+    await update<InspectionMemoryEntry[], void>(getSharedState(), SharedInspectionMemory.KEY, (cur) => ({ value: [...(cur ?? []), e].slice(-500), result: undefined }));
+    return { stored: true };
+  }
+}
+
 export function inspectionMemoryFromEnv(env: Env = process.env, fetchImpl: FetchLike = fetch): InspectionMemory {
   const cfg = livingBrainConfig(env);
   if (cfg.configured) return new LivingBrainMemory(cfg, fetchImpl);
+  if (onCloudflare()) {
+    return new SharedInspectionMemory(`Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"} as Worker secrets. Using local memory.`);
+  }
   return new LocalInspectionMemory(path.join(sponsorLogDir(env), "inspections.jsonl"), `Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"} in web/.env.local. Using local memory.`);
 }

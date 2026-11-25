@@ -30,7 +30,13 @@
     "agent:verify": "pnpm -C agent verify",
     "agent:register:check": "pnpm -C agent register check",
     "agent:register": "pnpm -C agent register register",
-    "agent:rehearse": "pnpm -C agent rehearse"
+    "agent:rehearse": "pnpm -C agent rehearse",
+    "cf:build": "pnpm -C web cf:build",
+    "cf:preview": "pnpm -C web cf:preview",
+    "cf:size": "pnpm -C web cf:size",
+    "cf:deploy": "pnpm -C web cf:deploy",
+    "cf:agent:preview": "pnpm -C agent cf:preview",
+    "cf:agent:deploy": "node web/scripts/cf.mjs deploy --agent"
   },
   "packageManager": "pnpm@12.23.0"
 }

@@ -1,0 +1,9 @@
+# Secrets for `pnpm cf:preview` (wrangler dev). Copy to web/.dev.vars (gitignored) and fill in only what you need.
+# Names only here: this file is committed and the repo is public. See docs/CLOUDFLARE.md.
+ANTHROPIC_API_KEY=
+INSPECTOR_PRIVATE_KEY=
+CMC_API_KEY=
+# Live testnet /demo runner. DEMO_TESTNET_KEYS is JSON {"landlord":"0x…","tenant":"0x…","arbiter":"0x…"}.
+DEMO_TESTNET_KEYS=
+DEMO_TESTNET_RPC_URL=
+DEMO_TESTNET_FUNDER_KEY=

@@ -9,7 +9,12 @@
     "lint": "eslint",
     "test": "vitest run",
     "sync:contracts": "node scripts/sync-contracts.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "cf:build": "node scripts/cf.mjs build",
+    "cf:preview": "node scripts/cf.mjs preview",
+    "cf:size": "node scripts/cf.mjs size",
+    "cf:deploy": "node scripts/cf.mjs deploy",
+    "cf:typecheck": "node scripts/cf.mjs typecheck"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.13.0",
@@ -24,6 +29,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.20.16",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
@@ -33,7 +39,8 @@
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
     "typescript": "^5",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "wrangler": "4.159.0"
   },
   "packageManager": "pnpm@12.23.0"
 }

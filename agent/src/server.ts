@@ -4,8 +4,9 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import express, { type Express } from "express";
 import { InspectorExecutor } from "./a2a.ts";
 import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } from "./card.ts";
-import type { AgentConfig } from "./config.ts";
+import type { AgentConfig } from "./identity.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
+import { nodeEvidenceStore, nodeInspectionMemory } from "./node-deps.ts";
 import { buildMcpServer } from "./mcp.ts";
 import { inspectorLabel, PriceService, visionProviderFromEnv, type ActionHost, type VisionProvider } from "./shared.ts";
 
@@ -27,7 +28,7 @@ export interface BuildOptions {
  */
 export function buildApp(cfg: AgentConfig, opts: BuildOptions = {}): Express {
   const identity = cfg.inspector?.identity ?? null;
-  const deps = (): InspectDeps => ({ inspector: cfg.inspector, provider: opts.provider, now: opts.now?.() });
+  const deps = (): InspectDeps => ({ inspector: cfg.inspector, provider: opts.provider, loadStore: nodeEvidenceStore, loadMemory: nodeInspectionMemory, now: opts.now?.() });
   const card = buildAgentCard(cfg.publicUrl, identity);
   const registry = parseAgentRegistry(identity?.agentRegistry);
   const registration = buildRegistrationFile(cfg.publicUrl, {

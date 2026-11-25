@@ -1,0 +1,47 @@
+// KeyEscrow web app on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
+//
+// Build:   pnpm cf:build     (chain 97 only; refuses NEXT_PUBLIC_DEV_ACCOUNTS=1)
+// Preview: pnpm cf:preview   (wrangler dev, local workerd; never talks to the Cloudflare API)
+// Deploy:  pnpm cf:deploy    (needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID; refuses without them)
+//
+// Secrets (`wrangler secret put <NAME>`) and optional bindings are listed in docs/CLOUDFLARE.md. Nothing secret
+// goes in this file: it is committed and the repo is public.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "keyescrow-web",
+  // The custom entry wraps .open-next/worker.js and adds the KeyEscrowState Durable Object.
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Public URL: https://keyescrow-web.<account-subdomain>.workers.dev. No custom domain, no zone routes.
+  "workers_dev": true,
+  "preview_urls": false,
+  // Never phone home from wrangler (dev or deploy).
+  "send_metrics": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // Plain (non-secret) runtime vars. The NEXT_PUBLIC_* values are baked into the bundle at build time by
+  // scripts/cf.mjs from contracts/deployments/97.json; these are the server-side copies the API routes read.
+  "vars": {
+    "NEXT_PUBLIC_CHAIN_ID": "97",
+    "KEYESCROW_PLATFORM": "cloudflare",
+    "VISION_LLM_PROVIDER": "anthropic",
+    "PRICE_CACHE_TTL_SECONDS": "300",
+    // The live testnet /demo runner: on, but it stays off (404) until the DEMO_TESTNET_KEYS secret is set.
+    "DEMO_TESTNET_RUNNER": "1"
+  },
+  // Shared state across isolates (locks, rate limits, caches): one SQLite-backed Durable Object, available on the
+  // Workers Free plan. lib/server/state picks it up when the binding is present.
+  "durable_objects": {
+    "bindings": [{ "name": "KEYESCROW_STATE", "class_name": "KeyEscrowState" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KeyEscrowState"] }]
+  // Optional evidence storage. R2 needs R2 enabled on the account (a payment method on file, even within the free
+  // tier), so it is off by default; without it POST /api/evidence answers 503 "uploads disabled on this
+  // deployment" and the browser falls back to hashing files locally (the demo's evidence is static).
+  // To enable: `wrangler r2 bucket create keyescrow-evidence`, then uncomment:
+  // , "r2_buckets": [{ "binding": "EVIDENCE", "bucket_name": "keyescrow-evidence" }]
+}

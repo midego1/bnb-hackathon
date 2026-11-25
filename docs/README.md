@@ -10,6 +10,7 @@
 | [WRITEUP.md](WRITEUP.md) | The CoinMarketCap x Atlas track: how KeyEscrow uses price data (server-side, cached, with fallbacks). |
 | [API.md](API.md) | The server routes (`/api/settlement`, `/api/price`, `/api/evidence`) and their mock fallbacks. |
 | [DEPLOY.md](DEPLOY.md) | The BSC testnet (97) deploy path: preflight, guarded broadcast, verification, local rehearsal. |
+| [CLOUDFLARE.md](CLOUDFLARE.md) | The public deploy on Cloudflare Workers (web app + agent): build, local preview, secrets, one-time setup, deploy. Prepared, not deployed yet. |
 | [DEMO.md](DEMO.md) | The one-click demo and a 3-minute demo script on a local anvil chain, with the seeded accounts and rentals. |
 | [screenshots/](screenshots/) | Screenshots of every page, taken from a seeded local anvil. |
 | [AGENT.md](AGENT.md) | KeyEscrow Inspector: the AI inspection as an ERC-8004 agent (BNB Agent SDK, A2A + MCP), signed reports, testnet registration. |

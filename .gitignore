@@ -46,3 +46,9 @@ web/CLAUDE.md
 /pnpm-lock.yaml
 contracts/broadcast/**/run-[0-9]*.json
 contracts/broadcast/**/*.recovery.lock
+
+# Cloudflare Workers (wrangler local state, OpenNext output; see docs/CLOUDFLARE.md)
+.wrangler/
+web/.open-next/
+.dev.vars*
+!.dev.vars.example

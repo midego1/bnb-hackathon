@@ -1,6 +1,6 @@
 import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
 import { AgentEndpoint, AgentURIGenerator } from "@bnbagent/sdk/erc8004";
-import { AGENT_DESCRIPTION, AGENT_NAME, AGENT_VERSION, REPO_URL } from "./config.ts";
+import { AGENT_DESCRIPTION, AGENT_NAME, AGENT_VERSION, REPO_URL } from "./identity.ts";
 import { ACTIONS, toolDescription, type InspectorIdentity } from "./shared.ts";
 
 export const SKILL_ID = "inspect_move_out";

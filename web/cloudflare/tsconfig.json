@@ -1,0 +1,16 @@
+{
+  // Worker-only sources (bundled by wrangler, not Next). Types come from `wrangler types` (gitignored output),
+  // which scripts/cf.mjs regenerates before type-checking: `node scripts/cf.mjs typecheck`.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "types": []
+  },
+  "include": ["*.ts", "../lib/server/state/entry.ts"]
+}

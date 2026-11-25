@@ -46,3 +46,9 @@ next-env.d.ts
 
 # sponsor API call logs and cached sponsor results (local evidence; see docs/SPONSORS.md)
 /.sponsor-logs/
+# Cloudflare Workers (OpenNext + wrangler): build output, local state, generated types, local secrets
+/.open-next/
+/.wrangler/
+/cloudflare/worker-configuration.d.ts
+.dev.vars*
+!.dev.vars.example

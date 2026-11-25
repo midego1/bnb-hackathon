@@ -1,6 +1,8 @@
 import { createPublicClient, http, isAddress, parseAbi, type Address } from "viem";
+import { onCloudflare } from "../platform";
 import { cmcQuotes } from "../sponsors/cmc";
 import { logSponsorCall } from "../sponsors/log";
+import { cacheGet, cachePut, getSharedState, type SharedState } from "../state";
 
 export type Fiat = "USD" | "THB";
 export type Asset = "USDT" | "BNB";
@@ -148,9 +150,21 @@ export interface PriceServiceOptions {
   now?: () => Date;
   /** Override the Atlas reader (tests). */
   atlas?: typeof fetchAtlas;
+  /**
+   * Cross-isolate cache behind the in-memory one (the KeyEscrowState Durable Object on Cloudflare Workers, where
+   * process memory is per isolate). Called per request; null/undefined -> in-memory only.
+   */
+  shared?: () => SharedState | null;
+  /**
+   * Share one in-flight upstream fetch between concurrent requests (default true). Off on Workers: a promise that one
+   * request's I/O resolves must not be awaited by another request there.
+   */
+  dedupe?: boolean;
 }
 
-/** In-memory, per-process price cache with in-flight de-duplication and stale-on-error. */
+const SHARED_KEY = "price:quote";
+
+/** In-memory, per-process price cache with in-flight de-duplication and stale-on-error (plus an optional shared cache). */
 export class PriceService {
   private cache: { quote: PriceQuote; expiresAt: number } | null = null;
   private inflight: Promise<PriceQuote> | null = null;
@@ -158,6 +172,8 @@ export class PriceService {
   private readonly fetchImpl: FetchLike;
   private readonly now: () => Date;
   private readonly atlas: typeof fetchAtlas;
+  private readonly shared: () => SharedState | null;
+  private readonly dedupe: boolean;
   readonly ttlMs: number;
 
   constructor(opts: PriceServiceOptions = {}) {
@@ -165,6 +181,8 @@ export class PriceService {
     this.fetchImpl = opts.fetch ?? fetch;
     this.now = opts.now ?? (() => new Date());
     this.atlas = opts.atlas ?? fetchAtlas;
+    this.shared = opts.shared ?? (() => null);
+    this.dedupe = opts.dedupe ?? true;
     const ttl = Number(this.env.PRICE_CACHE_TTL_SECONDS);
     this.ttlMs = (Number.isFinite(ttl) && ttl > 0 ? ttl : 60) * 1000;
   }
@@ -172,10 +190,20 @@ export class PriceService {
   async get(): Promise<PriceQuote & { cached: boolean }> {
     const now = this.now().getTime();
     if (this.cache && now < this.cache.expiresAt) return { ...this.cache.quote, cached: true };
-    this.inflight ??= this.load().finally(() => {
+    const fromShared = await this.readShared(now);
+    if (fromShared) return { ...fromShared, cached: true };
+    if (!this.dedupe) return { ...(await this.loadAndShare()), cached: false };
+    this.inflight ??= this.loadAndShare().finally(() => {
       this.inflight = null;
     });
     return { ...(await this.inflight), cached: false };
+  }
+
+  private async loadAndShare(): Promise<PriceQuote> {
+    const quote = await this.load();
+    // Fresh live quotes only: a mock answer or a stale fallback must not pin every isolate for a whole TTL.
+    if (!quote.mock && !quote.warning && this.cache) await this.writeShared(this.cache);
+    return quote;
   }
 
   private async load(): Promise<PriceQuote> {
@@ -217,12 +245,37 @@ export class PriceService {
     this.cache = { quote, expiresAt: this.now().getTime() + this.ttlMs };
     return quote;
   }
+
+  /** A live quote another isolate fetched within the TTL; it also refills the in-memory cache. */
+  private async readShared(now: number): Promise<PriceQuote | null> {
+    const state = this.shared();
+    if (!state) return null;
+    try {
+      const hit = await cacheGet<{ quote: PriceQuote; expiresAt: number }>(state, SHARED_KEY);
+      if (!hit || now >= hit.expiresAt) return null;
+      this.cache = hit;
+      return hit.quote;
+    } catch (err) {
+      console.warn("[price] shared cache read failed", (err as Error).message);
+      return null;
+    }
+  }
+
+  private async writeShared(entry: { quote: PriceQuote; expiresAt: number }) {
+    const state = this.shared();
+    if (!state) return;
+    try {
+      await cachePut(state, SHARED_KEY, entry, Math.max(1, entry.expiresAt - this.now().getTime()));
+    } catch (err) {
+      console.warn("[price] shared cache write failed", (err as Error).message);
+    }
+  }
 }
 
 let shared: PriceService | null = null;
 
-/** Process-wide service used by the route handler. */
+/** Process-wide service used by the route handler; on Cloudflare Workers it also shares quotes across isolates. */
 export function getPriceService(): PriceService {
-  shared ??= new PriceService();
+  shared ??= new PriceService(onCloudflare() ? { shared: getSharedState, dedupe: false } : {});
   return shared;
 }

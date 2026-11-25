@@ -19,7 +19,9 @@
     "register": "tsx scripts/register.ts",
     "rehearse": "bash scripts/rehearse.sh",
     "verify": "tsx scripts/verify.ts",
-    "demo:tools": "tsx scripts/demo-tools.ts"
+    "demo:tools": "tsx scripts/demo-tools.ts",
+    "cf:preview": "WRANGLER_SEND_METRICS=false CLOUDFLARE_API_TOKEN= CLOUDFLARE_ACCOUNT_ID= wrangler dev --ip 127.0.0.1 --port ${CF_AGENT_PREVIEW_PORT:-8788} --local --show-interactive-dev-session=false",
+    "cf:deploy": "node ../web/scripts/cf.mjs deploy --agent"
   },
   "packageManager": "pnpm@12.23.0",
   "dependencies": {
@@ -35,6 +37,7 @@
     "@types/node": "^22.20.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "wrangler": "4.159.0"
   }
 }

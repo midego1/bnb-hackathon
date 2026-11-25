@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { friendlyError } from "@/lib/errors";
+import { onCloudflare } from "../platform";
+import { getSharedState } from "../state";
 import { getDemoTestnetRunner, type DemoTestnetRunner } from "./runner";
 import { DemoError } from "./guards";
+import { SharedRunStore } from "./store";
 
 /**
  * Shared plumbing of the /api/demo-testnet/* routes. They exist only when the live testnet demo is switched on
  * (DEMO_TESTNET_RUNNER=1 on a chain 97 build with a secrets dir): otherwise every route answers a bare 404.
  */
 export async function handle(req: Request | undefined, fn: (runner: DemoTestnetRunner, body: unknown) => Promise<unknown>) {
-  const runner = getDemoTestnetRunner();
+  // On Cloudflare Workers the lock and rate limit live in the KeyEscrowState Durable Object, not in isolate memory.
+  const runner = onCloudflare() ? getDemoTestnetRunner(process.env, { store: (cfg) => new SharedRunStore(cfg, getSharedState) }) : getDemoTestnetRunner();
   if (!runner) return new NextResponse("Not Found", { status: 404 });
   let body: unknown = undefined;
   if (req) {
