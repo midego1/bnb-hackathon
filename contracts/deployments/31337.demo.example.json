@@ -4,6 +4,7 @@
   "checkInHash": "0x09016344099766d2e2a452e2017d8c518d9263d17ada5750e242893c83c0518f",
   "checkInManifest": "/demo/checkin-manifest.json",
   "depositAmount": 882360000,
+  "disputedLease": "0xbf9fBFf01664500A33080Da5d437028b07DFcC55",
   "landlord": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   "lease": "0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e",
   "leaseFile": "/demo/lease.pdf",

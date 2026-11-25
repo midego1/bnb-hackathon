@@ -3,8 +3,8 @@
 A live walkthrough on a **local anvil chain**. You need three wallets: Landlord, Tenant and the KeyEscrow
 dispute desk.
 
-> **Status:** the local seed script (M3), the wired-up pages (M4) and the AI, price and evidence routes
-> (M5) are being built. This script describes the target demo. Before recording, check the button labels
+> **Status:** the local seed script (M3) and the AI, price and evidence routes (M5) are merged; the wired-up
+> pages (M4) are being built. This script describes the target demo. Before recording, check the button labels
 > and the commands below against the merged code, and update this file if they differ.
 
 ## Setup (before the clock starts)
@@ -14,10 +14,14 @@ dispute desk.
 Start anvil and run the local seed:
 
 ```bash
-anvil                     # local chain, chain id 31337, prints the 10 default dev accounts
-# in a second terminal, from the repo root: run the local seed (deploys MockUSDT + EscrowFactory,
-# funds the demo accounts, creates a demo lease). Use the seed command from contracts/README.md.
+pnpm chain:anvil          # local chain on 127.0.0.1:8545, chain id 31337, prints the 10 default dev accounts
+# in a second terminal, from the repo root:
+pnpm chain:deploy         # MockUSDT + EscrowFactory -> contracts/deployments/31337.json
+pnpm chain:seed           # demo balances, a funded demo lease and a disputed one -> contracts/deployments/31337.demo.json
 ```
+
+On a fresh anvil the addresses are always the same: MockUSDT `0x5FbDB2315678afecb367f032d93F642f64180aa3`,
+EscrowFactory `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` (see `contracts/deployments/31337.example.json`).
 
 The seed uses **anvil's well-known default dev accounts**. Their keys are public and only work on a local
 chain. Never use them anywhere else.
@@ -34,7 +38,7 @@ chain. Never use them anywhere else.
 ### 2. Web app
 
 Set `NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS` and `NEXT_PUBLIC_MOCK_USDT_ADDRESS` in `web/.env.local` to the
-addresses the seed printed. Then run `pnpm dev`. Leave the AI, CMC and Greenfield keys empty: the app then
+addresses in `contracts/deployments/31337.json`. Then run `pnpm dev`. Leave the AI, CMC and Greenfield keys empty: the app then
 uses its labelled mocks and the local evidence folder, and no paid API is called.
 
 ### 3. Browsers
@@ -56,8 +60,9 @@ cast rpc evm_increaseTime 2592000 && cast rpc evm_mine      # +30 days
 
 ### 5. Pre-seeded disputed lease (for scene 6)
 
-Have a second lease in the `Disputed` state ready, either created by the seed or set up by hand beforehand,
-so the dispute scene takes seconds.
+`pnpm chain:seed` also creates a second lease already in the `Disputed` state (landlord claims 100 mUSDT,
+tenant disputed), listed as `disputedLease` in `contracts/deployments/31337.demo.json`. It uses a 60-day
+arbiter window, so it is still open after the +30 day jump in scene 4.
 
 ## Script
 

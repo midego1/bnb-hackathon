@@ -68,10 +68,11 @@ flowchart LR
 
 **Status:**
 
-- **Done:** the three contracts and 55 Foundry tests, the web shell (wallet connect; chains anvil 31337, BSC
-  testnet 97 and opBNB testnet 5611), and role pages as placeholders.
-- **Being built:** wiring the pages to the contracts (M4), the server routes for AI, price and evidence
-  (M5), and the local anvil seed script (M3).
+- **Done:** the three contracts and 80 Foundry tests (100 % line and branch coverage), the local anvil deploy
+  and seed scripts with a scripted chain end-to-end run (M3), the server routes for AI, price and evidence
+  (M5), and the web shell (wallet connect; chains anvil 31337, BSC testnet 97 and opBNB testnet 5611) with
+  role pages as placeholders.
+- **Being built:** wiring the pages to the contracts (M4).
 
 ## 2. Roles and trust model
 
@@ -126,11 +127,10 @@ Notes:
 
 **Status:**
 
-- **On `main`:** every transition except `claimArbiterTimeout()`. `responseWindow` is configurable from 1
-  to 60 days and has no default. `claimTimeout()` currently pays out the tenant's own proposed split.
-- **Being built (contracts branch, not merged):** 7-day and 14-day defaults (0 selects the default),
-  `arbiterWindow` from 1 to 90 days, `claimTimeout()` changed to return the full deposit, and the new
-  `claimArbiterTimeout()`. A distinct `basis` value in the `Settled` event identifies each timeout.
+Implemented as described: both windows are set per lease (0 selects the 7-day / 14-day default;
+`responseWindow` 1-60 days, `arbiterWindow` 1-90 days). The `Settled` event's `basis` is
+`LANDLORD_TIMEOUT_BASIS` or `ARBITER_TIMEOUT_BASIS` for the two timeouts. To change the policy, edit the
+amounts passed to `_settle` in `claimTimeout()` / `claimArbiterTimeout()`.
 
 ## 4. Money flows
 
@@ -164,9 +164,8 @@ flowchart LR
 - Example: rent 750 mUSDT means a fee of 75 mUSDT, so the landlord receives 675 for month 1 and 750 for
   every month after. See [BUSINESS.md](BUSINESS.md#fee-model) for a THB example.
 
-**Status:** on `main`, the fee is `feeBps` of **every** rent release, capped at `MAX_FEE_BPS = 100` (1 %),
-which is a recurring fee. The one-time "10 % of one month" model is being built. On both versions, the
-deposit never pays a fee.
+Implemented as `feeBps` (default 1000, `MAX_FEE_BPS = 1000`) and `feeRecipient` on the factory, snapshotted
+into each lease's terms; the escrow emits `ProtocolFeePaid` when it takes the fee, and rounds it down.
 
 Safety properties enforced in code:
 
@@ -277,6 +276,9 @@ Design rules:
 ## 8. Testing
 
 - `cd contracts && forge test` runs the unit tests and a fuzz test for the factory, the escrow lifecycle,
-  rent schedule, settlement, timeouts and access control, plus MockUSDT.
+  rent schedule, fee, settlement, timeouts and access control, plus MockUSDT.
+- `pnpm e2e:chain` starts a throwaway anvil (port 28545), deploys, seeds, and drives the happy path, a
+  dispute, the landlord timeout and the arbiter fallback with real transactions and anvil time travel,
+  asserting every balance (exits non-zero on failure).
 - Playwright is installed in `web/` for browser smoke tests against a throwaway local anvil.
   **Status:** the smoke tests are being written alongside the M4 pages.

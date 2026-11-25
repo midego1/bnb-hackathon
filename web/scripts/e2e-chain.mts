@@ -260,7 +260,18 @@ async function checkSeed() {
   }
   const byTenant = await read<Address[]>(ctx.factory, ctx.factoryAbi, "leasesByTenant", [tenant.address]);
   assert(byTenant.includes(lease), "factory indexes the demo lease by tenant");
-  return `lease ${lease}: ${fmt(RENT)}/month, ${fmt(DEPOSIT)} deposit, hashes match web/public/demo`;
+
+  // Second demo lease, already disputed, for the dispute-desk scene. Its 60-day arbiter window outlasts a +30 day jump.
+  const disputed = demo.disputedLease as Address;
+  eq(await status(disputed), Status.Disputed, "disputed demo lease status");
+  const dTerms = await read<Record<string, unknown>>(disputed, ctx.escrowAbi, "terms");
+  eq(dTerms.arbiterWindow, Number(60n * DAY), "disputed demo lease arbiter window");
+  eq(await balance(disputed), DEPOSIT + RENT, "disputed escrow holds deposit + first month");
+  const dp = await read<{ landlordClaim: bigint; proposer: Address }>(disputed, ctx.escrowAbi, "proposal");
+  eq(dp.landlordClaim, USDT("100"), "disputed demo lease landlord claim");
+  eq(dp.proposer, landlord.address, "disputed demo lease proposer");
+  assert(byTenant.includes(disputed), "factory indexes the disputed demo lease by tenant");
+  return `lease ${lease}: ${fmt(RENT)}/month, ${fmt(DEPOSIT)} deposit, hashes match web/public/demo; disputed lease ${disputed}`;
 }
 
 async function happyPath() {

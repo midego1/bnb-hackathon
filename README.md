@@ -37,10 +37,10 @@ the deposit goes back to the tenant. **Neither party can move funds alone.**
 
 > **Status:**
 >
-> - **Done:** the contracts and their tests, and the web shell (wallet connect, chains, role pages).
-> - **Being built:** the one-time fee model and the 7-day and 14-day timeout defaults with the arbiter
->   deadline, which `main` still implements in an earlier form; the UI flows; the AI, price and evidence
->   routes; the local seed script.
+> - **Done:** the contracts and their tests (one-time fee, dispute desk as default arbiter, 7-day landlord
+>   timeout and 14-day arbiter deadline), the local deploy / seed scripts and chain end-to-end checks, the
+>   AI, price and evidence routes, and the web shell (wallet connect, chains, role pages).
+> - **Being built:** the UI flows.
 >
 > [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the details.
 
@@ -110,7 +110,7 @@ Everything runs against a local [anvil](https://book.getfoundry.sh/anvil/) node;
 ```bash
 pnpm chain:anvil          # terminal 1: anvil on 127.0.0.1:8545 (ANVIL_PORT=... to change)
 pnpm chain:deploy         # MockUSDT + EscrowFactory -> contracts/deployments/31337.json
-pnpm chain:seed           # demo balances + one funded demo lease -> contracts/deployments/31337.demo.json
+pnpm chain:seed           # demo balances, a funded demo lease + a disputed one -> contracts/deployments/31337.demo.json
 ```
 
 Point both at another local node with `RPC_URL=http://host:port pnpm chain:deploy`. The deploy script refuses any
