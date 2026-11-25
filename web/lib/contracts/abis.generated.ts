@@ -1672,6 +1672,17 @@ export const rentalEscrowAbi = [
   },
   {
     "type": "error",
+    "name": "ResponseWindowClosed",
+    "inputs": [
+      {
+        "name": "deadline",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "SafeERC20FailedOperation",
     "inputs": [
       {
@@ -2154,6 +2165,19 @@ export const fleetVaultAbi = [
   },
   {
     "type": "function",
+    "name": "SHARE_LOCK",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "accIncomePerShare",
     "inputs": [],
     "outputs": [
@@ -2302,6 +2326,25 @@ export const fleetVaultAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "lockedUntil",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -2796,6 +2839,17 @@ export const fleetVaultAbi = [
         "name": "token",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SharesLocked",
+    "inputs": [
+      {
+        "name": "until",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
