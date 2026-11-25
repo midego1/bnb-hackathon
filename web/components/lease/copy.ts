@@ -3,7 +3,7 @@
  * whole; amounts arrive already formatted (baht first) and dates as unix seconds.
  */
 const day = (ts: bigint) => new Date(Number(ts) * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-const months = (n: number) => `${n} month${n === 1 ? "" : "s"}`;
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export const rentalCopy = {
   day,
@@ -18,7 +18,7 @@ export const rentalCopy = {
 
   pill: {
     created: "Waiting for the renter to pay in",
-    month: (m: number, term: number) => `Active, month ${m} of ${term}`,
+    month: (m: number, term: number, u: string) => `Active, ${u} ${m} of ${term}`,
     proposal: "Return: deposit proposal open",
     closed: (at: bigint) => `Return · reply window closed ${day(at)}`,
     disputed: "In dispute",
@@ -27,7 +27,7 @@ export const rentalCopy = {
   },
 
   banner: {
-    fundTitle: (total: string) => `Pay ${total} to start: the deposit plus month 1.`,
+    fundTitle: (total: string, u: string) => `Pay ${total} to start: the deposit plus ${u} 1.`,
     fundBody: "It goes into this rental's own escrow, not to the shop. The deposit stays locked there until you return the scooter.",
     fundAction: (total: string) => `Pay in ${total}`,
     fundNote: "Get test USDT, approve, then fund",
@@ -36,20 +36,20 @@ export const rentalCopy = {
     waitFundOther: "Nothing has moved yet.",
 
     lockedTitle: (deposit: string, you: boolean) => `${you ? "Your" : "The"} ${deposit} deposit is locked in escrow.`,
-    payBody: (paidThrough: number, next: number, due: bigint) =>
-      `Rent is paid through month ${paidThrough}. Pay month ${next} by ${day(due)} to keep riding. The owner can never take the deposit alone.`,
-    payAction: (next: number, rent: string) => `Pay month ${next} · ${rent}`,
+    payBody: (paidThrough: number, next: number, due: bigint, u: string) =>
+      `Rent is paid through ${u} ${paidThrough}. Pay ${u} ${next} by ${day(due)} to keep riding. The owner can never take the deposit alone.`,
+    payAction: (next: number, rent: string, u: string) => `Pay ${u} ${next} · ${rent}`,
     payNote: "Approve, then pay: two wallet confirmations",
-    allPaidBody: (term: number) => `All ${months(term)} are paid in. At return, take the return photos and propose how to split the deposit.`,
+    allPaidBody: (term: string) => `All ${term} are paid in. At return, take the return photos and propose how to split the deposit.`,
     returnedTitle: "Your scooter is back. Propose how to split the deposit.",
     returnedBody: (days: number) => `The AI inspector compares the pickup and return photos and suggests a split. The owner then has ${days} days to reply.`,
     proposeAction: "Propose the split",
 
     collectTitle: (amount: string) => `${amount} of rent is ready for you.`,
     collectBody: (fee: string | null) =>
-      fee ? `The one-time ${fee} KeyEscrow fee comes out of this first payout. Later months pay the full rent.` : "No fee: the one-time KeyEscrow fee was already paid.",
-    collectAction: (month: number, amount: string) => `Collect month ${month} rent · ${amount}`,
-    paidOwnerTitle: (n: number, net: string) => `${months(n)} of rent paid: ${net} is in your wallet.`,
+      fee ? `The one-time ${fee} KeyEscrow fee comes out of this first payout. Later payouts are the full rent.` : "No fee: the one-time KeyEscrow fee was already paid.",
+    collectAction: (n: number, amount: string, u: string) => `Collect ${u} ${n} rent · ${amount}`,
+    paidOwnerTitle: (n: string, net: string) => `${n} of rent paid: ${net} is in your wallet.`,
     runningTitle: "The rental is running.",
     nextDueBody: (due: bigint) => `The renter's next rent is due ${day(due)}. The deposit stays locked until return.`,
     allRentBody: "All rent is paid out. The deposit stays locked until the scooter is returned.",
@@ -58,7 +58,7 @@ export const rentalCopy = {
     noDisputeTitle: "No dispute on this rental.",
     noDisputeBody: "You only rule if the renter and the owner disagree about the deposit at return. Until then you cannot move any money.",
     nothingToRule: "Nothing for you to rule on",
-    monthOf: (m: number, term: number) => `Month ${m} of ${term}. Only the renter and the owner act on this rental.`,
+    monthOf: (m: number, term: number, u: string) => `${cap(u)} ${m} of ${term}. Only the renter and the owner act on this rental.`,
 
     proposedTitle: (by: string, back: string, kept: string) => `The ${by} proposed: ${back} back to the renter, ${kept} to the owner.`,
     replyBy: (at: bigint, owner: boolean) =>
@@ -101,8 +101,8 @@ export const rentalCopy = {
     oneConfirmation: "One wallet confirmation",
   },
 
-  monthsLabel: "Rental progress by month",
-  month: (n: number) => `Month ${n}`,
+  monthsLabel: "Rental progress by rent period",
+  month: (n: number, u: string) => `${cap(u)} ${n}`,
   monthPaidOut: "paid",
   monthPaidIn: "paid in",
   monthDue: (at: bigint) => `due ${day(at)}`,

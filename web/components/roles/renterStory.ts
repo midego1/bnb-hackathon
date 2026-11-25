@@ -1,5 +1,5 @@
 import { LeaseStatus } from "@/lib/contracts";
-import type { RentalSummary } from "@/lib/rentals";
+import { periodName, periodWord, type RentalSummary } from "@/lib/rentals";
 
 /**
  * The renter page's words and its card sentence (English; a translation replaces `renterCopy` whole). Kept apart from
@@ -18,18 +18,19 @@ export const renterCopy = {
   sampleNone: "No rentals on this network yet.",
   yours: "Your rentals",
   noneYet: "No rentals for this wallet yet. Book a scooter below, or send the shop your wallet address.",
-  perMonth: "per month",
+  per: (rentPeriod: number) => `per ${periodName(rentPeriod)}`,
   depositLabel: "deposit",
   open: "Open rental",
   pay: (total: string) => `Pay ${total} to start`,
-  payMonth: (n: number) => `Pay month ${n}`,
+  payPeriod: (n: number, rentPeriod: number) => `Pay ${periodWord(rentPeriod)} ${n}`,
   propose: "Propose the split",
   claim: "Claim deposit",
   seeWhat: "See what happened",
   s: {
-    created: (you: boolean) => (you ? "Waiting for you to pay in the deposit and month 1." : "Waiting for the renter to pay in."),
-    active: (deposit: string, paid: number, term: number, you: boolean) =>
-      `${you ? "Your" : "The"} ${deposit} deposit is locked. Rent is paid through month ${paid} of ${term}.`,
+    created: (you: boolean, rentPeriod: number) =>
+      you ? `Waiting for you to pay in the deposit and ${periodWord(rentPeriod)} 1.` : "Waiting for the renter to pay in.",
+    active: (deposit: string, paid: number, term: number, you: boolean, rentPeriod: number) =>
+      `${you ? "Your" : "The"} ${deposit} deposit is locked. Rent is paid through ${periodWord(rentPeriod)} ${paid} of ${term}.`,
     returned: "Scooter returned. Next: propose how to split the deposit.",
     proposal: (back: string) => `Return proposal open: ${back} back to the renter.`,
     closed: (you: boolean) => (you ? "The owner did not reply in time. Claim your full deposit." : "The owner did not reply in time: the deposit goes back."),
@@ -48,12 +49,12 @@ export function renterLine(rental: RentalSummary, now: bigint, fmt: (v: bigint) 
   const s = c.s;
   switch (rental.status) {
     case LeaseStatus.Created:
-      return { sentence: s.created(you), action: c.pay(fmt(rental.depositAmount + rental.rentAmount)) };
+      return { sentence: s.created(you, rental.rentPeriod), action: c.pay(fmt(rental.depositAmount + rental.rentAmount)) };
     case LeaseStatus.Active:
       if (rental.returnPhotos.length > 0) return { sentence: s.returned, action: c.propose };
       return {
-        sentence: s.active(fmt(rental.depositAmount), rental.monthsFunded, rental.termMonths, you),
-        action: rental.monthsFunded < rental.termMonths ? c.payMonth(rental.monthsFunded + 1) : c.open,
+        sentence: s.active(fmt(rental.depositAmount), rental.periodsFunded, rental.termPeriods, you, rental.rentPeriod),
+        action: rental.periodsFunded < rental.termPeriods ? c.payPeriod(rental.periodsFunded + 1, rental.rentPeriod) : c.open,
       };
     case LeaseStatus.MoveOut: {
       const p = rental.proposal;

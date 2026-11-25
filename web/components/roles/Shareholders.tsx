@@ -8,7 +8,7 @@ import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, N
 import { PayeeMrrKpi } from "@/components/subscriptions/OwnerSubscriptions";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
-import { fleetVaultAbi, mockUsdtAbi } from "@/lib/contracts";
+import { fleetVaultAbi, mockUsdtAbi, TOKEN } from "@/lib/contracts";
 import { formatUsdt, parseUsdt, shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useRentals } from "@/lib/hooks/useRentals";
@@ -18,7 +18,7 @@ import type { ChainEvent } from "@/lib/rentals";
 import { shareLock } from "@/lib/windows";
 import { Kpi, TxLink, When } from "./shared";
 
-const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
+const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
 /** Investor dashboard for the Fleet Vault: TVL, income, yield, the wallet's shares and claimable income. */
 export function Shareholders() {

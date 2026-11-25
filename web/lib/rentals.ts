@@ -82,6 +82,11 @@ export function periodName(rentPeriod: number): string {
   return rentPeriod % (7 * DAY) === 0 ? `${rentPeriod / (7 * DAY)} weeks` : `${rentPeriod / DAY} days`;
 }
 
+/** One rent period in a sentence: "month 3", "week 3", or "period 3" for two-weekly rent. */
+export function periodWord(rentPeriod: number): string {
+  return rentPeriod === MONTH ? "month" : rentPeriod === 7 * DAY ? "week" : "period";
+}
+
 /** `n` rent periods in words: "3 months", "1 week", "6 weeks" (3 periods of 2 weeks). */
 export function periodCount(n: number, rentPeriod: number): string {
   const [k, unit] = rentPeriod % MONTH === 0 ? [(n * rentPeriod) / MONTH, "month"] : rentPeriod % (7 * DAY) === 0 ? [(n * rentPeriod) / (7 * DAY), "week"] : [(n * rentPeriod) / DAY, "day"];

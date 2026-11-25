@@ -1,6 +1,6 @@
 import { formatEther, formatGwei, formatUnits, getAddress, parseEventLogs, type Address, type Hash, type Hex, type TransactionReceipt } from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
-import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { createChain97, gasPriceFrom, TxStalledError, txUrl, type Chain97 } from "../chain97.mts";
 import type { Env } from "../env";
 import {
@@ -271,7 +271,7 @@ export class DemoTestnetRunner {
       const { hash } = await l.c97.sendCall(l.wallets.tenant, call, { maxGas: BigInt(150_000) });
       const r = await l.c97.wait(hash);
       if (r.status !== "success") throw new DemoError(502, "chain-error", "The test mUSDT mint was reverted.");
-      console.log(`[demo-testnet] PromptPay demo minted ${formatUnits(plan.amount, 6)} mUSDT: ${txUrl(hash)}`);
+      console.log(`[demo-testnet] PromptPay demo minted ${formatUnits(plan.amount, TOKEN.decimals)} ${TOKEN.symbol}: ${txUrl(hash)}`);
       return { hash, url: txUrl(hash), to: plan.to, amount: plan.amount.toString() };
     });
   }

@@ -4,11 +4,12 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
-import { RENT_PERIOD, releasableMonths, roleName, viewerRole, type Viewer } from "./model";
+import { oneTimeFee, periodCount, periodWord } from "@/lib/rentals";
+import { releasablePeriods, roleName, viewerRole, type Viewer } from "./model";
 
 /**
  * The rental page as plain sentences (pure, tests/lease-story.test.ts): what state it is in, the ONE thing the viewer
- * can do about it, the month-by-month progress, where the money is, and what happens at return. Everything comes from
+ * can do about it, the period-by-period progress, where the money is, and what happens at return. Everything comes from
  * the escrow's own state and events; `fmt` formats a token amount (baht first).
  */
 
@@ -27,8 +28,8 @@ export type BannerAction =
 
 export type Banner = { tone: "ok" | "warn" | "danger" | "neutral"; pill: string; title: string; body: string; action: BannerAction };
 
-export const feeOf = (lease: Pick<LeaseData, "terms">) => (lease.terms.rentAmount * BigInt(lease.terms.feeBps)) / BigInt(10_000);
-const returnAt = (lease: LeaseData) => lease.startTime + BigInt(lease.terms.termMonths) * RENT_PERIOD;
+export const feeOf = (lease: Pick<LeaseData, "terms">) => oneTimeFee(lease.terms.rentAmount, lease.terms.rentPeriod, lease.terms.feeBps);
+const returnAt = (lease: LeaseData) => lease.startTime + BigInt(lease.terms.termPeriods) * BigInt(lease.terms.rentPeriod);
 
 /** Money that moved, from the escrow's events (the escrow balance itself is read live). */
 export function moneyFlow(events: TimelineEvent[] = []) {
@@ -52,13 +53,13 @@ export function moneyFlow(events: TimelineEvent[] = []) {
 
 export type MonthCell = { n: number; state: "out" | "in" | "due"; due: bigint };
 
-/** One cell per month of the term (empty before the rental starts). */
+/** One cell per rent period of the term (empty before the rental starts). */
 export function monthCells(lease: LeaseData): MonthCell[] {
   if (lease.startTime === ZERO) return [];
-  return Array.from({ length: lease.terms.termMonths }, (_, i) => ({
+  return Array.from({ length: lease.terms.termPeriods }, (_, i) => ({
     n: i + 1,
-    state: i < lease.monthsReleased ? "out" : i < lease.monthsFunded ? "in" : "due",
-    due: lease.startTime + BigInt(i) * RENT_PERIOD,
+    state: i < lease.periodsReleased ? "out" : i < lease.periodsFunded ? "in" : "due",
+    due: lease.startTime + BigInt(i) * BigInt(lease.terms.rentPeriod),
   }));
 }
 
@@ -67,33 +68,34 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
   const t = lease.terms;
   const deposit = fmt(t.depositAmount);
   const idle = (label = b.nothing): BannerAction => ({ kind: "idle", label });
-  const m = Math.max(1, Math.min(lease.monthsDue, t.termMonths));
+  const m = Math.max(1, Math.min(lease.periodsDue, t.termPeriods));
+  const u = periodWord(t.rentPeriod);
 
   switch (lease.status) {
     case LeaseStatus.Created: {
       const total = fmt(t.depositAmount + t.rentAmount);
-      if (viewer === "tenant") return { tone: "neutral", pill: c.pill.created, title: b.fundTitle(total), body: b.fundBody, action: { kind: "jump", to: "fund", label: b.fundAction(total), note: b.fundNote } };
+      if (viewer === "tenant") return { tone: "neutral", pill: c.pill.created, title: b.fundTitle(total, u), body: b.fundBody, action: { kind: "jump", to: "fund", label: b.fundAction(total), note: b.fundNote } };
       return { tone: "neutral", pill: c.pill.created, title: b.waitFundTitle, body: viewer === "landlord" ? b.waitFundOwner : b.waitFundOther, action: idle() };
     }
     case LeaseStatus.Active: {
-      const pill = c.pill.month(m, t.termMonths);
+      const pill = c.pill.month(m, t.termPeriods, u);
       if (viewer === "tenant") {
         if (lease.checkOutHash !== zeroHash) return { tone: "ok", pill, title: b.returnedTitle, body: b.returnedBody(Math.round(t.responseWindow / 86400)), action: { kind: "jump", to: "return", label: b.proposeAction } };
-        if (lease.monthsFunded < t.termMonths) {
-          const next = lease.monthsFunded + 1;
+        if (lease.periodsFunded < t.termPeriods) {
+          const next = lease.periodsFunded + 1;
           return {
             tone: "ok",
             pill,
             title: b.lockedTitle(deposit, true),
-            body: b.payBody(lease.monthsFunded, next, lease.startTime + BigInt(lease.monthsFunded) * RENT_PERIOD),
-            action: { kind: "jump", to: "rent", label: b.payAction(next, fmt(t.rentAmount)), note: b.payNote },
+            body: b.payBody(lease.periodsFunded, next, lease.startTime + BigInt(lease.periodsFunded) * BigInt(t.rentPeriod), u),
+            action: { kind: "jump", to: "rent", label: b.payAction(next, fmt(t.rentAmount), u), note: b.payNote },
           };
         }
-        return { tone: "ok", pill, title: b.lockedTitle(deposit, true), body: b.allPaidBody(t.termMonths), action: idle() };
+        return { tone: "ok", pill, title: b.lockedTitle(deposit, true), body: b.allPaidBody(periodCount(t.termPeriods, t.rentPeriod)), action: idle() };
       }
       if (viewer === "landlord") {
-        const r = releasableMonths(lease, "landlord");
-        const next = lease.startTime + BigInt(lease.monthsReleased) * RENT_PERIOD;
+        const r = releasablePeriods(lease, "landlord");
+        const next = lease.startTime + BigInt(lease.periodsReleased) * BigInt(t.rentPeriod);
         if (r > 0) {
           const fee = lease.feeCharged ? ZERO : feeOf(lease);
           const amount = fmt(t.rentAmount * BigInt(r) - fee);
@@ -102,21 +104,21 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
             pill,
             title: b.collectTitle(amount),
             body: b.collectBody(fee > ZERO ? fmt(fee) : null),
-            action: { kind: "tx", tx: "releaseRent", label: b.collectAction(lease.monthsReleased + 1, amount), note: b.oneConfirmation },
+            action: { kind: "tx", tx: "releaseRent", label: b.collectAction(lease.periodsReleased + 1, amount, u), note: b.oneConfirmation },
           };
         }
-        const done = lease.monthsReleased >= t.termMonths;
+        const done = lease.periodsReleased >= t.termPeriods;
         const net = moneyFlow(events).toOwner;
         return {
           tone: "ok",
           pill,
-          title: lease.monthsReleased > 0 ? b.paidOwnerTitle(lease.monthsReleased, fmt(net)) : b.runningTitle,
+          title: lease.periodsReleased > 0 ? b.paidOwnerTitle(periodCount(lease.periodsReleased, t.rentPeriod), fmt(net)) : b.runningTitle,
           body: done ? b.allRentBody : b.nextDueBody(next),
           action: idle(done ? b.nothing : b.idleUntil(next)),
         };
       }
       if (viewer === "arbiter") return { tone: "ok", pill, title: b.noDisputeTitle, body: b.noDisputeBody, action: idle(b.nothingToRule) };
-      return { tone: "ok", pill, title: b.lockedTitle(deposit, false), body: b.monthOf(m, t.termMonths), action: idle() };
+      return { tone: "ok", pill, title: b.lockedTitle(deposit, false), body: b.monthOf(m, t.termPeriods, u), action: idle() };
     }
     case LeaseStatus.MoveOut: {
       const p = lease.proposal;
