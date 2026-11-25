@@ -62,6 +62,7 @@ export const E2E_WEB_ENV: Record<string, string> = {
   GREENFIELD_PRIVATE_KEY: "",
   GREENFIELD_SP_ENDPOINT: "",
   EVIDENCE_DIR: "test-results/e2e-evidence",
+  FLEET_DIR: "test-results/e2e-fleet",
   EVIDENCE_MAX_BYTES: "",
   // Inspector reports stay unsigned in e2e: a local INSPECTOR_PRIVATE_KEY must not leak into the run.
   INSPECTOR_PRIVATE_KEY: "",
