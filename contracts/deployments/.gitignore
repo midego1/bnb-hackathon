@@ -1,0 +1,4 @@
+# Simulations (forge script without --broadcast) write <chainId>.dry-run.json: addresses that do not exist on-chain.
+*.dry-run.json
+# Local rehearsal of the testnet deploy (contracts/script/testnet.sh rehearse).
+.rehearsal/
