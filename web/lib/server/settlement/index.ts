@@ -23,6 +23,8 @@ export interface SettlementResult extends SettlementProposal {
   repairs: string[];
   checkIn: PhotoRef[];
   checkOut: PhotoRef[];
+  /** The caller's notes, when given: they steer the model, so they are part of the hashed report. */
+  notes?: string;
   /** The inspector agent that produced and signed the report (ERC-8004 identity). Absent when no signer is set. */
   inspector?: InspectorIdentity;
   /**
@@ -126,6 +128,8 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
     repairs,
     checkIn: req.checkIn,
     checkOut: req.checkOut,
+    // The caller's notes steer the model, so they are part of what the inspector signs.
+    ...(req.notes ? { notes: req.notes } : {}),
     ...(opts.inspector ? { inspector: opts.inspector.identity } : {}),
     ...(memory ? { memory } : {}),
     createdAt,

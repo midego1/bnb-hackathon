@@ -4,13 +4,14 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ReactNode } from "react";
 import { useAccount } from "wagmi";
 import { chainName } from "@/lib/chains";
+import { getDeployment } from "@/lib/contracts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { Notice } from "./ui";
 
 /** Renders children only with a connected wallet on a chain where KeyEscrow is deployed. */
 export function WalletGate({ children, what }: { children: ReactNode; what: string }) {
-  const { isConnected } = useAccount();
-  const { chainId, deployment } = useDeployment();
+  const { isConnected, chainId: walletChainId } = useAccount();
+  const { chainId } = useDeployment();
   if (!isConnected) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border-strong p-6">
@@ -22,10 +23,11 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
       </div>
     );
   }
-  if (!deployment) {
+  // Reads fall back to the default chain (useDeployment); writes need the wallet itself on a KeyEscrow chain.
+  if (!getDeployment(walletChainId)) {
     return (
       <Notice kind="warn">
-        KeyEscrow is not deployed on {chainName(chainId)} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).
+        KeyEscrow is not deployed on {chainName(walletChainId ?? chainId)} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).
       </Notice>
     );
   }

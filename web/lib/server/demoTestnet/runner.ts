@@ -117,7 +117,7 @@ export class DemoTestnetRunner {
    * Starts a run for browser `owner`. If that browser already holds the lock (Start over) its run is replaced; if
    * `resumeLease` is given (its lock lapsed mid-story) the new run carries on with that demo lease.
    */
-  async start(path: DemoTestnetPath, owner: string, resumeLease?: Address) {
+  async start(path: DemoTestnetPath, owner: string, resumeLease?: Address, ip?: string) {
     const l = await this.load();
     let lease: Address | undefined;
     if (resumeLease) {
@@ -132,7 +132,7 @@ export class DemoTestnetRunner {
       lease = getAddress(resumeLease);
     }
     // Lock + rate limit + record, atomically in the store (a Durable Object on Workers).
-    const { run, replaced } = await this.store.begin({ id: crypto.randomUUID(), owner, path, now: Date.now(), lease });
+    const { run, replaced } = await this.store.begin({ id: crypto.randomUUID(), owner, ip, path, now: Date.now(), lease });
     if (replaced) console.log(`[demo-testnet] run ${replaced.id.slice(0, 8)} replaced by the same browser: ${replaced.txs} txs, ${formatEther(replaced.cost)} tBNB`);
     try {
       const topUps = await this.serial(async () => {

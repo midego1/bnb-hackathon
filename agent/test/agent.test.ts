@@ -12,6 +12,7 @@ import { requestFromParts } from "../src/a2a.ts";
 import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } from "../src/card.ts";
 import { loadConfig, type AgentDeployment } from "../src/config.ts";
 import { inspectMoveOut, InspectionInputError } from "../src/inspect.ts";
+import { INSPECT_INPUT } from "../src/mcp.ts";
 import { buildApp } from "../src/server.ts";
 import { ACTIONS, inspectorSignerFromKey, proposeSettlement, SettlementRequestSchema, verifyInspectorReport } from "../src/shared.ts";
 import { decodeReportSigner } from "../scripts/registry.ts";
@@ -46,6 +47,10 @@ describe("agent card and ERC-8004 registration file", () => {
     // Round-trips through the SDK's data: URI encoding (what goes on chain as tokenURI).
     const b64 = AgentURIGenerator.encodeRegistrationFileToBase64(file);
     expect(AgentURIGenerator.decodeRegistrationFileFromBase64(b64)).toEqual(file);
+  });
+
+  it("MCP inspect_move_out takes every field of POST /api/settlement (zod drops unknown keys silently)", () => {
+    expect(Object.keys(INSPECT_INPUT).sort()).toEqual(Object.keys(SettlementRequestSchema.shape).sort());
   });
 
   it("parses CAIP-10 registry references", () => {

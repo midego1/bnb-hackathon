@@ -39,7 +39,10 @@ export function ScooterStateBadge({ state }: { state: ScooterState }) {
   );
 }
 
-/** THB -> USDT base units at today's rate (cents precision), as the escrow stores amounts in the stablecoin. */
+/**
+ * THB -> USDT base units at today's rate (cents precision), as the escrow stores amounts in the stablecoin. Without a
+ * rate yet, 33 THB/USDT stands in for display only: "Offer rental" waits for the real rate before anything goes on-chain.
+ */
 export function thbToUsdt(thb: number, thbPerUsdt: number | undefined) {
   const rate = thbPerUsdt && thbPerUsdt > 0 ? thbPerUsdt : 33;
   return parseUnits((thb / rate).toFixed(2), 6);
@@ -188,7 +191,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       termMonths: BOOKING_TERM_MONTHS,
       responseWindow: 0,
       arbiterWindow: 0,
-      leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb: scooter.rentThb, depositThb: scooter.depositThb, thbPerUsdt: rate ?? 33, booking: booking.id })),
+      leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb: scooter.rentThb, depositThb: scooter.depositThb, thbPerUsdt: rate, booking: booking.id })),
     };
     const receipt = await send("Offer rental", {
       address: deployment!.escrowFactory,
@@ -227,7 +230,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
         >
           Decline
         </ActionButton>
-        <ActionButton busy={pending === "Offer rental"} onClick={offer} data-testid="offer-rental">
+        <ActionButton busy={pending === "Offer rental"} disabledReason={!rate && "Loading the THB exchange rate…"} onClick={offer} data-testid="offer-rental">
           Offer rental contract
         </ActionButton>
       </div>

@@ -3,7 +3,8 @@
  *   1. run inspect_move_out on the agent (MCP) with the demo request, or read a report from --report <file>
  *   2. recompute reportHash and recover the signer (offline)
  *   3. read the ERC-8004 Identity Registry: the agent exists, its `reportSigner` metadata equals the signer,
- *      and its tokenURI registration file names this agent and lists its A2A + MCP endpoints.
+ *      and its tokenURI registration file names this agent and lists its A2A + MCP endpoints on AGENT_URL (the agent
+ *      that answered; skipped with --report).
  * Read-only: never sends a transaction.
  *
  *   BSC_TESTNET_RPC_URL=… pnpm agent:verify [-- --report report.json]
@@ -69,6 +70,13 @@ if (reg && inspector?.agentId !== undefined) {
   check(file?.name === AGENT_NAME, `tokenURI registration file names "${String(file?.name)}"`);
   const services = (file?.services as { name: string; endpoint: string }[] | undefined) ?? [];
   console.log(`    services: ${services.map((s) => `${s.name} ${s.endpoint}`).join(", ")}`);
+  if (!process.argv.includes("--report")) {
+    const elsewhere = services.filter((s) => !s.endpoint.startsWith(`${AGENT_URL}/`));
+    check(
+      services.length > 0 && elsewhere.length === 0,
+      `registered endpoints are on ${AGENT_URL}${elsewhere.length ? ` (not: ${elsewhere.map((s) => s.endpoint).join(", ")}; fix with setAgentURI)` : ""}`,
+    );
+  }
   const regs = (file?.registrations as { agentId: number; agentRegistry: string }[] | undefined) ?? [];
   check(
     regs.some((r) => String(r.agentId) === inspector.agentId && r.agentRegistry.toLowerCase() === inspector.agentRegistry!.toLowerCase()),

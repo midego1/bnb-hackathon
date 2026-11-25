@@ -359,6 +359,7 @@ report 0x3afa…76dd: tenantRefund 450000000, landlordClaim 50000000
   ✓ agent #0 exists, owner 0xA7CE…D59E
   ✓ on-chain reportSigner 0x738A…B4C2 signed this report
   ✓ tokenURI registration file names "KeyEscrow Inspector"
+  ✓ registered endpoints are on http://127.0.0.1:28563
   ✓ registration file points back at this agent id and registry
 VERIFIED: signed by KeyEscrow Inspector, ERC-8004 agent #0
 ```
