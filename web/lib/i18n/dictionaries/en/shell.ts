@@ -75,6 +75,15 @@ export const body = {
   },
   /** Shared bits of components/ui.tsx. */
   ui: {
+    /** Form validation (lib/actions/fields.ts fieldError, shared with the API, which stays English): see fieldErrorIn. */
+    field: {
+      address: "Not a valid address (0x followed by 40 hex characters).",
+      amount: "Enter an amount in {symbol}, e.g. \"441.18\" (at most {decimals} decimals).",
+      moreThan0: "Must be more than 0.",
+      positive: "Enter a positive amount, e.g. \"18000\" or \"441.18\".",
+      whole: "Enter a whole number.",
+      range: "{min} to {max}.",
+    },
     status: {
       created: { label: "Awaiting funding", hint: "The renter still has to fund the deposit and first month's rent." },
       active: { label: "Active", hint: "The deposit is locked in escrow; rent is paid out to the owner month by month." },

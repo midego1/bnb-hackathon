@@ -12,6 +12,7 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
+import type { Key } from "@/lib/i18n/t";
 import { evidenceFromEvents } from "./evidence";
 import type { Viewer } from "./model";
 
@@ -80,6 +81,9 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const [failed, setFailed] = useState(false);
   const t = useT();
   const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
+  // Demo photos are labelled from their file names ("left side"); anything without a translation keeps its label.
+  const angleKey = `rental.evidence.angle.${photo.label}` as Key;
+  const label = photo.label && (t(angleKey) === angleKey ? photo.label : t(angleKey));
   return (
     <li className="group min-w-0" data-testid="evidence-thumb">
       <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted">
@@ -90,14 +94,14 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
           </span>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- content-addressed evidence (API) or bundled demo file
-          <img src={photo.src} alt={photo.label ? t("rental.evidence.photoAlt", { label: photo.label }) : t("rental.evidence.photoAltHash", { short })} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+          <img src={photo.src} alt={label ? t("rental.evidence.photoAlt", { label }) : t("rental.evidence.photoAltHash", { short })} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
         )}
         <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-overlay/70 px-2 py-1 font-mono text-[10px] text-overlay-foreground opacity-0 transition group-hover:opacity-100">
           {photo.hash}
         </span>
       </a>
       <p className="mt-1 flex items-center justify-between gap-2 text-xs">
-        <span className="truncate capitalize text-muted-foreground">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
+        <span className="truncate capitalize text-muted-foreground">{label || <span className="font-mono normal-case">{short}</span>}</span>
         <CopyButton value={photo.hash} label={t("rental.evidence.copyPhotoHash")} />
       </p>
     </li>

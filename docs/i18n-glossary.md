@@ -3,7 +3,8 @@
 Fixed terms for every Chinese string in the app (`web/lib/i18n`, the `*.zh.ts` data modules). Use these exactly; if
 a term reads wrong somewhere, change it here first and then everywhere.
 
-How the switch works: `web/lib/i18n/locales.ts` (modes `en`, `zh`, `both`; cookie `ke_lang`; `?bilingual=1` turns on
+Where the strings live: the app screens in `web/lib/i18n/dictionaries/{en,zh}/*.ts` (JSON, the client gets only the
+active language), the older data copy in `*.zh.ts` next to its English. How the switch works: `web/lib/i18n/locales.ts` (modes `en`, `zh`, `both`; cookie `ke_lang`; `?bilingual=1` turns on
 `both`, where only headlines get the Chinese line).
 
 ## Never translated
@@ -69,6 +70,14 @@ product name stays English in running text only where the UI shows it as a name;
 | baht | 泰铢 | amounts keep ฿ |
 | risk engine / buffer | 风险引擎 / 缓冲 | |
 | agent (software) | 智能体 | |
+| Ask AI (the assistant panel) | AI 助手 | |
+| approve (a token allowance) | 授权 | "Approve USDT" → 授权 USDT |
+| approve (a change in Ask AI) | 批准 | |
+| Get test USDT | 领取测试 USDT | button and every sentence that quotes it |
+| back office | 后台 | |
+| on-ramp | 入金通道 | PromptPay page |
+| judge | 评委 | /pitch |
+| Mystery Box | 神秘盒子 | /pitch |
 | AI-translated; corrections welcome | 中文内容由 AI 翻译，欢迎指正。 | footer note in 中文 and EN+中文 |
 
 ## Style

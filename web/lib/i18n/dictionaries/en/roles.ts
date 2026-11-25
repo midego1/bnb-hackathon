@@ -3,6 +3,43 @@ export const body = {
   /** Shared by the role pages (components/roles/shared.tsx, the scooter state badge). */
   roles: {
     copyTx: "Copy transaction hash",
+    /** FlagBadge: lib/rentals.ts flagsFor, by flag code. */
+    flag: {
+      failedTx: { one: "{n} failed transaction on this rental", other: "{n} failed transactions on this rental" },
+      arbiterOverdue: "Dispute desk missed its deadline: anyone can close it (full deposit to the renter)",
+      disputed: "In dispute: the dispute desk must rule within {left}",
+      ownerSilent: "Owner did not answer the return proposal in time: timeout claimable",
+      proposalOwner: "Return proposal waiting for the owner",
+      proposalRenter: "Return proposal waiting for the renter",
+      unfunded: "Offer not funded for {left}",
+      rentDue: { one: "{n} month of rent due, not paid out yet", other: "{n} months of rent due, not paid out yet" },
+      overdueReturn: "Rental period over, deposit not settled yet",
+      days: { one: "{n} day", other: "{n} days" },
+      hours: "{n} h",
+    },
+    /** The back office feed: lib/rentals.ts describeEvent, by event name. */
+    event: {
+      LeaseCreated: "Rental created: {rent}/month, {deposit} deposit, {n} months",
+      PayeeSet: "Owner payouts routed to the Fleet Vault",
+      Funded: "Deposit locked ({deposit}) + first rent paid ({rent})",
+      RentPaid: "Renter prepaid {n} month(s): {amount}",
+      RentReleased: "Rent paid out: {amount} to the owner",
+      RentReleasedFee: "Rent paid out: {amount} to the owner + {fee} KeyEscrow fee",
+      pickupPhoto: "Pickup inspection photo anchored",
+      returnPhoto: "Return inspection photo anchored",
+      evidence: "Evidence anchored",
+      SettlementProposed: "AI verdict proposed: {back} back to the renter, {kept} for damage",
+      DisputeRaised: "Dispute raised: the dispute desk decides",
+      SettledSlashed: "Settled: deposit slashed {kept}, {back} returned",
+      SettledFull: "Settled: full deposit returned ({back})",
+      Cancelled: "Offer cancelled by the owner",
+      ProtocolFeePaid: "KeyEscrow fee paid: {amount}",
+      Deposited: "Shareholder deposited {amount} (shares minted)",
+      Redeemed: "Shareholder redeemed {amount}",
+      IncomeDistributed: "Vault income split: {holders} to shareholders, {fee} operator fee",
+      Claimed: "Shareholder claimed {amount} income",
+      Transfer: "Vault inflow: {amount}",
+    },
     earlier: "earlier",
     what: { rentals: "your rentals" },
     state: { available: "Available", booked: "Booked, awaiting payment", rented: "Rented", inspection: "In inspection", dispute: "In dispute" },
@@ -79,6 +116,7 @@ export const body = {
     list: "List scooter",
   },
   holders: {
+    locked: "Shares locked until {date} (7 days after your last deposit). Claiming income still works.",
     name: "Shareholders",
     intro:
       "Own part of a scooter fleet. Deposit test USDT into the Fleet Vault and get BKK-FLEET-1 shares; rent from completed rentals and damage payouts from slashed deposits flow in, minus the operator's maintenance fee, and you claim your share. Testnet prototype, not an offer of securities.",

@@ -344,6 +344,7 @@ export const body: DeepPartial<typeof enBody> = {
       returnAfterFunding: "租客付款后才能添加还车照片。",
       notInStorage: "存储中没有这个文件",
       photoAlt: "{label}照片",
+      angle: { front: "正面", "left side": "左侧", plate: "车牌" },
       photoAltHash: "照片 {short}",
       copyPhotoHash: "复制照片哈希",
       copyHash: "复制哈希",

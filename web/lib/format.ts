@@ -18,8 +18,8 @@ export function formatUsdt(amount: bigint): string {
 /** Parses a user-typed USDT amount; undefined for empty/invalid input. The same parser as the forms' validation. */
 export const parseUsdt = (input: string): bigint | undefined => parseTokenAmount(input);
 
-export function formatDate(unixSeconds: bigint | number): string {
-  return new Date(Number(unixSeconds) * 1000).toLocaleString("en-GB", {
+export function formatDate(unixSeconds: bigint | number, lang: "en" | "zh" = "en"): string {
+  return new Date(Number(unixSeconds) * 1000).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

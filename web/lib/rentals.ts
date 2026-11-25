@@ -1,5 +1,6 @@
 import type { Address, Hex } from "viem";
 import { LeaseStatus } from "./contracts";
+import type { T } from "./i18n/t";
 
 /**
  * Pure model behind the back office, fleet owner and renter views: folds raw chain events (factory LeaseCreated /
@@ -20,7 +21,8 @@ export type ChainEvent = {
 };
 
 export type FlagLevel = "danger" | "warn" | "info";
-export type RentalFlag = { level: FlagLevel; code: string; text: string };
+/** `text` is the English sentence (API, agent); the UI renders `code` + `vars` from the dictionary (roles.flag). */
+export type RentalFlag = { level: FlagLevel; code: string; text: string; vars?: Record<string, number> };
 
 export type RentalSummary = {
   address: Address;
@@ -206,7 +208,7 @@ function days(seconds: bigint | number) {
 export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): RentalFlag[] {
   const flags: RentalFlag[] = [];
   if (failed.length > 0) {
-    flags.push({ level: "danger", code: "failed-tx", text: `${failed.length} failed transaction${failed.length > 1 ? "s" : ""} on this rental` });
+    flags.push({ level: "danger", code: "failed-tx", text: `${failed.length} failed transaction${failed.length > 1 ? "s" : ""} on this rental`, vars: { n: failed.length } });
   }
   const open = r.status === LeaseStatus.Active || r.status === LeaseStatus.MoveOut || r.status === LeaseStatus.Disputed;
   if (r.status === LeaseStatus.Disputed) {
@@ -214,7 +216,7 @@ export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): Ren
     flags.push(
       now >= deadline
         ? { level: "danger", code: "arbiter-overdue", text: "Dispute desk missed its deadline: anyone can close it (full deposit to the renter)" }
-        : { level: "danger", code: "disputed", text: `In dispute: the dispute desk must rule within ${days(deadline - now)}` },
+        : { level: "danger", code: "disputed", text: `In dispute: the dispute desk must rule within ${days(deadline - now)}`, vars: { secs: Number(deadline - now) } },
     );
   }
   if (r.status === LeaseStatus.MoveOut && r.proposal) {
@@ -223,16 +225,16 @@ export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): Ren
     if (byRenter && now >= deadline) {
       flags.push({ level: "warn", code: "owner-silent", text: "Owner did not answer the return proposal in time: timeout claimable" });
     } else {
-      flags.push({ level: "info", code: "proposal-open", text: `Return proposal waiting for the ${byRenter ? "owner" : "renter"}` });
+      flags.push({ level: "info", code: "proposal-open", text: `Return proposal waiting for the ${byRenter ? "owner" : "renter"}`, vars: { byRenter: byRenter ? 1 : 0 } });
     }
   }
   if (r.status === LeaseStatus.Created && r.createdAt > BigInt(0) && now - r.createdAt >= BigInt(STALE_OFFER_SECONDS)) {
-    flags.push({ level: "warn", code: "unfunded", text: `Offer not funded for ${days(now - r.createdAt)}` });
+    flags.push({ level: "warn", code: "unfunded", text: `Offer not funded for ${days(now - r.createdAt)}`, vars: { secs: Number(now - r.createdAt) } });
   }
   if (open) {
     const due = Math.min(monthsDueAt(r.startTime, r.termMonths, now), r.monthsFunded);
     if (due > r.monthsReleased) {
-      flags.push({ level: "warn", code: "rent-due", text: `${due - r.monthsReleased} month${due - r.monthsReleased > 1 ? "s" : ""} of rent due, not paid out yet` });
+      flags.push({ level: "warn", code: "rent-due", text: `${due - r.monthsReleased} month${due - r.monthsReleased > 1 ? "s" : ""} of rent due, not paid out yet`, vars: { n: due - r.monthsReleased } });
     }
     const end = r.startTime + BigInt(r.termMonths * RENT_PERIOD);
     if (r.startTime > BigInt(0) && now >= end) flags.push({ level: "warn", code: "overdue-return", text: "Rental period over, deposit not settled yet" });
@@ -247,44 +249,43 @@ export function worstFlag(flags: RentalFlag[]): FlagLevel | undefined {
   return flags.length ? "info" : undefined;
 }
 
-/** Human label of one chain event, for activity feeds. `role(address)` names a party. */
-export function describeEvent(e: ChainEvent, money: (v: bigint) => string): string {
+/** Human label of one chain event, for the back office feed, in the active language (roles.event). */
+export function describeEvent(e: ChainEvent, money: (v: bigint) => string, t: T): string {
   const a = e.args;
+  const m = (v: unknown) => money(big(v));
   switch (e.name) {
     case "LeaseCreated":
-      return `Rental created: ${money(big(a.rentAmount))}/month, ${money(big(a.depositAmount))} deposit, ${num(a.termMonths)} months`;
-    case "PayeeSet":
-      return "Owner payouts routed to the Fleet Vault";
+      return t("roles.event.LeaseCreated", { rent: m(a.rentAmount), deposit: m(a.depositAmount), n: num(a.termMonths) });
     case "Funded":
-      return `Deposit locked (${money(big(a.deposit))}) + first rent paid (${money(big(a.firstRent))})`;
+      return t("roles.event.Funded", { deposit: m(a.deposit), rent: m(a.firstRent) });
     case "RentPaid":
-      return `Renter prepaid ${num(a.months)} month(s): ${money(big(a.amount))}`;
+      return t("roles.event.RentPaid", { n: num(a.months), amount: m(a.amount) });
     case "RentReleased":
-      return `Rent paid out: ${money(big(a.toLandlord))} to the owner${big(a.fee) > BigInt(0) ? ` + ${money(big(a.fee))} KeyEscrow fee` : ""}`;
+      return big(a.fee) > BigInt(0)
+        ? t("roles.event.RentReleasedFee", { amount: m(a.toLandlord), fee: m(a.fee) })
+        : t("roles.event.RentReleased", { amount: m(a.toLandlord) });
     case "EvidenceAdded":
-      return num(a.kind) === 0 ? "Pickup inspection photo anchored" : num(a.kind) === 1 ? "Return inspection photo anchored" : "Evidence anchored";
+      return t(num(a.kind) === 0 ? "roles.event.pickupPhoto" : num(a.kind) === 1 ? "roles.event.returnPhoto" : "roles.event.evidence");
     case "SettlementProposed":
-      return `AI verdict proposed: ${money(big(a.tenantRefund))} back to the renter, ${money(big(a.landlordClaim))} for damage`;
-    case "DisputeRaised":
-      return "Dispute raised: the dispute desk decides";
+      return t("roles.event.SettlementProposed", { back: m(a.tenantRefund), kept: m(a.landlordClaim) });
     case "Settled":
       return big(a.landlordClaim) > BigInt(0)
-        ? `Settled: deposit slashed ${money(big(a.landlordClaim))}, ${money(big(a.tenantRefund))} returned`
-        : `Settled: full deposit returned (${money(big(a.tenantRefund))})`;
-    case "Cancelled":
-      return "Offer cancelled by the owner";
+        ? t("roles.event.SettledSlashed", { kept: m(a.landlordClaim), back: m(a.tenantRefund) })
+        : t("roles.event.SettledFull", { back: m(a.tenantRefund) });
     case "ProtocolFeePaid":
-      return `KeyEscrow fee paid: ${money(big(a.amount))}`;
     case "Deposited":
-      return `Shareholder deposited ${money(big(a.amount))} (shares minted)`;
-    case "Redeemed":
-      return `Shareholder redeemed ${money(big(a.shares))}`;
-    case "IncomeDistributed":
-      return `Vault income split: ${money(big(a.toShareholders))} to shareholders, ${money(big(a.operatorFee))} operator fee`;
     case "Claimed":
-      return `Shareholder claimed ${money(big(a.amount))} income`;
+      return t(`roles.event.${e.name}`, { amount: m(a.amount) });
+    case "Redeemed":
+      return t("roles.event.Redeemed", { amount: m(a.shares) });
+    case "IncomeDistributed":
+      return t("roles.event.IncomeDistributed", { holders: m(a.toShareholders), fee: m(a.operatorFee) });
     case "Transfer":
-      return `Vault inflow: ${money(big(a.value))}`;
+      return t("roles.event.Transfer", { amount: m(a.value) });
+    case "PayeeSet":
+    case "DisputeRaised":
+    case "Cancelled":
+      return t(`roles.event.${e.name}`);
     default:
       return e.name;
   }

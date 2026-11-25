@@ -6,7 +6,10 @@ import { landingCopy } from "@/components/marketing/copy";
 import { SLASH_COMMANDS, suggestionsFor, ZH_LABELS } from "@/lib/assistant/composer";
 import { explain } from "@/lib/demo/explain";
 import { paths, propertyName, PROPERTIES, stepsFor, stepText, txLabel } from "@/lib/demo/script";
+import { prepareCreateLease, prepareResolve } from "@/lib/actions/definitions";
+import { fieldError, fieldErrorIn } from "@/lib/actions/fields";
 import { EN_ERRORS, friendlyError } from "@/lib/errors";
+import { describeEvent, type ChainEvent } from "@/lib/rentals";
 import { errorsIn, zhErrors } from "@/lib/errors.zh";
 import { en } from "@/lib/i18n/dictionaries/en";
 import { zh } from "@/lib/i18n/dictionaries/zh";
@@ -138,5 +141,30 @@ describe("localized data stays in step with the English", () => {
     expect(friendlyError(new Error("user rejected the request"))).toBe("You cancelled the request in your wallet.");
     expect(friendlyError(new Error("user rejected the request"), errorsIn("zh"))).toBe("你在钱包里取消了这次请求。");
     expect(friendlyError(42, errorsIn("zh"))).toBe("出了点问题。");
+  });
+});
+
+describe("shared lib sentences in the UI language", () => {
+  const zhT = makeT(stateFor("zh"));
+  const enT = makeT(stateFor("en"));
+
+  it("form field errors: English as the API says it, Chinese in 中文", () => {
+    const s = prepareCreateLease.input;
+    for (const [key, value] of [["renter", "0x123"], ["rent", "abc"], ["termMonths", 61], ["deposit", ""]] as const) {
+      expect(fieldErrorIn(enT, s, key, value)).toBe(fieldError(s, key, value));
+      expect(fieldErrorIn(zhT, s, key, value)).toMatch(/\p{Script=Han}|^1 到 60。$/u);
+    }
+    expect(fieldErrorIn(zhT, s, "termMonths", 61)).toBe("1 到 60。");
+    expect(fieldErrorIn(zhT, prepareResolve.input, "toRenter", "1.1234567")).toMatch(/\p{Script=Han}/u);
+    expect(fieldErrorIn(zhT, s, "rent", "18,000")).toBeUndefined();
+  });
+
+  it("back office feed: same English as before, Chinese in 中文", () => {
+    const money = (v: bigint) => `${v}u`;
+    const ev = (name: string, args: Record<string, unknown>) => ({ name, args }) as unknown as ChainEvent;
+    expect(describeEvent(ev("RentReleased", { toLandlord: BigInt(90), fee: BigInt(10) }), money, enT)).toBe("Rent paid out: 90u to the owner + 10u KeyEscrow fee");
+    expect(describeEvent(ev("Settled", { landlordClaim: BigInt(0), tenantRefund: BigInt(5) }), money, enT)).toBe("Settled: full deposit returned (5u)");
+    expect(describeEvent(ev("DisputeRaised", {}), money, zhT)).toBe("已提出争议：由争议处理台裁决");
+    expect(describeEvent(ev("Mystery", {}), money, zhT)).toBe("Mystery");
   });
 });

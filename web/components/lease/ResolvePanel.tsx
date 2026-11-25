@@ -5,7 +5,7 @@ import type { Hex } from "viem";
 import { FilePicker } from "@/components/FilePicker";
 import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, useMoney } from "@/components/ui";
 import { prepareResolve } from "@/lib/actions/definitions";
-import { fieldError } from "@/lib/actions/fields";
+import { fieldErrorIn } from "@/lib/actions/fields";
 import { rentalEscrowAbi } from "@/lib/contracts";
 import { uploadEvidence } from "@/lib/evidence";
 import { formatUsdt, parseUsdt } from "@/lib/format";
@@ -32,7 +32,7 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
   const money = useMoney();
   const deadlinePassed = lease.arbiterDeadline > BigInt(0) && lease.chainNow >= lease.arbiterDeadline;
   // Same rule and message as the prepare_resolve API / MCP tool (lib/actions).
-  const error = fieldError(prepareResolve.input, "toRenter", refund) ?? (amount !== undefined && amount > deposit ? t("rental.move.exceeds") : undefined);
+  const error = fieldErrorIn(t, prepareResolve.input, "toRenter", refund) ?? (amount !== undefined && amount > deposit ? t("rental.move.exceeds") : undefined);
 
   async function resolve() {
     if (amount === undefined) return;

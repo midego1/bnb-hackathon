@@ -5,7 +5,7 @@ import type { Hex } from "viem";
 import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { photosForHash } from "@/lib/demoEvidence";
 import { prepareProposeSettlement } from "@/lib/actions/definitions";
-import { fieldError } from "@/lib/actions/fields";
+import { fieldErrorIn } from "@/lib/actions/fields";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { responseWindow } from "@/lib/windows";
 import { formatUsdt, parseUsdt } from "@/lib/format";
@@ -146,7 +146,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const refundAmount = parseUsdt(refund);
   // Same rule and message as the prepare_propose_settlement API / MCP tool (lib/actions).
   const refundError =
-    fieldError(prepareProposeSettlement.input, "toRenter", refund) ?? (refundAmount !== undefined && refundAmount > deposit ? t("rental.move.exceeds") : undefined);
+    fieldErrorIn(t, prepareProposeSettlement.input, "toRenter", refund) ?? (refundAmount !== undefined && refundAmount > deposit ? t("rental.move.exceeds") : undefined);
 
   async function inspect() {
     setInspecting(true);

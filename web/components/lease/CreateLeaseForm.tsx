@@ -8,7 +8,7 @@ import { FilePicker } from "@/components/FilePicker";
 import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Card, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { prepareCreateLease } from "@/lib/actions/definitions";
-import { fieldError } from "@/lib/actions/fields";
+import { fieldErrorIn } from "@/lib/actions/fields";
 import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi } from "@/lib/contracts";
 import { devAccounts } from "@/lib/devAccounts";
 import { uploadEvidence } from "@/lib/evidence";
@@ -57,19 +57,19 @@ export function CreateLeaseForm() {
   const errors = {
     tenant: !tenant
       ? undefined
-      : fieldError(S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? t("createLease.self") : undefined),
-    rent: fieldError(S, "rent", rent) ?? decimals(rentAmount),
-    deposit: fieldError(S, "deposit", deposit) ?? decimals(depositAmount),
-    term: fieldError(S, "termMonths", term),
-    window: fieldError(S, "responseWindowDays", windowDays),
-    arbiterWindow: fieldError(S, "arbiterWindowDays", arbiterDays),
+      : fieldErrorIn(t, S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? t("createLease.self") : undefined),
+    rent: fieldErrorIn(t, S, "rent", rent) ?? decimals(rentAmount),
+    deposit: fieldErrorIn(t, S, "deposit", deposit) ?? decimals(depositAmount),
+    term: fieldErrorIn(t, S, "termMonths", term),
+    window: fieldErrorIn(t, S, "responseWindowDays", windowDays),
+    arbiterWindow: fieldErrorIn(t, S, "arbiterWindowDays", arbiterDays),
     arbiter: useDesk
       ? !desk
         ? t("createLease.noDesk")
         : undefined
       : !arbiter
         ? undefined
-        : fieldError(S, "arbiter", arbiter),
+        : fieldErrorIn(t, S, "arbiter", arbiter),
   };
   const distinct =
     !arbiterAddr || !me || !isAddress(tenant)

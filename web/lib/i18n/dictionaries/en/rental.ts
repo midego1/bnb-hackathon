@@ -346,6 +346,8 @@ export const body = {
       returnAfterFunding: "Return photos can be added once the renter has funded the rental.",
       notInStorage: "File not in storage",
       photoAlt: "{label} photo",
+      /** lib/demoEvidence.ts labels (from the demo file names). */
+      angle: { front: "front", "left side": "left side", plate: "plate" },
       photoAltHash: "Photo {short}",
       copyPhotoHash: "Copy photo hash",
       copyHash: "Copy hash",

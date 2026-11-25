@@ -63,7 +63,7 @@ export function ChainReadNotice({ error, hasData, stale, block, onRetry, retryin
           <span>
             {t("shell.read.stale")}
             {block !== undefined ? t("shell.read.block", { block: block.toString() }) : ""}
-            {stale ? t("shell.read.since", { date: formatDate(BigInt(Math.floor(stale.since / 1000))) }) : ""}
+            {stale ? t("shell.read.since", { date: formatDate(BigInt(Math.floor(stale.since / 1000)), t.lang) }) : ""}
             {t("shell.read.staleEnd")}
           </span>
           {button}

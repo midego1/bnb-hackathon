@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
+import { utcDateTimeIn } from "@/components/lease/copy";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
 import { fleetVaultAbi, mockUsdtAbi } from "@/lib/contracts";
@@ -148,6 +149,7 @@ function Position({ vault }: { vault: VaultState }) {
   const short = me && amount !== undefined && me.usdt < amount ? amount - me.usdt : BigInt(0);
   const { deployment } = useDeployment();
   const lock = shareLock(me?.lockedUntil ?? BigInt(0), vault.chainNow);
+  const lockReason = lock.locked ? t("holders.locked", { date: utcDateTimeIn(t)(lock.until) }) : null;
 
   return (
     <Card title={t.h("holders.position")}>
@@ -172,7 +174,7 @@ function Position({ vault }: { vault: VaultState }) {
       {lock.locked && (
         <div className="mt-4" data-testid="share-lock">
           <Notice kind="info">
-            {lock.reason} {t("holders.unlocks")} <Countdown target={lock.until} clock={vault} />.
+            {lockReason} {t("holders.unlocks")} <Countdown target={lock.until} clock={vault} />.
           </Notice>
         </div>
       )}
@@ -221,7 +223,7 @@ function Position({ vault }: { vault: VaultState }) {
           variant="secondary"
           data-testid="redeem-shares"
           busy={pending === t("holders.redeem")}
-          disabledReason={!me || me.shares === BigInt(0) ? t("holders.noShares") : lock.reason}
+          disabledReason={!me || me.shares === BigInt(0) ? t("holders.noShares") : lockReason}
           onClick={() => send(t("holders.redeem"), { address: vault.address, abi: fleetVaultAbi, functionName: "redeem", args: [me!.shares] })}
         >
           {t("holders.redeem")}

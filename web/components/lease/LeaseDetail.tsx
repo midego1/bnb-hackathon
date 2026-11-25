@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, statusMeta, useMoney } from "@/components/ui";
+import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, useMoney } from "@/components/ui";
 import { useFleet } from "@/components/roles/shared";
 import { chainName } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
@@ -170,7 +170,7 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   return (
     <Card title={t.h(viewer === "arbiter" ? "rental.deadlineYours" : "rental.deadlineWaiting")}>
       <p className="text-sm text-muted-foreground">
-        {statusMeta[LeaseStatus.Disputed].hint} {t("rental.deadline.rentStill")}{" "}
+        {t("ui.status.disputed.hint")} {t("rental.deadline.rentStill")}{" "}
         {passed ? (
           <>{t("rental.deadline.missed", { date })}</>
         ) : (

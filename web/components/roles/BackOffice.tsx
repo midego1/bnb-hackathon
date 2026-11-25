@@ -200,7 +200,7 @@ function FeedItem({ e, chainId, money, vault, compact }: { e: ChainEvent; chainI
     <li className="flex items-start gap-2 text-sm" data-testid="tx-event" data-event={e.name}>
       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${tone}`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="leading-snug">{describeEvent(e, money)}</p>
+        <p className="leading-snug">{describeEvent(e, money, t)}</p>
         <p className="text-xs text-subtle">
           <When ts={e.timestamp} /> · <TxLink hash={e.txHash} chainId={chainId} />
           {!compact && lease && (
