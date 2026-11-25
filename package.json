@@ -4,7 +4,7 @@
   "description": "Rental deposit and rent escrow on BNB Chain",
   "license": "MIT",
   "scripts": {
-    "setup": "git submodule update --init --recursive && pnpm -C web install && cd contracts && forge build",
+    "setup": "git submodule update --init --recursive && pnpm -C web install && pnpm -C agent install && cd contracts && forge build",
     "build": "cd contracts && forge build && cd .. && pnpm -C web build",
     "test": "cd contracts && forge test",
     "dev": "pnpm -C web dev",
@@ -15,7 +15,16 @@
     "deploy:testnet": "bash contracts/script/testnet.sh deploy",
     "deploy:testnet:verify": "bash contracts/script/testnet.sh verify",
     "deploy:testnet:rehearse": "bash contracts/script/testnet.sh rehearse",
-    "e2e:chain": "node web/scripts/e2e-chain.mts"
+    "e2e:chain": "node web/scripts/e2e-chain.mts",
+    "agent:dev": "pnpm -C agent dev",
+    "agent:test": "pnpm -C agent test",
+    "agent:card": "pnpm -C agent card",
+    "agent:call:mcp": "pnpm -C agent call:mcp",
+    "agent:call:a2a": "pnpm -C agent call:a2a",
+    "agent:verify": "pnpm -C agent verify",
+    "agent:register:check": "pnpm -C agent register check",
+    "agent:register": "pnpm -C agent register register",
+    "agent:rehearse": "pnpm -C agent rehearse"
   },
   "packageManager": "pnpm@12.23.0"
 }

@@ -11,6 +11,9 @@ export type InspectionResult = {
   provider: string;
   reportHash: Hex;
   createdAt: string;
+  /** ERC-8004 identity of the KeyEscrow Inspector agent that signed reportHash (docs/AGENT.md). */
+  inspector?: { name: string; address: Hex; agentId?: string; agentRegistry?: string };
+  inspectorSignature?: Hex;
 };
 
 /** Runs the AI move-out inspection over the check-in vs check-out photo hashes. */

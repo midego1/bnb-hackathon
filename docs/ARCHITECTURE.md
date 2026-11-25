@@ -230,6 +230,7 @@ submit that proposal with their own wallet, and the other party has to accept it
 | --- | --- | --- | --- | --- |
 | Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | Files → `contentHash` (bytes32) and a storage reference | `GREENFIELD_*` | Local `web/.evidence/` directory |
 | AI inspection | `POST /api/settlement` | Check-in and check-out photo sets plus the deposit → `{tenantRefund, landlordClaim, reasons[]}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL` | Deterministic demo inspector, labelled as such in the UI |
+| Inspector agent | `agent/` ([AGENT.md](AGENT.md)) | The AI inspection as an A2A + MCP skill. Reports carry the ERC-8004 agent id inside `reportHash` and are signed by its `reportSigner` key | `INSPECTOR_PRIVATE_KEY` | Unsigned reports, demo inspector |
 | Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and timestamp | `CMC_API_KEY`; Atlas: `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Last good live quote (marked stale), then static rates labelled "Demo rates" |
 
 Design rules:

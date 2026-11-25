@@ -13,6 +13,9 @@ for (const k of [
   "GREENFIELD_CHAIN_ID",
   "GREENFIELD_BUCKET",
   "GREENFIELD_PRIVATE_KEY",
+  "INSPECTOR_PRIVATE_KEY",
+  "INSPECTOR_AGENT_ID",
+  "INSPECTOR_AGENT_REGISTRY",
 ]) {
   delete process.env[k];
 }

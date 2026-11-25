@@ -56,8 +56,12 @@ Guarantees:
   `[0, deposit]`, and parses numeric strings. If the two amounts disagree, `landlordClaim` is kept and `tenantRefund`
   is derived from it. A percentage confidence is scaled to 0..1, and reasons are capped at 10 × 300 characters.
   Every fix is listed in `repairs`. If the model returns no usable amount, the route returns 502.
-- `reportHash` is the sha256 of the response's canonical JSON (keys sorted, `reportHash` itself excluded). Pass it to
-  `RentalEscrow.propose(tenantRefund, reportHash)` so anyone can check the on-chain proposal against the report.
+- `reportHash` is the sha256 of the response's canonical JSON (keys sorted, `reportHash` and `inspectorSignature`
+  excluded). Pass it to `RentalEscrow.propose(tenantRefund, reportHash)` so anyone can check the on-chain proposal
+  against the report.
+- When `INSPECTOR_PRIVATE_KEY` is set, the report also carries `inspector` (`name`, signer `address`, ERC-8004
+  `agentId` and `agentRegistry`), which is inside the hash, and `inspectorSignature`, an EIP-191 signature of
+  `reportHash`. See [AGENT.md](AGENT.md#erc-8004-identity-and-signed-reports).
 - Mock mode is deterministic. A check-out photo whose hash or URL also appears at check-in counts as unchanged, and
   every other check-out photo counts as one finding. The claim is 8% of the deposit per finding plus a small seeded
   jitter, capped at 60% and rounded to whole tokens. If nothing changed, the tenant gets a full refund.

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getEvidenceStore } from "@/lib/server/evidence";
 import { jsonError, zodIssues } from "@/lib/server/http";
 import {
+  inspectorFromEnv,
   PhotoResolutionError,
   ProposalRepairError,
   proposeSettlement,
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const provider = visionProviderFromEnv();
-    const result = await proposeSettlement(parsed.data, { provider, store: getEvidenceStore() });
+    const result = await proposeSettlement(parsed.data, { provider, store: getEvidenceStore(), inspector: inspectorFromEnv() });
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof PhotoResolutionError) return jsonError(400, err.message);

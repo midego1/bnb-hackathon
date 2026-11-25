@@ -9,5 +9,6 @@
 | [DEPLOY.md](DEPLOY.md) | The BSC testnet (97) deploy path: preflight, guarded broadcast, verification, local rehearsal. |
 | [DEMO.md](DEMO.md) | A 3-minute demo script on a local anvil chain, with the seeded accounts and leases. |
 | [screenshots/](screenshots/) | Screenshots of every page, taken from a seeded local anvil. |
+| [AGENT.md](AGENT.md) | KeyEscrow Inspector: the AI inspection as an ERC-8004 agent (BNB Agent SDK, A2A + MCP), signed reports, testnet registration. |
 
 Each document has **Status** lines that separate what is on `main` from what is on the roadmap.

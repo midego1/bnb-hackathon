@@ -3,9 +3,11 @@ import { canonicalJson, sha256Hex, type Bytes32Hex } from "../hash";
 import type { EvidenceStore } from "../evidence/types";
 import { mockAssessment } from "./mock";
 import { extractJsonObject, repairProposal, type PhotoRef, type SettlementProposal, type SettlementRequest } from "./schema";
+import type { InspectorIdentity, InspectorSigner } from "./inspector";
 import type { VisionImage, VisionProvider } from "./vision";
 
 export * from "./schema";
+export * from "./inspector";
 export { visionProviderFromEnv, VisionProviderError, type VisionProvider } from "./vision";
 
 export interface SettlementResult extends SettlementProposal {
@@ -20,11 +22,15 @@ export interface SettlementResult extends SettlementProposal {
   repairs: string[];
   checkIn: PhotoRef[];
   checkOut: PhotoRef[];
+  /** The inspector agent that produced and signed the report (ERC-8004 identity). Absent when no signer is set. */
+  inspector?: InspectorIdentity;
   /**
-   * sha256 of this object's canonical JSON (sorted keys) without `reportHash` itself;
+   * sha256 of this object's canonical JSON (sorted keys) without `reportHash` and `inspectorSignature`;
    * pass it as `reportHash` to RentalEscrow.propose so the proposal is verifiable off-chain.
    */
   reportHash: Bytes32Hex;
+  /** EIP-191 signature of `reportHash` by `inspector.address`. */
+  inspectorSignature?: `0x${string}`;
   createdAt: string;
 }
 
@@ -56,6 +62,8 @@ export interface ProposeOptions {
   provider?: VisionProvider | null;
   /** Evidence store used to resolve photo hashes for the live provider. */
   store?: EvidenceStore;
+  /** Inspector agent that signs the report; its identity is part of the hashed report. Null/undefined -> unsigned. */
+  inspector?: InspectorSigner | null;
   now?: Date;
 }
 
@@ -91,7 +99,10 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
     repairs,
     checkIn: req.checkIn,
     checkOut: req.checkOut,
+    ...(opts.inspector ? { inspector: opts.inspector.identity } : {}),
     createdAt,
   };
-  return { ...report, reportHash: sha256Hex(canonicalJson(report)) };
+  const reportHash = sha256Hex(canonicalJson(report));
+  if (!opts.inspector) return { ...report, reportHash };
+  return { ...report, reportHash, inspectorSignature: await opts.inspector.signReport(reportHash) };
 }

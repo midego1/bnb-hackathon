@@ -182,6 +182,13 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
                 ))}
               </ul>
             )}
+            {report.inspector && (
+              <p className="mt-3 text-xs text-slate-500" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
+                Signed by {report.inspector.name}
+                {report.inspector.agentId !== undefined && <>, ERC-8004 agent #{report.inspector.agentId}</>}. Its identity is
+                registered on BNB Chain, so anyone can check this proposal came from it.
+              </p>
+            )}
             <ActionButton
               className="mt-4"
               busy={pending === "Submit AI proposal"}

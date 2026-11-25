@@ -122,6 +122,7 @@ web/                 Next.js (App Router) + TypeScript + Tailwind + wagmi/viem +
   components/              UI: role pages, lease detail panels (rent, move-out, evidence, ruling, timeline)
   lib/                     chain + wallet config, generated contract bindings, server services
   e2e/                     Playwright browser test
+agent/               KeyEscrow Inspector: the AI inspection as a BNB Chain agent (ERC-8004 identity, A2A + MCP)
 docs/                Architecture, business model, CMC x Atlas write-up, API, deploy, demo script, screenshots
 ```
 
@@ -137,6 +138,8 @@ docs/                Architecture, business model, CMC x Atlas write-up, API, de
 - [Deploy](docs/DEPLOY.md): the BSC testnet path: preflight, guarded broadcast, verification, rehearsal.
 - [Demo script](docs/DEMO.md): the 3-minute local demo with the seeded accounts and leases.
 - [Screenshots](docs/screenshots/README.md)
+- [KeyEscrow Inspector agent](docs/AGENT.md): the AI inspection as an ERC-8004 agent on BNB Chain (BNB Agent
+  SDK), with A2A and MCP faces and signed reports.
 - [Contracts README](contracts/README.md)
 
 ## Run locally
