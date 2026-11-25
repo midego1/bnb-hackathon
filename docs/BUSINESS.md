@@ -109,25 +109,24 @@ vault. The operator takes 10 % (฿306) and shareholders share ฿2,754. A ฿1,
 
 ### 4. Monthly subscriptions (recurring rent)
 
-Long-stay riders (digital nomads, expats, students) want a scooter for months, paid month by month, without a
-passport held for the whole stay. A **subscription** is that offer, built on the current contracts with no change:
+Long-stay riders (digital nomads, expats, students) want a scooter for weeks or months, paid one period at a time,
+without a passport held for the whole stay. A **subscription** is that offer, built on the escrow contracts with no
+extra contract:
 
-- **Owner:** "Offer as subscription" on a listed scooter (`/landlord`): monthly price and deposit in THB, max
-  months (default 12). The plan is stored with the off-chain listing and shown as a plan card.
+- **Owner:** "Offer as subscription" on a listed scooter (`/landlord`): monthly price and deposit in THB, payment
+  rhythm (weekly, every 2 weeks or monthly) and max rent periods (default 12). The plan is stored with the off-chain listing and shown as a plan card.
 - **Renter:** `/app/subscriptions`: pick a plan and subscribe. The shop issues one normal rental with
-  `termMonths` = max months (`createLease`, or `createLeaseWithPayee` for Fleet Vault scooters). The renter funds
-  deposit + month 1, then pays each month with `payRent(1)`. The page shows a status sentence, the next due date and
+  `termPeriods` = max periods and `rentPeriod` = the plan's rhythm (`createLease`, or `createLeaseWithPayee` for Fleet
+  Vault scooters); rent per period = monthly price x days / 30, rounded down. The renter funds deposit + the first
+  period, then pays each period with `payRent(1)`. The page shows a status sentence, the next due date and
   the amount, baht first.
 - **Cancel** = the existing return flow: return photos, AI split proposal, settle. The deposit and any prepaid,
-  unused months come back after that return check. There is no separate cancel function to trust.
-- **Revenue:** the same one-time 10 % fee per rental (so a 12-month subscription pays it once). Owners and
+  unused periods come back after that return check. There is no separate cancel function to trust.
+- **Revenue:** the same one-time 10 % fee per rental (10 % of one month's rent, once, also for weekly plans). Owners and
   shareholders see **MRR** (monthly recurring revenue, THB and mUSDT) and the number of active subscribers.
 - Which rentals are subscriptions is off-chain (the booking carries the plan); money and state stay in the escrow.
 
-> **Status:** option A, built (web only). Roadmap:
-> - **Flexible rhythm (contract v2):** weekly and every-2-weeks plans need a per-rental period instead of the
->   fixed 30-day `RENT_PERIOD`. The plan data (`periodDays`: 7 / 14 / 30) and the rhythm selector are ready; only
->   "Monthly" is switched on.
+> **Status:** option A, built (web), with all three rhythms on contract v2 (per-rental `rentPeriod`). Roadmap:
 > - **Auto-renew via pull payments (option B):** the renter approves a capped allowance once, and a keeper pulls
 >   each month's rent when due (a `collectRent()` that anyone may call, bounded by the term and the allowance).
 >   Today the renter pays each month by hand. Auto-renew past the term also needs v2 (extendable term).

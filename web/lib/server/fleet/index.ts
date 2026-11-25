@@ -76,8 +76,8 @@ export const fleetActionSchema = z.discriminatedUnion("action", [
     plan: z.object({
       priceThb: z.number().int().min(100).max(1_000_000),
       depositThb: z.number().int().min(100).max(1_000_000),
-      maxPeriods: z.number().int().min(1).max(60), // EscrowFactory MAX_TERM_MONTHS
-      periodDays: z.literal(30), // shortcut: the contract only knows 30-day periods; allow 7 | 14 with contract v2
+      maxPeriods: z.number().int().min(1).max(60), // EscrowFactory MAX_TERM_PERIODS
+      periodDays: z.union([z.literal(7), z.literal(14), z.literal(30)]), // EscrowFactory: 7, 14 or 30-day rent periods
     }),
   }),
   z.object({ action: z.literal("subscribe"), scooterId: z.string().min(1).max(80), renter: address }),

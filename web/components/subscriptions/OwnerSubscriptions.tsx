@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { useAccount } from "wagmi";
 import { Kpi } from "@/components/roles/shared";
 import { ActionButton, Amount, Card, Field, inputClass, Notice } from "@/components/ui";
+import { TOKEN } from "@/lib/contracts";
 import { postFleet, type Rhythm, type Scooter } from "@/lib/fleet";
 import { formatUsdt } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -19,7 +20,7 @@ export function PayeeMrrKpi({ payee }: { payee: string }) {
   const { subs, now } = useSubscriptions();
   const { mrr: total, subscribers } = mrr(subs.filter((s) => s.rental?.payee.toLowerCase() === payee.toLowerCase()), now);
   return (
-    <Kpi label={copy.shareholders.mrr} testId="vault-mrr" hint={`${copy.shareholders.hint(subscribers)} · ${formatUsdt(total)} mUSDT`}>
+    <Kpi label={copy.shareholders.mrr} testId="vault-mrr" hint={`${copy.shareholders.hint(subscribers)} · ${formatUsdt(total)} ${TOKEN.symbol}`}>
       <Amount value={total} />
     </Kpi>
   );
@@ -58,7 +59,7 @@ export function OwnerSubscriptions() {
                 <p className="text-xs text-subtle">{s.location}</p>
                 <p className="mt-2">
                   <span className="font-semibold">{thb(p.priceThb)}</span>
-                  <span className="text-subtle"> / {copy.per[p.periodDays]} · {thb(p.depositThb)} deposit · {copy.owner.planCard(p.maxPeriods)}</span>
+                  <span className="text-subtle"> / month · {copy.rhythm[p.periodDays]} · {thb(p.depositThb)} deposit · {copy.owner.planCard(p.maxPeriods, p.periodDays)}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{copy.owner.subscriberOf(active)}</p>
               </li>

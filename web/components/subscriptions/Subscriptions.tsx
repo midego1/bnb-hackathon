@@ -11,7 +11,7 @@ import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { FlagBadge, useFleet } from "@/components/roles/shared";
 import { ScooterStateBadge, thbToUsdt } from "@/components/roles/FleetOwner";
 import { ActionButton, Amount, useMoney } from "@/components/ui";
-import { mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { postFleet, scooterState, type Rhythm, type Scooter } from "@/lib/fleet";
 import { formatDate } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -19,11 +19,11 @@ import { useRentals } from "@/lib/hooks/useRentals";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { usePrices } from "@/lib/usePrices";
-import { nextPayment, RHYTHMS, subState, subscriptionsOf, type Subscription } from "@/lib/subscriptions";
+import { nextPayment, planRent, RHYTHMS, subState, subscriptionsOf, type Subscription } from "@/lib/subscriptions";
 import { cn } from "@/lib/utils";
 import { copy } from "./copy";
 
-const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
+const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 const thb = (n: number) => `฿${n.toLocaleString("en-US")}`;
 
 /** Fleet data + rentals joined into subscriptions, for the renter page, the owner card and the shareholders KPI. */
@@ -34,7 +34,7 @@ export function useSubscriptions() {
   return { fleet, rentals, subs, now: rentals.data?.chainNow ?? BigInt(0) };
 }
 
-/** The payment rhythm picker. Only the rhythms in RHYTHMS are offered; contract v2 adds weekly and every 2 weeks. */
+/** The payment rhythm picker: weekly, every 2 weeks or monthly (the escrow's rent period). */
 export function RhythmPicker({ value, onChange }: { value: Rhythm; onChange?: (r: Rhythm) => void }) {
   return (
     <div className="flex flex-col gap-1 text-sm">
@@ -53,7 +53,7 @@ export function RhythmPicker({ value, onChange }: { value: Rhythm; onChange?: (r
           </button>
         ))}
       </div>
-      <span className="text-xs text-subtle">{copy.rhythmSoon}</span>
+      <span className="text-xs text-subtle">{copy.rhythmHint}</span>
     </div>
   );
 }
@@ -106,6 +106,7 @@ function PlanCard({ s, state, requested }: { s: Scooter; state: ReturnType<typeo
   const [error, setError] = useState<string | null>(null);
   const plan = s.plan!;
   const rate = prices?.rates.USDT.THB;
+  const money = useMoney();
 
   async function subscribe() {
     if (!address) return;
@@ -135,12 +136,13 @@ function PlanCard({ s, state, requested }: { s: Scooter; state: ReturnType<typeo
         </div>
         <p>
           <span className="text-lg font-semibold">{thb(plan.priceThb)}</span>
-          <span className="text-subtle"> / {copy.per[plan.periodDays]} · {copy.rhythm[plan.periodDays]}</span>
+          <span className="text-subtle"> / month · {copy.rhythm[plan.periodDays]}</span>
         </p>
+        {plan.periodDays !== 30 && <p className="text-xs text-muted-foreground">{copy.perPeriod(money(planRent(thbToUsdt(plan.priceThb, rate), plan)), plan.periodDays)}</p>}
         <p className="text-xs text-muted-foreground">{copy.plans.deposit(thb(plan.depositThb))}</p>
-        <p className="text-xs text-muted-foreground">{copy.plans.term(plan.maxPeriods)}</p>
+        <p className="text-xs text-muted-foreground">{copy.plans.term(plan.maxPeriods, plan.periodDays)}</p>
         <p className="text-xs text-subtle">
-          {copy.plans.upfront}: <Amount value={thbToUsdt(plan.priceThb, rate) + thbToUsdt(plan.depositThb, rate)} className="inline-flex" />
+          {copy.plans.upfront(plan.periodDays)}: <Amount value={planRent(thbToUsdt(plan.priceThb, rate), plan) + thbToUsdt(plan.depositThb, rate)} className="inline-flex" />
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}
         <ActionButton
@@ -176,9 +178,9 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
         : copy.state.activePaid()
       : copy.state[state]();
 
-  // Start = deposit + month 1 (fund); afterwards one month at a time (payRent(1)).
+  // Start = deposit + the first period (fund); afterwards one period at a time (payRent(1)).
   const amount = !r ? BigInt(0) : state === "issued" ? r.depositAmount + r.rentAmount : (next?.amount ?? BigInt(0));
-  const label = state === "issued" ? copy.mine.start : next ? copy.mine.pay(next.period) : "";
+  const label = state === "issued" ? copy.mine.start(sub.plan.periodDays) : next ? copy.mine.pay(next.period, sub.plan.periodDays) : "";
   const short = token && token.balance < amount ? amount - token.balance : BigInt(0);
 
   async function pay() {
@@ -229,7 +231,7 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
           </div>
           <div className="rounded-xl bg-muted p-3 text-sm">
             <p className="text-xs text-subtle">{copy.rhythm[sub.plan.periodDays]}</p>
-            <p className="font-semibold" data-testid="months-paid">{copy.mine.paidThrough(r.monthsFunded, r.termMonths)}</p>
+            <p className="font-semibold" data-testid="months-paid">{copy.mine.paidThrough(r.periodsFunded, r.termPeriods, sub.plan.periodDays)}</p>
           </div>
           <div className="rounded-xl bg-muted p-3 text-sm">
             <p className="text-xs text-subtle">{copy.mine.deposit}</p>

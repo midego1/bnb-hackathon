@@ -18,6 +18,8 @@ import { useTx } from "@/lib/hooks/useTx";
 import { LeaseStatus } from "@/lib/contracts";
 import { usePrices } from "@/lib/usePrices";
 import type { RentalSummary } from "@/lib/rentals";
+import { planRent } from "@/lib/subscriptions";
+import { copy as subCopy } from "@/components/subscriptions/copy";
 import { FlagBadge, Kpi, useFleet } from "./shared";
 
 /** Booked scooters are offered for one monthly rent period; the renter funds deposit + the month up front. */
@@ -182,7 +184,8 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
   const sub = booking.subscription;
   const rentThb = sub?.priceThb ?? scooter.rentThb;
   const depositThb = sub?.depositThb ?? scooter.depositThb;
-  const rent = thbToUsdt(rentThb, rate);
+  // A plan's price is monthly; the escrow takes rent per period (monthly x days / 30).
+  const rent = sub ? planRent(thbToUsdt(rentThb, rate), sub) : thbToUsdt(rentThb, rate);
   const deposit = thbToUsdt(depositThb, rate);
 
   async function offer() {
@@ -193,7 +196,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       rentAmount: rent,
       depositAmount: deposit,
       termPeriods: sub?.maxPeriods ?? BOOKING_TERM_PERIODS,
-      rentPeriod: 0, // factory default: monthly
+      rentPeriod: sub ? sub.periodDays * 86_400 : 0, // 0 = factory default: monthly
       responseWindow: 0,
       arbiterWindow: 0,
       leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb, depositThb, months: sub?.maxPeriods, thbPerUsdt: rate, booking: booking.id })),
@@ -221,7 +224,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
         <p className="font-medium">{scooter.name} · {scooter.location}</p>
         <p className="text-xs text-subtle">
           renter <span className="font-mono">{shortAddress(booking.renter)}</span> · ฿{rentThb.toLocaleString("en-US")} + ฿
-          {depositThb.toLocaleString("en-US")} deposit{sub ? ` · subscription, up to ${sub.maxPeriods} months` : ""}{toVault ? " · pays the Fleet Vault" : ""}
+          {depositThb.toLocaleString("en-US")} deposit{sub ? ` · ${subCopy.issueLine(sub.maxPeriods, sub.periodDays)}` : ""}{toVault ? " · pays the Fleet Vault" : ""}
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>

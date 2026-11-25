@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
 /**
- * Subscriptions on the current contract: the owner offers a scooter as a monthly plan, the renter subscribes, the
+ * Subscriptions on contract v2: the owner offers a scooter as a monthly plan, the renter subscribes, the
  * owner issues the 12-month rental, the renter pays deposit + month 1 and then month 2, MRR shows up for the owner
  * and the shareholders, and "Cancel subscription" opens the normal return flow on the rental page.
  */
@@ -98,6 +98,42 @@ test("subscribe, pay month 2, cancel starts the return flow", async ({ page }) =
   await page.waitForURL(/\/lease\/0x[0-9a-fA-F]{40}$/);
   await expect(page.getByTestId("anchor-check-out")).toBeVisible();
   await expect(page.getByText("Return & deposit")).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test("weekly plan: the rhythm reaches the chain as a 7-day rent period", async ({ page }) => {
+  const problems = watchProblems(page);
+  await page.goto("/app");
+
+  await owner(page);
+  const form = page.getByTestId("offer-plan-form");
+  await form.locator('select[name="scooter"]').selectOption("fino-125-bkk");
+  await form.locator('input[name="priceThb"]').fill("3000");
+  await form.getByRole("radio", { name: "Weekly" }).click();
+  await page.getByTestId("offer-plan").click();
+  await expect(page.locator('[data-testid="owner-plan"][data-scooter="fino-125-bkk"]')).toContainText("up to 12 weeks");
+
+  await renter(page);
+  const plan = page.locator('[data-testid="plan-card"][data-scooter="fino-125-bkk"]');
+  await expect(plan).toContainText("Up to 12 weeks");
+  await expect(plan).toContainText("per week"); // monthly price x 7 / 30
+  await plan.getByTestId("subscribe").click();
+  const sub = page.getByTestId("my-subscription").filter({ hasText: "Yamaha Fino 125" });
+  await expect(sub).toHaveAttribute("data-state", "requested");
+
+  await owner(page);
+  const request = page.getByTestId("booking-request").filter({ hasText: "Yamaha Fino 125" });
+  await expect(request).toContainText("subscription, up to 12 weeks");
+  await request.getByTestId("offer-rental").click();
+  await waitForTx(page, "Offer rental");
+
+  await renter(page);
+  await expect(sub).toHaveAttribute("data-state", "issued");
+  await expect(sub.getByTestId("sub-pay")).toHaveText(/Pay deposit \+ week 1/);
+  // The escrow itself says weekly: its terms() hold rentPeriod = 7 days.
+  await sub.getByRole("link", { name: /Open rental/ }).click();
+  await page.waitForURL(/\/lease\/0x[0-9a-fA-F]{40}$/);
+  await expect(page.getByText("12 weeks (12 × rent per week)")).toBeVisible();
   expect(problems).toEqual([]);
 });
 
