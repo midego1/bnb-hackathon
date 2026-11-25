@@ -1,4 +1,5 @@
-import { LeaseStatus } from "./contracts";
+import { formatUnits } from "viem";
+import { LeaseStatus, TOKEN } from "./contracts";
 
 /**
  * "Pay with PromptPay" DEMO: a PromptPay-style QR (EMVCo merchant-presented payload) built locally, and the amount math.
@@ -37,21 +38,21 @@ export function promptPayPayload(thb: number): string {
   return body + crc16(body);
 }
 
-/** Baht to pay for `amount` mUSDT (6 decimals) at `thbPerUsdt`, rounded to the satang. */
+/** Baht to pay for `amount` token base units (TOKEN.decimals) at `thbPerUsdt`, rounded to the satang. */
 export function thbFor(amount: bigint, thbPerUsdt: number): number {
-  return Math.round((Number(amount) / 1e6) * thbPerUsdt * 100) / 100;
+  return Math.round(Number(formatUnits(amount, TOKEN.decimals)) * thbPerUsdt * 100) / 100;
 }
 
 /**
- * What the renter owes right now, in mUSDT base units: deposit + first month while the rental awaits funding, one
- * month's rent while it runs and months are left to pay in. Undefined otherwise (nothing to pay with PromptPay).
+ * What the renter owes right now, in token base units: deposit + the first period's rent while the rental awaits
+ * funding, one period's rent (weekly, two-weekly or monthly) while it runs and periods are left to pay in. Undefined otherwise (nothing to pay with PromptPay).
  */
 export function amountDue(l: {
   status: number;
-  terms: { depositAmount: bigint; rentAmount: bigint; termMonths: number };
-  monthsFunded: number;
+  terms: { depositAmount: bigint; rentAmount: bigint; termPeriods: number };
+  periodsFunded: number;
 }): { amount: bigint; what: "fund" | "rent" } | undefined {
   if (l.status === LeaseStatus.Created) return { amount: l.terms.depositAmount + l.terms.rentAmount, what: "fund" };
-  if (l.status === LeaseStatus.Active && l.monthsFunded < l.terms.termMonths) return { amount: l.terms.rentAmount, what: "rent" };
+  if (l.status === LeaseStatus.Active && l.periodsFunded < l.terms.termPeriods) return { amount: l.terms.rentAmount, what: "rent" };
   return undefined;
 }

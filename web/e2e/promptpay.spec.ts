@@ -28,7 +28,7 @@ async function createLease(): Promise<Address> {
     address: factory,
     abi: escrowFactoryAbi,
     functionName: "createLease",
-    args: [{ tenant: devAccounts.tenant, arbiter: zeroAddress, rentAmount: BigInt(100) * U, depositAmount: BigInt(200) * U, termMonths: 3, responseWindow: 0, arbiterWindow: 0, leaseHash: zeroHash }],
+    args: [{ tenant: devAccounts.tenant, arbiter: zeroAddress, rentAmount: BigInt(100) * U, depositAmount: BigInt(200) * U, termPeriods: 3, rentPeriod: 0, responseWindow: 0, arbiterWindow: 0, leaseHash: zeroHash }],
   });
   const receipt = await pub.waitForTransactionReceipt({ hash });
   const [created] = parseEventLogs({ abi: escrowFactoryAbi, eventName: "LeaseCreated", logs: receipt.logs });

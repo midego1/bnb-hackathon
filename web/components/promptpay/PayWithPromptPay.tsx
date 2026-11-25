@@ -10,6 +10,7 @@ import { viewerRole } from "@/components/lease/model";
 import { ActionButton, Card, Notice, PriceSourceBadge, Skeleton } from "@/components/ui";
 import { chainName } from "@/lib/chains";
 import { mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { periodName } from "@/lib/rentals";
 import { formatFiat } from "@/lib/fiat";
 import { formatUsdt } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -121,7 +122,7 @@ export function PayWithPromptPay({ address }: { address: Address }) {
 
   return page(
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card title={due.what === "fund" ? "Deposit + first month" : "One month's rent"} aside={<PriceSourceBadge />}>
+      <Card title={due.what === "fund" ? `Deposit + first ${periodName(lease.terms.rentPeriod)}` : `One ${periodName(lease.terms.rentPeriod)}'s rent`} aside={<PriceSourceBadge />}>
         <p className="text-3xl font-semibold tabular-nums" data-testid="promptpay-thb">
           {thb === undefined ? "…" : formatFiat(thb, "THB")}
         </p>
@@ -181,7 +182,7 @@ export function PayWithPromptPay({ address }: { address: Address }) {
                 onClick={pay}
                 data-testid="promptpay-fund"
               >
-                {due.what === "fund" ? "Fund deposit + rent" : "Pay one month"}
+                {due.what === "fund" ? "Fund deposit + rent" : `Pay one ${periodName(lease.terms.rentPeriod)}`}
               </ActionButton>
             </div>
           </div>
