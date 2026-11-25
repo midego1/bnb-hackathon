@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { parseEventLogs, parseUnits, zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
-import { ActionButton, Amount, Card, Field, inputClass, Notice, StatusBadge, useMoney } from "@/components/ui";
+import { ActionButton, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { escrowFactoryAbi } from "@/lib/contracts";
 import { incomeOf, postFleet, scooterState, scooterStateLabel, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
@@ -64,8 +64,17 @@ export function FleetOwner() {
   const disputes = myRentals.filter((r) => r.status === LeaseStatus.Disputed);
   const requests = (fleet?.bookings ?? []).filter((b) => b.status === "requested" && mine.some((s) => s.id === b.scooterId));
 
+  // Render the dashboard in one go once chain + catalogue data are in, so the page below does not jump around.
+  if (!index || !fleet) {
+    return (
+      <div data-testid="fleet-owner" data-ready="false">
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="fleet-owner" data-ready="true">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <Kpi label="Scooters" testId="kpi-scooters">{mine.length}</Kpi>
         <Kpi label="Available" testId="kpi-available">{count(["available"])}</Kpi>

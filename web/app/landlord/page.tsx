@@ -21,12 +21,12 @@ export default function LandlordPage() {
         <div className="space-y-8">
           <FleetOwner />
           <div>
-            <h2 className="mb-3 text-lg font-semibold">My rentals</h2>
-            <LeaseGrid addresses={data} empty="No rentals yet. Accept a booking request or fill in the form below to offer your first one; it shows up here as soon as it is created." />
-          </div>
-          <div>
             <h2 className="mb-3 text-lg font-semibold">Offer a rental to a specific wallet</h2>
             <CreateLeaseForm />
+          </div>
+          <div>
+            <h2 className="mb-3 text-lg font-semibold">My rentals</h2>
+            <LeaseGrid addresses={data} empty="No rentals yet. Accept a booking request or fill in the form above to offer your first one; it shows up here as soon as it is created." />
           </div>
         </div>
       </WalletGate>

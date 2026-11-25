@@ -37,6 +37,8 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   // --- Owner creates a rental --------------------------------------------------------------------
   await page.goto("/landlord");
   await actAs(page, "landlord");
+  // The fleet dashboard above the form loads from the chain; wait so the form does not move under the click.
+  await expect(page.getByTestId("fleet-owner")).toHaveAttribute("data-ready", "true");
   const form = page.getByTestId("create-lease-form");
   await expect(form).toBeVisible();
   await expect(page.getByTestId("fee-note")).toContainText("one-time 10%");

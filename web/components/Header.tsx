@@ -44,13 +44,16 @@ export function Header() {
           <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
         </div>
       </div>
-      <nav className="flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm md:hidden" data-testid="mobile-nav" aria-label="View as">
-        <NavLinks />
-        <span className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="flex items-center gap-2 px-4 pb-2 text-sm md:hidden" data-testid="mobile-nav">
+        {/* The views scroll sideways; the price badge and theme button stay pinned on the right. */}
+        <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" aria-label="View as">
+          <NavLinks />
+        </nav>
+        <span className="flex shrink-0 items-center gap-2">
           <PriceSourceBadge />
           <ThemeCycleButton className="inline-flex" />
         </span>
-      </nav>
+      </div>
     </header>
   );
 }
