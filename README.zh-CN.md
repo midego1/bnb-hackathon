@@ -94,12 +94,12 @@ pnpm dev                                             # 打开 http://localhost:3
 不做部署：合约、Web（lint、单元测试、构建）、代理，以及端到端测试（`e2e:chain` + 在临时 anvil 上跑 Playwright）。
 
 ```bash
-cd contracts && forge build && forge test   # 105 个测试（单元 + 模糊测试）：工厂、托管、Fleet Vault、MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 241 个 vitest 测试（服务端路由、操作、演示、赞助商；离线）
+cd contracts && forge build && forge test   # 120 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT
+pnpm -C web lint && pnpm -C web test        # eslint + 344 个 vitest 测试（服务端路由、操作、演示、赞助商；离线）
 pnpm -C web build                           # 生产构建
-pnpm agent:test                             # 20 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign
+pnpm agent:test                             # 21 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign
 pnpm e2e:chain                              # 用真实交易 + 时间快进跑完每条结算路径，独立 anvil :28545
-cd web && npx playwright test               # 11 个文件共 50 个浏览器测试；独立 anvil :28546 + 服务器 :3150
+cd web && npx playwright test               # 17 个文件共 91 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
 ```
 
 ---

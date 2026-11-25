@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in the contracts, the web app or the agent does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security issues** (anything that moves a deposit, rent or vault income wrongly, or
+        leaks a key) go through a private report instead: see [SECURITY.md](https://github.com/midego1/bnb-hackathon/blob/main/SECURITY.md).
+        Never paste a private key, API key or `.env` content here.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      options:
+        - Contracts (contracts/)
+        - Web app (web/)
+        - Ask AI
+        - Agent (agent/)
+        - Docs
+        - CI / tooling
+    validations:
+      required: true
+  - type: dropdown
+    id: network
+    attributes:
+      label: Network
+      options:
+        - Local anvil (31337)
+        - BSC testnet (97)
+        - Not chain related
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead. Amounts in baht if it is about money.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The page or command, the role (owner, renter, dispute desk, shareholder) and the rental address if there is one.
+      placeholder: |
+        1. pnpm chain:anvil, pnpm chain:deploy && pnpm chain:seed, pnpm dev
+        2. Open /tenant as the renter
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, transaction hashes or screenshots
+      description: Browser console, server output or a failing test. Remove keys and personal data first.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Commit or URL
+      description: The commit you ran (git rev-parse --short HEAD), or the page URL on the live site.

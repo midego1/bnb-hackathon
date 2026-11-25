@@ -1,7 +1,7 @@
 import { formatUnits, zeroHash, type Address } from "viem";
 import { TOKEN } from "@/lib/contracts";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
-import type { T } from "@/lib/i18n/t";
+import type { Translate } from "@/lib/i18n/keys";
 import type { Listing } from "@/lib/listings";
 import type { ChainEvent } from "@/lib/rentals";
 
@@ -72,7 +72,7 @@ export function replaceable(s: Pick<StageStatus, "rental" | "lease">, now = Date
 }
 
 /** The stage timeline in plain words, one line per event of the rental, in the active language (stage.event). */
-export function eventLabel(e: ChainEvent, t: T): string {
+export function eventLabel(e: ChainEvent, t: Translate): string {
   switch (e.name) {
     case "EvidenceAdded":
       return t(Number(e.args.kind) === 0 ? "stage.event.pickupPhoto" : Number(e.args.kind) === 1 ? "stage.event.returnPhoto" : "stage.event.evidence");

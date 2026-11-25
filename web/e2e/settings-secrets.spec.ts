@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { E2E_SECRETS } from "./env";
+import { hydrated } from "./hydrated";
 
 /**
  * Write-only secrets page against temp env files (e2e/env.ts points SECRETS_ENV_FILE / SECRETS_WEB_ENV_FILE at
@@ -35,6 +36,7 @@ function recordBodies(page: Page) {
 async function unlock(page: Page) {
   await page.goto("/settings/secrets");
   await expect(page.getByTestId("secrets-unlock")).toBeVisible();
+  await hydrated(page.getByTestId("secrets-unlock-submit"));
   await page.getByTestId("secrets-passcode").fill("wrong-passcode");
   await page.getByTestId("secrets-unlock-submit").click();
   await expect(page.getByTestId("secrets-unlock").getByRole("alert")).toHaveText("Wrong passcode.");

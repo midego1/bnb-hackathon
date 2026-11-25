@@ -9,7 +9,7 @@ import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem"
 import { z } from "zod";
 import { targetChainId } from "../chains";
 import { TOKEN } from "../contracts";
-import type { T } from "@/lib/i18n/t";
+import type { Translate } from "@/lib/i18n/keys";
 
 /** The target chain's stablecoin (decimals and symbol from its deployment file): MockUSDT (6) on testnets, BSC-USD (18) on 56. */
 export { TOKEN };
@@ -153,7 +153,7 @@ export function fieldError(schema: z.ZodObject, key: string, value: unknown): st
 }
 
 /** fieldError for the web forms, in the active language (ui.field); the API and MCP tools keep the English. */
-export function fieldErrorIn(t: T, schema: z.ZodObject, key: string, value: unknown): string | undefined {
+export function fieldErrorIn(t: Translate, schema: z.ZodObject, key: string, value: unknown): string | undefined {
   const msg = fieldError(schema, key, value);
   if (!msg || t.lang === "en") return msg;
   const range = /^(\d+) to (\d+)\.$/.exec(msg);

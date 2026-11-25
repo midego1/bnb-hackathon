@@ -78,8 +78,11 @@ test("controls: space pauses and plays, back / next / dots, the ending picker ju
   await expect(root(page)).toHaveAttribute("data-playing", "true");
   await expect(root(page)).toHaveAttribute("data-scene", "problem");
 
-  await page.keyboard.press("Space");
-  await expect(root(page)).toHaveAttribute("data-playing", "false");
+  // The page is server-rendered as playing: a key pressed before hydration is lost (seen under --workers=2), so retry.
+  await expect(async () => {
+    await page.keyboard.press("Space");
+    await expect(root(page)).toHaveAttribute("data-playing", "false", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   const frozen = await page.getByTestId("eli5-stage").innerHTML();
   await page.waitForTimeout(600);
   expect(await page.getByTestId("eli5-stage").innerHTML(), "paused stage does not move").toBe(frozen);
@@ -118,7 +121,13 @@ test("reduced motion: coins fade in place instead of flying, and the story still
     page.getByTestId("eli5-coin").evaluateAll((els) => els.map((e) => Number(/translate\(([-\d.]+)/.exec(e.getAttribute("transform") ?? "")?.[1])));
 
   // Mid-flight in "the tenant fills the safe": tenant at x 995, safe at x 600.
+  // The ?scene= frame is applied after hydration: wait for it before reading the coins (a race under --workers=2).
+  const frozenFrame = async () => {
+    await expect(root(page)).toHaveAttribute("data-scene", "fund");
+    await expect(root(page)).toHaveAttribute("data-playing", "false");
+  };
   await page.goto("/how-it-works?scene=3&t=1300&autoplay=0");
+  await frozenFrame();
   await expect(root(page)).toHaveAttribute("data-motion", "full");
   const flying = await coinXs();
   expect(flying.length).toBeGreaterThan(0);
@@ -126,6 +135,7 @@ test("reduced motion: coins fade in place instead of flying, and the story still
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
+  await frozenFrame();
   await expect(root(page)).toHaveAttribute("data-motion", "reduced");
   const fading = await coinXs();
   expect(fading.length).toBeGreaterThan(0);
