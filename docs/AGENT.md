@@ -10,9 +10,12 @@ It is built on the [BNB Agent SDK](https://github.com/bnb-chain/bnbagent-sdk) (`
 that [BNB Agent Studio](https://www.bnbchain.org/en/bnb-agent-studio) generates agents from. Its two faces use the
 same libraries a Studio-generated agent uses: `@a2a-js/sdk` for A2A and `@modelcontextprotocol/sdk` for MCP.
 
-**Status:** on this branch, the agent (`agent/`), signed reports in the web app, the ERC-8004 registration script
-and the local rehearsal all work and are tested. The BSC testnet registration is prepared but has **not been
-sent**. It runs together with the contracts' testnet deploy ([below](#register-on-bsc-testnet)). Payments per
+**Status:** live. The agent is registered on BSC testnet as ERC-8004 agent **#2921** in the Identity Registry
+`0x8004A818BFB912233c491871b3d84c89A494BD9e`
+([registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0),
+record in `agent/deployments/97.json`) and runs at <https://keyescrow-agent.mdgooijer.workers.dev>
+([agent card](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json), MCP at `POST /mcp`).
+Reports are signed only where `INSPECTOR_PRIVATE_KEY` is set; otherwise they say they are unsigned. Payments per
 inspection (ERC-8183 / x402) are on the [roadmap](#roadmap-pay-per-inspection-erc-8183--x402) and are not built.
 
 ## Contents

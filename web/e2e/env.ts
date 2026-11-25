@@ -60,6 +60,10 @@ export const E2E_WEB_ENV: Record<string, string> = {
   // --- Server-side: offline and deterministic. Blank every key so a local one can never call a paid API. ---
   VISION_LLM_PROVIDER: "mock",
   ANTHROPIC_API_KEY: "",
+  // Ask AI: the demo model only (never a real model call in e2e).
+  ASSISTANT_MOCK: "1",
+  ASSISTANT_MODEL: "",
+  ASSISTANT_DAILY_TOKENS: "",
   VISION_LLM_MODEL: "",
   CMC_API_KEY: "",
   CMC_PRO_API_KEY: "",

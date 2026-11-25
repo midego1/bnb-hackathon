@@ -290,7 +290,7 @@ function plan(target) {
     lines.push("Worker keyescrow-web  (web/wrangler.jsonc, entry web/cloudflare/worker.ts -> .open-next/worker.js)");
     lines.push(m ? `  build      chain 97, factory ${m.escrowFactory}, commit ${m.commit}${m.dirty ? " + local changes" : ""}, built ${m.builtAt}` : "  build      none yet (pnpm cf:build)");
     lines.push("  route      https://keyescrow-web.<your-subdomain>.workers.dev (workers.dev only, no custom domain)");
-    lines.push("  bindings   ASSETS (static assets), KEYESCROW_STATE (Durable Object KeyEscrowState, SQLite, migration v1)");
+    lines.push("  bindings   ASSETS (static assets), KEYESCROW_STATE (Durable Object KeyEscrowState, SQLite, migration v1), WORKER_SELF_REFERENCE (this Worker, for Ask AI inspect_return)");
     lines.push("             EVIDENCE (R2) only if uncommented in wrangler.jsonc");
     lines.push("  secrets    " + WEB_SECRETS.map(([n]) => n).join(", "));
   } else {

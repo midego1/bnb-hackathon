@@ -43,7 +43,7 @@ export const SECRETS: SecretSpec[] = [
   {
     name: "ANTHROPIC_API_KEY",
     group: "ai",
-    purpose: "Claude vision model that compares the scooter's pick-up and return photos (mock verdicts without it).",
+    purpose: "Claude: the vision model that compares the scooter's pick-up and return photos, and Ask AI (mock verdicts and a demo model without it).",
     source: { label: "Anthropic Console → API keys", url: "https://console.anthropic.com/settings/keys" },
     targets: ["web"],
     format: "anthropic",

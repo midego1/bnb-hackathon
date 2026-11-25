@@ -1,102 +1,318 @@
 # Architecture
 
-KeyEscrow is a platform for scooter rental deposits and rent in Thailand, on BNB Chain (case study and scope:
-[PRODUCT.md](PRODUCT.md)). One `EscrowFactory` creates a small,
-non-upgradeable `RentalEscrow` contract for every rental. The escrow holds the renter's deposit and prepaid
-rent in a stablecoin. MockUSDT stands in for that stablecoin on testnet. KeyEscrow has no token of its own.
+KeyEscrow holds scooter rental deposits and rent in Thailand on BNB Chain (case study and scope:
+[PRODUCT.md](PRODUCT.md)). One `EscrowFactory` creates a small, non-upgradeable `RentalEscrow` contract for every
+rental. The escrow holds the renter's deposit and prepaid rent in a stablecoin. MockUSDT stands in for that
+stablecoin on testnet. KeyEscrow has no token of its own. A `FleetVault` can receive a rental's income on behalf of
+the shareholders of a scooter fleet.
 
-Documents and photos stay off-chain, on BNB Greenfield, or in a local folder when Greenfield is not
-configured. Only their content hashes go on-chain. A vision LLM compares pickup and return photos and
-proposes how to split the deposit. The parties settle that proposal on-chain themselves.
+Documents and photos stay off-chain; only their content hashes go on-chain. An AI inspector (a vision LLM behind
+an ERC-8004 agent identity) compares pickup and return photos and *drafts* a deposit split. The parties settle that
+draft on-chain themselves.
 
 > **Naming.** The docs and UI say rental shop *owner*, *renter*, *scooter rental*, *pickup* and *return*. The
 > contracts and ABIs keep their original identifiers: `landlord` = owner, `tenant` = renter, `lease` = rental,
 > `CheckIn` / `CheckOut` = pickup / return photos, `MoveOut` = a return (deposit) proposal is open.
 
-> **How to read the Status lines.** Each section says what is on `main` today. Anything not on `main` yet is
-> marked **Roadmap**; do not treat it as done.
+> **Status lines.** Each section says what is on `main` and live. Anything else is marked **Roadmap**.
 
-## 1. Components
+Contents: [1. System](#1-system) · [2. Contracts](#2-contracts) · [3. Web app](#3-web-app) ·
+[4. Actions: REST, OpenAPI, MCP, A2A](#4-actions-rest-openapi-mcp-a2a) · [5. Agent](#5-agent-keyescrow-inspector) ·
+[6. Off-chain services](#6-off-chain-services) · [7. Cloudflare](#7-cloudflare-deployment) ·
+[8. Roles and trust](#8-roles-and-trust-model) · [9. State machine](#9-rental-state-machine) ·
+[10. Data flows](#10-data-flows) · [11. Scalability](#11-scalability) · [12. Testing](#12-testing)
+
+## 1. System
 
 ```mermaid
 flowchart LR
-    subgraph Users
-        L[Owner (rental shop)]
-        T[Renter]
-        A["Arbiter<br/>(KeyEscrow dispute desk<br/>by default)"]
+    subgraph People
+        R["Renter"]
+        O["Fleet owner<br/>(rental shop)"]
+        D["Dispute desk"]
+        S["Shareholders"]
+        DEV["Developers and<br/>AI agents"]
     end
 
-    subgraph Web["web/ (Next.js App Router)"]
-        UI["Pages: /landlord (owner) /tenant (renter)<br/>/arbiter /lease/[address]"]
-        W["wagmi + viem + RainbowKit<br/>(wallet, reads, writes)"]
-        subgraph API["Server routes (web/app/api)"]
-            AI["AI inspection<br/>(vision LLM)"]
-            PX["Price<br/>(Atlas feed / CMC Pro)"]
-            EV["Evidence upload<br/>(hash + store)"]
-        end
+    subgraph CF["Cloudflare Workers"]
+        WEB["keyescrow-web<br/>Next.js app + /api routes"]
+        AG["keyescrow-agent<br/>KeyEscrow Inspector<br/>A2A + MCP"]
+        DO[("KeyEscrowState<br/>Durable Object")]
     end
 
-    subgraph Chain["BNB Chain (BSC / opBNB; anvil locally)"]
-        F[EscrowFactory]
-        E1["RentalEscrow<br/>(rental #1)"]
-        E2["RentalEscrow<br/>(rental #n)"]
-        U[MockUSDT]
+    subgraph BSC["BNB Chain: BSC testnet (97)"]
+        F["EscrowFactory"]
+        E["RentalEscrow clones<br/>(one per rental)"]
+        V["FleetVault<br/>BKK-FLEET-1"]
+        U["MockUSDT"]
+        ID["ERC-8004 Identity Registry<br/>agent #2921"]
     end
 
-    GF[("BNB Greenfield<br/>or local fallback<br/>web/.evidence/")]
-    LLM(["Vision LLM provider"])
-    CMC(["CoinMarketCap Pro API"])
-    ATL(["Atlas on-chain price feed"])
+    EXT(["Vision LLM · CoinMarketCap · Cournot<br/>Atlas feed · Living Brain"])
+    ST[("Evidence store<br/>Greenfield / R2 / local disk")]
 
-    L & T & A --> UI
-    UI --> W
-    W -->|createLease| F
-    F -->|EIP-1167 clone| E1 & E2
-    W -->|"fund / propose / accept /<br/>dispute / resolve"| E1
-    E1 <-->|transferFrom / transfer| U
-    UI --> AI & PX & EV
-    EV --> GF
-    AI --> GF
-    AI --> LLM
-    PX --> CMC
-    PX --> ATL
+    R & O & D & S -->|browser + wallet| WEB
+    DEV -->|"REST /api/v1"| WEB
+    DEV -->|"MCP /mcp, A2A /a2a"| AG
+    WEB -->|"reads via viem; writes signed<br/>by the user's own wallet"| BSC
+    AG -->|"reads; prepare_* simulations"| BSC
+    WEB --- DO
+    WEB & AG --> EXT
+    WEB --> ST
+    F -->|EIP-1167 clone| E
+    E <-->|transfer| U
+    E -->|owner's income| V
 ```
 
-| Component | Where | Responsibility |
+The web app never holds a user key: a user's own wallet (RainbowKit) signs every write. The two exceptions are both
+demos. On the local anvil chain, the *Demo accounts* bar signs with anvil's public dev keys. On the live testnet
+`/demo`, a server-side runner signs with throwaway demo wallets ([§3](#the-demo-runner)).
+
+**Status:** live. The contracts are on BSC testnet (addresses in the [README](../README.md#bsc-testnet-contracts-chain-97)),
+the web app runs at <https://keyescrow-web.mdgooijer.workers.dev>, and the agent at
+<https://keyescrow-agent.mdgooijer.workers.dev>.
+
+## 2. Contracts
+
+```mermaid
+flowchart TB
+    FO["Factory owner<br/>(Ownable2Step)"] -->|"setFee (≤ 10 %), setDefaultArbiter<br/>future rentals only"| F
+    F["EscrowFactory<br/>createLease(params)<br/>createLeaseWithPayee(params, payee)<br/>leasesByLandlord / Tenant / Arbiter"]
+    IMPL["RentalEscrow implementation"]
+    F -->|"clone + initialize(terms, payee)"| E1["RentalEscrow #1"]
+    F -->|"clone + initialize(terms, payee)"| E2["RentalEscrow #n"]
+    IMPL -. code .- E1 & E2
+    E1 & E2 <-->|"exact pull in, transfer out"| U["MockUSDT (6 decimals)"]
+    E1 -->|"payee = owner"| OW["Owner wallet"]
+    E2 -->|"payee = FleetVault"| V["FleetVault<br/>deposit / redeem / claim / sync"]
+    E1 & E2 -->|"one-time fee"| T["Fee recipient (treasury)"]
+    V -->|"operator fee ≤ 30 %"| OP["Fleet operator"]
+    V -->|"pro-rata income"| SH["BKK-FLEET-1 holders"]
+```
+
+| Contract | Where | Responsibility |
 | --- | --- | --- |
-| `EscrowFactory` | `contracts/src/EscrowFactory.sol` | Checks rental parameters and clones one `RentalEscrow` per rental (EIP-1167). Indexes rentals by owner, renter and arbiter. Holds the protocol fee setting for future rentals (`Ownable2Step`). |
-| `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds the deposit and rent for one rental. Releases rent on a fixed 30-day schedule. Anchors evidence hashes. Settles the deposit by mutual agreement, arbiter ruling or timeout. Initialised once, never upgradeable. |
-| `FleetVault` | `contracts/src/FleetVault.sol` | Minimal Fleet Vault (testnet prototype): investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim straight into it; that income minus the operator's maintenance fee is shared pro rata and claimable. See §4. |
+| `EscrowFactory` | `contracts/src/EscrowFactory.sol` | Checks the rental parameters (term 1–60 months, reply window 1–60 days, dispute deadline 1–90 days, three different parties) and clones one `RentalEscrow` per rental (EIP-1167). Indexes rentals by owner, renter and arbiter, plus a paginated list. Holds the fee setting (`feeBps`, hard cap `MAX_FEE_BPS = 1000`) and the default arbiter for **future** rentals. |
+| `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds one rental's deposit and rent. Releases rent on a fixed 30-day schedule, charges the one-time fee on the first rent payout, anchors evidence hashes, and settles the deposit by agreement, ruling or timeout. Initialised once, not upgradeable, no admin functions. |
+| `FleetVault` | `contracts/src/FleetVault.sol` | Testnet prototype. Investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim into it. `sync()` splits new income into the operator fee (immutable, max 30 %; 10 % on testnet) and a per-share accumulator that holders `claim()`. Shares redeem 1:1. |
 | `MockUSDT` | `contracts/src/mocks/MockUSDT.sol` | Testnet-only stablecoin: 6 decimals, faucet capped at 10,000 per call. Not a project token. |
-| Web app | `web/` | Role-based UI with a wallet connection (RainbowKit). Shows amounts in THB and USD. Links every rental to the block explorer. |
-| Server routes | `web/app/api/*` | Hold every secret: the AI inspection call, price lookups, evidence upload to Greenfield. Nothing secret uses a `NEXT_PUBLIC_` variable. |
-| Evidence store | BNB Greenfield (fallback `web/.evidence/`, git-ignored) | Stores the rental agreement PDF, pickup and return photos, the inspection report and the arbiter's ruling. The chain stores only `bytes32` hashes. |
 
-**Status:**
+Safety properties enforced in code:
 
-All on `main`: the three contracts and their Foundry tests (unit, fuzz and invariant; see
-[SECURITY.md](SECURITY.md) for the pre-audit review), the local anvil
-deploy and seed scripts with a scripted chain end-to-end run, the server routes for AI, price and evidence, the
-BSC testnet deploy path (prepared, see [DEPLOY.md](DEPLOY.md)), and the web app wired to the contracts:
-owner, renter, dispute desk and rental pages on anvil (31337) or BSC testnet (97), with a Playwright
-end-to-end test of the full rental flow.
+- **Checks-effects-interactions** everywhere, and every move of funds sits behind `ReentrancyGuardTransient`.
+- **Exact pull:** `_pull` compares the escrow's balance before and after `transferFrom` and reverts on a shortfall, so a
+  fee-on-transfer token cannot under-fund an escrow.
+- **Fixed recipients:** funds only go to the payee, the renter or the fee recipient, all fixed at creation. No
+  function takes a recipient address.
+- **Isolated terms:** each escrow copies the fee, the arbiter and both windows at creation. Later factory changes
+  never reach an existing rental.
 
-## 2. Roles and trust model
+**Status:** on `main` and deployed on BSC testnet (verified on BscScan). 105 Foundry tests (unit + fuzz), see
+[§12](#12-testing).
+
+## 3. Web app
+
+`web/` is a Next.js 16 App Router app (React 19, TypeScript, Tailwind, wagmi + viem + RainbowKit). One shell
+(`components/shell/AppShell.tsx`) holds a left sidebar that collapses to an icon rail, the theme switch, the price
+source badge and the wallet button.
+
+```mermaid
+flowchart TB
+    subgraph Shell["App shell: left sidebar (collapses to an icon rail)"]
+        direction LR
+        RO["<b>Roles</b><br/>Renter · /tenant<br/>Fleet owner · /landlord<br/>Shareholders · /shareholders<br/>Back office · /backoffice<br/>Dispute desk · /arbiter"]
+        DM["<b>Demo</b><br/>Play the demo · /demo<br/>How it works · /how-it-works"]
+        BU["<b>Build</b><br/>Developers · /developers<br/>Integrations · /integrations"]
+        EX["Settings · /settings/secrets (local only)<br/>Ask AI panel (slot only, coming)"]
+    end
+    LD["Rental page · /lease/[address]<br/>(also rendered live inside /demo)"]
+    API["<b>Server routes · web/app/api</b><br/>settlement (AI inspection) · price · risk · cournot<br/>evidence · fleet · integrations<br/>v1/[action] · v1/openapi.json<br/>demo-testnet/* (live demo runner) · settings/secrets/*"]
+    RO & DM --> LD
+    Shell --> API
+    LD --> API
+```
+
+| Area | What it does |
+| --- | --- |
+| **Role views** | `/tenant`: find and book a scooter, follow your rentals. `/landlord`: the fleet with each scooter's status read live from its latest on-chain rental, income in THB, booking requests, disputes. `/shareholders`: Fleet Vault TVL, income, yield, your position, buy shares, claim. `/backoffice`: every rental of the factory and a live transaction feed from chain events, with flags for anything stuck or disputed. `/arbiter`: the dispute queue and the ruling form. On the local chain the role links also switch the demo account. |
+| **Rental page** | `/lease/[address]`: rent schedule, what is in escrow, documents and photos, the AI return inspection, proposals, the ruling and an on-chain timeline. The same `LeaseDetail` component runs inside `/demo`. |
+| **`/how-it-works`** | A 1-minute cartoon (ELI5) with no wallet and no chain: three endings (both agree, they disagree, the owner goes silent). |
+| **`/developers`** | Docs for every `/api/v1` action, generated from the action definitions ([§4](#4-actions-rest-openapi-mcp-a2a)). |
+| **`/integrations`** | The sponsor integrations' state, the deposit risk engine and recent sponsor calls. |
+| **`/settings/secrets`** | A write-only page for setting API keys on the team's own box. It is on only when the server has `SETTINGS_SECRETS_ENABLED=1`, answers only local or tailnet clients on a non-public host, needs a passcode, and never shows a value back. A Cloudflare build with the flag fails, and Workers ignore it at runtime. See [SETUP.md](SETUP.md). |
+| **Ask AI panel** | **Roadmap.** The shell has an empty `#ask-ai-slot` for it; nothing is mounted yet. |
+
+Listing data (the scooter catalogue and booking requests, `/api/fleet`) is off-chain and demo-grade: it is a file
+under Node and the Durable Object on Cloudflare. Rental money and state live only in the escrows; a listing links to
+its rentals by escrow address.
+
+### The demo runner
+
+`/demo` plays the whole story in one screen: owner offers, pickup photos, renter funds, month 1 is paid out, return
+photos, AI inspection, proposal, then settlement. Each run creates a **new** rental. *Guided* speed narrates every
+step in three beats (what happens now, the transaction, what just changed). *Step by step* waits for a click. The
+real `LeaseDetail` page renders live underneath. The same story script (`lib/demo/script.ts`) runs in two builds:
+
+```mermaid
+flowchart LR
+    S["lib/demo/script.ts<br/>(the steps)"] --> L & T
+    subgraph L["Local build: anvil 31337, DEV_ACCOUNTS=1"]
+        L1["Browser signs with anvil<br/>dev keys (public, local only)"]
+        L2["Stories: happy, dispute,<br/>owner ignores it (evm_increaseTime),<br/>Fleet Vault"]
+    end
+    subgraph T["Live build: BSC testnet 97, DEMO_TESTNET=1"]
+        T1["Browser holds no key"] -->|"POST /api/demo-testnet/run, tx, read, ping, end"| T2
+        T2["Server runner: allowlisted calls only,<br/>one run at a time, rate limited,<br/>gas cap per run, wallet top-ups"]
+        T2 -->|"signs with throwaway demo wallets"| B["BSC testnet"]
+        T3["Stories: happy, dispute"]
+    end
+```
+
+The testnet runner (`lib/server/demoTestnet/`) vets every call against an allowlist of factory, escrow and MockUSDT
+functions (`guards.ts`) before it signs, keeps the run lock in the Durable Object, and never puts a key in a response
+or a log. Other builds compile the demo out, and `/demo` answers 404.
+
+**Status:** live. The Ask AI panel is roadmap.
+
+## 4. Actions: REST, OpenAPI, MCP, A2A
+
+Every rental action is **one definition** in `web/lib/actions/definitions.ts`: a zod input schema with titles and
+units, the roles and rental states it needs, and either a read or a `build` that returns contract calls.
+
+```mermaid
+flowchart LR
+    DEF["lib/actions/definitions.ts<br/>4 reads + 10 prepare_*"] --> RUN["run.ts<br/>validate → role + state checks →<br/>read, or prepare + simulate"]
+    RUN --> REST["REST<br/>GET/POST /api/v1/{action}"]
+    DEF --> OAS["OpenAPI 3.1<br/>/api/v1/openapi.json"]
+    DEF --> DOCS["/developers page"]
+    RUN --> MCP["MCP tools<br/>agent POST /mcp"]
+    RUN --> A2A["A2A skills<br/>agent POST /a2a"]
+    DEF --> FORM["web form validation"]
+    REST & MCP & A2A --> TX["unsigned, simulated txs<br/>for the caller's own wallet"]
+```
+
+- Reads: `get_lease`, `list_leases`, `explain_status` (where the deposit is, in plain words, and what the viewer can
+  do), `quote` (THB / USD / mUSDT).
+- Prepare: `prepare_create_lease`, `prepare_fund`, `prepare_release_rent`, `prepare_add_evidence`,
+  `prepare_propose_settlement`, `prepare_accept`, `prepare_dispute`, `prepare_resolve`, `prepare_claim_timeout`,
+  `prepare_cancel`. Each returns the transactions (including any `approve`) already simulated against the chain,
+  plus a plain-language summary. A wrong role or state returns HTTP 409 with the reason.
+- The REST handler (`lib/actions/rest.ts`) uses only the standard `Request`/`Response`, so the same code runs under
+  `next start`, on Workers and inside the agent.
+
+**Status:** live on both Workers: 14 REST routes on the web app, and the same 14 plus 3 inspector tools (17) on the
+agent's MCP server.
+
+## 5. Agent: KeyEscrow Inspector
+
+`agent/` runs the AI inspection as an agent that other software can find and call. It has two entry points: a Node
+server (`src/server.ts`, Express) and a Cloudflare Worker (`src/worker.ts`). Details: [AGENT.md](AGENT.md).
+
+```mermaid
+flowchart LR
+    C["Client agent / Claude / curl"] --> CARD["GET /.well-known/agent-card.json"]
+    C --> A2A["POST /a2a (JSON-RPC message/send)"]
+    C --> MCP["POST /mcp (Streamable HTTP, stateless)"]
+    C --> RESTI["POST /inspect"]
+    C --> REG["GET /.well-known/agent-registration.json"]
+    A2A & MCP & RESTI --> INS["inspect_move_out<br/>(web/lib/server/settlement)"]
+    A2A & MCP --> ACT["rental actions<br/>(web/lib/actions)"]
+    INS --> LLM(["Vision LLM, or the<br/>deterministic demo inspector"])
+    INS --> MEM(["Living Brain: earlier<br/>inspections of this scooter"])
+    INS --> OUT["{tenantRefund, landlordClaim, reasons[],<br/>confidence, reportHash, inspector,<br/>inspectorSignature}"]
+    ID[("ERC-8004 Identity Registry, BSC testnet<br/>agent #2921, metadata reportSigner")] -.-> OUT
+```
+
+- **One implementation.** The agent imports the inspector and the actions from `web/lib`, so the agent and the web
+  app return the same JSON and the same `reportHash` for the same input.
+- **Identity in the hash.** The report includes `{name, agentId: 2921, agentRegistry, address}`, so the `reportHash`
+  a party passes to `RentalEscrow.propose()` commits to the agent. With `INSPECTOR_PRIVATE_KEY` set, the report is
+  also signed (EIP-191 over the hash) by the `reportSigner` recorded on the identity, and anyone can verify it with
+  the `verify_report` tool.
+- **It never signs a transaction.** The agent only drafts; a party proposes and the other accepts.
+
+**Status:** live at <https://keyescrow-agent.mdgooijer.workers.dev>. Registered on BSC testnet as agent #2921
+([tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0)).
+Reports are signed only where `INSPECTOR_PRIVATE_KEY` is set; otherwise they are labelled unsigned. Pay per
+inspection (ERC-8183 / x402) is roadmap.
+
+## 6. Off-chain services
+
+| Service | Route | In → out | Secrets (server env only) | Fallback |
+| --- | --- | --- | --- | --- |
+| AI inspection | `POST /api/settlement` (web), `inspect_move_out` (agent) | pickup + return photo sets and the deposit → `{tenantRefund, landlordClaim, reasons[], confidence}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL`, `INSPECTOR_PRIVATE_KEY` | Deterministic demo inspector, labelled in the UI |
+| Scooter memory | inside the inspection | earlier inspections of the scooter → "do not charge again" notes in the report | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/inspections.jsonl` (none on Workers) |
+| Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates* |
+| Deposit risk | `GET /api/risk`, `POST /api/cournot` | deposit, days → buffer from CMC volatility × (1 + Cournot p) | `CMC_API_KEY`, `COURNOT_LIVE` | "not configured", no buffer shown |
+| Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | file → SHA-256 `contentHash` (bytes32) + a stored copy | `GREENFIELD_*` | Node: local `web/.evidence/`. Workers: R2 bucket `EVIDENCE` if bound, else uploads are disabled and the browser hashes locally |
+| Listings | `GET/POST /api/fleet` | scooter catalogue and booking requests | none | Node: `web/.fleet/<chainId>.json`. Workers: the Durable Object |
+| Actions | `/api/v1/<action>`, `/api/v1/openapi.json` | see [§4](#4-actions-rest-openapi-mcp-a2a) | none (public RPC) | none |
+| Live demo | `/api/demo-testnet/*` | see [§3](#the-demo-runner) | `DEMO_TESTNET_KEYS`, `DEMO_TESTNET_FUNDER_KEY` | off: 404 |
+
+Design rules:
+
+- **Hashes on-chain, data off-chain.** The rental agreement hash is `leaseHash`. Photo sets are `checkInHash`,
+  `checkOutHash` and `EvidenceAdded` events. The report or ruling behind a settlement is `reportHash`, which becomes
+  the `basis` of the `Settled` event. Anyone holding the files can check them against these hashes.
+- **The AI output is a proposal, not an oracle.** It follows a strict JSON schema, its amounts never exceed the
+  deposit, and its reasons cite the photos. A person on each side still decides.
+- **Prices are for display and fair value only.** The contracts work in token units and never read a price, so a
+  price outage cannot block a rental ([WRITEUP.md](WRITEUP.md)).
+- **Secrets stay on the server.** No secret uses a `NEXT_PUBLIC_` variable. Every sponsor call is server-side and
+  logged without its key.
+
+**Greenfield status:** the Greenfield store (`lib/server/evidence/greenfield.ts`, `@bnb-chain/greenfield-js-sdk`,
+delegated upload) is built and is used on a Node server with `GREENFIELD_*` set. The live Cloudflare deploy cannot
+load that SDK and has no R2 bucket bound yet, so its evidence is hashed in the browser. The demo's photos are static
+files.
+
+## 7. Cloudflare deployment
+
+```mermaid
+flowchart TB
+    U["Browser"] --> W
+    A["Agents / MCP clients"] --> AG
+    subgraph CF["Cloudflare (workers.dev)"]
+        W["keyescrow-web Worker<br/>OpenNext build of the Next.js app<br/>+ static assets"]
+        DO[("KeyEscrowState Durable Object (SQLite)<br/>locks, rate limits, caches,<br/>demo run lock, listings")]
+        R2[("R2 bucket EVIDENCE<br/>(optional, not bound yet)")]
+        AG["keyescrow-agent Worker<br/>A2A + MCP + /inspect"]
+        W <--> DO
+        W -.-> R2
+        AG -.-> R2
+    end
+    W -->|"JSON-RPC (viem)"| BSC[("BSC testnet RPC")]
+    AG -->|"JSON-RPC (viem)"| BSC
+    W & AG --> EXT(["Sponsor APIs, vision LLM"])
+```
+
+- **keyescrow-web** (`web/wrangler.jsonc`, entry `web/cloudflare/worker.ts`): the OpenNext handler plus the
+  `KeyEscrowState` Durable Object class. The build is chain 97 only and refuses `NEXT_PUBLIC_DEV_ACCOUNTS=1`.
+- **KeyEscrowState** (`web/cloudflare/state.ts`): one SQLite-backed instance holds everything that would otherwise
+  live in process memory across requests. It offers a versioned compare-and-set with TTLs and an alarm that sweeps
+  expired entries. `lib/server/state` falls back to an in-process map under Node.
+- **keyescrow-agent** (`agent/wrangler.jsonc`, entry `agent/src/worker.ts`): the agent's three faces on Web-standard
+  `Request`/`Response`. Its card and registration file use the URL each request came in on.
+- Secrets are set with `wrangler secret put` and are never in the repo. Names and the deploy steps are in
+  [CLOUDFLARE.md](CLOUDFLARE.md).
+
+## 8. Roles and trust model
 
 | Role | Can do | Cannot do |
 | --- | --- | --- |
 | Owner | Create a rental offer, cancel it while unfunded, add evidence, propose or accept a split, raise a dispute | Take the deposit or prepaid rent alone |
 | Renter | Fund, prepay rent, release rent early, add evidence, propose or accept a split, raise a dispute | Take back the deposit or rent alone (except through the owner-silence timeout) |
-| Arbiter | Rule on a disputed rental (`resolve`) before its deadline | Act on a rental that is not disputed. Send funds anywhere except to owner and renter |
-| Anyone (keeper) | Release rent that is due. Trigger a timeout once it has expired | Change any amount or recipient |
-| Factory owner | Change the protocol fee for **future** rentals, up to a hard cap | Touch existing escrows. They copy their fee at creation and have no admin functions |
+| Arbiter (dispute desk) | Rule on a disputed rental (`resolve`) before its deadline | Act on a rental that is not disputed; send funds anywhere except to the payee and the renter |
+| Anyone (keeper) | Release rent that is due; trigger a timeout once it has expired | Change any amount or recipient |
+| Factory owner | Change the fee (up to the hard cap) and the default arbiter for **future** rentals | Touch existing escrows |
+| Shareholder | Deposit into the Fleet Vault, redeem shares 1:1, claim income | Move rental funds; income reaches the vault only from escrows that name it as payee |
 
-**Default arbiter.** The KeyEscrow dispute desk is the default arbiter. An owner may name another neutral
-arbiter instead, such as a local scooter rental association or a mediator. The arbiter is part of the rental terms
-(`terms().arbiter`). The renter sees it in the funding screen and agrees to it by funding. The factory
-rejects a rental in which owner, renter and arbiter are not three different addresses.
+**Default arbiter.** The KeyEscrow dispute desk is the default arbiter. An owner may name another neutral arbiter,
+such as a local rental association or a mediator. The arbiter is part of the rental terms (`terms().arbiter`). The
+renter sees it on the funding screen and agrees to it by funding. The factory rejects a rental in which owner, renter
+and arbiter are not three different addresses.
 
-## 3. Rental state machine
+## 9. Rental state machine
 
 ```mermaid
 stateDiagram-v2
@@ -115,195 +331,155 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Notes:
+- `releaseRent()` and `addEvidence()` do not change the state. Rent can be released in `Active`, `MoveOut` and
+  `Disputed`. Evidence can be added in any state except `Settled` and `Cancelled`.
+- Every proposal increments a `nonce`. `accept(nonce)` reverts if the proposal changed after the caller reviewed it,
+  so a last-second replacement cannot be accepted by mistake. The proposer cannot accept their own proposal.
+- **Owner-silence timeout:** only when the renter made the latest proposal. If the owner does not accept,
+  counter-propose or dispute within `responseWindow` (default 7 days, 1–60 allowed), anyone can call
+  `claimTimeout()`. The full deposit then goes to the renter.
+- **Arbiter deadline:** `resolve()` stops working at `disputedAt + arbiterWindow` (default 14 days, 1–90 allowed).
+  From then on anyone can call `claimArbiterTimeout()`, which returns the full deposit to the renter. The arbiter
+  cannot rule after the deadline, so the outcome cannot be raced.
+- The burden of proof is on the owner. The owner never holds the funds and must actively claim damages.
 
-- `releaseRent()` and `addEvidence()` do not change the state. Rent can be released in `Active`, `MoveOut`
-  and `Disputed`. Evidence can be added in any state except `Settled` and `Cancelled`.
-- Every proposal increments a `nonce`. `accept(nonce)` reverts if the proposal changed after the caller
-  reviewed it, so a last-second replacement cannot be accepted by mistake. The proposer cannot accept
-  their own proposal.
-- **Owner-silence timeout:** if the renter made the latest proposal and the owner does not accept,
-  counter-propose or dispute within `responseWindow` (default **7 days**), anyone can call
-  `claimTimeout()`. The **full deposit** then goes to the renter. The deadline is hard: from that moment
-  `propose`, `accept` and `dispute` revert with `ResponseWindowClosed`, so a late owner cannot race the
-  timeout (same rule as the arbiter deadline; [SECURITY.md](SECURITY.md) KE-02, not on the deployed testnet
-  contracts yet).
-- **Arbiter deadline:** if the arbiter has not ruled within `arbiterWindow` (default **14 days**) of the
-  dispute, `resolve()` stops working. Anyone can then call `claimArbiterTimeout()`, which returns the
-  **full deposit** to the renter. The outcome cannot be raced, because the arbiter cannot rule after the
-  deadline.
-- The burden of proof is on the owner. The owner never holds the funds and must actively claim
-  damages.
+## 10. Data flows
 
-**Status:**
+All amounts are in the factory's stablecoin (MockUSDT on testnet, 6 decimals). "Payee" is the owner, or the
+`FleetVault` for a rental created with `createLeaseWithPayee`.
 
-Implemented as described: both windows are set per rental (0 selects the 7-day / 14-day default;
-`responseWindow` 1-60 days, `arbiterWindow` 1-90 days). The `Settled` event's `basis` is
-`LANDLORD_TIMEOUT_BASIS` or `ARBITER_TIMEOUT_BASIS` for the two timeouts. To change the policy, edit the
-amounts passed to `_settle` in `claimTimeout()` / `claimArbiterTimeout()`.
-
-## 4. Money flows
-
-All amounts are in the factory's stablecoin (MockUSDT on testnet, 6 decimals).
-
-```mermaid
-flowchart LR
-    T[Renter] -->|"fund(): deposit + rent month 1"| E[(RentalEscrow)]
-    T -->|"payRent(n): prepay n months"| E
-    E -->|"releaseRent(): due rent<br/>(minus one-time protocol fee)"| L[Owner (rental shop)]
-    E -->|protocol fee, once per rental| P[KeyEscrow fee recipient]
-    E -->|"settle: tenantRefund<br/>+ prepaid rent not yet due"| T
-    E -->|"settle: landlordClaim<br/>+ due rent not yet released"| L
-```
-
-| Flow | Trigger | Amount |
+| Flow | Trigger | Money |
 | --- | --- | --- |
-| Funding | `fund()` by renter | `depositAmount + rentAmount`. Starts the 30-day rent clock (`startTime`). |
-| Prepay | `payRent(months)` by renter | `months × rentAmount`, never more than the term. |
-| Rent release | `releaseRent()`: anyone once a month is due, or the renter early | Funded months that are due go to the owner. The protocol fee is taken here. |
-| Settlement | `accept`, `resolve`, or a timeout | Deposit: `tenantRefund` to the renter and `landlordClaim` to the owner (the two always add up to the deposit). Rent: funded months that are due go to the owner, and prepaid months that are not yet due go back to the renter. |
-| Cancel | `cancel()` by owner, only while unfunded | Nothing moves. |
+| Funding | `fund()` by the renter | `depositAmount + rentAmount` into the escrow; starts the 30-day rent clock |
+| Prepay | `payRent(months)` by the renter | `months × rentAmount`, never past the term |
+| Rent release | `releaseRent()`: anyone once a month is due, or the renter early | due months to the payee; the **first** payout pays the one-time fee (`rentAmount × feeBps / 10000`) to the fee recipient |
+| Settlement | `accept`, `resolve` or a timeout | deposit: `tenantRefund` to the renter, `landlordClaim` to the payee (always summing to the deposit); rent: due months to the payee, prepaid months not yet due back to the renter |
+| Cancel | `cancel()` by the owner, only while unfunded | nothing moves |
+| Fleet income | `sync()` (also run by `deposit`, `redeem`, `claim`) | anything above principal and reserved income: operator fee out, the rest claimable pro rata |
 
-**Protocol fee (design):**
-
-- The fee is **10 % of one month's rent**, charged **once per rental**.
-- It is deducted from the **first rent release to the owner**. It is never taken from the deposit and
-  never charged to the renter on top of the rent.
-- The rate is owner-configurable for future rentals and hard-capped in the factory. Each escrow copies the
-  rate at creation, so later changes do not affect existing rentals.
-- Example: rent 750 mUSDT means a fee of 75 mUSDT, so the owner receives 675 for month 1 and 750 for
-  every month after. See [BUSINESS.md](BUSINESS.md#fee-model) for a THB example.
-
-Implemented as `feeBps` (default 1000, `MAX_FEE_BPS = 1000`) and `feeRecipient` on the factory, snapshotted
-into each rental's terms; the escrow emits `ProtocolFeePaid` when it takes the fee, and rounds it down.
-
-Safety properties enforced in code:
-
-- **Checks-effects-interactions:** the escrow writes its state before any transfer, and every move of
-  funds is wrapped in `ReentrancyGuardTransient`.
-- **Exact pull:** `_pull` compares the balance before and after the transfer and reverts on any shortfall,
-  so a fee-on-transfer token cannot under-fund an escrow.
-- **Fixed recipients:** funds only ever go to the owner's payee, the renter or the fee recipient that were
-  set at creation. No function takes a recipient address.
-
-**Fleet Vault payee.** `createLeaseWithPayee(params, payee)` is `createLease` plus one address: every payout
-that would go to the owner (released rent, rent due at settlement, the deposit claim) goes to `payee()`
-instead, typically the `FleetVault`. The owner keeps every role (propose, accept, dispute, cancel); the
-factory emits `PayeeSet(escrow, payee)`; the payee may not be the renter or the arbiter. Plain `createLease` sets `payee = owner`, so existing flows are
-unchanged. The vault needs no callback: anything above `totalPrincipal + reservedIncome` is new income,
-which `sync()` (also run by `deposit`, `redeem` and `claim`) splits into the operator fee (max 30 %) and a
-per-share accumulator. Shares are 1:1 with deposited principal, redeemable 1:1; income credited before a
-redeem stays claimable. Shares cannot be redeemed or transferred for `SHARE_LOCK` (7 days) after the
-holder's latest deposit, so nobody can deposit, trigger a payout, claim and redeem in one transaction
-(claiming is never locked; [SECURITY.md](SECURITY.md) KE-01). Rounding dust stays reserved, so the vault is
-always solvent (fuzz- and invariant-tested).
-
-## 5. Return settlement sequence
+### Funding
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor T as Renter
-    actor L as Owner
+    actor O as Owner
+    actor R as Renter
     participant W as Web app
-    participant API as Server routes
-    participant S as Greenfield / local store
-    participant M as Vision LLM
+    participant API as /api/evidence
+    participant F as EscrowFactory
     participant E as RentalEscrow
-
-    Note over T,E: At pickup, scooter photos were uploaded and checkInHash anchored
-    T->>W: Upload return photos (same angles)
-    W->>API: POST evidence
-    API->>S: Store files
-    API-->>W: contentHash
-    T->>E: addEvidence(CheckOut, contentHash)
-    T->>W: Run AI inspection
-    W->>API: POST inspection (rental, pickup and return refs)
-    API->>S: Fetch photo sets
-    API->>M: Compare pickup vs return
-    M-->>API: tenantRefund, landlordClaim, reasons[]
-    API->>S: Store report JSON (incl. price quote used)
-    API-->>W: Proposal + reportHash
-    T->>E: propose(tenantRefund, reportHash)
-    E-->>L: SettlementProposed(nonce)
-    alt Owner agrees
-        L->>W: Review report and reasons
-        L->>E: accept(nonce)
-        E->>T: tenantRefund + unearned rent
-        E->>L: landlordClaim + due rent
-    else Owner counter-proposes
-        L->>E: propose(otherSplit, reportHash2)
-        Note over T,E: Renter may now accept or dispute
-    else Owner disputes
-        L->>E: dispute()
-        Note over E: Arbiter has 14 days to resolve(), then full deposit to renter
-    else Owner stays silent for 7 days
-        T->>E: claimTimeout()
-        E->>T: Full deposit + unearned rent
-    end
+    participant U as MockUSDT
+    O->>W: rent, deposit, term in THB (converted to mUSDT at today's rate)
+    O->>API: rental agreement + pickup photos
+    API-->>O: SHA-256 hashes
+    O->>F: createLease(params incl. leaseHash) or createLeaseWithPayee(params, vault)
+    F->>E: clone + initialize(terms, payee)
+    F-->>W: LeaseCreated(escrow, owner, renter, arbiter)
+    O->>E: addEvidence(CheckIn, hash)
+    R->>W: sees terms, arbiter and the total in THB
+    R->>U: approve(escrow, deposit + rent)
+    R->>E: fund()
+    E->>U: transferFrom(renter, escrow), exact-balance check
+    E-->>W: Funded(deposit, firstRent, startTime), status Active
+    Note over E: month 1 is due at once
+    R->>E: releaseRent() (or anyone)
+    E->>U: fee to treasury (once), rest to payee
 ```
 
-The AI does not hold keys and does not sign transactions. It only drafts a proposal. A party has to
-submit that proposal with their own wallet, and the other party has to accept it.
+### Settlement by agreement
 
-## 6. Off-chain services
+```mermaid
+sequenceDiagram
+    autonumber
+    actor R as Renter
+    actor O as Owner
+    participant W as Web app
+    participant AI as AI inspector
+    participant E as RentalEscrow
+    R->>W: return photos (same angles)
+    R->>E: addEvidence(CheckOut, hash)
+    R->>AI: inspect (deposit, pickup + return photos)
+    AI->>AI: recall earlier inspections, compare, draft split
+    AI-->>R: tenantRefund, landlordClaim, reasons, reportHash (agent 2921)
+    R->>E: propose(tenantRefund, reportHash)
+    E-->>O: SettlementProposed(nonce)
+    O->>W: reviews photos, reasons and amounts in THB
+    O->>E: accept(nonce)
+    E->>R: tenantRefund + prepaid rent not yet due
+    E->>O: landlordClaim + due rent not yet released (to the payee)
+    E-->>W: Settled(..., basis = reportHash)
+```
 
-| Service | Route | Inputs → outputs | Secrets (server env only) | Fallback |
-| --- | --- | --- | --- | --- |
-| Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | Files → `contentHash` (bytes32) and a storage reference | `GREENFIELD_*` | Local `web/.evidence/` directory |
-| AI inspection | `POST /api/settlement` | Pickup and return photo sets plus the deposit → `{tenantRefund, landlordClaim, reasons[]}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL` | Deterministic demo inspector, labelled as such in the UI |
-| Inspector agent | `agent/` ([AGENT.md](AGENT.md)) | The AI inspection as an A2A + MCP skill. Reports carry the ERC-8004 agent id inside `reportHash` and are signed by its `reportSigner` key | `INSPECTOR_PRIVATE_KEY` | Unsigned reports, demo inspector |
-| Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and timestamp | `CMC_API_KEY`; Atlas: `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Last good live quote (marked stale), then static rates labelled "Demo rates" |
+Either side may propose first, and the other may counter-propose (new nonce) instead of accepting.
 
-Design rules:
+### Dispute
 
-- **Hashes on-chain, data off-chain.** The hash of the rental agreement PDF is `leaseHash`. Evidence sets are stored
-  as `checkInHash`, `checkOutHash` and `EvidenceAdded` events. The report or ruling behind a settlement is
-  stored as `reportHash`, and it becomes the `basis` of the `Settled` event. Anyone holding the files can
-  check them against these hashes.
-- **The AI output is a proposal, not an oracle.** It follows a strict JSON schema, and its amounts never
-  exceed the deposit. Its reasons cite the matching photo pairs. A human on each side still decides.
-- **Prices for display and fair value only.** The contracts use token units and never read a price. See
-  [WRITEUP.md](WRITEUP.md).
-- **Secrets stay on the server.** Every key is read from the environment by server routes.
-  `.env.example` lists the variable names only.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor O as Owner
+    actor R as Renter
+    actor D as Dispute desk
+    participant E as RentalEscrow
+    O->>E: dispute() (from Active or MoveOut, either party may)
+    E-->>D: DisputeRaised, deadline = now + arbiterWindow
+    D->>D: reads photos, proposals, AI report, both sides
+    D->>E: resolve(tenantRefund, sha256(ruling)) before the deadline
+    E->>R: tenantRefund + prepaid rent not yet due
+    E->>O: deposit − tenantRefund + due rent (to the payee)
+```
 
-**Status:** on `main`. The request and response shapes are in [API.md](API.md); the variable names are in
-`.env.example`.
+### Timeouts
 
-## 7. Scalability
+```mermaid
+sequenceDiagram
+    autonumber
+    actor R as Renter
+    actor K as Anyone (keeper)
+    participant E as RentalEscrow
+    alt Owner silence
+        R->>E: propose(tenantRefund, reportHash)
+        Note over E: owner neither accepts, counters nor disputes within responseWindow (7 days)
+        K->>E: claimTimeout()
+        E->>R: full deposit + prepaid rent not yet due
+    else Dispute desk misses its deadline
+        Note over E: Disputed, no resolve() within arbiterWindow (14 days)
+        K->>E: claimArbiterTimeout()
+        E->>R: full deposit + prepaid rent not yet due
+    end
+    Note over E: Settled basis = LANDLORD_TIMEOUT_BASIS or ARBITER_TIMEOUT_BASIS
+```
 
-- **Factory and minimal proxies.** Each rental is an EIP-1167 clone of one implementation: a 45-byte proxy
-  plus one `initialize` call, instead of a full contract deployment. This makes rental creation cheap, and
-  every escrow is isolated, so a bug or a dispute in one rental cannot touch the funds of another.
-- **No admin keys over funds.** Escrows are not upgradeable and copy their terms at creation. This keeps
-  contracts small and audits simple: the full set of possible fund movements is in one short contract.
-- **Indexing.**
-  - For the MVP, the factory keeps on-chain indexes (`leasesByLandlord`, `leasesByTenant`,
-    `leasesByArbiter`, and paginated `leases(offset, limit)`), so the frontend needs no backend to list a
-    user's rentals.
-  - At scale, every state change emits an event (`LeaseCreated`, `Funded`, `RentReleased`,
-    `SettlementProposed`, `DisputeRaised`, `Settled`, and so on). A standard indexer such as a subgraph,
-    or a small event-sourced worker, can serve dashboards, the dispute-desk queue and analytics. Nothing
-    would change on-chain.
-- **Keeper-friendly.** `releaseRent()`, `claimTimeout()` and `claimArbiterTimeout()` are permissionless and
-  can only move funds to the parties. Rent and timeouts can therefore be automated by any keeper, or by a
-  KeyEscrow cron, without trusting it.
-- **opBNB path.** The contracts are plain Solidity with no BSC-specific opcodes, so the same bytecode
-  deploys to opBNB, an L2 with lower fees. Monthly rent releases and evidence anchoring then cost very
-  little, which matters at rental-fleet scale. The frontend already lists opBNB testnet (5611) next to
-  BSC testnet (97). One factory per chain keeps the indexes local to that chain.
-- **Greenfield for bulk data.** Photo sets are megabytes per rental. Greenfield keeps them in the BNB
-  ecosystem with access control. Moving storage there leaves the on-chain footprint at 32 bytes per
-  evidence set.
+## 11. Scalability
 
-## 8. Testing
+- **Factory and minimal proxies.** Each rental is a 45-byte EIP-1167 proxy plus one `initialize` call, not a full
+  contract deployment. Rental creation is cheap, and a bug or a dispute in one rental cannot touch another's funds.
+- **No admin keys over funds.** Escrows are not upgradeable and copy their terms at creation. Every possible fund
+  movement is in one short contract, which keeps audits small.
+- **Indexing.** For the MVP the factory keeps on-chain indexes (`leasesByLandlord`, `leasesByTenant`,
+  `leasesByArbiter`, paginated `leases(offset, limit)`), so no backend is needed to list rentals. At scale, every state
+  change already emits an event (`LeaseCreated`, `Funded`, `RentReleased`, `SettlementProposed`, `DisputeRaised`,
+  `Settled`, …) for a subgraph or a small event worker. Nothing would change on-chain.
+- **Keeper-friendly.** `releaseRent()`, `claimTimeout()` and `claimArbiterTimeout()` are permissionless and can only pay
+  the parties, so any keeper can automate them without being trusted.
+- **Stateless servers.** The web app and the agent run as Workers. The only cross-request state is in one Durable
+  Object, and the chain is the source of truth.
+- **One action layer for people and agents.** Machines get the same validated actions as the UI (REST, MCP, A2A), so
+  an integration does not need its own backend.
+- **opBNB path.** Plain Solidity with no BSC-specific opcodes, so the same bytecode deploys to opBNB, where monthly
+  rent releases and evidence anchoring cost very little. The deploy guard accepts opBNB testnet (5611) and the
+  frontend lists it. Not deployed there yet. One factory per chain keeps the indexes local.
+- **Greenfield for bulk data.** Photo sets are megabytes per rental; on-chain they stay 32 bytes per set.
 
-- `cd contracts && forge test` runs the unit tests and a fuzz test for the factory, the escrow lifecycle,
-  rent schedule, fee, settlement, timeouts and access control, plus MockUSDT.
-- `pnpm e2e:chain` starts a throwaway anvil (port 28545), deploys, seeds, and drives the happy path, a
-  dispute, the owner timeout and the arbiter fallback with real transactions and anvil time travel,
-  asserting every balance (exits non-zero on failure).
-- `pnpm -C web test` runs the vitest suite for the server routes (offline, no keys).
-- `pnpm -C web test:e2e` (Playwright) starts its own anvil (port 28546), deploys and seeds it, builds the app
-  and drives owner create → renter fund → rent payout → AI proposal → owner accept in a real browser.
+## 12. Testing
+
+| Suite | Command | Count (25 Nov 2026) |
+| --- | --- | --- |
+| Contracts: unit + fuzz (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 105 |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 241 |
+| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 20 |
+| Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page | `cd web && npx playwright test` | 50 tests in 11 files |
+
+CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
+secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.
