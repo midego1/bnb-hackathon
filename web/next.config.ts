@@ -11,6 +11,11 @@ const unusedOptionalDeps = [
 ];
 
 const nextConfig: NextConfig = {
+  // The Playwright run builds into its own directory (with dev accounts on) so it never clobbers `next build`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Always define the dev-accounts flag so Next inlines it and production bundles drop the anvil switcher
+  // (an unset NEXT_PUBLIC_ var is left as a runtime lookup and nothing gets tree-shaken).
+  env: { NEXT_PUBLIC_DEV_ACCOUNTS: process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ? "1" : "0" },
   cacheComponents: true,
   partialPrefetching: true,
   // Greenfield SDK (cosmjs/protobuf) is loaded lazily on the server only; keep it out of the bundle.
