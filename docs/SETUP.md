@@ -9,12 +9,12 @@ secrets page at **`/settings/secrets`** puts them there from the browser.
 
 ## Use it
 
-1. Open `http://<paseo-box tailnet IP>:3000/settings/secrets` (or `:3001`), or the gear in the header (wide screens)
+1. Open `http://<paseo-box tailnet IP>:3000/settings/secrets` (or `:3001`), or **Settings** in the sidebar
    or **Secrets (local only)** in the footer.
 2. The page asks for the admin passcode. The server generates it on first use. Read it on paseo-box:
 
    ```sh
-   cat ~/projects/bnb-hackathon/.orca/secrets/settings-passcode
+   cat /home/orcasrv/projects/bnb-hackathon/.orca/secrets/settings-passcode
    ```
 
    It is never printed, logged or sent to the browser. A correct passcode gives a 15-minute session cookie (httpOnly,
