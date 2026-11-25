@@ -7,6 +7,7 @@
     "setup": "git submodule update --init --recursive && pnpm -C web install && pnpm -C agent install && cd contracts && forge build",
     "build": "cd contracts && forge build && cd .. && pnpm -C web build",
     "test": "cd contracts && forge test",
+    "coverage": "node web/scripts/coverage.mjs",
     "dev": "pnpm -C web dev",
     "chain:anvil": "anvil --host 127.0.0.1 --port ${ANVIL_PORT:-8545}",
     "chain:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url ${RPC_URL:-http://127.0.0.1:8545} --broadcast",
