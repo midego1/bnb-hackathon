@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a change to the rental flow, the app, the agent or the docs.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Scope and priorities are in [docs/PRODUCT.md](https://github.com/midego1/bnb-hackathon/blob/main/docs/PRODUCT.md) (scooter rental in Thailand,
+        BSC testnet only). Ideas outside it are welcome, but say so.
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is it for
+      options:
+        - Owner (fleet owner)
+        - Renter
+        - Dispute desk
+        - Shareholders (Fleet Vault)
+        - Developers (API, MCP, agent)
+        - Everyone
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard or impossible today, ideally as a short story (e.g. "a renter returns the scooter late and ...").
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: What should happen instead. If it changes a contract, say which money moves and who can trigger it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

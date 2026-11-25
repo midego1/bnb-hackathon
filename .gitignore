@@ -20,6 +20,8 @@ contracts/deployments/31337.json
 contracts/deployments/31337.demo.json
 contracts/deployments/.e2e/
 lcov.info
+# `pnpm coverage` output (lcov reports)
+coverage/
 
 # Node / Next.js
 node_modules/
