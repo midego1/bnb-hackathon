@@ -1,0 +1,7 @@
+# Native build scripts are optional speed-ups; JS fallbacks are used instead.
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+  bufferutil: false
+  keccak: false
+  utf-8-validate: false

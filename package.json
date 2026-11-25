@@ -1,0 +1,13 @@
+{
+  "name": "keyescrow",
+  "private": true,
+  "description": "Rental deposit and rent escrow on BNB Chain",
+  "license": "MIT",
+  "scripts": {
+    "setup": "git submodule update --init --recursive && pnpm -C web install && cd contracts && forge build",
+    "build": "cd contracts && forge build && cd .. && pnpm -C web build",
+    "test": "cd contracts && forge test",
+    "dev": "pnpm -C web dev"
+  },
+  "packageManager": "pnpm@12.23.0"
+}
