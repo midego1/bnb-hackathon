@@ -68,7 +68,8 @@ export function actionContext(host: ActionHost, chainId?: number): ActionContext
   const cid = id as SupportedChainId;
   const d = getDeployment(cid);
   if (!d) throw new ActionError(400, "unsupported_chain", `KeyEscrow is not deployed on chain ${cid}.`);
-  const transport = host.transport?.(cid) ?? http(rpcUrl(cid, host.env), { timeout: 15_000, retryCount: 1 });
+  // JSON-RPC batch: readLease's ~17 reads go out as one HTTP request (Workers Free allows 50 subrequests per request).
+  const transport = host.transport?.(cid) ?? http(rpcUrl(cid, host.env), { batch: true, timeout: 15_000, retryCount: 1 });
   return {
     chainId: cid,
     client: createPublicClient({ transport }) as PublicClient,
