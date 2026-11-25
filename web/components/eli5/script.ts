@@ -19,22 +19,45 @@ export type RentalKind = "home" | "scooter";
 export type Rental = {
   /** Which illustration to draw (components/eli5/Drawings.tsx). */
   kind: RentalKind;
-  /** "the condo", used in sentences. */
+  /** "the scooter", used in sentences. */
   the: string;
   emoji: string;
   owner: string;
   renter: string;
+  /** Scene 1: how it usually goes without KeyEscrow (max ~15 words). */
+  usually: string;
+  /** Scene 1's grown-up detail, given the deposit in baht. */
+  usuallyDetail: (deposit: string) => string;
   /** What the robot spots on the last-day photo. */
   damage: string;
 };
 
 export const RENTALS: Record<RentalKind, Rental> = {
-  home: { kind: "home", the: "the condo", emoji: "🏠", owner: "Landlord", renter: "Tenant", damage: "a scuff on the wall" },
-  scooter: { kind: "scooter", the: "the scooter", emoji: "🛵", owner: "Owner", renter: "Rider", damage: "a scratch on the side" },
+  home: {
+    kind: "home",
+    the: "the condo",
+    emoji: "🏠",
+    owner: "Landlord",
+    renter: "Tenant",
+    usually: "Usually you hand a big deposit to a stranger, and just hope it comes back.",
+    usuallyDetail: (d) => `Without KeyEscrow: a Bangkok deposit is two months' rent (${d}), paid straight to the landlord.`,
+    damage: "a scuff on the wall",
+  },
+  scooter: {
+    kind: "scooter",
+    the: "the scooter",
+    emoji: "🛵",
+    owner: "Owner",
+    renter: "Renter",
+    usually: "Usually you leave your passport or a big deposit with a stranger, and hope.",
+    usuallyDetail: (d) =>
+      `Without KeyEscrow: Thai rental shops hold your passport or a cash deposit (${d}), and decide alone what you get back.`,
+    damage: "a scratch on the side",
+  },
 };
 
 /** The one switch. */
-export const RENTAL: Rental = RENTALS.home;
+export const RENTAL: Rental = RENTALS.scooter;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Money: the /demo numbers, in mUSDT base units (6 decimals), shown in baht with a small dollar line.
@@ -66,6 +89,7 @@ export const MONEY = {
   rent: ctx.rent,
   deposit: ctx.deposit,
   paidIn: ctx.deposit + ctx.rent,
+  termMonths: ctx.termMonths,
   fee: (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   rentToLandlord: ctx.rent - (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   aiLandlord: AI_LANDLORD_CLAIM,
@@ -136,6 +160,8 @@ export type SceneDef = {
 export type Scene = SceneDef & { index: number; before: Holdings; after: Holdings };
 
 const R = RENTAL;
+/** Calendar pages for the rent scene: every month, or the first three, "…" and the last. */
+const months = (n: number) => (n <= 4 ? Array.from({ length: n }, (_, i) => `Month ${i + 1}`) : ["Month 1", "Month 2", "Month 3", "…", `Month ${n}`]);
 const owner = R.owner.toLowerCase();
 const renter = R.renter.toLowerCase();
 const START: Holdings = { tenant: MONEY.paidIn, landlord: BigInt(0), safe: BigInt(0), jar: BigInt(0) };
@@ -143,8 +169,8 @@ const START: Holdings = { tenant: MONEY.paidIn, landlord: BigInt(0), safe: BigIn
 const shared: SceneDef[] = [
   {
     id: "problem",
-    text: "Usually you hand a big deposit to a stranger, and just hope it comes back.",
-    detail: `Without KeyEscrow: a Bangkok deposit is two months' rent (${baht(MONEY.deposit)}), paid straight to the ${owner}.`,
+    text: R.usually,
+    detail: R.usuallyDetail(baht(MONEY.deposit)),
     duration: 8000,
     reset: { tenant: MONEY.deposit, landlord: BigInt(0), safe: BigInt(0), jar: BigInt(0) },
     cues: { rental: 0, grab: 2600, worry: 3800 },
@@ -172,7 +198,7 @@ const shared: SceneDef[] = [
     detail: `RentalEscrow.releaseRent(): month 1 pays ${baht(MONEY.rentToLandlord)} to the ${owner} and the one-time fee of ${baht(MONEY.fee)} (10% of one month) to the KeyEscrow treasury. Later months: no fee.`,
     duration: 9000,
     cues: { rental: 0, safe: 0, locks: 0, keys: 0, closed: 0, jar: 400, calendar: 0 },
-    calendar: ["Month 1", "Month 2", "Month 3", "…", "Month 12"],
+    calendar: months(MONEY.termMonths),
     flows: [
       { from: "safe", to: "landlord", amount: MONEY.rentToLandlord, at: 1000, coins: 4 },
       { from: "safe", to: "jar", amount: MONEY.fee, at: 2600, coins: 1 },

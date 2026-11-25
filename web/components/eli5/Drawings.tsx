@@ -253,16 +253,22 @@ export function RentalArt({ kind, damage = false }: { kind: RentalKind; damage?:
   if (kind === "scooter")
     return (
       <g>
-        <circle cx={-48} cy={30} r={22} fill={INK} />
-        <circle cx={-48} cy={30} r={9} fill="#cbd5e1" />
-        <circle cx={50} cy={30} r={22} fill={INK} />
-        <circle cx={50} cy={30} r={9} fill="#cbd5e1" />
-        <path d="M-70 20 C-70 -6 -30 -10 -10 -6 H30 L44 -50 H56" fill="none" {...STROKE} strokeWidth={6} />
-        <path d="M-76 18 C-74 -12 -34 -16 -4 -10 H34 C40 4 34 20 20 22 H-58 Z" fill="#ef4444" {...STROKE} />
-        <rect x={-50} y={-22} width={44} height={12} rx={6} fill={INK} />
-        <path d="M44 -50 L64 -56" {...STROKE} strokeWidth={6} />
-        <circle cx={66} cy={-40} r={6} fill="#fde68a" {...STROKE} strokeWidth={2} />
-        {damage && <path d="M-40 4 L-30 -2 L-22 6 L-12 0" stroke="#7f1d1d" strokeWidth={4} fill="none" strokeLinecap="round" />}
+        {/* wheels */}
+        <circle cx={-46} cy={34} r={21} fill={INK} />
+        <circle cx={-46} cy={34} r={9} fill="#cbd5e1" />
+        <circle cx={54} cy={34} r={21} fill={INK} />
+        <circle cx={54} cy={34} r={9} fill="#cbd5e1" />
+        {/* front fork + handlebar */}
+        <path d="M54 34 L40 -44" {...STROKE} strokeWidth={7} />
+        <path d="M40 -44 L36 -62 M24 -64 H50" {...STROKE} strokeWidth={6} />
+        {/* rear body with seat, floorboard, front shield, fender */}
+        <path d="M-80 22 C-84 -4 -70 -22 -44 -24 H-6 C4 -24 6 -10 2 4 L-2 14 H-78 Z" fill="#ef4444" {...STROKE} />
+        <rect x={-66} y={-38} width={56} height={16} rx={8} fill="#334155" {...STROKE} />
+        <path d="M-4 6 H30 L32 18 H-6 Z" fill="#cbd5e1" {...STROKE} />
+        <path d="M26 18 L34 -34 C36 -42 48 -44 50 -36 L44 10 C42 16 36 18 30 18 Z" fill="#ef4444" {...STROKE} />
+        <path d="M34 8 C40 -4 66 -4 74 14" fill="none" {...STROKE} strokeWidth={5} />
+        <circle cx={47} cy={-50} r={7} fill="#fde68a" {...STROKE} strokeWidth={2} />
+        {damage && <path d="M-60 -4 L-50 -10 L-42 -2 L-32 -9" stroke="#7f1d1d" strokeWidth={4} fill="none" strokeLinecap="round" />}
       </g>
     );
   return (
@@ -290,8 +296,8 @@ export function Photo({ kind, damage, label, ring = 0 }: { kind: RentalKind; dam
       </g>
       {ring > 0 && (
         <ellipse
-          cx={kind === "scooter" ? -16 : -22}
-          cy={kind === "scooter" ? -4 : 14}
+          cx={kind === "scooter" ? -28 : -22}
+          cy={kind === "scooter" ? -10 : 14}
           rx={22}
           ry={16}
           fill="none"

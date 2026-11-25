@@ -4,7 +4,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { AI_LANDLORD_CLAIM, baht, ENDINGS, MONEY, RENTAL, RENTALS, story, totalDuration, type Ending } from "@/components/eli5/script";
 import { ANCHORS, coinsAt, holdingsAt } from "@/components/eli5/timeline";
-import { newContext } from "@/lib/demo/script";
+import { newContext, PROPERTIES } from "@/lib/demo/script";
+import { formatFiat } from "@/lib/fiat";
 import { mockAssessment } from "@/lib/server/settlement/mock";
 
 const endings = ENDINGS.map((e) => e.id);
@@ -59,21 +60,27 @@ describe("ELI5 script (/how-it-works)", () => {
     const demo = newContext("happy", 0, 33);
     expect(MONEY.rent).toBe(demo.rent);
     expect(MONEY.deposit).toBe(demo.deposit);
-    expect(baht(MONEY.rent)).toBe("฿18,000");
-    expect(baht(MONEY.deposit)).toBe("฿36,000");
-    expect(baht(MONEY.fee)).toBe("฿1,800");
-    expect(MONEY.deskLandlord).toBe(BigInt(261_000_000)); // 1.5x the AI estimate (lib/demo/script deskRuling)
+    const thb = (n: number) => formatFiat(n, "THB");
+    expect(baht(MONEY.rent)).toBe(thb(PROPERTIES[0].rentThb));
+    expect(baht(MONEY.deposit)).toBe(thb(PROPERTIES[0].rentThb * 2));
+    expect(baht(MONEY.fee)).toBe(thb(PROPERTIES[0].rentThb / 10));
+    // 1.5x the AI estimate in whole mUSDT (lib/demo/script deskRuling).
+    expect(MONEY.deskLandlord).toBe(((AI_LANDLORD_CLAIM * BigInt(3)) / BigInt(2) / BigInt(1_000_000)) * BigInt(1_000_000));
   });
 
   it("the AI suggestion is what the demo's inspector says about the bundled move-out photos", () => {
+    // The photo sets, in the order lib/demo/script.ts uploads them (CHECK_IN / CHECK_OUT).
+    const source = readFileSync(path.resolve(__dirname, "../lib/demo/script.ts"), "utf8");
+    const files = (kind: string) => [...source.matchAll(new RegExp(`file: "(${kind}-[^"]+)"`, "g"))].map((m) => m[1]);
+    expect(files("checkin").length).toBeGreaterThan(0);
     const dir = path.resolve(__dirname, "../public/demo/walkthrough");
-    const photo = (file: string, label: string) => ({ hash: `0x${createHash("sha256").update(readFileSync(path.join(dir, file))).digest("hex")}`, label });
+    const photo = (file: string) => ({ hash: `0x${createHash("sha256").update(readFileSync(path.join(dir, file))).digest("hex")}` });
     const raw = mockAssessment({
       deposit: MONEY.deposit.toString(),
       decimals: 6,
       currency: "USDT",
-      checkIn: [photo("checkin-living-room.png", "Living room"), photo("checkin-bedroom.png", "Bedroom")],
-      checkOut: [photo("checkout-living-room.png", "Living room"), photo("checkout-bedroom.png", "Bedroom")],
+      checkIn: files("checkin").map(photo),
+      checkOut: files("checkout").map(photo),
     } as Parameters<typeof mockAssessment>[0]);
     expect(BigInt(Math.round(Number(raw.landlordClaim) * 1e6))).toBe(AI_LANDLORD_CLAIM);
   });
