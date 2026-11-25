@@ -42,3 +42,5 @@ web/CLAUDE.md
 
 # root has no deps; pnpm script runs create a stray lockfile
 /pnpm-lock.yaml
+contracts/broadcast/**/run-[0-9]*.json
+contracts/broadcast/**/*.recovery.lock
