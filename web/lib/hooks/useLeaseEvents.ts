@@ -1,11 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { usePublicClient } from "wagmi";
+import { useCallback } from "react";
 import type { Address, Hex } from "viem";
-import { escrowFactoryAbi, rentalEscrowAbi } from "../contracts";
-import { inBlockWindows } from "../logs";
-import { useDeployment } from "./useDeployment";
+import { eventsOfLease, type ChainIndexResponse } from "../chainIndex";
+import { useChainIndex } from "./useChainIndex";
 
 export type TimelineEvent = {
   name: string;
@@ -16,40 +14,10 @@ export type TimelineEvent = {
   timestamp: bigint;
 };
 
-/** Lease history straight from contract events (factory LeaseCreated + every escrow event). */
+/** Lease history (factory LeaseCreated + every escrow event), oldest first, from the shared server-side chain index. */
 export function useLeaseEvents(address: Address | undefined) {
-  const { chainId, deployment } = useDeployment();
-  const client = usePublicClient({ chainId });
-  return useQuery({
-    queryKey: ["leaseEvents", chainId, address?.toLowerCase()],
-    enabled: !!client && !!deployment && !!address,
-    refetchInterval: 8_000,
-    queryFn: async (): Promise<TimelineEvent[]> => {
-      const c = client!;
-      const fromBlock = deployment!.fromBlock;
-      const [created, own] = await Promise.all([
-        inBlockWindows(c, fromBlock, (range) =>
-          c.getContractEvents({ address: deployment!.escrowFactory, abi: escrowFactoryAbi, eventName: "LeaseCreated", args: { escrow: address! }, ...range }),
-        ),
-        inBlockWindows(c, fromBlock, (range) => c.getContractEvents({ address: address!, abi: rentalEscrowAbi, ...range })),
-      ]);
-      // `Initialized` is OpenZeppelin proxy plumbing, not part of the rental story.
-      const logs = [...created, ...own].filter((l) => l.eventName !== "Initialized" && l.blockNumber !== null && l.transactionHash !== null);
-      const blocks = [...new Set(logs.map((l) => l.blockNumber!))];
-      const times = new Map<bigint, bigint>();
-      await Promise.all(
-        blocks.map(async (n) => times.set(n, (await c.getBlock({ blockNumber: n })).timestamp)),
-      );
-      return logs
-        .map((l) => ({
-          name: l.eventName,
-          args: (l.args ?? {}) as Record<string, unknown>,
-          txHash: l.transactionHash!,
-          blockNumber: l.blockNumber!,
-          logIndex: l.logIndex ?? 0,
-          timestamp: times.get(l.blockNumber!) ?? BigInt(0),
-        }))
-        .sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1));
-    },
-  });
+  const lease = address?.toLowerCase() ?? "";
+  const select = useCallback((index: ChainIndexResponse): TimelineEvent[] => eventsOfLease(index.events, lease), [lease]);
+  const q = useChainIndex(select);
+  return address ? q : { ...q, data: undefined };
 }

@@ -15,6 +15,7 @@ import { GUIDED, parseTimeScale, readingMs, type Speed } from "@/lib/demo/pacing
 import { ledger, newContext, PATHS, stepsFor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
 import { bscscanAddress, bscscanTx, testnetPaths, TestnetSession, type TestnetInfo, type WaitInfo } from "@/lib/demo/testnet";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
+import { noteMinedBlock } from "@/lib/chainIndex";
 import { friendlyError } from "@/lib/errors";
 import { uploadEvidence } from "@/lib/evidence";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -255,6 +256,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       const receipt = await sessionRef.current!.send(roleRef.current, call);
       if (receipt.status !== "success") throw new Error(testnetCopy.reverted(label, bscscanTx(receipt.transactionHash)));
       recordTx(label, receipt.transactionHash);
+      noteMinedBlock(chainId, receipt.blockNumber);
       await live.current.queryClient.invalidateQueries();
       await syncWallets();
       return receipt;
