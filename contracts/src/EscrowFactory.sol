@@ -9,13 +9,17 @@ import {RentalEscrow} from "./RentalEscrow.sol";
 /// @title EscrowFactory
 /// @notice Creates one {RentalEscrow} per lease as an EIP-1167 minimal proxy (~10x cheaper than a full
 /// deployment) and indexes leases by participant so the frontend can list them without an indexer.
-/// @dev The owner can only tune the protocol fee for *future* leases; existing escrows snapshot their fee
-/// at creation and are never upgradeable, so the owner has no power over funds already in escrow.
+///
+/// Business model: a one-time protocol fee per lease of `feeBps` of ONE month's rent (default 10%), deducted
+/// from the landlord's first rent payout. Platform role: KeyEscrow's dispute desk is the `defaultArbiter`,
+/// used whenever a landlord does not name an arbiter of their own.
+/// @dev The owner can only tune the fee and the default arbiter for *future* leases; existing escrows snapshot
+/// both at creation and are never upgradeable, so the owner has no power over funds already in escrow.
 contract EscrowFactory is Ownable2Step {
     /// @notice Input for {createLease}. The caller becomes the landlord.
     struct LeaseParams {
         address tenant;
-        address arbiter;
+        address arbiter; // address(0) = the factory's defaultArbiter (KeyEscrow dispute desk)
         uint256 rentAmount;
         uint256 depositAmount;
         uint32 termMonths;
@@ -24,7 +28,8 @@ contract EscrowFactory is Ownable2Step {
         bytes32 leaseHash;
     }
 
-    uint16 public constant MAX_FEE_BPS = 100; // 1%
+    /// @notice Hard cap on the one-time fee: 10% of one month's rent.
+    uint16 public constant MAX_FEE_BPS = 1_000;
     uint32 public constant MIN_TERM_MONTHS = 1;
     uint32 public constant MAX_TERM_MONTHS = 60;
     uint32 public constant MIN_RESPONSE_WINDOW = 1 days;
@@ -39,8 +44,12 @@ contract EscrowFactory is Ownable2Step {
     /// @notice Stablecoin all leases from this factory are denominated in (MockUSDT on testnet).
     IERC20 public immutable token;
 
+    /// @notice One-time protocol fee for new leases, in bps of ONE month's rent.
     uint16 public feeBps;
+    /// @notice KeyEscrow treasury receiving the protocol fee.
     address public feeRecipient;
+    /// @notice KeyEscrow dispute desk; arbiter of every lease created without an explicit arbiter.
+    address public defaultArbiter;
 
     address[] internal _leases;
     mapping(address => address[]) internal _leasesByLandlord;
@@ -61,6 +70,7 @@ contract EscrowFactory is Ownable2Step {
         bytes32 leaseHash
     );
     event FeeUpdated(uint16 feeBps, address feeRecipient);
+    event DefaultArbiterUpdated(address defaultArbiter);
 
     error ZeroAddress();
     error RolesNotDistinct();
@@ -70,10 +80,13 @@ contract EscrowFactory is Ownable2Step {
     error InvalidArbiterWindow(uint32 arbiterWindow);
     error FeeTooHigh(uint16 feeBps);
 
-    constructor(IERC20 token_, address owner_, uint16 feeBps_, address feeRecipient_) Ownable(owner_) {
+    constructor(IERC20 token_, address owner_, uint16 feeBps_, address feeRecipient_, address defaultArbiter_)
+        Ownable(owner_)
+    {
         if (address(token_) == address(0)) revert ZeroAddress();
         token = token_;
         _setFee(feeBps_, feeRecipient_);
+        _setDefaultArbiter(defaultArbiter_);
         implementation = address(new RentalEscrow());
     }
 
@@ -81,8 +94,9 @@ contract EscrowFactory is Ownable2Step {
     /// @dev `responseWindow` / `arbiterWindow` of 0 select the defaults (7 and 14 days).
     function createLease(LeaseParams calldata p) external returns (address escrow) {
         address landlord = msg.sender;
-        if (p.tenant == address(0) || p.arbiter == address(0)) revert ZeroAddress();
-        if (p.tenant == landlord || p.arbiter == landlord || p.arbiter == p.tenant) {
+        address arbiter = p.arbiter == address(0) ? defaultArbiter : p.arbiter;
+        if (p.tenant == address(0) || arbiter == address(0)) revert ZeroAddress();
+        if (p.tenant == landlord || arbiter == landlord || arbiter == p.tenant) {
             revert RolesNotDistinct();
         }
         if (p.rentAmount == 0 || p.depositAmount == 0) revert InvalidAmount();
@@ -105,7 +119,7 @@ contract EscrowFactory is Ownable2Step {
                     token: token,
                     landlord: landlord,
                     tenant: p.tenant,
-                    arbiter: p.arbiter,
+                    arbiter: arbiter,
                     rentAmount: p.rentAmount,
                     depositAmount: p.depositAmount,
                     termMonths: p.termMonths,
@@ -121,7 +135,7 @@ contract EscrowFactory is Ownable2Step {
         _leases.push(escrow);
         _leasesByLandlord[landlord].push(escrow);
         _leasesByTenant[p.tenant].push(escrow);
-        _leasesByArbiter[p.arbiter].push(escrow);
+        _leasesByArbiter[arbiter].push(escrow);
 
         // The only external call above is to our own freshly cloned escrow, so log ordering cannot be spoofed.
         // forge-lint: disable-next-item(reentrancy-events)
@@ -129,7 +143,7 @@ contract EscrowFactory is Ownable2Step {
             escrow,
             landlord,
             p.tenant,
-            p.arbiter,
+            arbiter,
             p.rentAmount,
             p.depositAmount,
             p.termMonths,
@@ -139,9 +153,15 @@ contract EscrowFactory is Ownable2Step {
         );
     }
 
-    /// @notice Update the protocol fee applied to rent of leases created from now on.
+    /// @notice Update the one-time protocol fee (bps of one month's rent) for leases created from now on.
     function setFee(uint16 feeBps_, address feeRecipient_) external onlyOwner {
         _setFee(feeBps_, feeRecipient_);
+    }
+
+    /// @notice Update the dispute desk used for leases created from now on. address(0) disables the default,
+    /// so every new lease must then name an arbiter explicitly.
+    function setDefaultArbiter(address defaultArbiter_) external onlyOwner {
+        _setDefaultArbiter(defaultArbiter_);
     }
 
     // --- Views -----------------------------------------------------------------------------------
@@ -175,6 +195,11 @@ contract EscrowFactory is Ownable2Step {
         feeBps = feeBps_;
         feeRecipient = feeRecipient_;
         emit FeeUpdated(feeBps_, feeRecipient_);
+    }
+
+    function _setDefaultArbiter(address defaultArbiter_) internal {
+        defaultArbiter = defaultArbiter_;
+        emit DefaultArbiterUpdated(defaultArbiter_);
     }
 
     function _slice(address[] storage arr, uint256 offset, uint256 limit)

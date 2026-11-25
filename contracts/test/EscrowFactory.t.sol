@@ -49,11 +49,81 @@ contract EscrowFactoryTest is BaseTest {
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
         factory.createLease(p);
 
+        // No explicit arbiter and the default (dispute desk) disabled.
+        vm.prank(owner);
+        factory.setDefaultArbiter(address(0));
         p = _params();
         p.arbiter = address(0);
         vm.prank(landlord);
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
         factory.createLease(p);
+    }
+
+    // --- Default arbiter (KeyEscrow dispute desk) -------------------------------------------------
+
+    function test_createLease_zeroArbiterUsesDisputeDesk() public {
+        assertEq(factory.defaultArbiter(), disputeDesk);
+        EscrowFactory.LeaseParams memory p = _params();
+        p.arbiter = address(0);
+
+        vm.expectEmit(false, true, true, true, address(factory));
+        emit EscrowFactory.LeaseCreated(
+            address(0), landlord, tenant, disputeDesk, RENT, DEPOSIT, TERM, WINDOW, ARB_WINDOW, LEASE_HASH
+        );
+        vm.prank(landlord);
+        RentalEscrow escrow = RentalEscrow(factory.createLease(p));
+
+        assertEq(escrow.terms().arbiter, disputeDesk);
+        assertEq(factory.leasesByArbiter(disputeDesk)[0], address(escrow));
+        assertEq(factory.leasesByArbiter(address(0)).length, 0);
+    }
+
+    function test_createLease_landlordMayNameOwnArbiter() public {
+        RentalEscrow escrow = _createLease(); // _params() names `arbiter`
+        assertEq(escrow.terms().arbiter, arbiter);
+        assertEq(factory.leasesByArbiter(disputeDesk).length, 0);
+    }
+
+    function test_createLease_defaultArbiterMustDifferFromParties() public {
+        EscrowFactory.LeaseParams memory p = _params();
+        p.arbiter = address(0);
+
+        vm.prank(owner);
+        factory.setDefaultArbiter(landlord);
+        vm.prank(landlord);
+        vm.expectRevert(EscrowFactory.RolesNotDistinct.selector);
+        factory.createLease(p);
+
+        vm.prank(owner);
+        factory.setDefaultArbiter(tenant);
+        vm.prank(landlord);
+        vm.expectRevert(EscrowFactory.RolesNotDistinct.selector);
+        factory.createLease(p);
+    }
+
+    function test_setDefaultArbiter_onlyOwner_emits_affectsOnlyNewLeases() public {
+        RentalEscrow before = RentalEscrow(_createDefaultArbiterLease());
+
+        vm.prank(stranger);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, stranger));
+        factory.setDefaultArbiter(stranger);
+
+        vm.expectEmit(true, true, true, true, address(factory));
+        emit EscrowFactory.DefaultArbiterUpdated(stranger);
+        vm.prank(owner);
+        factory.setDefaultArbiter(stranger);
+        assertEq(factory.defaultArbiter(), stranger);
+
+        RentalEscrow afterChange = RentalEscrow(_createDefaultArbiterLease());
+        assertEq(before.terms().arbiter, disputeDesk);
+        assertEq(afterChange.terms().arbiter, stranger);
+    }
+
+    function _createDefaultArbiterLease() internal returns (address) {
+        EscrowFactory.LeaseParams memory p = _params();
+        p.arbiter = address(0);
+        vm.prank(landlord);
+        return factory.createLease(p);
     }
 
     function test_createLease_revertsWhenRolesOverlap() public {
@@ -162,16 +232,16 @@ contract EscrowFactoryTest is BaseTest {
 
     function test_constructor_revertsOnBadConfig() public {
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
-        new EscrowFactory(IERC20(address(0)), owner, 0, address(0));
+        new EscrowFactory(IERC20(address(0)), owner, 0, address(0), address(0));
 
-        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.FeeTooHigh.selector, uint16(101)));
-        new EscrowFactory(IERC20(address(usdt)), owner, 101, treasury);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.FeeTooHigh.selector, uint16(1001)));
+        new EscrowFactory(IERC20(address(usdt)), owner, 1001, treasury, address(0));
 
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
-        new EscrowFactory(IERC20(address(usdt)), owner, 10, address(0));
+        new EscrowFactory(IERC20(address(usdt)), owner, 10, address(0), address(0));
 
         // Zero fee without a recipient is fine.
-        EscrowFactory f = new EscrowFactory(IERC20(address(usdt)), owner, 0, address(0));
+        EscrowFactory f = new EscrowFactory(IERC20(address(usdt)), owner, 0, address(0), address(0));
         assertEq(f.feeBps(), 0);
     }
 
@@ -181,12 +251,28 @@ contract EscrowFactoryTest is BaseTest {
         factory.setFee(10, treasury);
 
         vm.prank(owner);
-        factory.setFee(100, treasury);
-        assertEq(factory.feeBps(), 100);
+        factory.setFee(1_000, treasury); // cap is inclusive
+        assertEq(factory.feeBps(), 1_000);
 
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.FeeTooHigh.selector, uint16(101)));
-        factory.setFee(101, treasury);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.FeeTooHigh.selector, uint16(1001)));
+        factory.setFee(1001, treasury);
+    }
+
+    function test_setFee_emitsAndAllowsZero() public {
+        vm.expectEmit(true, true, true, true, address(factory));
+        emit EscrowFactory.FeeUpdated(250, stranger);
+        vm.prank(owner);
+        factory.setFee(250, stranger);
+        assertEq(factory.feeRecipient(), stranger);
+
+        vm.prank(owner);
+        factory.setFee(0, address(0));
+        assertEq(factory.feeBps(), 0);
+
+        vm.prank(owner);
+        vm.expectRevert(EscrowFactory.ZeroAddress.selector);
+        factory.setFee(1, address(0));
     }
 
     function test_setFee_doesNotAffectExistingLeases() public {

@@ -17,13 +17,15 @@ abstract contract BaseTest is Test {
     address internal tenant = makeAddr("tenant");
     address internal arbiter = makeAddr("arbiter");
     address internal stranger = makeAddr("stranger");
+    address internal disputeDesk = makeAddr("disputeDesk");
 
     uint256 internal constant RENT = 500e6; // 500 mUSDT / month
     uint256 internal constant DEPOSIT = 1_000e6; // 2 months' rent
     uint32 internal constant TERM = 12;
     uint32 internal constant WINDOW = 5 days; // landlord-response window (non-default on purpose)
     uint32 internal constant ARB_WINDOW = 10 days; // arbiter window (non-default on purpose)
-    uint16 internal constant FEE_BPS = 50; // 0.5%
+    uint16 internal constant FEE_BPS = 1_000; // 10% of one month's rent, once per lease
+    uint256 internal constant FEE = (RENT * FEE_BPS) / 10_000; // 50 mUSDT
     bytes32 internal constant LEASE_HASH = keccak256("lease.pdf");
     bytes32 internal constant REPORT_HASH = keccak256("ai-report.json");
 
@@ -31,7 +33,7 @@ abstract contract BaseTest is Test {
         // Lease timestamps start at a realistic date so `startTime != 0` checks are meaningful.
         vm.warp(1_790_000_000);
         usdt = new MockUSDT();
-        factory = new EscrowFactory(IERC20(address(usdt)), owner, FEE_BPS, treasury);
+        factory = new EscrowFactory(IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk);
         usdt.faucet(tenant, 10_000e6);
     }
 
@@ -59,9 +61,5 @@ abstract contract BaseTest is Test {
         usdt.approve(address(escrow), type(uint256).max);
         escrow.fund();
         vm.stopPrank();
-    }
-
-    function _fee(uint256 gross) internal pure returns (uint256) {
-        return (gross * FEE_BPS) / 10_000;
     }
 }

@@ -25,6 +25,10 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /// On settlement, funded rent that is due goes to the landlord and prepaid rent that is not yet due is
 /// refunded to the tenant.
 ///
+/// Protocol fee: once per lease, `feeBps` of ONE month's rent is deducted from the first rent payout to the
+/// landlord and sent to `feeRecipient` (both snapshotted from the factory at creation). The fee is never
+/// taken from the deposit and never charged to the tenant.
+///
 /// Security model: no single party can move the deposit. It leaves the contract only through mutual
 /// agreement, the arbiter's ruling, or one of the two timeouts. Rent only ever flows to the
 /// landlord according to the schedule fixed at creation.
@@ -76,7 +80,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         uint32 responseWindow; // seconds the landlord has to answer a tenant proposal
         uint32 arbiterWindow; // seconds the arbiter has to resolve an open dispute
         bytes32 leaseHash; // content hash of the off-chain lease document
-        uint16 feeBps; // protocol fee on released rent, snapshotted from the factory
+        uint16 feeBps; // one-time protocol fee as bps of ONE month's rent, snapshotted from the factory
         address feeRecipient;
     }
 
@@ -110,6 +114,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     uint64 public disputedAt; // timestamp the current dispute was raised (0 if never disputed)
     uint32 public monthsFunded;
     uint32 public monthsReleased;
+    bool public feeCharged; // the one-time protocol fee has been taken from a rent payout
     bytes32 public checkInHash;
     bytes32 public checkOutHash;
 
@@ -138,6 +143,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         bytes32 basis
     );
     event Cancelled();
+    event ProtocolFeePaid(address indexed recipient, uint256 amount);
 
     // ---------------------------------------------------------------------------------------------
     // Errors
@@ -402,11 +408,18 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         if (received != amount) revert TransferShortfall(amount, received);
     }
 
-    /// @dev Sends `gross` rent to the landlord minus the protocol fee.
+    /// @dev Sends `gross` rent (always >= one month) to the landlord. The first payout of the lease also pays the
+    /// one-time protocol fee (`feeBps` of one month's rent, rounded down) out of the landlord's share.
     function _payRent(uint256 gross) internal returns (uint256 toLandlord, uint256 fee) {
-        fee = (gross * _terms.feeBps) / BPS;
+        if (!feeCharged) {
+            feeCharged = true;
+            fee = (_terms.rentAmount * _terms.feeBps) / BPS;
+        }
         toLandlord = gross - fee;
-        if (fee > 0) _terms.token.safeTransfer(_terms.feeRecipient, fee);
+        if (fee > 0) {
+            _terms.token.safeTransfer(_terms.feeRecipient, fee);
+            emit ProtocolFeePaid(_terms.feeRecipient, fee);
+        }
         _terms.token.safeTransfer(_terms.landlord, toLandlord);
     }
 
