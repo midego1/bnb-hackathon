@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useAccount } from "wagmi";
 import { LeaseGrid } from "@/components/lease/LeaseCard";
 import { Renter } from "@/components/roles/Renter";
@@ -24,6 +26,9 @@ export default function TenantPage() {
         Book a scooter, pay deposit + rent into the rental&apos;s own escrow, and get your deposit back without leaving your passport. The
         deposit only moves when you and the shop agree, or a neutral dispute desk rules.
       </PageTitle>
+      <Link href="/app/subscriptions" className="-mt-4 mb-6 inline-block text-sm font-medium underline-offset-4 hover:underline" data-testid="tenant-subscriptions-link">
+        Riding for months? Subscribe monthly instead <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
+      </Link>
       <ol className="mb-8 hidden gap-3 sm:grid sm:grid-cols-4">
         {steps.map(([t, b], i) => (
           <li key={t} className="rounded-xl border border-border p-3 text-sm">

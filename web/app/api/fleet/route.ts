@@ -4,7 +4,7 @@ import { jsonError, zodIssues } from "@/lib/server/http";
 
 /**
  * GET  /api/fleet?chainId=97      scooter catalogue + booking requests for a chain
- * POST /api/fleet?chainId=97      { action: "addScooter" | "book" | "offer" | "decline" | "linkRental", ... }
+ * POST /api/fleet?chainId=97      { action: "addScooter" | "book" | "subscribe" | "offerPlan" | "offer" | "decline" | "linkRental", ... }
  *
  * Demo-grade listing store: requests are not signed, so anyone can add a listing or a booking request. Nothing here
  * moves money; rentals are only real once an escrow exists on-chain.

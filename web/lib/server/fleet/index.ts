@@ -70,6 +70,17 @@ export const fleetActionSchema = z.discriminatedUnion("action", [
     photo: z.string().regex(/^\/(demo\/[\w./-]+|api\/evidence\/0x[0-9a-f]{64})$/).optional(),
   }),
   z.object({ action: z.literal("book"), scooterId: z.string().min(1).max(80), renter: address }),
+  z.object({
+    action: z.literal("offerPlan"),
+    scooterId: z.string().min(1).max(80),
+    plan: z.object({
+      priceThb: z.number().int().min(100).max(1_000_000),
+      depositThb: z.number().int().min(100).max(1_000_000),
+      maxPeriods: z.number().int().min(1).max(60), // EscrowFactory MAX_TERM_MONTHS
+      periodDays: z.literal(30), // shortcut: the contract only knows 30-day periods; allow 7 | 14 with contract v2
+    }),
+  }),
+  z.object({ action: z.literal("subscribe"), scooterId: z.string().min(1).max(80), renter: address }),
   z.object({ action: z.literal("offer"), bookingId: z.string().min(1).max(80), lease: address }),
   z.object({ action: z.literal("decline"), bookingId: z.string().min(1).max(80) }),
   z.object({ action: z.literal("linkRental"), scooterId: z.string().min(1).max(80), lease: address }),
@@ -157,13 +168,21 @@ export function applyAction(data: FleetData, a: FleetAction, now: string) {
       });
       return;
     }
-    case "book": {
-      scooter(a.scooterId);
+    case "book":
+    case "subscribe": {
+      const s = scooter(a.scooterId);
+      if (a.action === "subscribe" && !s.plan) throw new FleetError("this scooter is not offered as a subscription", 409);
       const open = data.bookings.find((b) => b.scooterId === a.scooterId && b.status === "requested");
       if (open && open.renter.toLowerCase() !== a.renter.toLowerCase()) throw new FleetError("this scooter already has a pending booking", 409);
-      if (!open) data.bookings.push({ id: randomUUID(), scooterId: a.scooterId, renter: a.renter, createdAt: now, status: "requested" });
+      // The plan is copied from the listing, never taken from the request: the owner signs exactly these terms.
+      const subscription = a.action === "subscribe" ? { ...s.plan! } : undefined;
+      if (open) open.subscription = subscription;
+      else data.bookings.push({ id: randomUUID(), scooterId: a.scooterId, renter: a.renter, createdAt: now, status: "requested", ...(subscription && { subscription }) });
       return;
     }
+    case "offerPlan":
+      scooter(a.scooterId).plan = a.plan;
+      return;
     case "offer": {
       const b = booking(a.bookingId);
       b.status = "offered";

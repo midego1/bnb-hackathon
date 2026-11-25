@@ -1,8 +1,9 @@
-import { ChartPie, CirclePlay, CodeXml, LayoutGrid, Lightbulb, Menu, PanelLeft, Plug, Scale, Scooter, Settings, Sparkles, UserRound, Wallet, X, type LucideIcon } from "lucide-react";
+import { ChartPie, CirclePlay, CodeXml, LayoutGrid, Lightbulb, Menu, PanelLeft, Plug, Repeat, Scale, Scooter, Settings, Sparkles, UserRound, Wallet, X, type LucideIcon } from "lucide-react";
 
 /** The sidebar's icons (lucide-react), by name, so nav.ts can name them in plain data. */
 const ICONS = {
   renter: UserRound,
+  subscriptions: Repeat,
   owner: Scooter,
   shareholders: ChartPie,
   backoffice: LayoutGrid,

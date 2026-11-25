@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import { CreateLeaseForm } from "@/components/lease/CreateLeaseForm";
 import { LeaseGrid } from "@/components/lease/LeaseCard";
 import { FleetOwner } from "@/components/roles/FleetOwner";
+import { OwnerSubscriptions } from "@/components/subscriptions/OwnerSubscriptions";
 import { PageTitle } from "@/components/ui";
 import { WalletGate } from "@/components/WalletGate";
 import { useLeaseList } from "@/lib/hooks/useLease";
@@ -20,6 +21,7 @@ export default function LandlordPage() {
       <WalletGate what="offer and manage scooter rentals">
         <div className="space-y-8">
           <FleetOwner />
+          <OwnerSubscriptions />
           <div>
             <h2 className="mb-3 text-lg font-semibold">Offer a rental to a specific wallet</h2>
             <CreateLeaseForm />

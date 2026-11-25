@@ -135,6 +135,7 @@ flowchart TB
 | Area | What it does |
 | --- | --- |
 | **Role views** | `/tenant`: find and book a scooter, follow your rentals. `/landlord`: the fleet with each scooter's status read live from its latest on-chain rental, income in THB, booking requests, disputes. `/shareholders`: Fleet Vault TVL, income, yield, your position, buy shares, claim. `/backoffice`: every rental of the factory and a live transaction feed from chain events, with flags for anything stuck or disputed. `/arbiter`: the dispute queue and the ruling form. On the local chain the role links also switch the demo account. |
+| **Subscriptions** | `/app/subscriptions`: monthly plans (off-chain plan on a listing) and the renter's subscriptions with *Pay month N* (`payRent(1)`) and *Cancel* (the normal return flow). The owner offers plans and sees MRR on `/landlord`; shareholders see vault MRR. Current contract, no change; see [BUSINESS.md](BUSINESS.md#4-monthly-subscriptions-recurring-rent). |
 | **Rental page** | `/lease/[address]`: rent schedule, what is in escrow, documents and photos, the AI return inspection, proposals, the ruling and an on-chain timeline. The same `LeaseDetail` component runs inside `/demo`. |
 | **`/how-it-works`** | A 1-minute cartoon (ELI5) with no wallet and no chain: three endings (both agree, they disagree, the owner goes silent). |
 | **`/developers`** | Docs for every `/api/v1` action, generated from the action definitions ([§4](#4-actions-rest-openapi-mcp-a2a)). |
