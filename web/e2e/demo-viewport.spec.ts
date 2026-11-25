@@ -263,7 +263,9 @@ async function wheelUntilVisible(page: Page, over: Locator, target: Locator, wha
     const x = Math.min(Math.max(b.x + b.width / 2, 1), vp.width - 1);
     const y = Math.min(Math.max(b.y + Math.min(b.height / 2, 40), 1), vp.height - 1);
     await page.mouse.move(x, y);
-    await page.mouse.wheel(0, 250);
+    const t = await target.boundingBox();
+    // Scroll toward the target: up when it sits above the viewport (a narrower layout can wrap the page taller).
+    await page.mouse.wheel(0, t && t.y < 0 ? -250 : 250);
     await page.waitForTimeout(50);
   }
   await expect(target, `${what} reachable with the mouse wheel`).toBeInViewport({ ratio: 1 });

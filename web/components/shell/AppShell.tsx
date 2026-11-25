@@ -20,7 +20,8 @@ import { WalletButton } from "./WalletButton";
 /**
  * The app shell: a left sidebar (navigation, theme, network and wallet) beside the page.
  *
- * Desktop (lg and up): the sidebar is sticky and full height, expanded or collapsed to an icon rail (lib/sidebar.ts;
+ * Desktop (lg and up): the sidebar floats, a sticky rounded panel inset 12 px from the window edges (my-3 ml-3, its
+ * height is the viewport minus those margins), expanded or collapsed to an icon rail (lib/sidebar.ts;
  * <html data-sidebar> and the `rail:` CSS variant). Below lg: a top bar whose menu button opens the same sidebar as a
  * drawer. The page column holds the local demo-accounts strip, <main> and the footer; the document itself scrolls,
  * except on the one-screen stages (/demo, /how-it-works), where app/globals.css pins the shell to the viewport.
@@ -87,7 +88,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
       aria-label="Sidebar"
       data-testid="sidebar"
       data-collapsed={collapsed || undefined}
-      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
+      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-3 lg:z-auto lg:my-3 lg:ml-3 lg:flex lg:h-[calc(100dvh-1.5rem)] lg:w-56 lg:max-w-none lg:rounded-xl lg:border lg:shadow-sidebar rail:w-16`}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-3 rail:h-auto rail:flex-col rail:gap-2 rail:py-3">
         <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
