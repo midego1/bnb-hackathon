@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import { restoreChainAfterEachTest } from "./chain";
+import { E2E_WEB_PORT } from "./env";
 
 /**
  * The language switch (lib/i18n): EN / 中文 / EN+中文, kept in the ke_lang cookie.
@@ -135,3 +136,63 @@ test("EN+中文 on /demo at 1470x830: guided beats and the summary fit one scree
   await shot(page, "both-demo-summary-1470x830");
   expect(await worst(page)).toEqual({ x: 0, y: 0 });
 });
+
+/** Phase 2: the app screens. Sets the mode with the sidebar switch, then visits /app, /tenant, a rental page, /demo and /pitch. */
+test("the app in 中文 and EN+中文: sidebar switch, /app, /tenant, a rental page, /demo, /pitch", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize(LAPTOP);
+  await page.goto("/app");
+  const sidebar = page.getByTestId("sidebar");
+  const h1 = page.getByRole("heading", { level: 1 }).first();
+  await expect(sidebar.getByTestId("view-tenant")).toHaveText("Renter");
+  await expect(h1).not.toContainText(/\p{Script=Han}/u);
+
+  for (const mode of ["zh", "both"] as const) {
+    await page.goto("/app");
+    await sidebar.getByTestId(`lang-${mode}`).click();
+    await expect(sidebar.getByTestId(`lang-${mode}`)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("html")).toHaveAttribute("lang", mode === "zh" ? "zh-CN" : "en");
+    // 中文: the sidebar is Chinese. EN+中文: body text stays English, headlines get the Chinese line.
+    await expect(sidebar.getByTestId("view-tenant")).toHaveText(mode === "zh" ? "租客" : "Renter");
+    if (mode === "both") await expect(h1.locator(".i18n-zh")).toHaveText(/\p{Script=Han}/u);
+    else await expect(h1).toHaveText(/\p{Script=Han}/u);
+    await shot(page, `${mode}-app`);
+
+    await page.goto("/tenant");
+    await page.getByTestId("dev-role-tenant").click();
+    const card = page.getByTestId("renter-rental").first();
+    await expect(card).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(/\p{Script=Han}/u);
+    await shot(page, `${mode}-tenant`);
+
+    const href = await card.locator('a[href^="/lease/"]').first().getAttribute("href");
+    await page.goto(href!);
+    const banner = page.getByTestId("rental-banner");
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText(/\p{Script=Han}/u);
+    await shot(page, `${mode}-rental`);
+
+    await page.goto("/demo");
+    await expect(page.getByTestId("demo-play")).toBeEnabled();
+    await shot(page, `${mode}-demo`);
+
+    await page.goto("/pitch?scene=6&t=6000&autoplay=0");
+    await expect(page.getByTestId("pitch-narration")).toContainText(/\p{Script=Han}/u);
+    await page.waitForTimeout(600); // the narration fades in
+    await shot(page, `${mode}-pitch`);
+  }
+});
+
+for (const mode of ["both", "zh"] as const) {
+  test(`/pitch in ${mode === "zh" ? "中文" : "EN+中文"} at 1470x830: every scene fits one screen`, async ({ page, context }) => {
+    await context.addCookies([{ name: "ke_lang", value: mode, url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
+    await page.setViewportSize(LAPTOP);
+    await page.goto(`/pitch?speed=60&autoplay=0`);
+    await expect(page.getByTestId("pitch-narration")).toContainText(/\p{Script=Han}/u);
+    await watchOverflow(page);
+    await page.getByTestId("pitch-play").click();
+    await expect(page.getByTestId("pitch")).toHaveAttribute("data-done", "true", { timeout: 30_000 });
+    for (const id of ["pitch-play", "pitch-narration", "pitch-timer", "pitch-cartoon"]) await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
+    expect(await worst(page)).toEqual({ x: 0, y: 0 });
+  });
+}
