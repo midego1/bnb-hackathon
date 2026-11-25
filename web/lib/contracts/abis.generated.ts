@@ -1127,6 +1127,19 @@ export const rentalEscrowAbi = [
   },
   {
     "type": "function",
+    "name": "moveOutAt",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "payRent",
     "inputs": [
       {

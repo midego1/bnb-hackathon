@@ -46,6 +46,8 @@ export type RentalSummary = {
   /** Latest return (deposit-split) proposal; `reportHash` is the AI inspection report it is based on. */
   proposal?: { proposer: Address; tenantRefund: bigint; landlordClaim: bigint; reportHash: Hex; proposedAt: bigint; nonce: number };
   disputedAt: bigint;
+  /** When the move-out started (first proposal or dispute): the contract's rent clock stops here. 0 while active. */
+  moveOutAt: bigint;
   settled?: { tenantRefund: bigint; landlordClaim: bigint; rentToLandlord: bigint; rentToTenant: bigint; fee: bigint; basis: Hex; at: bigint; txHash: Hex };
   /** Money totals so far, in token base units. */
   totals: {
@@ -77,7 +79,7 @@ function sortEvents(a: ChainEvent, b: ChainEvent) {
   return a.logIndex - b.logIndex;
 }
 
-/** Rent months that are due at `now` (same rule as RentalEscrow.monthsDue). */
+/** Rent months that are due at `now` (same rule as RentalEscrow.monthsDue; pass `moveOutAt` once it is set). */
 export function monthsDueAt(startTime: bigint, termMonths: number, now: bigint): number {
   if (startTime === BigInt(0)) return 0;
   const due = Number((now - startTime) / BigInt(RENT_PERIOD)) + 1;
@@ -119,6 +121,7 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
       pickupPhotos: [],
       returnPhotos: [],
       disputedAt: BigInt(0),
+      moveOutAt: BigInt(0),
       totals: { depositLocked: BigInt(0), rentPaidIn: BigInt(0), rentToOwner: BigInt(0), fees: BigInt(0), slashed: BigInt(0), refunded: BigInt(0) },
       events: [e],
       flags: [],
@@ -152,6 +155,7 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
         else if (num(a.kind) === 1) r.returnPhotos.push(a.contentHash as Hex);
         break;
       case "SettlementProposed":
+        if (r.status === LeaseStatus.Active) r.moveOutAt = e.timestamp;
         r.status = LeaseStatus.MoveOut;
         r.proposal = {
           proposer: a.proposer as Address,
@@ -163,6 +167,7 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
         };
         break;
       case "DisputeRaised":
+        if (r.status === LeaseStatus.Active) r.moveOutAt = e.timestamp;
         r.status = LeaseStatus.Disputed;
         r.disputedAt = e.timestamp;
         break;
@@ -230,7 +235,7 @@ export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): Ren
     flags.push({ level: "warn", code: "unfunded", text: `Offer not funded for ${days(now - r.createdAt)}` });
   }
   if (open) {
-    const due = Math.min(monthsDueAt(r.startTime, r.termMonths, now), r.monthsFunded);
+    const due = Math.min(monthsDueAt(r.startTime, r.termMonths, r.moveOutAt || now), r.monthsFunded);
     if (due > r.monthsReleased) {
       flags.push({ level: "warn", code: "rent-due", text: `${due - r.monthsReleased} month${due - r.monthsReleased > 1 ? "s" : ""} of rent due, not paid out yet` });
     }

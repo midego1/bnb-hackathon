@@ -49,6 +49,22 @@ describe("summarizeRentals", () => {
     expect(incomeOf([r]).total).toBe(BigInt(140_000_000));
   });
 
+  it("stops the rent clock at the move-out, like the contract", () => {
+    const [r] = summarizeRentals(
+      [
+        created(),
+        ev(LEASE, "Funded", { deposit: DEPOSIT, firstRent: RENT, startTime: T0 }, T0),
+        ev(LEASE, "RentPaid", { months: 1, amount: RENT, monthsFunded: 2 }, T0),
+        ev(LEASE, "RentReleased", { caller: RENTER, months: 1, toLandlord: RENT, fee: BigInt(0) }, T0),
+        ev(LEASE, "SettlementProposed", { proposer: RENTER, nonce: 1, tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: "0x" + "cc".repeat(32) }, T0 + BigInt(10) * DAY),
+        ev(LEASE, "DisputeRaised", { by: OWNER }, T0 + BigInt(12) * DAY),
+      ],
+      T0 + BigInt(40) * DAY, // month 2 would be due by now, but the renter returned on day 10
+    );
+    expect(r.moveOutAt).toBe(T0 + BigInt(10) * DAY);
+    expect(r.flags.map((f) => f.code)).not.toContain("rent-due");
+  });
+
   it("flags disputes, overdue arbiters, stale offers, unreleased rent and failed txs", () => {
     const disputed = summarizeRentals(
       [created(), ev(LEASE, "Funded", { deposit: DEPOSIT, firstRent: RENT, startTime: T0 }, T0), ev(LEASE, "DisputeRaised", { by: OWNER }, T0)],

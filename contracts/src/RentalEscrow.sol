@@ -22,8 +22,10 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 ///
 /// Rent: month `i` (0-based) is due at `startTime + i * RENT_PERIOD`. Funded rent for a due month can be
 /// released to the landlord by anyone (keeper-friendly); the tenant may release funded rent early.
-/// On settlement, funded rent that is due goes to the landlord and prepaid rent that is not yet due is
-/// refunded to the tenant.
+/// The rent clock stops when the move-out starts (the first {propose} or {dispute}, see `moveOutAt`): how long
+/// settlement then takes (response window, counter-proposals, arbiter window) never turns prepaid rent into rent
+/// due. On settlement, funded rent that was due at the move-out goes to the landlord and the rest of the prepaid
+/// rent is refunded to the tenant.
 ///
 /// Protocol fee: once per lease, `feeBps` of ONE month's rent is deducted from the first rent payout to the
 /// landlord and sent to `feeRecipient` (both snapshotted from the factory at creation). The fee is never
@@ -113,6 +115,8 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     Status public status;
     uint64 public startTime;
     uint64 public disputedAt; // timestamp the current dispute was raised (0 if never disputed)
+    /// @notice When the move-out started (first {propose} or {dispute}); the rent clock stops here. 0 while active.
+    uint64 public moveOutAt;
     uint32 public monthsFunded;
     uint32 public monthsReleased;
     bool public feeCharged; // the one-time protocol fee has been taken from a rent payout
@@ -277,6 +281,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         _requireResponseWindowOpen();
         if (tenantRefund > _terms.depositAmount) revert InvalidAmount();
 
+        if (s == Status.Active) _startMoveOut();
         status = Status.MoveOut;
         uint32 nonce = _proposal.nonce + 1;
         uint256 landlordClaim = _terms.depositAmount - tenantRefund;
@@ -323,6 +328,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         Status s = status;
         if (s != Status.Active && s != Status.MoveOut) revert InvalidStatus(s);
         _requireResponseWindowOpen();
+        if (s == Status.Active) _startMoveOut();
         status = Status.Disputed;
         // forge-lint: disable-next-line(unsafe-typecast) -- uint64 seconds overflow in ~5e11 years
         disputedAt = uint64(block.timestamp);
@@ -374,10 +380,11 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         return _proposal;
     }
 
-    /// @notice Number of rent periods whose due date has passed (0 before funding).
+    /// @notice Number of rent periods whose due date has passed (0 before funding). Frozen at `moveOutAt`.
     function monthsDue() public view returns (uint32) {
         if (startTime == 0) return 0;
-        uint256 due = (block.timestamp - startTime) / RENT_PERIOD + 1;
+        uint256 t = moveOutAt == 0 ? block.timestamp : moveOutAt;
+        uint256 due = (t - startTime) / RENT_PERIOD + 1;
         // forge-lint: disable-next-line(unsafe-typecast) -- due <= termMonths (uint32) on this branch
         return due > _terms.termMonths ? _terms.termMonths : uint32(due);
     }
@@ -413,6 +420,13 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         if (deadline != 0 && block.timestamp >= deadline) revert ResponseWindowClosed(deadline);
     }
 
+    /// @dev Stops the rent clock (audit #9): otherwise delaying settlement (a silent landlord, counter-proposals,
+    /// a dispute the arbiter sits on) would turn the tenant's refundable prepaid rent into rent due.
+    function _startMoveOut() internal {
+        // forge-lint: disable-next-line(unsafe-typecast) -- uint64 seconds overflow in ~5e11 years
+        moveOutAt = uint64(block.timestamp);
+    }
+
     function _releasableUpTo() internal view returns (uint32) {
         uint32 due = monthsDue();
         return due < monthsFunded ? due : monthsFunded;
@@ -446,7 +460,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     function _settle(uint256 tenantRefund, uint256 landlordClaim, bytes32 basis) internal {
         status = Status.Settled;
 
-        // Remaining funded rent: due months go to the landlord, prepaid future months back to the tenant.
+        // Remaining funded rent: months due at the move-out go to the landlord, the rest back to the tenant.
         // (The tenant may already have released months early, so never go below monthsReleased.)
         uint32 releasableUpTo = _releasableUpTo();
         if (releasableUpTo < monthsReleased) releasableUpTo = monthsReleased;

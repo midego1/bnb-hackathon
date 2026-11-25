@@ -594,15 +594,16 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(tenant);
         escrow.propose(0, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + WINDOW);
+        assertEq(escrow.monthsDue(), 2); // the rent clock stopped at the move-out
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         escrow.claimTimeout();
 
-        // Month 2 became due -> landlord; month 3 is prepaid but not due -> tenant; full deposit -> tenant.
-        assertEq(usdt.balanceOf(landlord), landlordAfterRelease + RENT); // fee was taken once, on month 0
-        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        // Months 2 and 3 were not due at the move-out -> tenant; released rent stays; full deposit -> tenant.
+        assertEq(usdt.balanceOf(landlord), landlordAfterRelease); // fee was taken once, on month 0
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
         assertEq(usdt.balanceOf(treasury), FEE);
-        assertEq(escrow.monthsReleased(), 3);
+        assertEq(escrow.monthsReleased(), 2);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -877,31 +878,29 @@ contract RentalEscrowTest is BaseTest {
         vm.warp(escrow.dueDate(2) - 5 days);
         vm.prank(landlord);
         escrow.dispute();
-        // Rent keeps flowing during the dispute: month 2 is released while the arbiter is silent.
+        // The rent clock stopped at the dispute: month 2 never becomes due, nothing more to release.
         vm.warp(escrow.dueDate(2));
+        vm.expectRevert(RentalEscrow.NothingToRelease.selector);
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 3);
-        uint256 landlordMid = usdt.balanceOf(landlord);
-        assertEq(landlordMid, landlordAfterRelease + RENT);
 
         vm.warp(escrow.arbiterDeadline());
         uint256 tenantBefore = usdt.balanceOf(tenant);
         escrow.claimArbiterTimeout();
 
-        // Released rent stays with the landlord; prepaid month 3 + the full deposit go back to the tenant.
-        assertEq(usdt.balanceOf(landlord), landlordMid);
-        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        // Released rent stays with the landlord; prepaid months 2,3 + the full deposit go back to the tenant.
+        assertEq(usdt.balanceOf(landlord), landlordAfterRelease);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
-    function test_claimArbiterTimeout_paysDueButUnreleasedRentToLandlord() public {
+    function test_claimArbiterTimeout_paysRentDueAtDisputeToLandlord() public {
         RentalEscrow escrow = _createAndFund();
         vm.prank(tenant);
         escrow.payRent(1); // months 0,1 funded, nothing released
-        vm.warp(escrow.dueDate(1) - 2 days);
+        vm.warp(escrow.dueDate(1) + 2 days); // month 1 is due
         vm.prank(tenant);
         escrow.dispute();
-        vm.warp(escrow.arbiterDeadline()); // month 1 became due during the dispute
+        vm.warp(escrow.arbiterDeadline());
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         escrow.claimArbiterTimeout();

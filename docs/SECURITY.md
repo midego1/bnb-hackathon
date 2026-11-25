@@ -5,7 +5,8 @@ external audit. Product context: [PRODUCT.md](PRODUCT.md); how the contracts fit
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Status:** review done on branch `kb/security` (base `main` at `8eec39b`). KE-01, KE-02 and KE-03 are fixed in
-the source with regression tests. **None of the fixes is on the deployed BSC testnet contracts yet**: they need
+the source with regression tests; KE-12, KE-14 and KE-15 (audit findings #1, #9 and #10) were fixed later on
+`kb/audit-fixes` and `kb/contract-v2`, also with regression tests. **None of the fixes is on the deployed BSC testnet contracts yet**: they need
 a redeploy (see [Redeploy needed](#redeploy-needed)). Everything else is acknowledged and listed below.
 
 ## 1. Scope
@@ -60,6 +61,8 @@ Line numbers refer to the fixed code on this branch.
 | KE-11 | Info | `RentalEscrow.sol:378-383`, `:446-465` | Month 1 is due at funding, so every settlement pays it to the owner (non-refundable first month) and the one-time fee is always charged eventually. | By design; worth saying in the renter UI. |
 | KE-12 | High | `FleetVault.sol:173-180` | **Income in an empty vault could be taken.** Income that arrived while no shares existed waited for the next sync and was then credited to the first depositor(s). `claim` has no lock (KE-01 locks only redeem and transfer), so a 1-unit `deposit` followed by `claim` took all of it, e.g. 900 of 1,000 USDT of rent, or front-ran the first real investor. | Fixed (needs a vault redeploy): with no shares, `_sync` sends that income to the operator (`test_orphanIncome_cannotBeTakenByATinyDeposit`). |
 | KE-13 | Info | `EscrowFactory.sol:106` | A payee that cannot use the token (e.g. the escrow's own address, predictable from the factory nonce) only hurts the owner who chose it; renter funds are unaffected. | Acknowledged (self-harm only). |
+| KE-14 | Medium | `RentalEscrow.sol` `monthsDue`, `propose`, `dispute`, `_settle` (audit #9) | **Delaying settlement turned prepaid rent into rent due.** How much prepaid rent was refunded depended on *when* settlement ran, and the owner controls that: stay silent for the response window (up to 60 days), counter-propose, or dispute and let the arbiter window (up to 90 days) run out. Example: 3 months prepaid, the renter returns on day 10, the owner disputes on day 14 and the arbiter stays silent: `claimArbiterTimeout` paid the owner all 3 months instead of 1. | **Fixed** (needs a factory redeploy): the rent clock stops when the move-out starts, i.e. the first `propose` or `dispute` (`moveOutAt`); `monthsDue` is computed at that moment from then on. Product rule: starting the move-out ends the rental, for either party. The owner who thinks the renter ended it early to save rent claims that from the deposit (dispute desk). Tests: `test_KE14_*`. |
+| KE-15 | Medium | `FleetVault.sol` `_update` (audit #10) | **A share transfer handed the seller's unsynced income to the buyer.** `deposit`, `redeem` and `claim` sync income first, a plain `transfer` did not: Alice holds all shares, 100 USDT of rent arrives, nobody syncs, Alice transfers to Bob, and Bob gets Alice's 90 USDT. | **Fixed** (needs a vault redeploy): `_update` runs `_sync()` before a transfer (not on mint/burn, which sync in `deposit`/`redeem`). Test: `test_KE15_transferKeepsUnsyncedIncomeWithSeller`. |
 
 Checked and found sound (no finding):
 
@@ -164,6 +167,8 @@ fixes reach users only through new deployments. The ABI changes are additive (ne
 | KE-02 hard response deadline | New `EscrowFactory` (deploys a new `RentalEscrow` implementation) | Existing rentals keep the old, raceable deadline. |
 | KE-03 payee check | New `EscrowFactory` | The current factory still accepts any non-zero payee. |
 | KE-12 empty-vault income to the operator | New `FleetVault` (no ABI change) | The current vault still credits income that reaches it with no shares to the next depositor, who can claim it at once. |
+| KE-14 rent clock stops at the move-out | New `EscrowFactory` (new `moveOutAt` view) | Existing rentals still count rent due up to the settlement moment. |
+| KE-15 sync before a share transfer | New `FleetVault` (no ABI change) | Shares transferred on the current vault still carry the seller's unsynced income to the buyer. |
 
 After a redeploy: update `contracts/deployments/97.json`, run `pnpm -C web sync:contracts`, and re-seed the
 testnet demo.
