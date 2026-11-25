@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 export type ToastKind = "pending" | "success" | "error" | "info";
 export type Toast = { id: number; kind: ToastKind; title: string; body?: string; href?: string };
@@ -9,7 +9,17 @@ type Ctx = {
   push: (t: Omit<Toast, "id">) => number;
   update: (id: number, t: Partial<Omit<Toast, "id">>) => void;
   dismiss: (id: number) => void;
+  /** Remove every toast except errors (e.g. when a result screen should be unobstructed). */
+  clearSettled: () => void;
+  /**
+   * Compact mode for fast, scripted flows such as the guided demo: at most `max` toasts on screen and success
+   * toasts gone after `successMs`; `max: 0` shows none at all (the page reports progress itself). Call with no
+   * argument to restore the defaults.
+   */
+  setCompact: (opts?: { max: number; successMs: number }) => void;
 };
+
+const DEFAULTS = { max: 4, successMs: 6000 };
 
 const ToastContext = createContext<Ctx | null>(null);
 
@@ -17,18 +27,25 @@ let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const mode = useRef(DEFAULTS);
 
   const dismiss = useCallback((id: number) => setToasts((ts) => ts.filter((t) => t.id !== id)), []);
+  const clearSettled = useCallback(() => setToasts((ts) => ts.filter((t) => t.kind === "error")), []);
+  const setCompact = useCallback((opts?: { max: number; successMs: number }) => {
+    mode.current = opts ?? DEFAULTS;
+    setToasts((ts) => (mode.current.max > 0 ? ts.slice(-mode.current.max) : []));
+  }, []);
   const autoDismiss = useCallback(
     (id: number, kind: ToastKind) => {
-      if (kind === "success" || kind === "info") setTimeout(() => dismiss(id), 6000);
+      if (kind === "success" || kind === "info") setTimeout(() => dismiss(id), mode.current.successMs);
     },
     [dismiss],
   );
   const push = useCallback(
     (t: Omit<Toast, "id">) => {
       const id = nextId++;
-      setToasts((ts) => [...ts.slice(-3), { ...t, id }]);
+      if (mode.current.max <= 0) return id;
+      setToasts((ts) => [...ts.slice(-(mode.current.max - 1)), { ...t, id }]);
       autoDismiss(id, t.kind);
       return id;
     },
@@ -42,7 +59,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [autoDismiss],
   );
 
-  const value = useMemo(() => ({ push, update, dismiss }), [push, update, dismiss]);
+  const value = useMemo(() => ({ push, update, dismiss, clearSettled, setCompact }), [push, update, dismiss, clearSettled, setCompact]);
 
   return (
     <ToastContext.Provider value={value}>

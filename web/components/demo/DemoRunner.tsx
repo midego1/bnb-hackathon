@@ -6,22 +6,23 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Address } from "viem";
 import { useAccount, useConnect, usePublicClient } from "wagmi";
 import { LeaseDetail } from "@/components/lease/LeaseDetail";
-import { Amount, Card, Notice, PriceSourceBadge, StatusBadge, useMoney } from "@/components/ui";
-import { Spinner } from "@/components/Toasts";
-import { LeaseStatus } from "@/lib/contracts";
+import { Amount, PriceSourceBadge, StatusBadge, useMoney } from "@/components/ui";
+import { Spinner, useToasts } from "@/components/Toasts";
+import { escrowFactoryAbi, LeaseStatus, mockUsdtAbi } from "@/lib/contracts";
 import { fastForward } from "@/lib/demo/anvil";
-import { ledger, newContext, PATHS, stepsFor, type DemoActor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
+import { ledger, newContext, PATHS, stepsFor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { friendlyError } from "@/lib/errors";
 import { uploadEvidence } from "@/lib/evidence";
-import { shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useTx } from "@/lib/hooks/useTx";
 import { runInspection } from "@/lib/settlement";
 import { usePrices } from "@/lib/usePrices";
+import { ActorBoard, FlowStrip, type Wallets } from "./ActorBoard";
+import { actorLabel, controls, errorCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy } from "./copy";
+import { StepTimeline, type StepStatus } from "./StepTimeline";
 
 type Speed = "normal" | "fast";
-type StepStatus = "pending" | "running" | "done" | "error";
 type Phase = "idle" | "running" | "paused" | "waiting" | "error" | "done";
 
 /** Normal speed: how long a caption stays up before its transactions start, and the pause between steps. */
@@ -29,18 +30,11 @@ const READ_MS = 1200;
 const BETWEEN_MS = 2600;
 const ROLE_SWITCH_TIMEOUT_MS = 10_000;
 
-const actorLabel: Record<DemoActor, string> = {
-  landlord: "Landlord",
-  tenant: "Tenant",
-  arbiter: "Dispute desk",
-  inspector: "KeyEscrow Inspector (AI agent)",
-  anyone: "Anyone",
-};
-const actorTone: Record<DemoActor, string> = {
+const actorTone: Record<DemoStep["actor"], string> = {
   landlord: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
   tenant: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
   arbiter: "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200",
-  inspector: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
+  inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
   anyone: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
@@ -48,7 +42,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * One-click guided demo: plays the whole KeyEscrow story against the real contracts on the local anvil chain,
- * switching the anvil demo accounts as it goes, with the real lease page rendered live underneath.
+ * switching the anvil demo accounts as it goes.
+ *
+ * On desktop it is a one-screen stage (the page never scrolls; app/globals.css pins it to the viewport): controls
+ * on top, the actors with their live balances on the left, the current step and the real lease page in the middle,
+ * the timeline of every step on the right, and the end summary over the middle. Below `lg` it stacks and scrolls.
  */
 export function DemoRunner() {
   const { chainId, deployment } = useDeployment();
@@ -59,6 +57,13 @@ export function DemoRunner() {
   const queryClient = useQueryClient();
   const { prices } = usePrices();
   const money = useMoney();
+  const { setCompact, clearSettled } = useToasts();
+
+  // The stage reports every transaction itself (timeline, balances, money moved): no toasts over it.
+  useEffect(() => {
+    setCompact({ max: 0, successMs: 0 });
+    return () => setCompact();
+  }, [setCompact]);
 
   const [path, setPath] = useState<DemoPath>("happy");
   const [speed, setSpeed] = useState<Speed>("normal");
@@ -71,6 +76,9 @@ export function DemoRunner() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DemoCtx | null>(null);
   const [txs, setTxs] = useState<Record<string, DemoTx[]>>({});
+  const [wallets, setWallets] = useState<Wallets | null>(null);
+  const [base, setBase] = useState<Wallets | null>(null);
+  const [summaryHidden, setSummaryHidden] = useState(false);
 
   // The runner is a long-lived async loop; it reads the latest hook values through refs.
   const live = useRef({ address, connector, connectors, connectAsync, send, client, queryClient });
@@ -86,6 +94,9 @@ export function DemoRunner() {
   const speedRef = useRef<Speed>(speed);
   const stepModeRef = useRef(stepMode);
   const nextRef = useRef<(() => void) | null>(null);
+  const walletsRef = useRef<Wallets | null>(null);
+  const treasuryRef = useRef<Address | null>(null);
+  const walletSeq = useRef(0);
 
   useEffect(
     () => () => {
@@ -98,6 +109,36 @@ export function DemoRunner() {
   const ready = !!deployment && !!client;
   const publish = () => setView(ctxRef.current ? { ...ctxRef.current } : null);
   const mark = (i: number, s: StepStatus) => setStatuses((prev) => prev.map((v, k) => (k === i ? s : v)));
+
+  /** Re-read the live balances on the actor cards. Best effort: a failed read keeps the last numbers. */
+  async function syncWallets() {
+    const c = live.current.client;
+    if (!c || !deployment) return;
+    const seq = ++walletSeq.current;
+    try {
+      treasuryRef.current ??= (await c.readContract({ address: deployment.escrowFactory, abi: escrowFactoryAbi, functionName: "feeRecipient" })) as Address;
+      const bal = (who: Address) => c.readContract({ address: deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] }) as Promise<bigint>;
+      const lease = ctxRef.current?.lease;
+      const [landlord, tenant, treasury, escrow] = await Promise.all([
+        bal(devAccounts.landlord),
+        bal(devAccounts.tenant),
+        bal(treasuryRef.current),
+        lease ? bal(lease) : Promise.resolve(undefined),
+      ]);
+      if (seq !== walletSeq.current) return; // a newer read is on its way
+      walletsRef.current = { landlord, tenant, treasury, escrow };
+      setWallets(walletsRef.current);
+    } catch {
+      // keep the last balances on screen
+    }
+  }
+
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => void syncWallets(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as soon as the chain is reachable
+  }, [ready]);
 
   const api = (): DemoApi => ({
     deployment: deployment!,
@@ -123,6 +164,7 @@ export function DemoRunner() {
       const id = stepsRef.current[curRef.current]?.id ?? "?";
       setTxs((t) => ({ ...t, [id]: [...(t[id] ?? []), { label, hash: receipt.transactionHash }] }));
       publish();
+      await syncWallets();
       return receipt;
     },
     async read<T>(call: Parameters<DemoApi["read"]>[0]) {
@@ -189,6 +231,7 @@ export function DemoRunner() {
       mark(i, "running");
       setError(null);
       setPhase("running");
+      setBase(walletsRef.current); // "money moved" counts from here
       if (speedRef.current === "normal") await nap(token, READ_MS);
       if (tokenRef.current !== token) return;
       try {
@@ -202,11 +245,13 @@ export function DemoRunner() {
         return;
       }
       if (tokenRef.current !== token) return;
+      await syncWallets();
       mark(i, "done");
       publish();
       if (i < all.length - 1 && !(await gate(token))) return;
     }
     setPhase("done");
+    clearSettled(); // nothing may cover the summary
     setPauseAsked(false);
     pausedRef.current = false;
   }
@@ -220,6 +265,10 @@ export function DemoRunner() {
     const list = stepsFor(p);
     stepsRef.current = list;
     ctxRef.current = newContext(p, runsRef.current++, prices?.rates.USDT.THB);
+    if (walletsRef.current) walletsRef.current = { ...walletsRef.current, escrow: undefined }; // a fresh lease
+    setWallets(walletsRef.current);
+    setBase(null);
+    setSummaryHidden(false);
     setPath(p);
     setSteps(list);
     setStatuses(list.map(() => "pending"));
@@ -277,139 +326,124 @@ export function DemoRunner() {
   const step = current >= 0 ? steps[current] : undefined;
   const doneCount = statuses.filter((s) => s === "done").length;
   const books = view ? ledger(view) : undefined;
+  const showSummary = phase === "done" && !!view && !summaryHidden;
+  // "Step n of m" is on the narration; the controls only say why nothing moves.
+  const note = phase === "paused" ? controls.paused : running && pauseAsked ? controls.pausing : undefined;
 
   return (
-    <div className="space-y-6" data-testid="demo-runner" data-phase={phase}>
-      <Card>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <Segmented
-              label="Story"
-              value={path}
-              disabled={running}
-              options={(Object.keys(PATHS) as DemoPath[]).map((p) => ({ value: p, label: PATHS[p].label, testId: `demo-path-${p}` }))}
-              onChange={(p) => {
-                setPath(p);
-                if (phase === "idle") setSteps(stepsFor(p));
-              }}
-            />
-            <p className="text-xs text-slate-500">{PATHS[path].blurb}</p>
-            <div className="flex flex-wrap gap-4">
-              <Segmented
-                label="Speed"
-                value={speed}
-                options={[
-                  { value: "normal", label: "Normal", testId: "demo-speed-normal" },
-                  { value: "fast", label: "Fast", testId: "demo-speed-fast" },
-                ]}
-                onChange={chooseSpeed}
-              />
-              <Segmented
-                label="Mode"
-                value={stepMode ? "step" : "auto"}
-                options={[
-                  { value: "auto", label: "Autoplay", testId: "demo-mode-auto" },
-                  { value: "step", label: "Step by step", testId: "demo-mode-step" },
-                ]}
-                onChange={(v) => chooseStepMode(v === "step")}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
+      {/* Controls: one row on desktop. */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">{pageTitle}</h1>
+          <Segmented
+            label={controls.story}
+            value={path}
+            disabled={running}
+            options={(Object.keys(PATHS) as DemoPath[]).map((p) => ({ value: p, label: PATHS[p].label, testId: `demo-path-${p}`, title: PATHS[p].blurb }))}
+            onChange={(p) => {
+              setPath(p);
+              if (phase === "idle") setSteps(stepsFor(p));
+            }}
+          />
+          <Segmented
+            label={controls.speed}
+            value={speed}
+            options={[
+              { value: "normal", label: controls.normal, testId: "demo-speed-normal" },
+              { value: "fast", label: controls.fast, testId: "demo-speed-fast" },
+            ]}
+            onChange={chooseSpeed}
+          />
+          <Segmented
+            label={controls.mode}
+            value={stepMode ? "step" : "auto"}
+            options={[
+              { value: "auto", label: controls.auto, testId: "demo-mode-auto" },
+              { value: "step", label: controls.step, testId: "demo-mode-step" },
+            ]}
+            onChange={(v) => chooseStepMode(v === "step")}
+          />
+          <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+            {note && (
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300" data-testid="demo-phase-note">
+                {note}
+              </span>
+            )}
+            {!ready && <span className="text-sm text-slate-500 dark:text-slate-400">{controls.connecting}</span>}
             {!running && phase !== "error" && (
               <BigButton onClick={() => start()} disabled={!ready} testId="demo-play">
-                ▶ {phase === "done" ? "Play again" : "Play the demo"}
+                ▶ {phase === "done" ? controls.playAgain : controls.play}
               </BigButton>
             )}
             {phase === "waiting" && (
               <BigButton onClick={() => nextRef.current?.()} testId="demo-next">
-                Next step →
+                {controls.next}
               </BigButton>
             )}
             {running && !stepMode && (
               <button type="button" onClick={togglePause} data-testid="demo-pause" className={secondaryBtn}>
-                {pauseAsked ? "▶ Resume" : "❚❚ Pause"}
+                {pauseAsked ? controls.resume : controls.pause}
               </button>
             )}
             {running && (
               <button type="button" onClick={() => start(path)} className={secondaryBtn}>
-                ↺ Restart
+                {controls.restart}
+              </button>
+            )}
+            {phase === "done" && summaryHidden && (
+              <button type="button" onClick={() => setSummaryHidden(false)} className={secondaryBtn} data-testid="demo-show-summary">
+                {controls.showSummary}
               </button>
             )}
           </div>
         </div>
-        {!ready && <p className="mt-3 text-sm text-slate-500">Connecting to the local chain…</p>}
-        {running && (
-          <div className="mt-4">
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div className="h-full rounded-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
-            </div>
-            <p className="mt-1 text-xs text-slate-500" data-testid="demo-phase-note">
-              {phase === "paused"
-                ? "Paused. Press Resume to continue."
-                : phase === "waiting"
-                  ? "Step by step: press Next step when you are ready."
-                  : pauseAsked
-                    ? "Pausing after this step…"
-                    : `Step ${current + 1} of ${steps.length}`}
-            </p>
+        {phase !== "idle" && (
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100 dark:bg-slate-800" aria-hidden>
+            <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         )}
-      </Card>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-4 lg:self-start">
-          <Rail steps={steps} statuses={statuses} current={running || phase === "error" ? current : -1} txs={txs} lease={view?.lease} />
-        </aside>
+      {/* The stage: actors | current step + live lease page | timeline. */}
+      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
+        <div className="order-2 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
+          <ActorBoard wallets={wallets} base={running || phase === "error" ? base : null} actor={running || phase === "error" ? step?.actor : undefined} />
+        </div>
 
-        <div className="min-w-0 space-y-6">
-          {phase === "idle" && <Intro />}
+        <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0">
+          {phase === "idle" && <Intro path={path} />}
 
           {step && phase !== "done" && (
-            <Narration step={step} index={current} total={steps.length} status={statuses[current]} caption={view ? step.caption(view, money) : ""} />
+            <Narration step={step} index={current} total={steps.length} status={statuses[current]} caption={view ? step.caption(view, money) : ""}>
+              <FlowStrip base={base} wallets={wallets} />
+            </Narration>
           )}
 
           {phase === "error" && error && (
-            <div data-testid="demo-error">
-              <Notice kind="error">
-                <p className="font-medium">Step {current + 1} ({step?.title}) did not work</p>
-                <p className="mt-1">{error}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={retry} className={primarySmall} data-testid="demo-retry">
-                    Retry this step
-                  </button>
-                  <button type="button" onClick={() => start(path)} className={secondaryBtn}>
-                    Start over with a fresh lease
-                  </button>
-                </div>
-              </Notice>
+            <div data-testid="demo-error" className="shrink-0 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-50">
+              <p className="text-base font-semibold">{errorCopy.title(current + 1, step?.title)}</p>
+              <p className="mt-1 text-base">{error}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={retry} className={primarySmall} data-testid="demo-retry">
+                  {errorCopy.retry}
+                </button>
+                <button type="button" onClick={() => start(path)} className={secondaryBtn}>
+                  {errorCopy.startOver}
+                </button>
+              </div>
             </div>
           )}
 
-          {phase === "done" && view && <Summary ctx={view} books={books} onAgain={() => start(view.path)} onPath={(p) => start(p)} />}
+          {showSummary && <Summary ctx={view} books={books} onAgain={() => start(view.path)} onPath={(p) => start(p)} onHide={() => setSummaryHidden(true)} />}
 
-          {view?.inspection && <InspectionCard ctx={view} />}
+          <LivePanel lease={view?.lease} idle={phase === "idle"}>
+            {view?.inspection && <InspectionCard ctx={view} />}
+          </LivePanel>
+        </div>
 
-          {view?.lease ? (
-            <section aria-labelledby="live-lease">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="live-lease" className="text-lg font-semibold">
-                  The real lease page, live
-                </h2>
-                <Link href={`/lease/${view.lease}`} target="_blank" className="text-sm underline-offset-4 hover:underline">
-                  Open in its own tab ↗
-                </Link>
-              </div>
-              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-                The same component landlord and tenant use, re-rendered after every transaction. It changes as the demo switches accounts.
-              </p>
-              <div className="rounded-2xl border border-dashed border-slate-300 p-4 dark:border-slate-700">
-                <LeaseDetail address={view.lease} />
-              </div>
-            </section>
-          ) : (
-            phase !== "idle" && <p className="text-sm text-slate-500">The lease page appears here as soon as the landlord has created the lease.</p>
-          )}
+        <div className="order-3 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
+          <StepTimeline steps={steps} statuses={statuses} current={running || phase === "error" ? current : -1} txs={txs} lease={view?.lease} />
         </div>
       </div>
     </div>
@@ -417,9 +451,9 @@ export function DemoRunner() {
 }
 
 const secondaryBtn =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:border-slate-500 dark:border-slate-700 dark:bg-slate-900";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-500";
 const primarySmall =
-  "inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900";
+  "inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200";
 
 function BigButton({ children, onClick, disabled, testId }: { children: ReactNode; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
@@ -428,7 +462,7 @@ function BigButton({ children, onClick, disabled, testId }: { children: ReactNod
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-2 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300"
     >
       {children}
     </button>
@@ -444,24 +478,27 @@ function Segmented<T extends string>({
 }: {
   label: string;
   value: T;
-  options: { value: T; label: string; testId: string }[];
+  options: { value: T; label: string; testId: string; title?: string }[];
   onChange: (v: T) => void;
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:sr-only min-[1400px]:not-sr-only">{label}</span>
       <div className="inline-flex flex-wrap rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800" role="group" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             disabled={disabled}
+            title={o.title}
             aria-pressed={value === o.value}
             data-testid={o.testId}
             onClick={() => onChange(o.value)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              value === o.value ? "bg-white shadow-sm dark:bg-slate-950" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              value === o.value
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
             }`}
           >
             {o.label}
@@ -472,100 +509,85 @@ function Segmented<T extends string>({
   );
 }
 
-function Rail({
-  steps,
-  statuses,
-  current,
-  txs,
-  lease,
+function Intro({ path }: { path: DemoPath }) {
+  return (
+    <section className="shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-50 xl:px-6 xl:py-5">
+      <p className="text-base leading-relaxed xl:text-lg">{pageIntro}</p>
+      <h2 className="mt-3 text-lg font-semibold">{intro.title}</h2>
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-base">
+        {intro.bullets.map((b) => (
+          <li key={b}>{b}</li>
+        ))}
+      </ul>
+      <p className="mt-3 text-base">
+        <span className="font-semibold">{PATHS[path].label}:</span> {PATHS[path].blurb}
+      </p>
+      <p className="mt-1 text-sm opacity-80">{intro.presenting}</p>
+    </section>
+  );
+}
+
+function Narration({
+  step,
+  index,
+  total,
+  status,
+  caption,
+  children,
 }: {
-  steps: DemoStep[];
-  statuses: StepStatus[];
-  current: number;
-  txs: Record<string, DemoTx[]>;
-  lease?: Address;
+  step: DemoStep;
+  index: number;
+  total: number;
+  status?: StepStatus;
+  caption: string;
+  children?: ReactNode;
 }) {
   return (
-    <Card title="The story" aside={lease && <Link href={`/lease/${lease}`} target="_blank" className="font-mono text-xs underline">{shortAddress(lease)}</Link>}>
-      <ol className="space-y-1" data-testid="demo-rail">
-        {steps.map((s, i) => {
-          const st = statuses[i] ?? "pending";
-          return (
-            <li
-              key={s.id}
-              data-testid="demo-step"
-              data-step={s.id}
-              data-status={st}
-              className={`rounded-xl px-2 py-2 transition ${i === current ? "bg-amber-50 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:ring-amber-900" : ""}`}
-            >
-              <div className="flex items-start gap-2">
-                <StepIcon status={st} n={i + 1} />
-                <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-medium ${st === "pending" ? "text-slate-500" : ""}`}>{s.title}</p>
-                  <p className="text-[11px] text-slate-500">
-                    {actorLabel[s.actor]}
-                    {s.demoOnly && <span className="ml-1 rounded bg-amber-200 px-1 font-medium text-amber-950">{s.demoOnly}</span>}
-                  </p>
-                  {(txs[s.id] ?? []).map((t) => (
-                    <p key={t.hash} className="mt-0.5 flex items-center justify-between gap-1 text-[11px]">
-                      <span className="min-w-0 truncate text-slate-500">{t.label}</span>
-                      <Link href={lease ? `/lease/${lease}` : "#"} target="_blank" title={`Transaction ${t.hash}: see it on the lease timeline`} className="shrink-0 whitespace-nowrap font-mono underline decoration-dotted" data-testid="demo-tx">
-                        {t.hash.slice(0, 8)}…{t.hash.slice(-4)}
-                      </Link>
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </Card>
-  );
-}
-
-function StepIcon({ status, n }: { status: StepStatus; n: number }) {
-  const base = "grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold";
-  if (status === "done") return <span className={`${base} bg-emerald-500 text-white`} aria-label="done">✓</span>;
-  if (status === "error") return <span className={`${base} bg-rose-500 text-white`} aria-label="failed">!</span>;
-  if (status === "running") return <span className={`${base} bg-amber-400 text-slate-950`} aria-label="running"><Spinner /></span>;
-  return <span className={`${base} bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300`}>{n}</span>;
-}
-
-function Intro() {
-  return (
-    <Card>
-      <h2 className="text-lg font-semibold">What you are about to see</h2>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-600 dark:text-slate-300">
-        <li>A fresh Bangkok lease, created, funded and settled with real transactions on this local anvil chain.</li>
-        <li>The demo switches between the landlord, tenant and dispute desk accounts for you (watch the yellow bar).</li>
-        <li>Every amount in baht first, then dollars and the exact mUSDT on-chain.</li>
-        <li>The AI move-out inspection, the KeyEscrow fee going to the treasury, and the final balances.</li>
-      </ul>
-      <p className="mt-3 text-xs text-slate-500">
-        Presenting live? Pick <span className="font-medium">Step by step</span>: each step waits for your click. Pause works any time.
-      </p>
-    </Card>
-  );
-}
-
-function Narration({ step, index, total, status, caption }: { step: DemoStep; index: number; total: number; status?: StepStatus; caption: string }) {
-  return (
-    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-50" data-testid="demo-narration" aria-live="polite">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="font-semibold uppercase tracking-wide opacity-70">
-          Step {index + 1} of {total}
-        </span>
-        <span className={`rounded-full px-2 py-0.5 font-medium ${actorTone[step.actor]}`}>{actorLabel[step.actor]}</span>
-        {step.demoOnly && <span className="rounded-full bg-amber-300 px-2 py-0.5 font-semibold text-amber-950">{step.demoOnly}</span>}
+    <section
+      className="shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-50 xl:tall:px-6 xl:tall:py-5"
+      data-testid="demo-narration"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-semibold uppercase tracking-wide opacity-70">{panels.stepOf(index + 1, total)}</span>
+        <span className={`rounded-full px-2.5 py-0.5 font-semibold ${actorTone[step.actor]}`}>{actorLabel[step.actor]}</span>
+        {step.demoOnly && <span className="rounded-full bg-amber-300 px-2.5 py-0.5 font-semibold text-amber-950 dark:bg-amber-400">{step.demoOnly}</span>}
         {status === "running" && (
           <span className="inline-flex items-center gap-1 opacity-70">
-            <Spinner /> working…
+            <Spinner /> {panels.working}
           </span>
         )}
       </div>
-      <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">{step.title}</h2>
-      <p className="mt-2 max-w-3xl text-base leading-relaxed">{caption}</p>
+      <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{step.title}</h2>
+      <p className="mt-1.5 text-lg leading-relaxed xl:tall:text-xl xl:tall:leading-relaxed">{caption}</p>
+      {children && <div className="mt-3 border-t border-amber-200 pt-2.5 dark:border-amber-900">{children}</div>}
+    </section>
+  );
+}
+
+/** The real lease page (the same component landlord and tenant use), scrolling inside its own panel. */
+function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; children?: ReactNode }) {
+  if (idle && !lease) return null;
+  return (
+    <section
+      aria-labelledby="live-lease"
+      className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:min-h-0 lg:flex-1"
+    >
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-200 px-4 py-2 dark:border-slate-800">
+        <h2 id="live-lease" className="text-base font-semibold">
+          {panels.live}
+        </h2>
+        <span className="hidden min-w-0 flex-1 truncate text-sm text-slate-500 dark:text-slate-400 xl:block">{panels.liveNote}</span>
+        {lease && (
+          <Link href={`/lease/${lease}`} target="_blank" className="text-sm font-medium underline-offset-4 hover:underline">
+            {panels.openTab}
+          </Link>
+        )}
+      </div>
+      <div className="relative space-y-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" data-testid="demo-live">
+        {children}
+        {lease ? <LeaseDetail address={lease} /> : <p className="text-base text-slate-500 dark:text-slate-400">{panels.liveEmpty}</p>}
+      </div>
     </section>
   );
 }
@@ -573,112 +595,107 @@ function Narration({ step, index, total, status, caption }: { step: DemoStep; in
 function InspectionCard({ ctx }: { ctx: DemoCtx }) {
   const r = ctx.inspection!;
   return (
-    <Card title="AI move-out inspection" aside={<PriceSourceBadge />}>
-      <div data-testid="demo-inspection">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-xs text-slate-500">Back to tenant</p>
-            <Amount value={BigInt(r.tenantRefund)} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Landlord keeps (repairs)</p>
-            <Amount value={BigInt(r.landlordClaim)} />
-          </div>
-        </div>
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
-          {r.reasons.map((reason, i) => (
-            <li key={i}>{reason}</li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-slate-500" data-testid="demo-inspector">
-          {r.inspector ? (
-            <>
-              Signed by {r.inspector.name}
-              {r.inspector.agentId !== undefined && <>, ERC-8004 agent #{r.inspector.agentId}</>}: its identity is registered on BNB Chain, so anyone can check this
-              report came from it.
-            </>
-          ) : (
-            <>
-              Report by the KeyEscrow Inspector agent. Unsigned on this local demo (no INSPECTOR_PRIVATE_KEY set); with its key set, every report is signed by the
-              agent&apos;s ERC-8004 identity on BNB Chain.
-            </>
-          )}{" "}
-          Confidence {(r.confidence * 100).toFixed(0)}% · {r.mock ? "demo inspector (no AI key configured)" : `vision model: ${r.provider}`} · report{" "}
-          <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
-        </p>
+    <section className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900 dark:bg-cyan-950/40" data-testid="demo-inspection">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-base font-semibold">{inspectionCopy.title}</h3>
+        <PriceSourceBadge />
       </div>
-    </Card>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{inspectionCopy.back}</p>
+          <Amount value={BigInt(r.tenantRefund)} />
+        </div>
+        <div>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{inspectionCopy.keeps}</p>
+          <Amount value={BigInt(r.landlordClaim)} />
+        </div>
+      </div>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-base">
+        {r.reasons.map((reason, i) => (
+          <li key={i}>{reason}</li>
+        ))}
+      </ul>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400" data-testid="demo-inspector">
+        {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : inspectionCopy.unsigned}{" "}
+        {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
+      </p>
+    </section>
   );
 }
-
-const tryLabel: Record<DemoPath, string> = {
-  happy: "Try the happy path",
-  dispute: "Try the dispute path",
-  timeout: "Try: landlord ignores it",
-};
-
-const outcome: Record<DemoPath, string> = {
-  happy: "Settled in one click: the split was agreed",
-  dispute: "Settled by the KeyEscrow dispute desk",
-  timeout: "The landlord stayed silent: full deposit back to the tenant",
-};
 
 function Summary({
   ctx,
   books,
   onAgain,
   onPath,
+  onHide,
 }: {
   ctx: DemoCtx;
   books: ReturnType<typeof ledger>;
   onAgain: () => void;
   onPath: (p: DemoPath) => void;
+  onHide: () => void;
 }) {
   const money = useMoney();
   const settled = ctx.finalStatus === LeaseStatus.Settled;
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path);
   return (
     <section
-      className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-slate-900"
+      className="rounded-2xl border border-emerald-300 bg-white p-4 shadow-lg dark:border-emerald-800 dark:bg-slate-900 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
       data-testid="demo-summary"
       data-path={ctx.path}
       data-status={settled ? "settled" : "open"}
       data-balanced={books?.balanced ? "true" : "false"}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{outcome[ctx.path]}</h2>
-        {ctx.finalStatus !== undefined && <StatusBadge status={ctx.finalStatus as LeaseStatus} />}
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-2xl font-semibold tracking-tight xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
+        <button
+          type="button"
+          onClick={onHide}
+          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:block"
+          data-testid="demo-hide-summary"
+        >
+          {summaryCopy.hide}
+        </button>
       </div>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        {ctx.property.name} · {money(ctx.rent)} / month · {money(ctx.deposit)} deposit. Final balances of this lease:
+      <p className="mt-1 text-base text-slate-600 dark:text-slate-400">
+        {ctx.finalStatus !== undefined && (
+          <span className="mr-2 inline-block align-middle">
+            <StatusBadge status={ctx.finalStatus as LeaseStatus} />
+          </span>
+        )}
+        {summaryCopy.terms(ctx.property.name, money(ctx.rent), money(ctx.deposit))}
       </p>
       {books && (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Party who="Tenant" note={`got back, of ${money(books.paidIn)} paid in`} value={books.tenantBack} testId="demo-bal-tenant" />
-            <Party who="Landlord" note="month 1 rent after fee + repairs" value={books.landlord} testId="demo-bal-landlord" />
-            <Party who="KeyEscrow treasury" note="one-time fee" value={books.treasury} testId="demo-bal-treasury" />
-            <Party who="Escrow contract" note="left in escrow" value={books.escrowLeft} testId="demo-bal-escrow" />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 tall:mt-4 tall:gap-3">
+            <Party who={summaryCopy.tenant} note={summaryCopy.tenantNote(money(books.paidIn))} value={books.tenantBack} testId="demo-bal-tenant" />
+            <Party who={summaryCopy.landlord} note={summaryCopy.landlordNote} value={books.landlord} testId="demo-bal-landlord" />
+            <Party who={summaryCopy.treasury} note={summaryCopy.treasuryNote} value={books.treasury} testId="demo-bal-treasury" />
+            <Party who={summaryCopy.escrow} note={summaryCopy.escrowNote} value={books.escrowLeft} testId="demo-bal-escrow" />
           </div>
-          <p className={`mt-4 text-sm font-medium ${books.balanced ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700"}`} data-testid="demo-balanced">
+          <p
+            className={`mt-3 text-base font-medium tall:mt-4 ${books.balanced ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
+            data-testid="demo-balanced"
+          >
             {books.balanced
-              ? `✓ Balances add up: the tenant's ${money(books.paidIn)} went back to the tenant (${money(books.tenantBack)}), to the landlord (${money(books.landlord)}) and to the treasury (${money(books.treasury)}). The escrow holds nothing.`
-              : "✗ The balances do not add up. Open the lease page to inspect the timeline."}
+              ? summaryCopy.balanced(money(books.paidIn), money(books.tenantBack), money(books.landlord), money(books.treasury))
+              : summaryCopy.unbalanced}
           </p>
         </>
       )}
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2 lg:mt-auto lg:pt-3">
         <button type="button" onClick={onAgain} className={primarySmall} data-testid="demo-run-again">
-          ↺ Run again
+          {summaryCopy.again}
         </button>
         {others.map((p) => (
           <button key={p} type="button" onClick={() => onPath(p)} className={secondaryBtn} data-testid={`demo-try-${p}`}>
-            {tryLabel[p]}
+            {summaryCopy.tryLabel[p]}
           </button>
         ))}
         {ctx.lease && (
-          <Link href={`/lease/${ctx.lease}`} target="_blank" className={secondaryBtn}>
-            Open the lease page ↗
+          <Link href={`/lease/${ctx.lease}`} target="_blank" className={`${secondaryBtn} lg:hidden`}>
+            {summaryCopy.openLease}
           </Link>
         )}
       </div>
@@ -688,11 +705,11 @@ function Summary({
 
 function Party({ who, note, value, testId }: { who: string; note: string; value: bigint; testId: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60" data-testid={testId} data-value={value.toString()}>
-      <p className="text-sm font-medium">{who}</p>
-      <p className="text-xs text-slate-500">{note}</p>
+    <div className="rounded-xl bg-slate-50 px-4 py-2 dark:bg-slate-800/60 tall:py-3" data-testid={testId} data-value={value.toString()}>
+      <p className="text-base font-semibold">{who}</p>
+      <p className="text-sm leading-snug text-slate-500 dark:text-slate-400">{note}</p>
       <div className="mt-1">
-        <Amount value={value} />
+        <Amount value={value} size="lg" />
       </div>
     </div>
   );
