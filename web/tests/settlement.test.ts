@@ -137,6 +137,9 @@ describe("POST /api/settlement", () => {
     expect(BigInt(body.tenantRefund) + BigInt(body.landlordClaim)).toBe(BigInt(1_000_000_000));
     expect(body.decimals).toBe(6);
     expect(body.currency).toBe("USDT");
+    // Notes steer the model, so they are inside the hashed (and signed) report.
+    const noted = await (await post({ deposit: "1000000000", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(9) }], notes: "renter admits a scratch" })).json();
+    expect(noted.notes).toBe("renter admits a scratch");
   });
 
   it("rejects invalid input", async () => {
