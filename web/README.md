@@ -9,6 +9,24 @@ Next.js (App Router) + wagmi/viem + RainbowKit frontend for the KeyEscrow contra
 | `/arbiter` | Dispute desk: rentals where this wallet is arbiter, disputed ones first |
 | `/lease/<escrow>` | Terms, live state, balances, rent schedule, return (AI inspection → proposal → accept), dispute + ruling, both timeout fallbacks with countdowns, event timeline, BscScan links on chain 97 |
 
+## UI
+
+One UI library: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind v4, the code lives in
+`components/ui/*`, set up with `shadcn@4.23.0`, see `components.json`), [lucide-react](https://lucide.dev) icons, and
+[Vercel AI Elements](https://elements.ai-sdk.dev) for the Ask AI panel (`components/ai-elements/*`, from
+`ai-elements@1.9.1`, trimmed: no `ai` package, streamdown, shiki or motion).
+
+- **Colours are tokens only** (`app/globals.css`), light and dark, switched by the theme switch (`lib/theme.ts`,
+  class on `<html>`). shadcn's variables (`background`, `card`, `primary`, `muted`, `accent`, `destructive`, `border`,
+  `input`, `ring`, `sidebar-*` ...) are defined on our palette, so `npx shadcn@4.23.0 add <component>` fits as is.
+  Status colours: `success` / `warning` / `danger` / `info` (each with `-soft`, `-fg`, `-border`); the fixed demo
+  colours (`actor-*`, `highlight-*`, ...) are named tokens too. No raw palette classes (`bg-slate-*`, `text-emerald-*`).
+- `components/ui.tsx` keeps the app's own primitives (`Card`, `StatusBadge`, `ActionButton`, `Field`, `Notice`,
+  `Amount`, ...) on top of the shadcn components; `components/Toasts.tsx` keeps `useToasts()` and renders with sonner.
+- **Worker size:** the Cloudflare web Worker must stay under 3 MiB gzip (`pnpm cf:build && pnpm cf:size`). Keep
+  heavy client-only UI out of the server render: the Ask AI panel, sonner and the confirm dialog load with
+  `next/dynamic(..., { ssr: false })`, and the tooltip provider lives in the panel.
+
 ## Contracts → frontend
 
 ABIs and addresses are generated, never hand-written:

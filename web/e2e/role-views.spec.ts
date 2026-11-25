@@ -106,7 +106,7 @@ test("fleet owner lists a scooter, renter books it, owner offers the rental, ren
 
   await page.goto("/tenant");
   await expect(rental).toHaveAttribute("data-status", "1");
-  await expect(rental).toContainText("Locked in escrow");
+  await expect(rental).toContainText("deposit is locked");
   await shot(page, "03-renter");
 
   // The back office shows it, routed to the vault.

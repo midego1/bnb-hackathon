@@ -4,6 +4,12 @@ The pitch runs on the **live site** on BSC testnet: <https://keyescrow-web.mdgoo
 needed for the demo: `/demo` signs with throwaway demo wallets on the server. If the network fails, use the
 [30-second backup](#30-second-backup-local-mode-no-network) on a local chain.
 
+**Storyboard of the live "Mystery Box" pitch:** [`/pitch`](https://keyescrow-web.mdgooijer.workers.dev/pitch)
+(unlisted, not in the sidebar). An animated 3:00 run-through: a judge scans the QR on the big screen, rents our box with
+a guest wallet, takes pickup and return photos, the AI inspector proposes a split and we accept. Each scene shows its
+time mark and what we say or click, with a 3:00 timer bar. Use it to rehearse, and as the backup slide if the live demo
+fails (**Space** = play / pause, **← →** = scenes). Strings and timings: `web/components/pitch/script.ts`.
+
 ![Guided /demo at step 7 of 10: the AI inspection's split in THB, live balances, every transaction hash](screenshots/demo-mid-run.png)
 
 ## Before you go on stage (5 minutes)

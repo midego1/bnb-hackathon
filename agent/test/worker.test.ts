@@ -41,6 +41,8 @@ describe("agent on Cloudflare Workers", () => {
     // The rental-action tools from web/lib/actions come along (fetch-based RPC; not called here: no network in tests).
     expect(tools).toEqual(expect.arrayContaining(["get_lease", "prepare_fund"]));
     expect((await call("/mcp")).status).toBe(405);
+    const batch = [1, 2].map((id) => ({ jsonrpc: "2.0", id, method: "tools/list", params: {} }));
+    expect((await call("/mcp", post("/mcp", batch, accept))).status).toBe(400);
     expect((await call("/inspect", post("/inspect", { deposit: "x" }))).status).toBe(400);
     expect((await call("/nope")).status).toBe(404);
   });

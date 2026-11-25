@@ -46,7 +46,7 @@ export function Shareholders() {
   return (
     <div className="space-y-6">
       <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="the vault's history" />
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span className="font-semibold text-foreground">{vault.name}</span>
         <AddressTag address={vault.address} chainId={chainId} label={vault.symbol} />
         <span>· operator fee {(vault.operatorFeeBps / 100).toFixed(0)}% for maintenance</span>
@@ -213,7 +213,7 @@ function Position({ vault }: { vault: VaultState }) {
         </ActionButton>
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-        <p className="text-sm text-muted">Redeem your shares 1:1 for USDT (all {me ? formatUsdt(me.shares) : "…"} {vault.symbol}).</p>
+        <p className="text-sm text-muted-foreground">Redeem your shares 1:1 for USDT (all {me ? formatUsdt(me.shares) : "…"} {vault.symbol}).</p>
         <ActionButton
           variant="secondary"
           data-testid="redeem-shares"

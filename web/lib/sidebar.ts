@@ -3,11 +3,11 @@
  * layout through CSS (the `rail:` variant in app/globals.css), so the server markup never depends on the state and
  * SIDEBAR_INIT_SCRIPT sets it in <head> before first paint (no jump on load).
  *
- * The user's choice is kept in localStorage. The one-screen stages (/demo, /how-it-works) always open with the rail
+ * The user's choice is kept in localStorage. The one-screen stages (/demo, /how-it-works, /pitch) always open with the rail
  * collapsed so the stage keeps its width; toggling there lasts for that visit only.
  */
 export const SIDEBAR_STORAGE_KEY = "keyescrow-sidebar";
-export const STAGE_ROUTES: readonly string[] = ["/demo", "/how-it-works"];
+export const STAGE_ROUTES: readonly string[] = ["/demo", "/how-it-works", "/pitch"];
 
 export type SidebarState = "expanded" | "collapsed";
 

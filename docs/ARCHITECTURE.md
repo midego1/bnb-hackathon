@@ -249,6 +249,7 @@ inspection (ERC-8183 / x402) is roadmap.
 | Actions | `/api/v1/<action>`, `/api/v1/openapi.json` | see [§4](#4-actions-rest-openapi-mcp-a2a) | none (public RPC) | none |
 | Live demo | `/api/demo-testnet/*` | see [§3](#the-demo-runner) | `DEMO_TESTNET_KEYS`, `DEMO_TESTNET_FUNDER_KEY` | off: 404 |
 | Live judge demo | `/api/stage/<slug>`, pages `/stage/<slug>`, `/r/<slug>` | test money for a phone, the owner's offer, presenter accept/reset; status polled every 2 s ([DEMO.md](DEMO.md#live-judge-demo-a-judge-rents-a-real-box-stage)) | `DEMO_TESTNET_*` (owner, desk, funder), `STAGE_PRESENTER_CODE` | off unless `STAGE_DEMO=1`: 404 |
+| PromptPay demo on-ramp | `POST /api/demo-testnet/onramp` | `{lease}` → test mUSDT minted to its renter for what is due (`/app/pay/<rental>`; no real payment) | none on 31337 (anvil signs); 97: the live demo's wallets | 31337/97 only, capped at 10,000 mUSDT, rate-limited; 97 without the live demo: 404 |
 
 Design rules:
 
@@ -467,9 +468,15 @@ sequenceDiagram
   Object, and the chain is the source of truth.
 - **One action layer for people and agents.** Machines get the same validated actions as the UI (REST, MCP, A2A), so
   an integration does not need its own backend.
-- **opBNB path.** Plain Solidity with no BSC-specific opcodes, so the same bytecode deploys to opBNB, where monthly
-  rent releases and evidence anchoring cost very little. The deploy guard accepts opBNB testnet (5611) and the
-  frontend lists it. Not deployed there yet. One factory per chain keeps the indexes local.
+- **opBNB path.** Plain Solidity with no BSC-specific opcodes, so the same bytecode deploys to opBNB, BNB Chain's L2.
+  The deploy wrapper, its rehearsal and the web app all take chainId 5611 (`pnpm deploy:opbnb:check`, see
+  [DEPLOY.md](DEPLOY.md#opbnb-testnet-chainid-5611-prepared-not-deployed)); it is prepared, not deployed. One factory
+  per chain keeps the indexes local. Cost per rental, from the rehearsal: one rental from creation to settlement
+  (create, approve, fund, pickup and return photo hashes, settlement proposal, accept) is 7 transactions and
+  1,023,737 gas on either chain. At the gas prices of 25 Nov 2026 that is **0.00010 tBNB on BSC testnet**
+  (0.1 gwei) and **0.0000011 tBNB on opBNB testnet** (0.001 gwei plus about 0.00000009 tBNB L1 data fee), about 90×
+  cheaper. Each extra month adds a `payRent` and a `releaseRent`, so long fleet rentals and frequent evidence
+  anchoring gain the most. The whole deploy (5,072,948 gas) is 0.00051 tBNB on BSC and 0.0000070 tBNB on opBNB.
 - **Greenfield for bulk data.** Photo sets are megabytes per rental; on-chain they stay 32 bytes per set.
 
 ## 12. Testing

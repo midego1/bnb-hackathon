@@ -1,5 +1,5 @@
 import { defineChain } from "viem";
-import { bscTestnet as viemBscTestnet, foundry, opBNBTestnet } from "viem/chains";
+import { bscTestnet as viemBscTestnet, foundry, opBNBTestnet as viemOpBNBTestnet } from "viem/chains";
 
 /** RPC of the local anvil node the browser talks to. */
 export const anvilRpcUrl =
@@ -24,8 +24,19 @@ export const bscTestnet = defineChain({
   rpcUrls: { default: { http: [bscTestnetRpcUrl] } },
 });
 
+/** opBNB testnet RPC for the browser (viem's default is BNB Chain's public endpoint). */
+export const opBNBTestnetRpcUrl = process.env.NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL || "https://opbnb-testnet-rpc.bnbchain.org";
+
+/** opBNB testnet (chainId 5611), BNB Chain's L2: same contracts, explorer opBNBScan (testnet.opbnbscan.com). */
+export const opBNBTestnet = defineChain({
+  ...viemOpBNBTestnet,
+  rpcUrls: { default: { http: [opBNBTestnetRpcUrl] } },
+  blockExplorers: { default: { name: "opBNBScan", url: "https://testnet.opbnbscan.com" } },
+});
+
 /**
- * The chain this build targets: NEXT_PUBLIC_CHAIN_ID = 31337 (local anvil, default) or 97 (BSC testnet).
+ * The chain this build targets: NEXT_PUBLIC_CHAIN_ID = 31337 (local anvil, default), 97 (BSC testnet) or
+ * 5611 (opBNB testnet).
  * Addresses come from contracts/deployments/<chainId>.json (see lib/contracts).
  */
 export const targetChainId: number = Number(process.env.NEXT_PUBLIC_CHAIN_ID || anvil.id);
@@ -46,6 +57,11 @@ export type SupportedChainId = (typeof supportedChains)[number]["id"];
 
 export function chainName(chainId: number): string {
   return supportedChains.find((c) => c.id === chainId)?.name ?? `chain ${chainId}`;
+}
+
+/** Block explorer name ("BscScan", "opBNBScan"), or undefined for local anvil. */
+export function explorerName(chainId: number): string | undefined {
+  return chainId === anvil.id ? undefined : supportedChains.find((c) => c.id === chainId)?.blockExplorers?.default.name;
 }
 
 /** Block explorer base URL for a chain, or undefined for local anvil. */

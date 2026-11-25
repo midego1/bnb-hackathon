@@ -1,4 +1,5 @@
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
+import { parseTokenAmount } from "./actions/fields";
 import { USDT_DECIMALS } from "./contracts";
 
 export function shortAddress(a: string | undefined): string {
@@ -14,16 +15,8 @@ export function formatUsdt(amount: bigint): string {
   return usdtNumber(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/** Parses a user-typed USDT amount; returns undefined for empty/invalid input. */
-export function parseUsdt(input: string): bigint | undefined {
-  const s = input.trim().replace(/,/g, "");
-  if (!/^\d+(\.\d{0,6})?$/.test(s)) return undefined;
-  try {
-    return parseUnits(s, USDT_DECIMALS);
-  } catch {
-    return undefined;
-  }
-}
+/** Parses a user-typed USDT amount; undefined for empty/invalid input. The same parser as the forms' validation. */
+export const parseUsdt = (input: string): bigint | undefined => parseTokenAmount(input);
 
 export function formatDate(unixSeconds: bigint | number): string {
   return new Date(Number(unixSeconds) * 1000).toLocaleString("en-GB", {

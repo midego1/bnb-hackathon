@@ -4,8 +4,9 @@ import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, PriceSourceBadge, Skeleton, StatusBadge, statusMeta, useMoney } from "@/components/ui";
-import { chainName, explorerLink } from "@/lib/chains";
+import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, statusMeta, useMoney } from "@/components/ui";
+import { useFleet } from "@/components/roles/shared";
+import { chainName } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { latestLease, type ChainIndexResponse } from "@/lib/chainIndex";
 import { formatDate } from "@/lib/format";
@@ -16,10 +17,12 @@ import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { EvidencePanel } from "./EvidencePanel";
 import { FundingPanel, Stat } from "./FundingPanel";
-import { nextStep, roleName, viewerRole, type Viewer } from "./model";
+import { viewerRole, type Viewer } from "./model";
 import { MoveOutPanel } from "./MoveOutPanel";
 import { RentPanel } from "./RentPanel";
+import { RentalHero } from "./RentalHero";
 import { ResolvePanel } from "./ResolvePanel";
+import { ReturnPlan } from "./ReturnPlan";
 import { Timeline } from "./Timeline";
 
 /** Every escrow of the deployment (lowercase) and the newest rental: tells a stale link from a busy RPC. */
@@ -31,6 +34,7 @@ export function LeaseDetail({ address }: { address: Address }) {
   const { data: lease, error, isLoading, refetch, isFetching } = useLease(deployment ? address : undefined);
   const { data: known } = useChainIndex(knownLeases);
   const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
+  const { data: fleet } = useFleet();
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to the network this rental lives on.</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
@@ -66,42 +70,12 @@ export function LeaseDetail({ address }: { address: Address }) {
     );
 
   const viewer = viewerRole(lease, me);
-  const scan = explorerLink(chainId, "address", address);
   const live = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
+  const scooter = fleet?.scooters.find((x) => x.rentals.some((r) => r.toLowerCase() === address.toLowerCase()));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm text-subtle">
-            <Link href={viewer ? `/${viewer}` : "/app"} className="hover:underline">
-              ← {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
-            </Link>
-          </p>
-          <h1 className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
-            Rental <span className="font-mono text-lg">{address.slice(0, 10)}…</span>
-            <StatusBadge status={lease.status} />
-          </h1>
-          <p className="mt-1 text-sm text-muted" data-testid="next-step">
-            {nextStep(lease, viewer)}
-          </p>
-        </div>
-        <div className="flex flex-col items-start gap-1 text-sm sm:items-end">
-          {viewer ? (
-            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
-          ) : (
-            <span className="text-xs text-subtle">
-              {me ? "This wallet is not part of this rental, so the page is read-only." : "Connect a wallet to act on this rental. Until then it is read-only."}
-            </span>
-          )}
-          {scan && (
-            <a href={scan} target="_blank" rel="noreferrer" className="text-xs underline">
-              View escrow on BscScan
-            </a>
-          )}
-        </div>
-      </div>
-
+    <div className="space-y-6 @container">
+      <RentalHero lease={lease} viewer={viewer} events={events} chainId={chainId} scooter={scooter} wallet={!!me} />
       <ChainReadNotice
         error={eventsError}
         hasData={!!events}
@@ -109,17 +83,34 @@ export function LeaseDetail({ address }: { address: Address }) {
         retrying={eventsFetching}
         what="this rental's history"
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid gap-6 @4xl:grid-cols-2">
+        <Timeline lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
+        <ReturnPlan lease={lease} events={events} />
+      </div>
+      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
-          {lease.status === LeaseStatus.Created && viewer === "tenant" && <FundingPanel lease={lease} />}
+          {lease.status === LeaseStatus.Created && viewer === "tenant" && (
+            <div id="act-fund" className="scroll-mt-4">
+              <FundingPanel lease={lease} />
+            </div>
+          )}
           {lease.status === LeaseStatus.Created && viewer === "landlord" && <CancelOffer lease={lease} />}
-          {lease.status === LeaseStatus.Disputed && viewer === "arbiter" && <ResolvePanel lease={lease} />}
+          {lease.status === LeaseStatus.Disputed && viewer === "arbiter" && (
+            <div id="act-rule" className="scroll-mt-4">
+              <ResolvePanel lease={lease} />
+            </div>
+          )}
           {lease.status === LeaseStatus.Disputed && <ArbiterDeadline lease={lease} viewer={viewer} />}
           {lease.status === LeaseStatus.Settled && <SettledSummary events={events} />}
-          {live && <RentPanel lease={lease} viewer={viewer} />}
-          <MoveOutPanel lease={lease} viewer={viewer} events={events} />
+          {live && (
+            <div id="act-rent" className="scroll-mt-4">
+              <RentPanel lease={lease} viewer={viewer} />
+            </div>
+          )}
+          <div id="act-return" className="scroll-mt-4 empty:hidden">
+            <MoveOutPanel lease={lease} viewer={viewer} events={events} />
+          </div>
           <EvidencePanel lease={lease} viewer={viewer} events={events} />
-          <Timeline lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
         </div>
         <aside className="space-y-6">
           <Terms lease={lease} chainId={chainId} viewer={viewer} />
@@ -135,17 +126,6 @@ function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; 
   const fee = (t.rentAmount * BigInt(t.feeBps)) / BigInt(10_000);
   return (
     <>
-      <Card title="In escrow now" aside={<PriceSourceBadge />}>
-        <Amount value={lease.balance} size="lg" />
-        <div className="mt-4 grid gap-3">
-          <Stat label="Deposit">
-            <Amount value={t.depositAmount} />
-          </Stat>
-          <Stat label="Rent / month">
-            <Amount value={t.rentAmount} />
-          </Stat>
-        </div>
-      </Card>
       <Card title="Terms">
         <dl className="space-y-3 text-sm">
           <Row label="Rental period">{t.termMonths} months</Row>
@@ -183,7 +163,7 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   const passed = lease.chainNow >= lease.arbiterDeadline;
   return (
     <Card title={viewer === "arbiter" ? "Your deadline" : "Waiting for the dispute desk"}>
-      <p className="text-sm text-muted">
+      <p className="text-sm text-muted-foreground">
         {statusMeta[LeaseStatus.Disputed].hint} Rent is still paid out as it comes due.{" "}
         {passed ? (
           <>The dispute desk missed its deadline ({formatDate(lease.arbiterDeadline)}). Anyone can now close the dispute and return the full deposit to the renter.</>
@@ -212,7 +192,7 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   return (
     <Card title="Waiting for the renter">
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-sm text-muted-foreground">
         Send this page&apos;s link to your renter. Once they fund the deposit and first month&apos;s rent, the rental starts and rent is paid
         out to you every month. You can withdraw the offer until then; nothing has been paid yet.
       </p>
