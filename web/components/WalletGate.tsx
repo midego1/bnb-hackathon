@@ -13,11 +13,11 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
   const { chainId, deployment } = useDeployment();
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-slate-300 p-6 dark:border-slate-700">
+      <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border-strong p-6">
         <p className="text-sm">Connect a wallet to {what}.</p>
         <ConnectButton />
         {process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337 && (
-          <p className="text-xs text-slate-500">Local demo: pick Landlord, Tenant or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
+          <p className="text-xs text-subtle">Local demo: pick Landlord, Tenant or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
         )}
       </div>
     );

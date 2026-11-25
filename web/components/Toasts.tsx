@@ -100,10 +100,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 const toastStyle: Record<ToastKind, string> = {
-  pending: "border-sky-200 bg-white text-slate-900 dark:border-sky-800 dark:bg-slate-900 dark:text-slate-100",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-50",
-  error: "border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-50",
-  info: "border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+  pending: "border-info-border bg-surface text-foreground",
+  success: "border-success-border bg-success-soft text-success-fg",
+  error: "border-danger-border bg-danger-soft text-danger-fg",
+  info: "border-border bg-surface text-foreground",
 };
 const toastIcon: Record<Exclude<ToastKind, "pending">, string> = { success: "✓", error: "!", info: "i" };
 

@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 const Gate =
   process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1"
     ? dynamic(() => import("./DemoGate").then((m) => m.DemoGate), {
-        loading: () => <p className="text-sm text-slate-500">Loading the demo…</p>,
+        loading: () => <p className="text-sm text-subtle">Loading the demo…</p>,
       })
     : () => null;
 

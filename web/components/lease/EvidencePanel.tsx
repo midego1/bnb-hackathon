@@ -22,12 +22,12 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
   const moveOutStage = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
 
   return (
-    <Card title="Documents & photos" aside={<span className="text-xs text-slate-500">Files off-chain · fingerprints (SHA-256) on-chain</span>}>
+    <Card title="Documents & photos" aside={<span className="text-xs text-subtle">Files off-chain · fingerprints (SHA-256) on-chain</span>}>
       <div className="space-y-5 text-sm">
         <div>
-          <p className="text-xs text-slate-500">Lease contract</p>
+          <p className="text-xs text-subtle">Lease contract</p>
           {lease.terms.leaseHash === ZERO_HASH ? (
-            <p className="text-slate-500">No lease document attached.</p>
+            <p className="text-subtle">No lease document attached.</p>
           ) : (
             <HashLink hash={lease.terms.leaseHash} label="lease.pdf" href={documentUrl(lease.terms.leaseHash)} />
           )}
@@ -39,12 +39,12 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
           empty={moveOutStage ? "None yet. Add them at move-out so the AI inspection can compare." : "Added at move-out, once the lease is active."}
         />
         {isParty && open && (
-          <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 dark:border-slate-800">
+          <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
             <AnchorPhotos lease={lease} kind="CheckIn" />
             {moveOutStage ? (
               <AnchorPhotos lease={lease} kind="CheckOut" />
             ) : (
-              <p className="self-center text-xs text-slate-500">Check-out photos can be added once the tenant has funded the lease.</p>
+              <p className="self-center text-xs text-subtle">Check-out photos can be added once the tenant has funded the lease.</p>
             )}
           </div>
         )}
@@ -57,11 +57,11 @@ function PhotoRow({ title, hashes, empty }: { title: string; hashes: Hex[]; empt
   const photos = hashes.flatMap(photosForHash);
   return (
     <div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-subtle">
         {title} ({photos.length})
       </p>
       {photos.length === 0 ? (
-        <p className="text-slate-500">{empty}</p>
+        <p className="text-subtle">{empty}</p>
       ) : (
         <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid={`${title.toLowerCase().replace(/\W+/g, "-")}`}>
           {photos.map((p) => (
@@ -79,9 +79,9 @@ function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
   return (
     <li className="group min-w-0" data-testid="evidence-thumb">
-      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-muted">
         {failed ? (
-          <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-slate-500">
+          <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-subtle">
             <span>File not in storage</span>
             <span className="font-mono">{photo.hash.slice(2, 10)}</span>
           </span>
@@ -94,7 +94,7 @@ function EvidenceThumb({ photo }: { photo: EvidenceView }) {
         </span>
       </a>
       <p className="mt-1 flex items-center justify-between gap-2 text-xs">
-        <span className="truncate capitalize text-slate-600 dark:text-slate-300">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
+        <span className="truncate capitalize text-muted">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
         <CopyButton value={photo.hash} label="Copy photo hash" />
       </p>
     </li>

@@ -169,8 +169,8 @@ export function CreateLeaseForm() {
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={useDesk} onChange={(e) => setUseDesk(e.target.checked)} />
             <span>
-              Use the KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-slate-500">({shortAddress(desk)})</span>}
-              <span className="block text-xs text-slate-500">
+              Use the KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-subtle">({shortAddress(desk)})</span>}
+              <span className="block text-xs text-subtle">
                 A neutral reviewer that only steps in if you and the tenant disagree on the deposit. Untick to name your own; the tenant sees
                 it before funding.
               </span>
@@ -180,13 +180,13 @@ export function CreateLeaseForm() {
             <input name="arbiterWindow" type="number" min={1} max={90} className={inputClass} value={arbiterDays} onChange={(e) => setArbiterDays(e.target.value)} />
           </Field>
           {!useDesk && <input name="arbiter" className={inputClass} placeholder="Your reviewer's wallet 0x…" aria-label="Dispute desk wallet" value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
-          {errors.arbiter && <span className="text-xs text-rose-600">{errors.arbiter}</span>}
+          {errors.arbiter && <span className="text-xs text-danger">{errors.arbiter}</span>}
         </div>
         <FilePicker label="Lease contract (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain." testId="lease-pdf" />
         <FilePicker label="Check-in photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Optional, can be added later. The AI move-out inspection compares against these." testId="checkin-photos" />
         <div className="flex flex-col gap-3 sm:col-span-2">
           {feeBps !== undefined && (
-            <p className="text-xs text-slate-500" data-testid="fee-note">
+            <p className="text-xs text-subtle" data-testid="fee-note">
               KeyEscrow fee: one-time {(Number(feeBps) / 100).toFixed(0)}% of one month&apos;s rent
               {rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : ""}, taken from your first rent payout.
               The tenant never pays it and the deposit is never charged.

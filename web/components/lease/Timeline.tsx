@@ -22,14 +22,14 @@ function describe(e: TimelineEvent, lease: LeaseData, money: Money): { title: st
     case "LeaseCreated":
       return { title: "Lease offered by the landlord", body: `${usdt(a.rentAmount)} / month, ${usdt(a.depositAmount)} deposit, ${a.termMonths} months`, tone: "bg-slate-400" };
     case "Funded":
-      return { title: "Tenant funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} first month's rent`, tone: "bg-emerald-500" };
+      return { title: "Tenant funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} first month's rent`, tone: "bg-success" };
     case "RentPaid":
-      return { title: `Tenant prepaid ${months(a.months)} of rent`, body: usdt(a.amount), tone: "bg-emerald-500" };
+      return { title: `Tenant prepaid ${months(a.months)} of rent`, body: usdt(a.amount), tone: "bg-success" };
     case "RentReleased":
       return {
         title: `${months(a.months)} of rent paid out to the landlord`,
         body: `${usdt(a.toLandlord)} to landlord${(a.fee as bigint) > BigInt(0) ? `, ${usdt(a.fee)} KeyEscrow fee` : ""} · triggered by the ${roleOfAddress(lease, a.caller)}`,
-        tone: "bg-emerald-500",
+        tone: "bg-success",
       };
     case "EvidenceAdded":
       return {
@@ -38,14 +38,14 @@ function describe(e: TimelineEvent, lease: LeaseData, money: Money): { title: st
         tone: "bg-slate-400",
       };
     case "SettlementProposed":
-      return { title: `The ${roleOfAddress(lease, a.proposer)} proposed a deposit split`, body: `tenant gets ${usdt(a.tenantRefund)} · landlord keeps ${usdt(a.landlordClaim)}`, tone: "bg-sky-500" };
+      return { title: `The ${roleOfAddress(lease, a.proposer)} proposed a deposit split`, body: `tenant gets ${usdt(a.tenantRefund)} · landlord keeps ${usdt(a.landlordClaim)}`, tone: "bg-info" };
     case "DisputeRaised":
-      return { title: `The ${roleOfAddress(lease, a.by)} opened a dispute`, tone: "bg-rose-500" };
+      return { title: `The ${roleOfAddress(lease, a.by)} opened a dispute`, tone: "bg-danger" };
     case "Settled":
       return {
         title: a.basis === LANDLORD_TIMEOUT_BASIS ? "Settled: landlord did not reply in time" : a.basis === ARBITER_TIMEOUT_BASIS ? "Settled: dispute desk deadline passed" : "Settled, all funds paid out",
         body: `tenant ${usdt((a.tenantRefund as bigint) + (a.rentToTenant as bigint))} · landlord ${usdt((a.landlordClaim as bigint) + (a.rentToLandlord as bigint) - (a.fee as bigint))}`,
-        tone: "bg-slate-900 dark:bg-white",
+        tone: "bg-accent",
       };
     case "ProtocolFeePaid":
       return { title: "One-time KeyEscrow fee taken from the landlord's first payout", body: usdt(a.amount), tone: "bg-slate-400" };
@@ -61,20 +61,20 @@ export function Timeline({ lease, events, chainId, unavailable }: { lease: Lease
   return (
     <Card title="Timeline">
       {unavailable ? (
-        <p className="text-sm text-slate-500">History is unavailable because this network&apos;s RPC refused the event query. Balances and actions above are still live.</p>
+        <p className="text-sm text-subtle">History is unavailable because this network&apos;s RPC refused the event query. Balances and actions above are still live.</p>
       ) : !events ? (
         <Skeleton className="h-24" />
       ) : (
-        <ol className="relative space-y-4 border-l border-slate-200 pl-5 dark:border-slate-800" data-testid="timeline">
+        <ol className="relative space-y-4 border-l border-border pl-5" data-testid="timeline">
           {events.map((e) => {
             const d = describe(e, lease, money);
             const href = explorerLink(chainId, "tx", e.txHash);
             return (
               <li key={`${e.txHash}-${e.logIndex}`} className="relative" data-event={e.name}>
-                <span className={`absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white dark:ring-slate-900 ${d.tone}`} />
+                <span className={`absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-surface ${d.tone}`} />
                 <p className="text-sm font-medium first-letter:uppercase">{d.title}</p>
-                {d.body && <p className="text-sm text-slate-600 dark:text-slate-400">{d.body}</p>}
-                <p className="text-xs text-slate-500">
+                {d.body && <p className="text-sm text-muted">{d.body}</p>}
+                <p className="text-xs text-subtle">
                   {formatDate(e.timestamp)} · block {e.blockNumber.toString()}
                   {href && (
                     <>

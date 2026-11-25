@@ -71,9 +71,9 @@ export function ActorBoard({ wallets, base, actor }: { wallets: Wallets | null; 
   );
 }
 
-const cardBase = "relative overflow-hidden rounded-xl border bg-white transition-shadow dark:bg-slate-900";
+const cardBase = "relative overflow-hidden rounded-xl border bg-surface transition-shadow";
 const ring = (active: boolean) =>
-  active ? "border-amber-400 ring-2 ring-amber-400 dark:border-amber-500 dark:ring-amber-500" : "border-slate-200 dark:border-slate-800";
+  active ? "border-amber-400 ring-2 ring-amber-400 dark:border-amber-500 dark:ring-amber-500" : "border-border";
 
 function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint; delta?: bigint; active: boolean }) {
   const { prices } = usePrices();
@@ -104,7 +104,7 @@ function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint
             key={`${delta}`}
             data-testid="demo-delta"
             className={`demo-pop shrink-0 rounded-full px-2 py-0.5 text-sm font-semibold tabular-nums ${
-              delta > ZERO ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200"
+              delta > ZERO ? "bg-success-soft text-success-fg" : "bg-danger-soft text-danger-fg"
             }`}
           >
             {delta > ZERO ? "+" : "−"}
@@ -112,13 +112,13 @@ function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint
           </span>
         )}
       </div>
-      <p className="relative truncate text-[13px] text-slate-500 dark:text-slate-400 hidden tall:block">{copy.note}</p>
+      <p className="relative truncate text-[13px] text-subtle hidden tall:block">{copy.note}</p>
       {value === undefined ? (
-        <p className="relative mt-0.5 text-sm text-slate-500 dark:text-slate-400">{"empty" in copy ? copy.empty : "…"}</p>
+        <p className="relative mt-0.5 text-sm text-subtle">{"empty" in copy ? copy.empty : "…"}</p>
       ) : (
         <div className="relative mt-0.5 flex flex-wrap items-baseline gap-x-2">
           <span className="text-xl font-semibold tabular-nums xl:text-2xl">{thb(value)}</span>
-          <span className="text-[13px] tabular-nums text-slate-500 dark:text-slate-400">
+          <span className="text-[13px] tabular-nums text-subtle">
             {formatUsdt(value)} mUSDT{usd !== null && ` · ${formatFiat(usd, "USD")}`}
           </span>
         </div>
@@ -135,7 +135,7 @@ function RefereeCard({ id, active }: { id: "arbiter" | "inspector"; active: bool
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone[id]}`} />
         {copy.name}
       </p>
-      <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">{copy.note}</p>
+      <p className="text-[13px] leading-snug text-subtle">{copy.note}</p>
     </div>
   );
 }
@@ -151,7 +151,7 @@ export function FlowStrip({ base, wallets }: { base: Wallets | null; wallets: Wa
   const chip = (label: string, v: bigint, k: string) => (
     <span key={k} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-0.5 dark:bg-slate-900/60">
       <span className="font-medium">{label}</span>
-      <span className={`font-semibold tabular-nums ${v > ZERO ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
+      <span className={`font-semibold tabular-nums ${v > ZERO ? "text-success" : "text-danger"}`}>
         {v > ZERO ? "+" : "−"}
         {thb(v)}
       </span>

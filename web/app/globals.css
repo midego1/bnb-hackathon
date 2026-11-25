@@ -1,25 +1,120 @@
 @import "tailwindcss";
 
+/*
+ * Theme: <html> carries class "light" or "dark", set before first paint by the inline script in
+ * app/layout.tsx (lib/theme.ts). The user's choice (light / dark / system) lives in localStorage;
+ * "system" resolves through prefers-color-scheme and keeps following it. `dark:` utilities follow the
+ * class, not the media query, so they track the header switch.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Taller than a projector (1280x720 minus the browser chrome): room for the roomier type of the /demo stage. */
 @custom-variant tall (@media (min-height: 761px));
 
+/* Semantic color tokens. Text pairs are WCAG AA (>= 4.5:1) on background, surface and surface-muted. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --surface-strong: #e2e8f0;
+  --field: #ffffff;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --subtle: #556274;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-hover: #64748b;
+  --accent: #0f172a;
+  --accent-hover: #334155;
+  --accent-foreground: #ffffff;
+
+  --success: #047857;
+  --success-soft: #ecfdf5;
+  --success-fg: #064e3b;
+  --success-border: #a7f3d0;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-fg: #78350f;
+  --warning-border: #fde68a;
+  --danger: #be123c;
+  --danger-soft: #fff1f2;
+  --danger-fg: #881337;
+  --danger-border: #fecdd3;
+  --info: #0369a1;
+  --info-soft: #f0f9ff;
+  --info-fg: #0c4a6e;
+  --info-border: #bae6fd;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --background: #020617;
+  --surface: #0f172a;
+  --surface-muted: #1e293b;
+  --surface-strong: #334155;
+  --field: #020617;
+  --foreground: #f1f5f9;
+  --muted: #b4c0d0;
+  --subtle: #93a1b5;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --border-hover: #64748b;
+  --accent: #f8fafc;
+  --accent-hover: #e2e8f0;
+  --accent-foreground: #0f172a;
+
+  --success: #34d399;
+  --success-soft: #022c22;
+  --success-fg: #a7f3d0;
+  --success-border: #065f46;
+  --warning: #fbbf24;
+  --warning-soft: #2a1a05;
+  --warning-fg: #fde68a;
+  --warning-border: #78350f;
+  --danger: #fb7185;
+  --danger-soft: #2a0a14;
+  --danger-fg: #fecdd3;
+  --danger-border: #9f1239;
+  --info: #38bdf8;
+  --info-soft: #082f49;
+  --info-fg: #bae6fd;
+  --info-border: #075985;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-strong: var(--surface-strong);
+  --color-field: var(--field);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-hover: var(--border-hover);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-fg: var(--success-fg);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-fg: var(--info-fg);
+  --color-info-border: var(--info-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

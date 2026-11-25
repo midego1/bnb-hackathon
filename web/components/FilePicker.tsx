@@ -28,13 +28,13 @@ export function FilePicker({
       </label>
       <label
         htmlFor={id}
-        className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500 transition hover:border-slate-500 dark:border-slate-700"
+        className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border-strong px-3 py-4 text-center text-xs text-subtle transition hover:border-border-hover"
       >
         {files.length === 0 ? (
           <span>{hint ?? "Tap to choose a file"}</span>
         ) : (
           files.map((f) => (
-            <span key={f.name + f.size} className="max-w-full truncate text-slate-800 dark:text-slate-200">
+            <span key={f.name + f.size} className="max-w-full truncate text-foreground">
               {f.name} · {(f.size / 1024).toFixed(0)} KB
             </span>
           ))

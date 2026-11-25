@@ -47,14 +47,14 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
       title="Rule on this dispute"
       aside={
         lease.arbiterDeadline > BigInt(0) && (
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-subtle">
             Deadline {formatDate(lease.arbiterDeadline)} · <Countdown target={lease.arbiterDeadline} clock={lease} doneText="passed" />
           </span>
         )
       }
     >
       {p.nonce > 0 && (
-        <div className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+        <div className="mb-4 text-sm text-muted">
           Last proposal, by the {roleName(viewerRole(lease, p.proposer))}: tenant gets {money(p.tenantRefund)}, landlord keeps {money(p.landlordClaim)}.
         </div>
       )}
@@ -64,11 +64,11 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
         </Field>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-xs text-slate-500">Tenant gets</p>
+            <p className="text-xs text-subtle">Tenant gets</p>
             <Amount value={amount !== undefined && !error ? amount : BigInt(0)} />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Landlord keeps</p>
+            <p className="text-xs text-subtle">Landlord keeps</p>
             <Amount value={amount !== undefined && !error ? deposit - amount : BigInt(0)} />
           </div>
         </div>
