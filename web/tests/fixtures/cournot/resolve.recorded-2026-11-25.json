@@ -1,0 +1,1 @@
+{"code":0,"msg":"Success","data":{"markets":[{"market_info":{"id":1572,"title":"BNB price below $500.00 at any time before 2027-01-01 05:00 UTC","description":"","start_time":"","end_time":"2027-01-01T05:00:00Z","market_outcome":"YES","market_outcome_price":0.599},"matching_confidence":0.93}],"charged":false}}

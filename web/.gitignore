@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sponsor API call logs and cached sponsor results (local evidence; see docs/SPONSORS.md)
+/.sponsor-logs/
