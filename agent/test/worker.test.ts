@@ -36,7 +36,10 @@ describe("agent on Cloudflare Workers", () => {
 
     const accept = { accept: "application/json, text/event-stream" };
     const list = await (await call("/mcp", post("/mcp", { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }, accept))).json();
-    expect(list.result.tools.map((t: { name: string }) => t.name)).toContain("inspect_move_out");
+    const tools = list.result.tools.map((t: { name: string }) => t.name);
+    expect(tools).toContain("inspect_move_out");
+    // The rental-action tools from web/lib/actions come along (fetch-based RPC; not called here: no network in tests).
+    expect(tools).toEqual(expect.arrayContaining(["get_lease", "prepare_fund"]));
     expect((await call("/mcp")).status).toBe(405);
     expect((await call("/inspect", post("/inspect", { deposit: "x" }))).status).toBe(400);
     expect((await call("/nope")).status).toBe(404);

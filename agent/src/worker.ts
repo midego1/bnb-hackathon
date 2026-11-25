@@ -3,7 +3,8 @@
  *
  * The same three faces as the Node server (src/server.ts), on Web-standard Request/Response instead of express:
  *   A2A   GET /.well-known/agent-card.json, JSON-RPC at POST /a2a (message/send)
- *   MCP   Streamable HTTP at POST /mcp (stateless, JSON responses)
+ *   MCP   Streamable HTTP at POST /mcp (stateless, JSON responses): the inspection plus the rental-action tools
+ *         from web/lib/actions (reads and unsigned prepare_* transactions over fetch-based RPC; no keys)
  *   REST  POST /inspect (same body as POST /api/settlement in the web app)
  * plus GET /.well-known/agent-registration.json (the ERC-8004 registration file) and GET /health.
  *
@@ -20,7 +21,7 @@ import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } f
 import { configFromEnv, type AgentConfig, type AgentDeployment } from "./identity.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
 import { buildMcpServer } from "./mcp.ts";
-import { inspectorLabel, visionProviderFromEnv } from "./shared.ts";
+import { inspectorLabel, PriceService, visionProviderFromEnv, type ActionHost } from "./shared.ts";
 
 export interface AgentWorkerEnv {
   [key: string]: unknown;
@@ -32,6 +33,8 @@ const MAX_BODY_BYTES = 1024 * 1024; // same as express.json({ limit: "1mb" })
 
 type App = {
   cfg: AgentConfig;
+  /** The rental-action tools (get_lease, prepare_fund, ...): fetch-based RPC per chain, read-only, no keys. */
+  actions: ActionHost;
   card: ReturnType<typeof buildAgentCard>;
   registration: Record<string, unknown>;
   rpc: JsonRpcTransportHandler;
@@ -61,8 +64,11 @@ function appFor(env: AgentWorkerEnv, origin: string): App {
   });
   // The executor reads its deps per request (InspectDeps carries no request state), so one handler serves them all.
   const deps = (): InspectDeps => workerDeps(cfg, env);
-  const rpc = new JsonRpcTransportHandler(new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps)));
-  const app = { cfg, card, registration, rpc };
+  // Quotes are cached per isolate; no in-flight sharing, since one request must not await another request's I/O here.
+  const prices = new PriceService({ env: vars, dedupe: false });
+  const actions: ActionHost = { env: vars, prices: () => prices.get() };
+  const rpc = new JsonRpcTransportHandler(new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps, actions)));
+  const app = { cfg, card, registration, rpc, actions };
   apps.set(publicUrl, app);
   return app;
 }
@@ -120,7 +126,7 @@ async function handleMcp(app: App, env: AgentWorkerEnv, request: Request): Promi
   const declared = Number(request.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return json({ error: "request body too large" }, 413);
   const identity = app.cfg.inspector?.identity ?? null;
-  const server = buildMcpServer(workerDeps(app.cfg, env), identity);
+  const server = buildMcpServer(workerDeps(app.cfg, env), identity, app.actions);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
   try {

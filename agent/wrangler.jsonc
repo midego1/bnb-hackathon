@@ -19,6 +19,8 @@
   "observability": { "enabled": true },
   "vars": {
     "INSPECTOR_CHAIN_ID": "97",
+    // Rental-action tools (get_lease, prepare_fund, ...) default to BSC testnet; RPC: KEYESCROW_RPC_URL_97 or PublicNode.
+    "KEYESCROW_CHAIN_ID": "97",
     // No disk here: the shared web code (sponsor call log) keeps to memory instead of writing files.
     "KEYESCROW_PLATFORM": "cloudflare",
     "VISION_LLM_PROVIDER": "anthropic"
