@@ -196,3 +196,37 @@ for (const mode of ["both", "zh"] as const) {
     expect(await worst(page)).toEqual({ x: 0, y: 0 });
   });
 }
+
+/** Phase 3: subscriptions, the listing page, the /stage big screen and the /r judge phone. */
+for (const mode of ["zh", "both"] as const) {
+  test(`new screens in ${mode === "zh" ? "中文" : "EN+中文"}: /app/subscriptions, /app/listings, /stage, /r`, async ({ page, context, browser }) => {
+    const cookie = { name: "ke_lang", value: mode, url: `http://127.0.0.1:${E2E_WEB_PORT}` };
+    await context.addCookies([cookie]);
+    await page.setViewportSize(LAPTOP);
+    const han = /\p{Script=Han}/u;
+    // EN+中文 puts the Chinese line in .i18n-zh under the English; 中文 replaces it.
+    const headline = (l: ReturnType<Page["locator"]>) => (mode === "both" ? l.locator(".i18n-zh").first() : l);
+
+    await page.goto("/app/subscriptions");
+    await expect(headline(page.getByRole("heading", { level: 1 }).first())).toHaveText(han);
+    await shot(page, `${mode}-subscriptions`);
+
+    await page.goto("/app/listings/mystery-box");
+    await expect(page.getByTestId("listing-rent")).toBeVisible();
+    await shot(page, `${mode}-listing`);
+
+    await page.goto("/stage/mystery-box");
+    await expect(headline(page.getByTestId("stage-headline"))).toHaveText(han);
+    expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    await shot(page, `${mode}-stage`);
+
+    const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await phoneCtx.addCookies([cookie]);
+    const phone = await phoneCtx.newPage();
+    await phone.goto("/r/mystery-box");
+    await expect(headline(phone.getByTestId("judge-flow").getByRole("heading", { level: 2 }).first())).toHaveText(han);
+    expect(await phone.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    await phone.screenshot({ path: path.join(SHOTS, `${mode}-judge-phone.png`), fullPage: true });
+    await phoneCtx.close();
+  });
+}
