@@ -4,6 +4,7 @@
     "mockUsdt": "0x46e69984A52233980F1CAeABB4571555e4c8fE37",
     "disputeDesk": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
     "fleetVault": "0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB",
+    "rentalEscrowImplementation": "0x63f174fE3E80442c95b82a811a7D0d13f34D2314",
     "fromBlock": 144828181
   },
   "31337": {
@@ -11,6 +12,7 @@
     "mockUsdt": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     "disputeDesk": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
     "fleetVault": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "rentalEscrowImplementation": "0xCafac3dD18aC6c6e92c921884f9E4176737C052c",
     "fromBlock": 0
   }
 }

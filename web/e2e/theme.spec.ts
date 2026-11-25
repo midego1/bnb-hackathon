@@ -36,7 +36,7 @@ const themeAtBody = (page: Page) => page.evaluate(() => (window as unknown as { 
 test("theme switch: light / dark / system persist across reloads without a flash", async ({ page }) => {
   await recordThemeAtBody(page);
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/");
+  await page.goto("/app");
 
   // Default is System, which follows the OS.
   await expectTheme(page, "system", "dark");
@@ -90,7 +90,7 @@ test.describe("theme screenshots", () => {
       }
     };
 
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page.getByTestId("play-demo")).toBeVisible();
     await both("home");
 
@@ -127,7 +127,7 @@ test.describe("theme screenshots", () => {
 test("phone width: a single cycle button fits the header row and cycles light -> dark -> system", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
+  await page.goto("/app");
   const cycle = page.getByTestId("theme-cycle");
   await expect(cycle).toBeVisible();
   await expect(page.getByTestId("theme-switch")).toBeHidden();

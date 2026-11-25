@@ -138,7 +138,7 @@ test("reduced motion: coins fade in place instead of flying, and the story still
 
 test("it is linked from the home page, the footer and /demo", async ({ page }) => {
   await page.setViewportSize({ width: 1470, height: 830 });
-  await page.goto("/");
+  await page.goto("/app");
   await expect(page.getByTestId("footer-eli5")).toHaveAttribute("href", "/how-it-works");
   await page.getByTestId("home-eli5").click();
   await expect(root(page)).toBeVisible();
@@ -171,7 +171,7 @@ test.describe("screenshots", () => {
       { name: "7-recap", q: "scene=8&t=8000&ending=happy" },
     ];
     for (const theme of ["light", "dark"] as const) {
-      await page.goto("/");
+      await page.goto("/app");
       await page.evaluate((t) => localStorage.setItem("keyescrow-theme", t), theme);
       for (const f of frames) {
         await page.goto(`/how-it-works?autoplay=0&${f.q}`);

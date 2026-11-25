@@ -49,7 +49,7 @@ test.beforeAll(seed);
 
 test("secrets page: set shows SET, never the value; clear empties it", async ({ page }) => {
   const bodies = recordBodies(page);
-  await page.goto("/");
+  await page.goto("/app");
   await expect(page.getByTestId("footer-settings")).toBeVisible();
   // The sidebar's Settings row: in the expanded sidebar at 1280 (projector) and in the icon rail on /demo.
   const settings = page.getByTestId("sidebar-settings");

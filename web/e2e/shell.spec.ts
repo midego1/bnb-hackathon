@@ -44,7 +44,7 @@ for (const vp of [
 }
 
 test("roles group is the role switcher: active item, demo account follows, keyboard reachable", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
   const roles = page.getByTestId("role-switcher");
   await expect(roles.getByRole("link")).toHaveText(["Renter", "Fleet owner", "Shareholders", "Back office", "Dispute desk"]);
   await roles.getByRole("link", { name: "Fleet owner" }).click();
@@ -74,7 +74,7 @@ test("roles group is the role switcher: active item, demo account follows, keybo
 
 test("collapse to an icon rail: remembered across reloads; /demo and /how-it-works open collapsed", async ({ page }) => {
   await page.setViewportSize({ width: 1470, height: 830 });
-  await page.goto("/");
+  await page.goto("/app");
   await expect(state(page)).toHaveAttribute("data-sidebar", "expanded");
   const wide = (await sidebar(page).boundingBox())!.width;
   await toggle(page).click();
@@ -106,7 +106,7 @@ test("collapse to an icon rail: remembered across reloads; /demo and /how-it-wor
 
 test("phone: a top bar with a menu button opens the sidebar as a drawer", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/app");
   await expect(sidebar(page)).toBeHidden();
   const open = page.getByTestId("menu-open");
   await open.click();

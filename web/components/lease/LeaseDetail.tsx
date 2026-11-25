@@ -51,7 +51,7 @@ export function LeaseDetail({ address }: { address: Address }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-subtle">
-            <Link href={viewer ? `/${viewer}` : "/"} className="inline-flex items-center gap-1 hover:underline">
+            <Link href={viewer ? `/${viewer}` : "/app"} className="inline-flex items-center gap-1 hover:underline">
               <ArrowLeft aria-hidden className="size-3.5" />
               {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
             </Link>

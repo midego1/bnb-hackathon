@@ -56,7 +56,7 @@ test("back office lists every seeded rental with flags, transactions and vault i
 
 test("fleet owner lists a scooter, renter books it, owner offers the rental, renter pays", async ({ page }) => {
   const problems = watchProblems(page);
-  await page.goto("/");
+  await page.goto("/app");
   await view(page, "landlord", "landlord");
   await expect(page.getByTestId("fleet-list").getByTestId("scooter-card").first()).toBeVisible();
   await expect(page.getByTestId("scooter-card").filter({ hasText: "Honda Scoopy-i" }).getByTestId("scooter-state")).toHaveAttribute("data-state", "dispute");
@@ -117,7 +117,7 @@ test("fleet owner lists a scooter, renter books it, owner offers the rental, ren
 
 test("shareholder buys fleet shares and claims income", async ({ page }) => {
   const problems = watchProblems(page);
-  await page.goto("/");
+  await page.goto("/app");
   await view(page, "shareholders", "investor");
   const shares = page.getByTestId("my-shares");
   await expect(shares).toContainText("3,000.00"); // seeded by Seed.s.sol

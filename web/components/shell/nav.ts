@@ -15,8 +15,8 @@ export type NavItem = {
 
 export type NavGroup = { id: string; label: string; items: NavItem[] };
 
-/** The guided demo exists only in local anvil builds and the live BSC testnet demo build (see app/demo/page.tsx). */
-const demoAvailable =
+/** The guided demo exists only in local anvil builds and the live BSC testnet demo build (see app/(app)/demo/page.tsx). */
+export const demoAvailable =
   process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ||
   (process.env.NEXT_PUBLIC_DEMO_TESTNET === "1" && process.env.NEXT_PUBLIC_CHAIN_ID === "97");
 

@@ -90,7 +90,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
       className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-3 rail:h-auto rail:flex-col rail:gap-2 rail:py-3">
-        <Link href="/" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
+        <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
           <LogoMark />
           <span className="truncate rail:sr-only">KeyEscrow</span>
         </Link>
@@ -211,7 +211,7 @@ function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => 
       >
         <Icon name="menu" className="size-5" />
       </Button>
-      <Link href="/" className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
+      <Link href="/app" className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
         <LogoMark className="h-6 w-6" />
         KeyEscrow
       </Link>

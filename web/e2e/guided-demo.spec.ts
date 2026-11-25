@@ -59,7 +59,7 @@ async function expectSettledAndBalanced(page: Page, pathId: string) {
 
 test("landing page: Play the demo runs the happy path to a settled, balanced summary", async ({ page }) => {
   const problems = watchProblems(page);
-  await page.goto("/");
+  await page.goto("/app");
   await expect(page.getByTestId("play-demo")).toBeVisible();
   await shot(page, "10-landing-play-demo");
 
