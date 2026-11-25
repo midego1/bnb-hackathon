@@ -89,6 +89,11 @@ export const E2E_WEB_ENV: Record<string, string> = {
   DEMO_TESTNET_SECRETS_DIR: "",
   DEMO_TESTNET_ENV_FILE: "",
   DEMO_TESTNET_RPC_URL: "",
+  // The live stage demo (/stage, /r): on, against this anvil with its public dev keys (lib/server/stage).
+  STAGE_DEMO: "1",
+  STAGE_PRESENTER_CODE: "",
+  STAGE_DRIPS_PER_HOUR: "",
+  STAGE_LEASES_PER_HOUR: "",
   // Sponsor integrations: never live in e2e (no CMC credits, no Cournot free calls, no Living Brain).
   CMC_API_BASE: "",
   RISK_CACHE_TTL_SECONDS: "",
