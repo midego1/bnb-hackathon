@@ -166,7 +166,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                 aria-checked={s.ending === e.id}
                 onClick={() => dispatch({ type: "ending", ending: e.id })}
                 data-testid={`eli5-ending-${e.id}`}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${s.ending === e.id ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-muted"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${s.ending === e.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
                 <span aria-hidden>{e.short}</span> {e.label}
               </button>
@@ -175,7 +175,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         </div>
         <Link
           href={realDemo ? "/demo" : "/landlord"}
-          className="text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
+          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
           data-testid="eli5-real"
         >
           {realDemo ? copy.realDemo : copy.tryIt}
@@ -206,7 +206,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         <div key={`${s.ending}-${scene.id}`} className="demo-pop min-w-0" data-testid="eli5-narration" aria-live="polite">
           <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{scene.text}</p>
           <p className="mt-1.5 text-sm text-subtle">
-            <span className="font-medium text-muted">{copy.grownUp}:</span> {scene.detail}
+            <span className="font-medium text-muted-foreground">{copy.grownUp}:</span> {scene.detail}
           </p>
         </div>
 

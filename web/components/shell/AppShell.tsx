@@ -32,7 +32,7 @@ export function AppShell({ children, footer, settings }: { children: ReactNode; 
     <div data-app-shell className="flex min-h-dvh">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-foreground"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
         Skip to content
       </a>
@@ -97,7 +97,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
           aria-controls="app-sidebar"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-testid="sidebar-toggle"
-          className="ml-auto hidden h-8 w-8 items-center justify-center rounded-lg text-subtle transition hover:bg-surface-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent lg:inline-flex rail:ml-0"
+          className="ml-auto hidden h-8 w-8 items-center justify-center rounded-lg text-subtle transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary lg:inline-flex rail:ml-0"
         >
           <Icon name="rail" />
         </button>
@@ -106,7 +106,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
           type="button"
           onClick={closeDrawer}
           aria-label="Close menu"
-          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-subtle hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent lg:hidden"
+          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-subtle hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary lg:hidden"
         >
           <Icon name="close" />
         </button>
@@ -177,8 +177,8 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         data-testid={item.testId}
         aria-current={active ? "page" : undefined}
         title={item.title ?? item.label}
-        className={`relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent rail:justify-center rail:px-0 ${
-          active ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground"
+        className={`relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary rail:justify-center rail:px-0 ${
+          active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
       >
         <Icon name={item.icon} />
@@ -199,7 +199,7 @@ function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => 
         aria-controls="app-sidebar"
         aria-expanded={menuOpen}
         data-testid="menu-open"
-        className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent"
+        className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
       >
         <Icon name="menu" className="h-5 w-5" />
       </button>

@@ -87,7 +87,7 @@ export function StepTimeline({
                   </p>
                   {(txs[s.id] ?? []).map((t) => (
                     <p key={t.hash} className="flex items-center justify-between gap-1 text-[13px]">
-                      <span className="min-w-0 truncate text-muted">{t.label}</span>
+                      <span className="min-w-0 truncate text-muted-foreground">{t.label}</span>
                       {explorer ? (
                         <a
                           href={explorer.tx(t.hash)}
@@ -142,5 +142,5 @@ function StepIcon({ status, n }: { status: StepStatus; n: number }) {
         <Spinner />
       </span>
     );
-  return <span className={`${base} bg-surface-strong text-muted`}>{n}</span>;
+  return <span className={`${base} bg-surface-strong text-muted-foreground`}>{n}</span>;
 }

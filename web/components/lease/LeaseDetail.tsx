@@ -47,13 +47,13 @@ export function LeaseDetail({ address }: { address: Address }) {
             Rental <span className="font-mono text-lg">{address.slice(0, 10)}…</span>
             <StatusBadge status={lease.status} />
           </h1>
-          <p className="mt-1 text-sm text-muted" data-testid="next-step">
+          <p className="mt-1 text-sm text-muted-foreground" data-testid="next-step">
             {nextStep(lease, viewer)}
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 text-sm sm:items-end">
           {viewer ? (
-            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
           ) : (
             <span className="text-xs text-subtle">
               {me ? "This wallet is not part of this rental, so the page is read-only." : "Connect a wallet to act on this rental. Until then it is read-only."}
@@ -141,7 +141,7 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   const passed = lease.chainNow >= lease.arbiterDeadline;
   return (
     <Card title={viewer === "arbiter" ? "Your deadline" : "Waiting for the dispute desk"}>
-      <p className="text-sm text-muted">
+      <p className="text-sm text-muted-foreground">
         {statusMeta[LeaseStatus.Disputed].hint} Rent is still paid out as it comes due.{" "}
         {passed ? (
           <>The dispute desk missed its deadline ({formatDate(lease.arbiterDeadline)}). Anyone can now close the dispute and return the full deposit to the renter.</>
@@ -170,7 +170,7 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   return (
     <Card title="Waiting for the renter">
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-sm text-muted-foreground">
         Send this page&apos;s link to your renter. Once they fund the deposit and first month&apos;s rent, the rental starts and rent is paid
         out to you every month. You can withdraw the offer until then; nothing has been paid yet.
       </p>

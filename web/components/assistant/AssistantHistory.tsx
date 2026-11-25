@@ -42,11 +42,11 @@ export function HistoryView({
         className="mb-3 w-full rounded-lg border border-border-strong bg-field px-3 py-1.5 text-sm outline-none focus:border-border-hover"
       />
       {list.length === 0 ? (
-        <p className="pt-6 text-center text-sm text-muted">{chats.length ? "No chat matches." : "No earlier chats in this browser yet."}</p>
+        <p className="pt-6 text-center text-sm text-muted-foreground">{chats.length ? "No chat matches." : "No earlier chats in this browser yet."}</p>
       ) : (
         <ul className="space-y-1" data-testid="assistant-history-list">
           {list.map((c) => (
-            <li key={c.id} className="group rounded-lg hover:bg-surface-muted" data-testid="assistant-history-item" data-chat-id={c.id}>
+            <li key={c.id} className="group rounded-lg hover:bg-muted" data-testid="assistant-history-item" data-chat-id={c.id}>
               {editing === c.id ? (
                 <form
                   className="flex gap-1 p-1.5"
@@ -128,7 +128,7 @@ export function ReadOnlyChat({ chat, onBack, onContinue }: { chat: StoredChat; o
   return (
     <>
       <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm" data-testid="assistant-readonly">
-        <button type="button" onClick={onBack} className="rounded px-1.5 py-0.5 text-muted hover:bg-surface-muted" aria-label="Back to the history">
+        <button type="button" onClick={onBack} className="rounded px-1.5 py-0.5 text-muted-foreground hover:bg-muted" aria-label="Back to the history">
           ←
         </button>
         <span className="min-w-0 flex-1 truncate font-medium">{chat.title}</span>
@@ -139,7 +139,7 @@ export function ReadOnlyChat({ chat, onBack, onContinue }: { chat: StoredChat; o
         ))}
       </div>
       <div className="border-t border-border p-3">
-        <button type="button" onClick={onContinue} data-testid="assistant-continue" className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground">
+        <button type="button" onClick={onContinue} data-testid="assistant-continue" className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
           Continue this chat
         </button>
         <p className="mt-1.5 text-center text-[11px] text-subtle">Read-only. Changes that waited for approval here have expired.</p>

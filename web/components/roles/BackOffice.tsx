@@ -73,7 +73,7 @@ export function BackOffice() {
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
                 data-testid={`filter-${f}`}
-                className={`rounded-md px-2.5 py-1 ring-1 ring-inset ring-border ${filter === f ? "bg-accent text-accent-foreground" : "hover:bg-surface-muted"}`}
+                className={`rounded-md px-2.5 py-1 ring-1 ring-inset ring-border ${filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {{ all: `All ${rentals.length}`, attention: `Attention ${attention.length}`, open: `Open ${open.length}`, closed: "Closed" }[f]}
               </button>
@@ -137,7 +137,7 @@ function RentalRow({ r, chainId, scooter, vault, money }: { r: RentalSummary; ch
               {shortAddress(r.address)}
             </Link>
             {scooter && <span className="text-sm">{scooter}</span>}
-            <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-muted">{toVault ? "pays Fleet Vault" : "pays owner"}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{toVault ? "pays Fleet Vault" : "pays owner"}</span>
           </div>
           <p className="text-xs text-subtle">
             owner {shortAddress(r.landlord)} · renter {shortAddress(r.tenant)} · created <When ts={r.createdAt} />
@@ -165,7 +165,7 @@ function RentalRow({ r, chainId, scooter, vault, money }: { r: RentalSummary; ch
           </div>
         </dl>
       </div>
-      <button className="mt-2 text-xs text-muted underline-offset-2 hover:underline" onClick={() => setOpenRow(!openRow)} data-testid="toggle-tx">
+      <button className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setOpenRow(!openRow)} data-testid="toggle-tx">
         {openRow ? "Hide" : "Show"} {r.events.length} transactions
       </button>
       {openRow && (
@@ -183,7 +183,7 @@ function FeedItem({ e, chainId, money, vault, compact }: { e: ChainEvent; chainI
   const isVault = vault && e.address.toLowerCase() === vault.toLowerCase();
   const lease = e.name === "LeaseCreated" || e.name === "PayeeSet" ? (e.args.escrow as string) : isVault || e.name === "Transfer" ? undefined : e.address;
   const tone =
-    e.name === "DisputeRaised" ? "bg-danger" : e.name === "Settled" || e.name === "Funded" ? "bg-success" : e.name === "SettlementProposed" ? "bg-info" : isVault || e.name === "Transfer" ? "bg-accent" : "bg-border-strong";
+    e.name === "DisputeRaised" ? "bg-danger" : e.name === "Settled" || e.name === "Funded" ? "bg-success" : e.name === "SettlementProposed" ? "bg-info" : isVault || e.name === "Transfer" ? "bg-primary" : "bg-border-strong";
   return (
     <li className="flex items-start gap-2 text-sm" data-testid="tx-event" data-event={e.name}>
       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${tone}`} aria-hidden />

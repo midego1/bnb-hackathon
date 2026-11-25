@@ -89,7 +89,7 @@ export function SecretsView() {
       {phase === "ready" && listing && (
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Local only: this page exists on the paseo-box units and answers only on this machine and the tailnet.
             </p>
             <ActionButton variant="secondary" onClick={() => void lock()} data-testid="secrets-lock">
@@ -143,9 +143,9 @@ function Unlock({ onUnlocked }: { onUnlocked: () => void }) {
   return (
     <Card title="Enter the admin passcode" className="max-w-xl">
       <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3" data-testid="secrets-unlock">
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           The server created it on first use. Read it on paseo-box with{" "}
-          <code className="rounded bg-surface-muted px-1 py-0.5 font-mono text-xs">cat {PASSCODE_PATH}</code>
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">cat {PASSCODE_PATH}</code>
         </p>
         <input
           ref={ref}
@@ -172,7 +172,7 @@ function StatusChip({ set, label }: { set: boolean; label?: string }) {
       data-testid="secret-status"
       data-set={set ? "1" : "0"}
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-        set ? "bg-success-soft text-success-fg ring-success-border" : "bg-surface-muted text-subtle ring-border"
+        set ? "bg-success-soft text-success-fg ring-success-border" : "bg-muted text-subtle ring-border"
       }`}
     >
       {set ? "SET" : "NOT SET"}
@@ -255,7 +255,7 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
         )}
       </div>
       <div className="flex flex-col gap-1 text-sm">
-        <p className="text-muted">{s.purpose}</p>
+        <p className="text-muted-foreground">{s.purpose}</p>
         <p className="text-subtle">
           Get it: {s.source.url ? (
             <a href={s.source.url} target="_blank" rel="noreferrer noopener" className="text-foreground underline underline-offset-2">
@@ -336,7 +336,7 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
 const TEST_STYLE: Record<TestOutcome["status"], { label: string; className: string }> = {
   valid: { label: "Valid", className: "bg-success-soft text-success-fg ring-success-border" },
   invalid: { label: "Invalid", className: "bg-danger-soft text-danger-fg ring-danger-border" },
-  untestable: { label: "Can't test", className: "bg-surface-muted text-subtle ring-border" },
+  untestable: { label: "Can't test", className: "bg-muted text-subtle ring-border" },
 };
 
 function TestBadge({ outcome: o }: { outcome: TestOutcome }) {
@@ -346,7 +346,7 @@ function TestBadge({ outcome: o }: { outcome: TestOutcome }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5" data-testid="secret-test-result" data-status={o.status} aria-live="polite">
       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${st.className}`}>{st.label}</span>
-      {detail && <span className="text-muted">{detail}</span>}
+      {detail && <span className="text-muted-foreground">{detail}</span>}
       <span className="text-xs text-subtle">
         · {o.source === "typed" ? "typed value, not saved" : "stored value"} · {new Date(o.testedAt).toLocaleTimeString()}
       </span>
@@ -386,14 +386,14 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
 
   return (
     <Card title="Services">
-      <p className="mb-3 text-sm text-muted">A new value is used after the service that reads it restarts.</p>
+      <p className="mb-3 text-sm text-muted-foreground">A new value is used after the service that reads it restarts.</p>
       <ul className="flex flex-col gap-2">
         {units.map((u) => {
           const st = restarting[u.unit];
           return (
             <li key={u.unit} className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid={`unit-${u.unit}`}>
               <span>
-                <code className="font-mono">{u.unit}</code> <span className="text-muted">· {u.label} · </span>
+                <code className="font-mono">{u.unit}</code> <span className="text-muted-foreground">· {u.label} · </span>
                 <span className={u.active === "active" ? "text-success-fg" : "text-subtle"}>{u.loaded ? u.active : "not running"}</span>
                 {st === "restarting" && <span className="text-warning-fg"> · restarting...</span>}
                 {st === "back" && <span className="text-success-fg"> · back up</span>}

@@ -121,7 +121,7 @@ export function AssistantPanel({
         </span>
         <h2 className="text-sm font-semibold">Ask AI</h2>
         {run.mock && (
-          <span data-testid="assistant-mock-badge" title="No Anthropic key on this server: a scripted demo model answers." className="rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted ring-1 ring-border">
+          <span data-testid="assistant-mock-badge" title="No Anthropic key on this server: a scripted demo model answers." className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border">
             Demo model
           </span>
         )}
@@ -134,7 +134,7 @@ export function AssistantPanel({
             data-testid="assistant-model"
             data-model={run.model ?? run.defaultModel}
             title="Model for this chat"
-            className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted ring-1 ring-border hover:bg-surface-muted"
+            className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border hover:bg-muted"
           >
             {modelLabel} ▾
           </button>
@@ -148,7 +148,7 @@ export function AssistantPanel({
                   aria-checked={current.id === m.id}
                   onClick={() => pickModel(m.id)}
                   data-testid={`assistant-model-${m.word}`}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-surface-muted"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted"
                 >
                   <span className="w-3">{current.id === m.id ? "✓" : ""}</span>
                   {m.label}
@@ -210,7 +210,7 @@ export function AssistantPanel({
       <div ref={scroller} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3" data-testid="assistant-log">
           {run.items.length === 0 ? (
             <div className="space-y-3 pt-6">
-              <p className="text-center text-sm text-muted">Ask about your rentals, or tell Ask AI what to do. Every change waits for your approval.</p>
+              <p className="text-center text-sm text-muted-foreground">Ask about your rentals, or tell Ask AI what to do. Every change waits for your approval.</p>
               <div className="flex flex-col gap-2" data-testid="assistant-suggestions">
                 {suggestionsFor(path).map((s) => (
                   <button key={s.label} type="button" onClick={() => pick(s)} className="rounded-xl border border-border bg-surface px-3 py-2 text-left text-sm hover:border-border-hover">
@@ -233,7 +233,7 @@ export function AssistantPanel({
           }}
         >
           {note && (
-          <p className="mb-2 rounded-lg bg-surface-muted px-3 py-1.5 text-xs text-muted" data-testid="assistant-note">
+          <p className="mb-2 rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground" data-testid="assistant-note">
             {note}
           </p>
         )}
@@ -241,9 +241,9 @@ export function AssistantPanel({
             <ul className="mb-2 overflow-hidden rounded-lg border border-border bg-surface text-sm" role="listbox" data-testid="assistant-commands">
               {commands.map((c, i) => (
                 <li key={c.name} role="option" aria-selected={i === cmdIndex}>
-                  <button type="button" title={c.prompt ?? c.description} onClick={() => submit(c.name)} className={`flex w-full gap-2 px-3 py-1.5 text-left ${i === cmdIndex ? "bg-surface-muted" : ""}`}>
+                  <button type="button" title={c.prompt ?? c.description} onClick={() => submit(c.name)} className={`flex w-full gap-2 px-3 py-1.5 text-left ${i === cmdIndex ? "bg-muted" : ""}`}>
                     <span className="font-mono">{c.name}</span>
-                    <span className="text-muted">{c.description}</span>
+                    <span className="text-muted-foreground">{c.description}</span>
                   </button>
                 </li>
               ))}
@@ -283,7 +283,7 @@ export function AssistantPanel({
                 ■ Stop
               </button>
             ) : (
-              <button type="submit" data-testid="assistant-send" disabled={!draft.trim()} className="rounded-lg bg-accent px-2.5 py-1 text-sm font-medium text-accent-foreground disabled:opacity-40" aria-label="Send">
+              <button type="submit" data-testid="assistant-send" disabled={!draft.trim()} className="rounded-lg bg-primary px-2.5 py-1 text-sm font-medium text-primary-foreground disabled:opacity-40" aria-label="Send">
                 ↑
               </button>
             )}
@@ -305,7 +305,7 @@ function IconButton({ label, onClick, children, pressed, testId, className = "" 
       aria-label={label}
       aria-pressed={pressed}
       data-testid={testId}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm text-muted hover:bg-surface-muted hover:text-foreground ${className}`}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground ${className}`}
     >
       {children}
     </button>

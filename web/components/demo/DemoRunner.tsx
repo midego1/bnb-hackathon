@@ -40,7 +40,7 @@ const actorTone: Record<DemoStep["actor"], string> = {
   arbiter: "bg-danger-soft text-danger-fg",
   inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
   investor: "bg-info-soft text-info-fg",
-  anyone: "bg-surface-muted text-muted",
+  anyone: "bg-muted text-muted-foreground",
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -504,7 +504,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <h1 className="text-xl font-semibold tracking-tight @max-[1419px]:sr-only">{pageTitle}</h1>
           {testnet && <LiveBadge />}
-          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline @min-[1300px]:inline" data-testid="demo-eli5">Explain it simply</Link>
+          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline @min-[1300px]:inline" data-testid="demo-eli5">Explain it simply</Link>
           <Segmented
             label={controls.story}
             value={path}
@@ -539,7 +539,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           />
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
             {note && !(isGuided && caption) && (
-              <span className="text-sm font-medium text-muted" data-testid="demo-phase-note">
+              <span className="text-sm font-medium text-muted-foreground" data-testid="demo-phase-note">
                 {note}
               </span>
             )}
@@ -572,7 +572,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           </div>
         </div>
         {phase !== "idle" && (
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-surface-muted" aria-hidden>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-muted" aria-hidden>
             <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         )}
@@ -665,7 +665,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
 const secondaryBtn =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover";
 const primarySmall =
-  "inline-flex min-h-10 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover";
+  "inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover";
 
 function BigButton({ children, onClick, disabled, testId }: { children: ReactNode; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
@@ -697,7 +697,7 @@ function Segmented<T extends string>({
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs font-medium uppercase tracking-wide text-subtle lg:sr-only">{label}</span>
-      <div className="inline-flex flex-wrap rounded-lg bg-surface-muted p-0.5" role="group" aria-label={label}>
+      <div className="inline-flex flex-wrap rounded-lg bg-muted p-0.5" role="group" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}
@@ -710,7 +710,7 @@ function Segmented<T extends string>({
             className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
               value === o.value
                 ? "bg-surface text-foreground shadow-sm"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {o.label}
@@ -831,11 +831,11 @@ function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
       </div>
       <div className="mt-2 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-sm text-muted">{inspectionCopy.back}</p>
+          <p className="text-sm text-muted-foreground">{inspectionCopy.back}</p>
           <Amount value={BigInt(r.tenantRefund)} />
         </div>
         <div>
-          <p className="text-sm text-muted">{inspectionCopy.keeps}</p>
+          <p className="text-sm text-muted-foreground">{inspectionCopy.keeps}</p>
           <Amount value={BigInt(r.landlordClaim)} />
         </div>
       </div>
@@ -844,7 +844,7 @@ function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
           <li key={i}>{reason}</li>
         ))}
       </ul>
-      <p className="mt-2 text-sm text-muted" data-testid="demo-inspector">
+      <p className="mt-2 text-sm text-muted-foreground" data-testid="demo-inspector">
         {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : testnet ? testnetCopy.unsigned : inspectionCopy.unsigned}{" "}
         {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
       </p>
@@ -883,13 +883,13 @@ function Summary({
         <button
           type="button"
           onClick={onHide}
-          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-muted hover:bg-surface-muted lg:block"
+          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-muted lg:block"
           data-testid="demo-hide-summary"
         >
           {summaryCopy.hide}
         </button>
       </div>
-      <p className="mt-1 text-base text-muted">
+      <p className="mt-1 text-base text-muted-foreground">
         {ctx.finalStatus !== undefined && (
           <span className="mr-2 inline-block align-middle">
             <StatusBadge status={ctx.finalStatus as LeaseStatus} />
@@ -946,7 +946,7 @@ function Summary({
 
 function Party({ who, note, value, testId }: { who: string; note: string; value: bigint; testId: string }) {
   return (
-    <div className="rounded-xl bg-surface-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
+    <div className="rounded-xl bg-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
       <p className="text-base font-semibold">{who}</p>
       <p className="hidden text-sm leading-snug text-subtle tall:block">{note}</p>
       <div className="mt-1">

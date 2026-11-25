@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /*
  * Theme: <html> carries class "light" or "dark", set before first paint by the inline script in
@@ -20,23 +22,36 @@
   }
 }
 
-/* Semantic color tokens. Text pairs are WCAG AA (>= 4.5:1) on background, surface and surface-muted. */
+/*
+ * Colour tokens. One set of names for our own markup and for shadcn/ui (components/ui/*, components.json): the
+ * shadcn variables (background, card, popover, primary, secondary, muted, accent, destructive, border, input, ring,
+ * sidebar-*) are defined here on our palette, so a component added with `npx shadcn add` picks up these colours as is.
+ *
+ *   primary            the dark (light theme) / light (dark theme) action colour; primary-hover is its hover
+ *   muted              quiet surface (code blocks, chips, segmented controls); muted-foreground is secondary text
+ *   accent             shadcn's hover / highlighted-item surface (menu items, ghost buttons) = muted
+ *   surface, surface-strong, field, subtle, border-strong, border-hover: ours, no shadcn equivalent
+ *   success / warning / danger / info: status colours, each with -soft (background), -fg (text on -soft), -border
+ *
+ * Text pairs are WCAG AA (>= 4.5:1) on background, surface and muted.
+ */
 :root {
   color-scheme: light;
   --background: #f8fafc;
+  --foreground: #0f172a;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
   --surface-strong: #e2e8f0;
   --field: #ffffff;
-  --foreground: #0f172a;
-  --muted: #475569;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
   --subtle: #556274;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
   --border-hover: #64748b;
-  --accent: #0f172a;
-  --accent-hover: #334155;
-  --accent-foreground: #ffffff;
+  --primary: #0f172a;
+  --primary-hover: #334155;
+  --primary-foreground: #ffffff;
+  --ring: var(--primary);
 
   --success: #047857;
   --success-soft: #ecfdf5;
@@ -59,19 +74,20 @@
 :root.dark {
   color-scheme: dark;
   --background: #020617;
+  --foreground: #f1f5f9;
   --surface: #0f172a;
-  --surface-muted: #1e293b;
   --surface-strong: #334155;
   --field: #020617;
-  --foreground: #f1f5f9;
-  --muted: #b4c0d0;
+  --muted: #1e293b;
+  --muted-foreground: #b4c0d0;
   --subtle: #93a1b5;
   --border: #1e293b;
   --border-strong: #334155;
   --border-hover: #64748b;
-  --accent: #f8fafc;
-  --accent-hover: #e2e8f0;
-  --accent-foreground: #0f172a;
+  --primary: #f8fafc;
+  --primary-hover: #e2e8f0;
+  --primary-foreground: #0f172a;
+  --ring: var(--primary);
 
   --success: #34d399;
   --success-soft: #022c22;
@@ -91,21 +107,74 @@
   --info-border: #075985;
 }
 
+/* shadcn/ui's variables, mapped onto the tokens above (both themes follow automatically). */
+:root {
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --chart-1: var(--info);
+  --chart-2: var(--success);
+  --chart-3: var(--warning);
+  --chart-4: var(--danger);
+  --chart-5: var(--muted-foreground);
+  /* Tailwind's own radius scale (rounded-lg = 0.5rem), so shadcn components match the existing corners. */
+  --radius: 0.5rem;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
 @theme inline {
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
   --color-surface-strong: var(--surface-strong);
   --color-field: var(--field);
-  --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-subtle: var(--subtle);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-border-hover: var(--border-hover);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-fg: var(--success-fg);
@@ -124,6 +193,16 @@
   --color-info-border: var(--info-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+}
+
+@layer base {
+  /* shadcn/ui's base: an unstyled border takes the border token, not currentColor. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
 }
 
 body {
@@ -343,8 +422,9 @@ body {
   html[data-assistant-open] body:not(:has([data-demo-stage])) {
     padding-right: var(--assistant-width);
   }
-  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-toasts] {
-    right: var(--assistant-width);
+  /* Toasts (sonner, components/Toasts.tsx) stay clear of the panel. */
+  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-sonner-toaster][data-x-position="right"] {
+    right: calc(var(--assistant-width) + var(--offset-right));
   }
   /* The page dims while a change waits; the panel does not. */
   html[data-assistant-open] body:not(:has([data-demo-stage])) [data-assistant-dim] {

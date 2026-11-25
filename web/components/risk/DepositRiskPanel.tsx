@@ -41,7 +41,7 @@ export function DepositRiskPanel({ depositThb, rentalDays, onApply }: { depositT
           {(["USDT", "BNB"] as const).map((a) => {
             const o = data.options![a];
             return (
-              <div key={a} className="rounded-xl bg-surface-muted p-3 text-sm" data-testid={`risk-${a}`}>
+              <div key={a} className="rounded-xl bg-muted p-3 text-sm" data-testid={`risk-${a}`}>
                 <div className="flex items-center justify-between">
                   <p className="font-medium">Paid in {a}</p>
                   <span className="text-xs text-subtle">{o.tier}</span>
@@ -52,7 +52,7 @@ export function DepositRiskPanel({ depositThb, rentalDays, onApply }: { depositT
                   <span data-testid={`risk-${a}-buffer`}>{pct(o.buffer)}</span>
                   {o.cournotBuffer > 0 && <> (CMC {pct(o.cmcBuffer)} + Cournot {pct(o.cournotBuffer)})</>}
                 </p>
-                <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-muted">
+                <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
                   {o.explanation.map((e, i) => (
                     <li key={i}>{e}</li>
                   ))}

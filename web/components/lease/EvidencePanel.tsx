@@ -79,7 +79,7 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
   return (
     <li className="group min-w-0" data-testid="evidence-thumb">
-      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-muted">
+      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted">
         {failed ? (
           <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-subtle">
             <span>File not in storage</span>
@@ -94,7 +94,7 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
         </span>
       </a>
       <p className="mt-1 flex items-center justify-between gap-2 text-xs">
-        <span className="truncate capitalize text-muted">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
+        <span className="truncate capitalize text-muted-foreground">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
         <CopyButton value={photo.hash} label="Copy photo hash" />
       </p>
     </li>

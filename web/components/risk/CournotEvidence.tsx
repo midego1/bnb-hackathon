@@ -50,14 +50,14 @@ export function CournotEvidence({ view, cmcBuffer, cournotBuffer }: { view: Cour
           <p className="mt-2 text-xs text-subtle">Request id: <span className="font-mono">{r.requestId}</span></p>
         </>
       ) : (
-        <p className="mt-2 text-muted">
+        <p className="mt-2 text-muted-foreground">
           No Cournot answer is stored yet, so the buffer uses CoinMarketCap volatility alone. {view.live === "enabled" ? "Ask Cournot below." : "Live calls are off on this server (start it with COURNOT_LIVE=1)."}
         </p>
       )}
       {r && cmcBuffer !== undefined && cmcBuffer > 0 && (
-        <div className="mt-3 rounded-lg bg-surface-muted p-3 text-xs" data-testid="cournot-explanation">
+        <div className="mt-3 rounded-lg bg-muted p-3 text-xs" data-testid="cournot-explanation">
           <p className="font-semibold">Explanation added by KeyEscrow (not from Cournot)</p>
-          <p className="mt-1 text-muted">
+          <p className="mt-1 text-muted-foreground">
             The BNB buffer of {pct(cmcBuffer)} from CoinMarketCap volatility is scaled by (1 + {pct(r.probability)}), adding {pct(cournotBuffer ?? 0)}:
             the more likely BNB falls through the coverage floor before the return date, the larger the deposit.
           </p>

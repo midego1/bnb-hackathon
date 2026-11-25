@@ -73,7 +73,7 @@ export function Timeline({ lease, events, chainId, unavailable }: { lease: Lease
               <li key={`${e.txHash}-${e.logIndex}`} className="relative" data-event={e.name}>
                 <span className={`absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-surface ${d.tone}`} />
                 <p className="text-sm font-medium first-letter:uppercase">{d.title}</p>
-                {d.body && <p className="text-sm text-muted">{d.body}</p>}
+                {d.body && <p className="text-sm text-muted-foreground">{d.body}</p>}
                 <p className="text-xs text-subtle">
                   {formatDate(e.timestamp)} · block {e.blockNumber.toString()}
                   {href && (

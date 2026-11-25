@@ -44,7 +44,7 @@ export function LeaseCard({ address }: { address: Address }) {
           <Amount value={lease.terms.depositAmount} />
         </div>
       </div>
-      <p className="text-sm text-muted">{nextStep(lease, viewer)}</p>
+      <p className="text-sm text-muted-foreground">{nextStep(lease, viewer)}</p>
       <span className="text-xs font-medium text-subtle group-hover:text-foreground">Open rental →</span>
     </Link>
   );

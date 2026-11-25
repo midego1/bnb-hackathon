@@ -14,8 +14,8 @@ const STATUS_TONE: Record<string, string> = {
   Active: "bg-success-soft text-success-fg ring-success-border",
   MoveOut: "bg-info-soft text-info-fg ring-info-border",
   Disputed: "bg-danger-soft text-danger-fg ring-danger-border",
-  Settled: "bg-surface-muted text-muted ring-border-strong",
-  Cancelled: "bg-surface-muted text-subtle ring-border",
+  Settled: "bg-muted text-muted-foreground ring-border-strong",
+  Cancelled: "bg-muted text-subtle ring-border",
 };
 
 function Status({ status, label }: { status: string; label: string }) {
@@ -92,12 +92,12 @@ function LeaseCardView({ c }: { c: Lease }) {
           </dd>
         </div>
       </dl>
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-2 text-xs text-muted-foreground">
         Owner {short(c.owner)} · Renter {short(c.renter)}
         {c.you ? ` · You: ${c.you}` : ""} · {c.months.funded}/{c.months.term} month(s) paid
       </p>
       {c.next && (
-        <p className="mt-2 rounded-lg bg-surface-muted px-2 py-1.5 text-xs" data-testid="assistant-card-next">
+        <p className="mt-2 rounded-lg bg-muted px-2 py-1.5 text-xs" data-testid="assistant-card-next">
           <span className="font-medium">Next · {c.next.who}:</span> {c.next.what}
         </p>
       )}
@@ -128,7 +128,7 @@ function LeaseListView({ c }: { c: LeaseList }) {
         {c.totals.all} rental{c.totals.all === 1 ? "" : "s"} · {c.totals.open} open
       </p>
       {byStatus.length > 0 && (
-        <p className="mt-0.5 text-xs text-muted">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {byStatus.map(([s, n]) => `${n} ${s === "MoveOut" ? "return proposal" : s === "Created" ? "awaiting funding" : s.toLowerCase()}`).join(" · ")}
           {` · deposits locked ${c.totals.deposits.thb ?? c.totals.deposits.token}`}
         </p>
@@ -210,7 +210,7 @@ export function ApprovalCardView({
         <p className="text-xs text-warning">This changes the rental on chain. Check it before you approve.</p>
       </div>
       <div className="space-y-2 p-3">
-        <ul className="space-y-1 rounded-lg bg-surface-muted p-2 text-xs" data-testid="assistant-approval-changes">
+        <ul className="space-y-1 rounded-lg bg-muted p-2 text-xs" data-testid="assistant-approval-changes">
           {card.changes.map((ch, i) => (
             <li key={i} className="grid grid-cols-[7.5rem_1fr] gap-2">
               <span className="text-subtle">{ch.label}</span>
@@ -225,7 +225,7 @@ export function ApprovalCardView({
             </li>
           ))}
         </ul>
-        <p className="text-xs text-muted">
+        <p className="text-xs text-muted-foreground">
           Signed by: <span className="font-medium">{card.signerRole}</span> <span className="font-mono">{short(card.signer)}</span> (your wallet) ·{" "}
           {card.steps.length} transaction{card.steps.length === 1 ? "" : "s"}
           {card.ratesMock ? " · demo rates" : ""}
@@ -234,7 +234,7 @@ export function ApprovalCardView({
           {open ? "▾" : "▸"} Details
         </button>
         {open && (
-          <div className="space-y-1 text-xs text-muted">
+          <div className="space-y-1 text-xs text-muted-foreground">
             <p>{card.summary}</p>
             <ol className="list-decimal pl-5">
               {card.steps.map((s, i) => (
@@ -246,7 +246,7 @@ export function ApprovalCardView({
           </div>
         )}
         {progress && (
-          <p className="text-xs text-muted" data-testid="assistant-approval-progress">
+          <p className="text-xs text-muted-foreground" data-testid="assistant-approval-progress">
             {progress}
           </p>
         )}
@@ -260,7 +260,7 @@ export function ApprovalCardView({
             >
               Approve
             </button>
-            <button type="button" onClick={onDecline} data-testid="assistant-decline" className="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-surface-muted">
+            <button type="button" onClick={onDecline} data-testid="assistant-decline" className="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-muted">
               Decline
             </button>
           </div>

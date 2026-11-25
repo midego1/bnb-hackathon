@@ -37,7 +37,7 @@ export function Shareholders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span className="font-semibold text-foreground">{vault.name}</span>
         <AddressTag address={vault.address} chainId={chainId} label={vault.symbol} />
         <span>· operator fee {(vault.operatorFeeBps / 100).toFixed(0)}% for maintenance</span>

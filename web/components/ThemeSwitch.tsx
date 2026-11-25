@@ -39,7 +39,7 @@ export function ThemeCycleButton({ className = "" }: { className?: string }) {
       aria-label={`Color theme: ${LABEL[pref]}. Switch to ${LABEL[next]}`}
       title={`${LABEL[pref]} theme`}
       onClick={() => setThemePref(next)}
-      className={`h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ${className}`}
+      className={`h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${className}`}
     >
       <Icon pref={pref} />
     </button>
@@ -58,7 +58,7 @@ export function ThemeSwitch({ className = "inline-flex" }: { className?: string 
   };
 
   return (
-    <div role="radiogroup" aria-label="Color theme" data-testid="theme-switch" className={`shrink-0 items-center rounded-lg border border-border bg-surface-muted p-0.5 ${className}`}>
+    <div role="radiogroup" aria-label="Color theme" data-testid="theme-switch" className={`shrink-0 items-center rounded-lg border border-border bg-muted p-0.5 ${className}`}>
       {THEME_PREFS.map((p) => {
         const checked = (pref ?? "system") === p;
         return (
@@ -81,7 +81,7 @@ export function ThemeSwitch({ className = "inline-flex" }: { className?: string 
                 move(e.currentTarget.parentElement, p, -1);
               }
             }}
-            className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ${
+            className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
               checked ? "bg-surface text-foreground shadow-sm ring-1 ring-inset ring-border-strong" : "text-subtle hover:text-foreground"
             }`}
           >

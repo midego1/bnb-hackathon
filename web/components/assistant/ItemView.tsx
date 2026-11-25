@@ -14,7 +14,7 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
     case "user":
       return (
         <div className="flex justify-end">
-          <p className="max-w-[85%] rounded-2xl bg-surface-muted px-3 py-2 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="assistant-user">
+          <p className="max-w-[85%] rounded-2xl bg-muted px-3 py-2 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="assistant-user">
             {item.text}
           </p>
         </div>
@@ -38,7 +38,7 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
             </span>
             <span className={item.state === "failed" ? "text-danger" : ""}>{item.label}</span>
           </p>
-          {item.detail && <p className="pl-7 text-xs text-muted">{item.detail}</p>}
+          {item.detail && <p className="pl-7 text-xs text-muted-foreground">{item.detail}</p>}
           {item.cards.map((c, i) => (
             <div key={i} className="pl-7">
               <CardView card={c} />
@@ -68,7 +68,7 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
     }
     case "notice":
       return (
-        <p className={`rounded-lg px-3 py-2 text-sm ${item.tone === "error" ? "bg-danger-soft text-danger-fg" : "text-muted"}`} data-testid="assistant-notice">
+        <p className={`rounded-lg px-3 py-2 text-sm ${item.tone === "error" ? "bg-danger-soft text-danger-fg" : "text-muted-foreground"}`} data-testid="assistant-notice">
           {item.text}
         </p>
       );

@@ -98,7 +98,7 @@ function BookCard({ s, state, chainId, mine }: { s: Scooter; state: ReturnType<t
   return (
     <li className="overflow-hidden rounded-xl border border-border" data-testid="book-card" data-scooter={s.id}>
       {/* eslint-disable-next-line @next/next/no-img-element -- bundled demo photo or content-addressed evidence */}
-      <img src={s.photo} alt={s.name} className="aspect-[2/1] w-full bg-surface-muted object-cover" loading="lazy" />
+      <img src={s.photo} alt={s.name} className="aspect-[2/1] w-full bg-muted object-cover" loading="lazy" />
       <div className="space-y-2 p-3 text-sm">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -159,10 +159,10 @@ function RentalStory({ r, scooter }: { r: RentalSummary; scooter?: Scooter }) {
           {r.status === LeaseStatus.Created ? "Pay now →" : "Open rental →"}
         </Link>
       </div>
-      {next && <p className="mt-2 text-sm text-muted">{next}</p>}
+      {next && <p className="mt-2 text-sm text-muted-foreground">{next}</p>}
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-surface-muted p-3 text-sm">
+        <div className="rounded-xl bg-muted p-3 text-sm">
           <p className="text-xs text-subtle">Deposit</p>
           <Amount value={r.depositAmount} />
           {r.settled ? (
@@ -180,7 +180,7 @@ function RentalStory({ r, scooter }: { r: RentalSummary; scooter?: Scooter }) {
             <p className="mt-1 text-xs text-subtle">Locked in escrow. The shop can never take it alone.</p>
           ) : null}
         </div>
-        <div className="rounded-xl bg-surface-muted p-3 text-sm sm:col-span-2">
+        <div className="rounded-xl bg-muted p-3 text-sm sm:col-span-2">
           <p className="text-xs text-subtle">AI inspection</p>
           {r.proposal ? (
             <p data-testid="inspection-outcome">
