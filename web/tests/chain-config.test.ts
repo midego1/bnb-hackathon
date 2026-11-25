@@ -30,6 +30,15 @@ describe("chain + deployment config", () => {
     expect(c.targetChainId).toBe(97);
     expect(c.supportedChains.map((x) => x.id)).toEqual([97, 5611]);
     expect(c.explorerLink(97, "address", "0xabc")).toBe("https://testnet.bscscan.com/address/0xabc");
+    expect(c.explorerLink(97, "tx", "0xdef")).toBe("https://testnet.bscscan.com/tx/0xdef");
+  });
+
+  it("gives BSC testnet an RPC that serves eth_getLogs (not viem's data-seed default), overridable by env", async () => {
+    const c = await load({ NEXT_PUBLIC_CHAIN_ID: "97", NEXT_PUBLIC_BSC_TESTNET_RPC_URL: "" });
+    expect(c.bscTestnetRpcUrl).toBe("https://bsc-testnet-rpc.publicnode.com");
+    expect(c.supportedChains[0].rpcUrls.default.http).toEqual(["https://bsc-testnet-rpc.publicnode.com"]);
+    const custom = await load({ NEXT_PUBLIC_CHAIN_ID: "97", NEXT_PUBLIC_BSC_TESTNET_RPC_URL: "https://rpc.example/bsc-testnet" });
+    expect(custom.supportedChains[0].rpcUrls.default.http).toEqual(["https://rpc.example/bsc-testnet"]);
   });
 
   it("applies env address overrides only to the target chain", async () => {

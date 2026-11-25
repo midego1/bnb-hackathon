@@ -1,5 +1,5 @@
 import { defineChain } from "viem";
-import { bscTestnet, foundry, opBNBTestnet } from "viem/chains";
+import { bscTestnet as viemBscTestnet, foundry, opBNBTestnet } from "viem/chains";
 
 /** RPC of the local anvil node the browser talks to. */
 export const anvilRpcUrl =
@@ -10,6 +10,18 @@ export const anvil = defineChain({
   ...foundry,
   name: "Anvil (local)",
   rpcUrls: { default: { http: [anvilRpcUrl] } },
+});
+
+/**
+ * BSC testnet RPC for the browser. viem's default (data-seed-prebsc-1-s1.bnbchain.org) answers every eth_getLogs
+ * with "limit exceeded", which breaks the lease lists and timelines, so default to PublicNode (CORS, 50k-block logs).
+ */
+export const bscTestnetRpcUrl = process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL || "https://bsc-testnet-rpc.publicnode.com";
+
+/** BSC testnet (chainId 97) with that RPC, so "add network" in the wallet gets a working URL too. */
+export const bscTestnet = defineChain({
+  ...viemBscTestnet,
+  rpcUrls: { default: { http: [bscTestnetRpcUrl] } },
 });
 
 /**
