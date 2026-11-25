@@ -3,7 +3,7 @@
  * language to the client as plain props. Longer copy with logic lives in localized data modules next to the
  * code that uses it (lib/i18n/locales.ts `localized`).
  *
- * The app screens' strings live in one file per group (en/shell.ts, en/roles.ts, en/rental.ts, en/more.ts), each
+ * The app screens' strings live in one file per group (en/shell.ts, en/roles.ts, en/rental.ts, en/more.ts, en/subs.ts, en/stage.ts), each
  * with a `body` (namespaces spread in here) and a `head` (spread into `headlines`); zh/ mirrors it.
  *
  * `headlines` is the one place for keys that are headlines: in EN+中文 mode they get the Chinese line under the
@@ -13,6 +13,8 @@ import * as more from "./en/more";
 import * as rental from "./en/rental";
 import * as roles from "./en/roles";
 import * as shell from "./en/shell";
+import * as stage from "./en/stage";
+import * as subs from "./en/subs";
 
 export const en = {
   lang: {
@@ -37,11 +39,15 @@ export const en = {
     ...roles.head,
     ...rental.head,
     ...more.head,
+    ...subs.head,
+    ...stage.head,
   },
   ...shell.body,
   ...roles.body,
   ...rental.body,
   ...more.body,
+  ...subs.body,
+  ...stage.body,
 };
 
 export type Dict = typeof en;

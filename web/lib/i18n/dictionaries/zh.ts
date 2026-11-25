@@ -4,6 +4,8 @@ import * as more from "./zh/more";
 import * as rental from "./zh/rental";
 import * as roles from "./zh/roles";
 import * as shell from "./zh/shell";
+import * as stage from "./zh/stage";
+import * as subs from "./zh/subs";
 
 /** Simplified Chinese for dictionaries/en.ts. Terms: docs/i18n-glossary.md. A missing key falls back to English. */
 export const zh: DeepPartial<Dict> = {
@@ -28,9 +30,13 @@ export const zh: DeepPartial<Dict> = {
     ...roles.head,
     ...rental.head,
     ...more.head,
+    ...subs.head,
+    ...stage.head,
   },
   ...shell.body,
   ...roles.body,
   ...rental.body,
   ...more.body,
+  ...subs.body,
+  ...stage.body,
 };
