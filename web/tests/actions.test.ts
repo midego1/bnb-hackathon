@@ -284,6 +284,21 @@ describe("preconditions and simulation errors come back as plain reasons", () =>
     expect(simulated).toHaveLength(0);
   });
 
+  it("refuses propose / accept / dispute without a dry-run once the reply window has closed", async () => {
+    const deadline = NOW - BigInt(1);
+    const proposal = { tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: `0x${"33".repeat(32)}` as Hex, proposer: RENTER, proposedAt: deadline - BigInt(7 * 86400), nonce: 1 };
+    const { host, simulated } = fakeHost({ status: 2, proposal, timeoutAt: deadline });
+    for (const [name, extra] of [["prepare_accept", {}], ["prepare_dispute", {}], ["prepare_propose_settlement", { toRenter: "10" }]] as const) {
+      await expect(runAction(name, { lease: LEASE, from: OWNER, ...extra }, host)).rejects.toMatchObject({
+        status: 409,
+        code: "precondition_failed",
+        message: expect.stringMatching(/7-day response window closed on .*renter can now claim the full deposit\. Use prepare_claim_timeout/),
+      });
+    }
+    expect(simulated).toHaveLength(0);
+    await expect(runAction("prepare_claim_timeout", { lease: LEASE, from: RENTER }, host)).resolves.toBeTruthy();
+  });
+
   it("maps a reverting step to its decoded custom error", async () => {
     const revert = encodeErrorResult({ abi: escrowFactoryAbi, errorName: "RolesNotDistinct" });
     const { host } = fakeHost({ status: 0 }, () => [{ ok: false, data: revert }]);
