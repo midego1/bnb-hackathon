@@ -1,82 +1,102 @@
+import { useMemo } from "react";
+import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n/t";
 import type { Rhythm } from "@/lib/fleet";
 import type { SubState } from "@/lib/subscriptions";
 
-/** Every user-facing string of the subscription views, in one place for translation. */
-export const copy = {
-  pageTitle: "Subscriptions",
-  pageIntro:
-    "Ride a scooter month by month. You pay one month at a time; the deposit stays locked in the rental's own escrow, never your passport. Cancel any time by returning the scooter: the deposit comes back after the return check.",
-  gate: "subscribe to a scooter",
-  rhythm: { 7: "Weekly", 14: "Every 2 weeks", 30: "Monthly" } satisfies Record<Rhythm, string>,
-  per: { 7: "week", 14: "2 weeks", 30: "month" } satisfies Record<Rhythm, string>,
-  rhythmLabel: "Payment rhythm",
-  rhythmSoon: "Weekly and every-2-weeks plans come with the next contract version.",
+/**
+ * Every user-facing string of the subscription views, in the visitor's language (dictionaries/{en,zh}/subs.ts).
+ * Titles and the status sentences are headlines (t.h): EN+中文 adds the Chinese line under them.
+ */
+export function subsCopyFor(t: T) {
+  const byRhythm = (k: "rhythm" | "per") => ({ 7: t(`subs.${k}.d7`), 14: t(`subs.${k}.d14`), 30: t(`subs.${k}.d30`) }) satisfies Record<Rhythm, string>;
+  const plural = (n: number) => (n === 1 ? "one" : "other");
+  return {
+    pageTitle: t("subs.pageTitle"),
+    pageIntro: t("subs.pageIntro"),
+    gate: t("subs.gate"),
+    what: t("subs.what"),
+    rhythm: byRhythm("rhythm"),
+    per: byRhythm("per"),
+    rhythmLabel: t("subs.rhythmLabel"),
+    rhythmSoon: t("subs.rhythmSoon"),
 
-  plans: {
-    title: "Plans available",
-    empty: "No scooter is offered as a subscription on this network yet.",
-    deposit: (thb: string) => `${thb} deposit in escrow, no passport`,
-    term: (n: number) => `Up to ${n} months · cancel any time with a return check`,
-    upfront: "To start: deposit + month 1",
-    subscribe: "Subscribe",
-    requested: "Requested. The shop now issues your contract.",
-    notAvailable: "Not available right now.",
-    connect: "Connect a wallet to subscribe.",
-  },
+    plans: {
+      title: t.h("subs.plans"),
+      empty: t("subs.plans.empty"),
+      deposit: (thb: string) => t("subs.plans.deposit", { thb }),
+      term: (n: number) => t("subs.plans.term", { n }),
+      upfront: t("subs.plans.upfront"),
+      subscribe: t("subs.plans.subscribe"),
+      requested: t("subs.plans.requested"),
+      notAvailable: t("subs.plans.notAvailable"),
+      connect: t("subs.plans.connect"),
+    },
 
-  mine: {
-    title: "My subscriptions",
-    empty: "No subscriptions for this wallet yet. Pick a plan above.",
-    nextPayment: "Next payment",
-    paidThrough: (n: number, of: number) => `${n} of ${of} months paid`,
-    deposit: "Deposit (comes back after the return check)",
-    open: "Open rental",
-    loading: "Loading your wallet…",
-    getUsdt: "Get test USDT",
-    start: "Pay deposit + month 1",
-    pay: (n: number) => `Pay month ${n}`,
-    payHint: "Two wallet steps if needed: approve, then pay. Paid into escrow, paid out to the shop as each month comes due.",
-    notEnough: "Not enough USDT in your wallet yet. Get test USDT first.",
-    allPaid: "Every month of the term is paid.",
-    cancel: "Cancel subscription",
-    cancelTitle: "Cancel this subscription?",
-    cancelBody:
-      "Cancelling means returning the scooter. On the rental page you take the guided return photos, the AI inspection compares them with the pickup photos and proposes the deposit split, and you and the shop settle it. Your deposit comes back after that return check, minus only new damage. Months you paid ahead and did not use come back too.",
-    cancelConfirm: "Start the return",
-  },
+    mine: {
+      title: t.h("subs.mine"),
+      empty: t("subs.mine.empty"),
+      nextPayment: t("subs.mine.nextPayment"),
+      paidThrough: (n: number, of: number) => t("subs.mine.paidThrough", { n, of }),
+      deposit: t("subs.mine.deposit"),
+      open: t("subs.mine.open"),
+      loading: t("subs.mine.loading"),
+      getUsdt: t("subs.mine.getUsdt"),
+      approve: t("subs.mine.approve"),
+      start: t("subs.mine.start"),
+      pay: (n: number) => t("subs.mine.pay", { n }),
+      payHint: t("subs.mine.payHint"),
+      notEnough: t("subs.mine.notEnough"),
+      allPaid: t("subs.mine.allPaid"),
+      cancel: t("subs.mine.cancel"),
+      cancelTitle: t("subs.mine.cancelTitle"),
+      cancelBody: t("subs.mine.cancelBody"),
+      cancelConfirm: t("subs.mine.cancelConfirm"),
+    },
 
-  state: {
-    requested: () => "Waiting for the shop to issue your subscription contract.",
-    issued: () => "Contract ready. Pay the deposit and month 1 to start riding.",
-    active: (due: string, amount: string) => `Active. Next payment ${amount} on ${due}.`,
-    activePaid: () => "Active. Every month of the term is paid.",
-    overdue: (due: string, amount: string) => `Payment of ${amount} was due on ${due}. Pay now to keep riding.`,
-    cancelling: () => "Cancelling: return check in progress. The deposit comes back after it.",
-    disputed: () => "Cancelling: the dispute desk reviews the return photos.",
-    ended: () => "Ended. Deposit settled.",
-  } satisfies Record<SubState | "activePaid" | "overdue", (...a: string[]) => string>,
+    /** The big status sentence on each subscription card. */
+    state: {
+      requested: () => t.h("subs.state.requested"),
+      issued: () => t.h("subs.state.issued"),
+      active: (due: string, amount: string) => t.h("subs.state.active", { due, amount }),
+      activePaid: () => t.h("subs.state.activePaid"),
+      overdue: (due: string, amount: string) => t.h("subs.state.overdue", { due, amount }),
+      cancelling: () => t.h("subs.state.cancelling"),
+      disputed: () => t.h("subs.state.disputed"),
+      ended: () => t.h("subs.state.ended"),
+    } satisfies Record<SubState | "activePaid" | "overdue", (...a: string[]) => unknown>,
 
-  owner: {
-    title: "Subscriptions",
-    mrr: "Monthly recurring revenue",
-    mrrHint: (usdt: string) => `${usdt} mUSDT a month from active subscriptions`,
-    subscribers: "Active subscribers",
-    offerTitle: "Offer as subscription",
-    scooter: "Scooter",
-    price: "Price per month (THB)",
-    deposit: "Deposit (THB)",
-    maxMonths: "Max months",
-    maxMonthsHint: "The rental term. The renter pays month by month and can cancel any time by returning the scooter.",
-    save: "Offer as subscription",
-    saved: (name: string) => `${name} is now offered as a subscription.`,
-    noScooters: "Add a scooter first; then offer it as a subscription.",
-    plansEmpty: "No subscription plans yet.",
-    planCard: (months: number) => `up to ${months} months`,
-    subscriberOf: (n: number) => (n ? `${n} active subscriber${n === 1 ? "" : "s"}` : "no active subscriber"),
-  },
+    owner: {
+      title: t.h("subs.title"),
+      mrr: t("subs.owner.mrr"),
+      mrrHint: (usdt: string) => t("subs.owner.mrrHint", { usdt }),
+      subscribers: t("subs.owner.subscribers"),
+      offerTitle: t.h("subs.offerTitle"),
+      scooter: t("subs.owner.scooter"),
+      price: t("subs.owner.price"),
+      deposit: t("subs.owner.deposit"),
+      depositShort: (thb: string) => t("subs.owner.depositShort", { thb }),
+      maxMonths: t("subs.owner.maxMonths"),
+      maxMonthsHint: t("subs.owner.maxMonthsHint"),
+      save: t("subs.owner.save"),
+      saved: (name: string) => t("subs.owner.saved", { name }),
+      noScooters: t("subs.owner.noScooters"),
+      plansEmpty: t("subs.owner.plansEmpty"),
+      planCard: (n: number) => t("subs.owner.planCard", { n }),
+      subscriberOf: (n: number) => t(`subs.owner.subscriberOf.${n ? plural(n) : "none"}`, { n }),
+    },
 
-  shareholders: {
-    mrr: "Subscription MRR",
-    hint: (n: number) => `${n} active subscriber${n === 1 ? "" : "s"} on vault scooters`,
-  },
-} as const;
+    shareholders: {
+      mrr: t("subs.shareholders.mrr"),
+      hint: (n: number) => t(`subs.shareholders.hint.${plural(n)}`, { n }),
+    },
+  };
+}
+
+export type SubsCopy = ReturnType<typeof subsCopyFor>;
+
+/** The subscription views' copy in the visitor's language. */
+export function useSubsCopy() {
+  const t = useT();
+  return useMemo(() => subsCopyFor(t), [t]);
+}

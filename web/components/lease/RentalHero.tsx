@@ -12,9 +12,10 @@ import { shortAddress } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { JarArt, SafeArt } from "./Art";
-import { rentalCopy as c } from "./copy";
+import { useRentalCopy } from "./copy";
 import { RENT_PERIOD, type Viewer } from "./model";
 import { banner, monthCells, moneyFlow, type Banner, type BannerAction } from "./story";
 
@@ -23,6 +24,8 @@ const TONE_TEXT: Record<Banner["tone"], string> = { ok: "text-banner-ok", warn: 
 /** The top of the rental page: what it is, the state in one sentence with the viewer's one action, and the money. */
 export function RentalHero({ lease, viewer, events, chainId, scooter, wallet }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined; chainId: number; scooter?: Scooter; wallet: boolean }) {
   const baht = useBaht();
+  const c = useRentalCopy();
+  const i18n = useT();
   const b = banner(lease, viewer, events, baht, c);
   const scan = explorerLink(chainId, "address", lease.address);
   const t = lease.terms;
@@ -57,7 +60,7 @@ export function RentalHero({ lease, viewer, events, chainId, scooter, wallet }: 
                 {c.escrowLink(shortAddress(lease.address), false)}
               </span>
             )}
-            <CopyButton value={lease.address} label="Copy escrow address" />
+            <CopyButton value={lease.address} label={i18n("rental.copyEscrow")} />
           </span>
         </div>
       </header>
@@ -85,6 +88,7 @@ export function RentalHero({ lease, viewer, events, chainId, scooter, wallet }: 
 }
 
 function Months({ lease }: { lease: LeaseData }) {
+  const c = useRentalCopy();
   const cells = monthCells(lease);
   if (!cells.length) return null;
   const end = lease.startTime + BigInt(lease.terms.termMonths) * RENT_PERIOD;
@@ -134,6 +138,7 @@ function BannerActionView({ action, lease }: { action: BannerAction; lease: Leas
 
 function MoneyStrip({ lease, viewer, events }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined }) {
   const baht = useBaht();
+  const c = useRentalCopy();
   const t = lease.terms;
   const f = moneyFlow(events);
   const s = c.strip;

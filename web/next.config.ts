@@ -49,10 +49,12 @@ const nextConfig: NextConfig = {
   // Always define the dev-accounts flag so Next inlines it and production bundles drop the anvil switcher
   // (an unset NEXT_PUBLIC_ var is left as a runtime lookup and nothing gets tree-shaken).
   env: { NEXT_PUBLIC_DEV_ACCOUNTS: process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ? "1" : "0" },
-  // Off on Cloudflare Workers: Cache Components' render staging relies on Node's setTimeout ordering, and under workerd
-  // every page render hangs ("code had hung and would never generate a response"). Nothing here uses "use cache".
-  cacheComponents: !cloudflare,
-  partialPrefetching: !cloudflare,
+  // Off everywhere. On Cloudflare Workers Cache Components' render staging relies on Node's setTimeout ordering, and
+  // under workerd every page render hangs ("code had hung and would never generate a response"). On Node too since every
+  // page reads the language cookie in the root layout (lib/i18n): with Cache Components that needs a Suspense hole, and
+  // the whole page would stream in hidden and be revealed late. Nothing here uses "use cache".
+  cacheComponents: false,
+  partialPrefetching: false,
   // Greenfield SDK (cosmjs/protobuf) is loaded lazily on the server only; keep it out of the bundle. The Workers build
   // stubs it instead (it would add ~5 MiB; evidence lives in R2 there).
   serverExternalPackages: cloudflare ? [] : ["@bnb-chain/greenfield-js-sdk"],

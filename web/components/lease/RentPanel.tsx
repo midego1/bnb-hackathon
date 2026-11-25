@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ActionButton, Card, Countdown, inputClass, useMoney } from "@/components/ui";
 import { LeaseStatus, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
-import { formatDate, formatUsdt } from "@/lib/format";
+import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
+import { useT } from "@/lib/i18n/client";
+import { dateTimeIn } from "./copy";
 import { nextDue, releasableMonths, type Viewer } from "./model";
 import { Stat } from "./FundingPanel";
 
@@ -18,6 +20,9 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
   const { data: token } = useTokenState(viewer === "tenant" ? address : undefined, lease.address);
   const [months, setMonths] = useState("1");
   const money = useMoney();
+  const t = useT();
+  const date = dateTimeIn(t);
+  const tx = { release: t("rental.rent.releaseTx"), approve: t("rental.rent.approveTx"), prepay: t("rental.rent.prepayTx") };
 
   const releasable = releasableMonths(lease, viewer);
   const due = nextDue(lease);
@@ -31,26 +36,28 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
     releasable > 0
       ? null
       : lease.monthsReleased >= lease.terms.termMonths
-        ? "All rent for the term has been paid out."
+        ? t("rental.rent.allOut")
         : fundedAhead === 0
-          ? "No paid-in rent left in escrow. The renter needs to prepay the next month first."
+          ? t("rental.rent.noneInEscrow")
           : due
-            ? `Next month is paid in but not due until ${formatDate(due)}.`
-            : "Nothing to pay out yet.";
+            ? t("rental.rent.notDue", { date: date(due) })
+            : t("rental.rent.nothingYet");
 
   return (
-    <Card title="Rent" aside={<span className="text-xs text-subtle">{money(lease.terms.rentAmount)} / month</span>}>
+    <Card title={t.h("rental.rent")} aside={<span className="text-xs text-subtle">{t("rental.rent.perMonth", { amount: money(lease.terms.rentAmount) })}</span>}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label="Paid out to owner">
-          <span className="font-semibold" data-testid="months-released">{lease.monthsReleased}</span> / {lease.terms.termMonths} months
+        <Stat label={t("rental.rent.paidOut")}>
+          <span className="font-semibold" data-testid="months-released">{lease.monthsReleased}</span>
+          {t("rental.rent.ofMonths", { n: lease.terms.termMonths })}
         </Stat>
-        <Stat label="Paid into escrow">
-          <span className="font-semibold">{lease.monthsFunded}</span> / {lease.terms.termMonths} months
+        <Stat label={t("rental.rent.paidIn")}>
+          <span className="font-semibold">{lease.monthsFunded}</span>
+          {t("rental.rent.ofMonths", { n: lease.terms.termMonths })}
         </Stat>
-        <Stat label="Next due">
+        <Stat label={t("rental.rent.nextDue")}>
           {due ? (
             <span className="text-sm">
-              {formatDate(due)} · <Countdown target={due} clock={lease} doneText="due now" />
+              {date(due)} · <Countdown target={due} clock={lease} doneText={t("rental.rent.dueNow")} />
             </span>
           ) : (
             <span className="text-sm">—</span>
@@ -59,59 +66,59 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <ActionButton
-          busy={pending === "Release rent"}
+          busy={pending === tx.release}
           disabledReason={releaseReason}
-          onClick={() => send("Release rent", { address: lease.address, abi: rentalEscrowAbi, functionName: "releaseRent" })}
+          onClick={() => send(tx.release, { address: lease.address, abi: rentalEscrowAbi, functionName: "releaseRent" })}
           data-testid="release-rent"
         >
-          Pay out {releasable > 0 ? `${releasable} month${releasable > 1 ? "s" : ""}` : "rent"} to owner
+          {releasable > 0 ? t(releasable > 1 ? "rental.rent.releaseMonths.other" : "rental.rent.releaseMonths.one", { n: releasable }) : t("rental.rent.releaseRent")}
         </ActionButton>
         {viewer === "tenant" && releasable > 0 && lease.monthsDue < lease.monthsFunded && (
-          <p className="text-xs text-subtle sm:col-span-2">As the renter you may pay out prepaid rent early. Once rent is due, anyone can trigger the payout.</p>
+          <p className="text-xs text-subtle sm:col-span-2">{t("rental.rent.early")}</p>
         )}
       </div>
       {canPrepay && (
         <div className="mt-4 border-t border-border pt-4">
-          <p className="mb-1 text-sm font-medium">Prepay rent</p>
-          <p className="mb-2 text-xs text-subtle">Paid into escrow now, paid out to the owner only as each month comes due. Two wallet steps: approve, then pay.</p>
+          <p className="mb-1 text-sm font-medium">{t("rental.rent.prepay")}</p>
+          <p className="mb-2 text-xs text-subtle">{t("rental.rent.prepayHint")}</p>
           <div className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr] sm:items-start">
-            <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label="Months to prepay" />
+            <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label={t("rental.rent.monthsInput")} />
             <ActionButton
               variant="secondary"
-              busy={pending === "Approve rent"}
+              busy={pending === tx.approve}
               disabledReason={
                 remainingToFund === 0
-                  ? "The whole term is already paid in."
+                  ? t("rental.rent.wholeTerm")
                   : prepay === BigInt(0)
-                    ? "Enter a number of months."
+                    ? t("rental.rent.enterMonths")
                     : !token
-                      ? "Loading your wallet balance…"
+                      ? t("rental.rent.loadingBalance")
                       : token.allowance >= prepay
-                        ? "Already approved. Now pay."
+                        ? t("rental.rent.approved")
                         : null
               }
-              onClick={() => send("Approve rent", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease.address, prepay] })}
+              onClick={() => send(tx.approve, { address: lease.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease.address, prepay] })}
             >
-              Approve {formatUsdt(prepay)} USDT
+              {t("rental.rent.approve", { amount: formatUsdt(prepay) })}
             </ActionButton>
             <ActionButton
-              busy={pending === "Prepay rent"}
+              busy={pending === tx.prepay}
               disabledReason={
                 remainingToFund === 0
-                  ? "The whole term is already paid in."
+                  ? t("rental.rent.wholeTerm")
                   : prepay === BigInt(0)
-                    ? "Enter a number of months."
+                    ? t("rental.rent.enterMonths")
                   : n > remainingToFund
-                    ? `Only ${remainingToFund} month(s) left in the term.`
+                    ? t("rental.rent.onlyLeft", { n: remainingToFund })
                     : !token || token.allowance < prepay
-                      ? "Approve the amount first (button on the left)."
+                      ? t("rental.rent.approveFirst")
                       : token.balance < prepay
-                        ? `Not enough USDT in your wallet (you have ${formatUsdt(token.balance)}).`
+                        ? t("rental.rent.notEnough", { balance: formatUsdt(token.balance) })
                         : null
               }
-              onClick={() => send("Prepay rent", { address: lease.address, abi: rentalEscrowAbi, functionName: "payRent", args: [n] })}
+              onClick={() => send(tx.prepay, { address: lease.address, abi: rentalEscrowAbi, functionName: "payRent", args: [n] })}
             >
-              Pay {n || 0} month{n === 1 ? "" : "s"}
+              {t(n === 1 ? "rental.rent.pay.one" : "rental.rent.pay.other", { n: n || 0 })}
             </ActionButton>
           </div>
         </div>

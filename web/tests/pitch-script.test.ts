@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { parsePitchStart, pitchReducer } from "@/components/pitch/Pitch";
-import { BUDGET_S, mmss, PITCH_MONEY, SCENES } from "@/components/pitch/script";
+import { BUDGET_S, mmss, PITCH_MONEY, SCENES, sceneWords } from "@/components/pitch/script";
+import { en } from "@/lib/i18n/dictionaries/en";
+import { zh } from "@/lib/i18n/dictionaries/zh";
+import { withFallback } from "@/lib/i18n/locales";
+import { makeT } from "@/lib/i18n/t";
 
 const words = (s: string) => s.trim().split(/\s+/).length;
 const total = (h: Record<string, bigint>) => Object.values(h).reduce((a, b) => a + b, BigInt(0));
 const zero = BigInt(0);
+const enT = makeT({ mode: "en", dict: en });
+const zhT = makeT({ mode: "zh", dict: withFallback(en, zh) });
 
 describe("pitch script (/pitch)", () => {
   it("follows the 3-minute run sheet: time marks in order, scenes fill exactly 3:00, then the end card", () => {
@@ -16,12 +22,23 @@ describe("pitch script (/pitch)", () => {
 
   it("every scene has one big sentence, a presenter note, and its cues and coins inside the scene", () => {
     for (const s of SCENES) {
-      expect(words(s.text), `${s.id}: "${s.text}"`).toBeLessThanOrEqual(16);
-      expect(s.note.length, s.id).toBeGreaterThan(20);
+      const w = sceneWords(enT, s);
+      expect(words(w.text as string), `${s.id}: "${w.text}"`).toBeLessThanOrEqual(16);
+      expect(w.note.length, s.id).toBeGreaterThan(20);
       for (const at of Object.values(s.cues)) expect(at, s.id).toBeLessThan(s.duration);
       for (const f of s.flashes ?? []) expect(f + 400, s.id).toBeLessThan(s.duration);
       for (const f of s.flows ?? []) expect(f.at + f.coins * 170 + 900, `${s.id} coins land in time`).toBeLessThan(s.duration);
     }
+  });
+
+  it("every scene's words resolve in English and Chinese (no key shows through)", () => {
+    for (const t of [enT, zhT])
+      for (const s of SCENES) {
+        const w = sceneWords(t, s);
+        for (const x of [w.text as string, w.note, ...(s.screen ? [w.title] : []), ...w.lines]) expect(x, s.id).not.toMatch(/^pitch\./);
+      }
+    expect(sceneWords(enT, SCENES[3]).lines[0]).toMatch(/^฿[\d,]+ in test USDT$/);
+    expect(sceneWords(zhT, SCENES[0]).text).toMatch(/\p{Script=Han}/u);
   });
 
   it("money is conserved, the safe holds rent + deposit while rented and is empty at the end", () => {

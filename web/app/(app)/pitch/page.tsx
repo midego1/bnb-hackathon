@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Pitch } from "@/components/pitch/Pitch";
-import { pitchCopy } from "@/components/pitch/script";
+import { getDictionary } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: pitchCopy.pageTitle,
-  description: "Animated storyboard of our 3-minute live pitch: a judge rents our Mystery Box on BNB Chain.",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionary();
+  return { title: t("pitch.pageTitle"), description: t("pitch.description"), robots: { index: false, follow: false } };
+}
 
 /**
  * Unlisted (not in the sidebar; linked from docs/DEMO.md): our pitch as an animated storyboard, for rehearsal and as

@@ -1,16 +1,17 @@
 import { BackOffice } from "@/components/roles/BackOffice";
 import { PageTitle } from "@/components/ui";
+import { getDictionary } from "@/lib/i18n/server";
 
-export const metadata = { title: "Back office" };
+export async function generateMetadata() {
+  const t = await getDictionary();
+  return { title: t("backoffice.name") };
+}
 
-export default function BackOfficePage() {
+export default async function BackOfficePage() {
+  const t = await getDictionary();
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-8">
-      <PageTitle title="Back office">
-        Every rental and every on-chain transaction as it happens, read straight from the contracts&apos; events: deposits locked, rent
-        paid, pickup and return inspections, AI verdicts, payouts and slashes, and Fleet Vault inflows. Anything stuck, failed or disputed
-        is flagged.
-      </PageTitle>
+      <PageTitle title={t.h("backoffice.title")}>{t("backoffice.intro")}</PageTitle>
       <BackOffice />
     </section>
   );

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { LeaseStatus } from "@/lib/contracts";
 import { explorerLink } from "@/lib/chains";
-import { formatDuration, formatUsdt, shortAddress } from "@/lib/format";
+import { formatUsdt, shortAddress } from "@/lib/format";
 import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
+import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n/t";
 import { usePrices } from "@/lib/usePrices";
 import { cn } from "@/lib/utils";
 import { Check, Copy } from "lucide-react";
@@ -35,7 +37,8 @@ export function Card({ children, className = "", title, aside }: { children: Rea
   );
 }
 
-export function PageTitle({ title, children }: { title: string; children?: ReactNode }) {
+/** `title` may be a bilingual headline (t.h). */
+export function PageTitle({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
     <div className="mb-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
@@ -44,33 +47,40 @@ export function PageTitle({ title, children }: { title: string; children?: React
   );
 }
 
-export const statusMeta: Record<LeaseStatus, { label: string; hint: string; className: string }> = {
+/** English label and hint (for code outside React); the badge reads `ui.status.<key>` in the active language. */
+export const statusMeta: Record<LeaseStatus, { key: "created" | "active" | "moveOut" | "disputed" | "settled" | "cancelled"; label: string; hint: string; className: string }> = {
   [LeaseStatus.Created]: {
+    key: "created",
     label: "Awaiting funding",
     hint: "The renter still has to fund the deposit and first month's rent.",
     className: "bg-warning-soft text-warning-fg ring-warning-border",
   },
   [LeaseStatus.Active]: {
+    key: "active",
     label: "Active",
     hint: "The deposit is locked in escrow; rent is paid out to the owner month by month.",
     className: "bg-success-soft text-success-fg ring-success-border",
   },
   [LeaseStatus.MoveOut]: {
+    key: "moveOut",
     label: "Return proposal",
     hint: "A deposit split is on the table and waits for the other side to answer.",
     className: "bg-info-soft text-info-fg ring-info-border",
   },
   [LeaseStatus.Disputed]: {
+    key: "disputed",
     label: "In dispute",
     hint: "The dispute desk decides how the deposit is split.",
     className: "bg-danger-soft text-danger-fg ring-danger-border",
   },
   [LeaseStatus.Settled]: {
+    key: "settled",
     label: "Settled",
     hint: "All funds have been paid out. This rental is closed.",
     className: "bg-surface-strong text-foreground ring-border-strong",
   },
   [LeaseStatus.Cancelled]: {
+    key: "cancelled",
     label: "Cancelled",
     hint: "The owner withdrew this offer before it was funded.",
     className: "bg-muted text-muted-foreground ring-border",
@@ -79,14 +89,15 @@ export const statusMeta: Record<LeaseStatus, { label: string; hint: string; clas
 
 export function StatusBadge({ status }: { status: LeaseStatus }) {
   const m = statusMeta[status];
+  const t = useT();
   return (
     <Badge
       data-testid="status-badge"
       data-status={status}
-      title={m.hint}
+      title={t(`ui.status.${m.key}.hint`)}
       className={cn("h-auto rounded-full border-0 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset", m.className)}
     >
-      {m.label}
+      {t(`ui.status.${m.key}.label`)}
     </Badge>
   );
 }
@@ -138,20 +149,15 @@ export function Field({ label, hint, children, error }: { label: string; hint?: 
 export const inputClass =
   "w-full min-w-0 rounded-lg border border-input bg-field px-3 py-2 text-sm transition-colors outline-none placeholder:text-subtle focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20";
 
-const SOURCE_LABEL: Record<PriceResponse["source"], { text: string; hint: string; className: string }> = {
+/** Text and hint: `ui.source.<source>` in the dictionary. */
+const SOURCE_LABEL: Record<PriceResponse["source"], { className: string }> = {
   mock: {
-    text: "Demo rates",
-    hint: "Fixed demo exchange rates (no CoinMarketCap key or Atlas feed configured). Not live market data.",
     className: "bg-warning-soft text-warning-fg ring-warning-border",
   },
   cmc: {
-    text: "Live CoinMarketCap",
-    hint: "USDT and THB rates from the CoinMarketCap Pro API, fetched server-side and cached for about a minute.",
     className: "bg-success-soft text-success-fg ring-success-border",
   },
   atlas: {
-    text: "Atlas feed",
-    hint: "USDT price from the Atlas on-chain price feed, read server-side and cached for about a minute.",
     className: "bg-info-soft text-info-fg ring-info-border",
   },
 };
@@ -159,19 +165,21 @@ const SOURCE_LABEL: Record<PriceResponse["source"], { text: string; hint: string
 /** Where the THB / USD figures come from, as reported by GET /api/price. */
 export function PriceSourceBadge({ className = "" }: { className?: string }) {
   const { prices } = usePrices();
+  const t = useT();
   if (!prices) return null;
   const m = SOURCE_LABEL[prices.source];
-  const updated = new Date(prices.updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const updated = new Date(prices.updatedAt).toLocaleTimeString(t.lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+  const hint = t(`ui.source.${prices.source}.hint`) + (prices.warning ? t("ui.source.note", { warning: prices.warning }) : "") + t("ui.source.updated", { time: updated });
   return (
     <Badge
       data-testid="price-source"
       data-source={prices.source}
-      title={`${m.hint}${prices.warning ? ` Note: ${prices.warning}` : ""} Updated ${updated}.`}
+      title={hint}
       className={cn("h-auto rounded-full border-0 px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset", m.className, className)}
     >
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-      {m.text}
-      {prices.warning && " · stale"}
+      {t(`ui.source.${prices.source}.text`)}
+      {prices.warning && t("ui.source.stale")}
     </Badge>
   );
 }
@@ -208,6 +216,7 @@ export function useBaht() {
  */
 export function Amount({ value, className = "", size = "md" }: { value: bigint; className?: string; size?: "md" | "lg" }) {
   const { prices } = usePrices();
+  const t = useT();
   const thb = toFiat(value, "USDT", "THB", prices);
   const usd = toFiat(value, "USDT", "USD", prices);
   const big = size === "lg" ? "text-2xl" : "";
@@ -218,9 +227,9 @@ export function Amount({ value, className = "", size = "md" }: { value: bigint; 
       </span>
     );
   }
-  const source = prices ? SOURCE_LABEL[prices.source].text.toLowerCase() : "";
+  const source = prices ? t(`ui.source.${prices.source}.text`).toLowerCase() : "";
   return (
-    <span className={`inline-flex flex-col ${className}`} title={`${formatUsdt(value)} USDT on-chain · converted at ${source}`}>
+    <span className={`inline-flex flex-col ${className}`} title={t("ui.source.converted", { usdt: formatUsdt(value), source })}>
       <span className={`font-semibold tabular-nums ${big}`} data-testid="amount-thb">
         {formatFiat(thb, "THB")}
       </span>
@@ -255,12 +264,14 @@ export function AddressTag({ address, chainId, label }: { address: string; chain
 
 export function CopyButton({ value, label }: { value: string; label?: string }) {
   const [done, setDone] = useState(false);
+  const t = useT();
+  const text = label ?? t("ui.copyAddress");
   return (
     <Button
       type="button"
       variant="ghost"
       size="xs"
-      title={done ? "Copied" : (label ?? "Copy address")}
+      title={done ? t("ui.copied") : text}
       className="h-auto px-1 py-0.5 text-subtle hover:bg-transparent hover:text-foreground dark:hover:bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
       onClick={() => {
         navigator.clipboard?.writeText(value).then(() => {
@@ -268,26 +279,37 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
           setTimeout(() => setDone(false), 1200);
         });
       }}
-      aria-label={label ?? "Copy address"}
+      aria-label={text}
     >
       {done ? <Check aria-hidden /> : <Copy aria-hidden />}
     </Button>
   );
 }
 
+/** lib/format.ts formatDuration in the active language: "3d 4h", "2h 5m", "7m". */
+function duration(seconds: number, t: T) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return t("ui.duration.dh", { d, h });
+  if (h > 0) return t("ui.duration.hm", { h, m });
+  return t("ui.duration.m", { m: Math.max(m, 1) });
+}
+
 /**
  * Live countdown to a chain timestamp, anchored to chain time (`chainNow`, read at wall-clock `fetchedAt`)
  * rather than the browser clock, so it stays right on a time-warped anvil.
  */
-export function Countdown({ target, clock, doneText = "now" }: { target: bigint; clock: { chainNow: bigint; fetchedAt: number }; doneText?: string }) {
+export function Countdown({ target, clock, doneText }: { target: bigint; clock: { chainNow: bigint; fetchedAt: number }; doneText?: string }) {
   const [now, setNow] = useState(() => Date.now());
+  const t = useT();
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
   const elapsed = Math.max(0, Math.floor((now - clock.fetchedAt) / 1000));
   const left = Number(target - clock.chainNow) - elapsed;
-  return <span className="tabular-nums">{left <= 0 ? doneText : `in ${formatDuration(left)}`}</span>;
+  return <span className="tabular-nums">{left <= 0 ? (doneText ?? t("ui.now")) : t("ui.in", { left: duration(left, t) })}</span>;
 }
 
 export function Notice({ kind = "info", children }: { kind?: "info" | "warn" | "error"; children: ReactNode }) {

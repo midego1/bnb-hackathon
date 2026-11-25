@@ -1,26 +1,23 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LangSwitch } from "@/components/LangSwitch";
 import { LogoMark } from "@/components/LogoMark";
 import { ACTIONS } from "@/lib/actions/definitions";
 import { docsUrl, REPO_URL } from "@/lib/links";
-import {
-  ARBITER_DAYS,
-  baht,
-  EXAMPLE,
-  explorerAddress,
-  explorerTx,
-  FEE_PERCENT,
-  FLEET_OPERATOR_FEE_PERCENT,
-  INSPECTOR_AGENT,
-  INSPECTOR_TOOLS,
-  OWNER_RESPONSE_DAYS,
-  TESTNET_CONTRACTS,
-} from "@/lib/marketing";
+import { getDictionary } from "@/lib/i18n/server";
+import { ARBITER_DAYS, baht, EXAMPLE, explorerAddress, explorerTx, FLEET_OPERATOR_FEE_PERCENT, INSPECTOR_AGENT, INSPECTOR_TOOLS, OWNER_RESPONSE_DAYS, TESTNET_CONTRACTS } from "@/lib/marketing";
+import { landingCopy, type LandingCopy } from "./copy";
 import { ArrowIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon } from "./icons";
 
 const WRAP = "mx-auto w-full max-w-7xl px-5 sm:px-8";
 const H2 = "mk-display text-[clamp(2rem,1.3rem+2.6vw,3.25rem)]";
 const LEAD = "mt-4 max-w-[62ch] text-lg leading-relaxed text-muted-foreground";
+
+/** The section's copy in the visitor's language, and its headlines (bilingual in EN+中文). */
+async function copyFor<K extends keyof LandingCopy>(key: K) {
+  const t = await getDictionary();
+  return { c: t.of(landingCopy)[key], h: (pick: (s: LandingCopy[K]) => ReactNode) => t.head(landingCopy, (x) => pick(x[key])), t };
+}
 
 function Ext({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -32,39 +29,31 @@ function Ext({ href, children }: { href: string; children: ReactNode }) {
 }
 
 /** The counter today against the counter with KeyEscrow, row by row. */
-export function Counter() {
-  const rows = [
-    ["The deposit", "Your passport or cash, in the shop's drawer", "Tokens in a contract made for this one rental"],
-    ["Proof of the scooter's condition", "A few chat photos, if any", "Guided pickup and return photos, their fingerprints stored on-chain"],
-    ["At return", "Whoever holds the passport wins the argument", "An AI inspection proposes a split; both sides accept, or the dispute desk rules"],
-    ["If the other side goes quiet", "You wait, or you fly home without it", `After ${OWNER_RESPONSE_DAYS} days of silence the full deposit goes back to the renter`],
-  ];
+export async function Counter() {
+  const { c, h } = await copyFor("counter");
   return (
     <section aria-labelledby="why" className={`${WRAP} py-20 sm:py-28`}>
       <h2 id="why" className={H2}>
-        The same counter, with nobody holding your passport.
+        {h((s) => s.title)}
       </h2>
-      <p className={LEAD}>
-        Renters fear bogus damage claims. Shop owners face real damage with no proof. Neither has anyone neutral to turn to, and nobody goes
-        to court over a few thousand baht.
-      </p>
+      <p className={LEAD}>{c.lead}</p>
       <div className="mt-10 grid gap-x-10 border-t border-border-strong text-base md:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
         <p className="hidden pt-4 text-sm text-subtle md:block" aria-hidden />
         <p className="hidden pt-4 text-sm text-subtle md:block" aria-hidden>
-          Today
+          {c.today}
         </p>
         <p className="hidden pt-4 text-sm text-subtle md:block" aria-hidden>
-          With KeyEscrow
+          {c.ours}
         </p>
-        {rows.map(([what, today, ours]) => (
+        {c.rows.map(([what, today, ours], i) => (
           <div key={what} className="grid gap-x-10 gap-y-2 border-b border-border py-5 md:col-span-3 md:grid-cols-subgrid">
-            <h3 className="font-medium">{what}</h3>
+            <h3 className="font-medium">{h((s) => s.rows[i][0])}</h3>
             <p className="flex gap-2.5 text-muted-foreground">
               <span className="mt-0.5 shrink-0 text-danger">
                 <CrossIcon />
               </span>
               <span>
-                <span className="sr-only">Today: </span>
+                <span className="sr-only">{c.today}: </span>
                 {today}
               </span>
             </p>
@@ -73,7 +62,7 @@ export function Counter() {
                 <CheckIcon />
               </span>
               <span>
-                <span className="sr-only">With KeyEscrow: </span>
+                <span className="sr-only">{c.ours}: </span>
                 {ours}
               </span>
             </p>
@@ -85,57 +74,24 @@ export function Counter() {
 }
 
 /** Four steps, each with where the example rental's money is at that point. */
-export function HowItWorks() {
-  const steps = [
-    {
-      title: "The shop offers the scooter",
-      body: "Rent, deposit and rental period, priced in baht. The rental agreement and guided pickup photos stay off-chain; only their SHA-256 fingerprints go on-chain.",
-      money: [
-        ["In escrow", baht(0)],
-        ["Passport", "with the renter"],
-      ],
-    },
-    {
-      title: "The renter funds the escrow",
-      body: "The deposit and the first month's rent go into this rental's own contract, instead of a passport at the counter.",
-      money: [
-        ["In escrow", baht(EXAMPLE.funded)],
-        ["of which deposit", baht(EXAMPLE.deposit)],
-      ],
-    },
-    {
-      title: "Ride. Rent is paid out monthly",
-      body: "Rent is released to the owner on a fixed 30-day schedule. KeyEscrow's fee comes out of the first payout only, never out of the deposit.",
-      money: [
-        ["Owner, month 1", baht(EXAMPLE.firstPayout)],
-        ["Still in escrow", baht(EXAMPLE.deposit)],
-      ],
-    },
-    {
-      title: "Return the scooter, settle in minutes",
-      body: "An AI inspection compares pickup and return photos and proposes a split of the deposit. One side proposes, the other accepts, and the money moves at once.",
-      money: [
-        ["Back to the renter", baht(EXAMPLE.deposit)],
-        ["In escrow", baht(0)],
-      ],
-    },
-  ];
+export async function HowItWorks() {
+  const { c, h } = await copyFor("how");
   return (
     <section aria-labelledby="how" className="border-y border-border bg-surface">
       <div className={`${WRAP} py-20 sm:py-28`}>
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <h2 id="how" className={H2}>
-            How it works, in four steps.
+            {h((s) => s.title)}
           </h2>
           <Link prefetch={false} href="/how-it-works" className="mk-link inline-flex items-center gap-2 text-base font-medium">
             <PlayIcon />
-            Watch it as a one-minute cartoon
+            {c.cartoon}
           </Link>
         </div>
         <ol className="mk-stops mt-16 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => (
-            <li key={s.title} className="mk-stop flex flex-col">
-              <h3 className="mk-h3 mt-2 text-2xl">{s.title}</h3>
+          {c.steps.map((s, i) => (
+            <li key={i} className="mk-stop flex flex-col">
+              <h3 className="mk-h3 mt-2 text-2xl">{h((x) => x.steps[i].title)}</h3>
               <p className="mt-3 flex-1 leading-relaxed text-muted-foreground">{s.body}</p>
               <dl className="mk-num mt-5 space-y-1.5 border-t border-border pt-4 text-sm">
                 {s.money.map(([k, v]) => (
@@ -149,9 +105,7 @@ export function HowItWorks() {
           ))}
         </ol>
         <p className="mt-10 max-w-[75ch] text-sm text-subtle">
-          The money column follows the example rental: a {EXAMPLE.scooter} at {baht(EXAMPLE.rent)} a month, a {baht(EXAMPLE.deposit)} deposit and
-          the one-time {baht(EXAMPLE.fee)} fee, at an illustrative 1 USDT = 34 THB, returned with no new damage. On testnet the token is mUSDT, a
-          test stablecoin.
+          {c.note}
         </p>
       </div>
     </section>
@@ -159,25 +113,18 @@ export function HowItWorks() {
 }
 
 /** The return inspection: the two demo photo sets and the shape of what the inspector returns. */
-export function Inspection() {
+export async function Inspection() {
+  const { c, h } = await copyFor("inspection");
   return (
     <section id="inspection" aria-labelledby="inspection-h" className={`${WRAP} py-20 sm:py-28`}>
       <div className="grid items-start gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <div>
           <h2 id="inspection-h" className={H2}>
-            The AI proposes. People decide.
+            {h((s) => s.title)}
           </h2>
-          <p className={LEAD}>
-            At return, a vision model compares the pickup photos with the return photos and proposes how to split the deposit, with its
-            reasons. It cannot move a single baht.
-          </p>
+          <p className={LEAD}>{c.lead}</p>
           <ul className="mt-8 space-y-4 text-base leading-relaxed">
-            {[
-              ["Bounded.", "The refund and the claim always add up to the deposit, and never more."],
-              ["Two signatures.", "One side submits the proposal on-chain, the other accepts. Either can dispute it instead."],
-              ["Signed.", `Reports are signed by the KeyEscrow Inspector, ERC-8004 agent #${INSPECTOR_AGENT.id} on BSC testnet, so anyone can check who wrote them.`],
-              ["With a memory.", "The inspector looks up the scooter's earlier inspections first, so an old scratch is not billed twice."],
-            ].map(([lead, rest]) => (
+            {c.points.map(([lead, rest]) => (
               <li key={lead} className="flex gap-3">
                 <span className="mt-1 shrink-0 text-success">
                   <CheckIcon />
@@ -191,10 +138,7 @@ export function Inspection() {
         </div>
         <figure className="min-w-0">
           <div className="grid grid-cols-2 gap-3">
-            {[
-              ["pickup-left", "Pickup", "Illustrated scooter seen from the left at pickup, with no damage."],
-              ["return-left", "Return", "The same scooter at return, with new scratches circled on the left side panel."],
-            ].map(([file, label, alt]) => (
+            {c.photos.map(([file, label, alt]) => (
               <div key={file}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- small pre-built WebP, sized, lazy */}
                 <img src={`/marketing/${file}.webp`} width={640} height={480} alt={alt} loading="lazy" decoding="async" className="h-auto w-full rounded-lg border border-border" />
@@ -202,21 +146,11 @@ export function Inspection() {
               </div>
             ))}
           </div>
-          <pre className="mk-code mk-scroll-x mt-5 rounded-lg border border-border bg-surface p-4" tabIndex={0} aria-label="Example inspection proposal">
-            {`{
-  // mUSDT back to the renter
-  "tenantRefund": "170.00",
-  // mUSDT to the owner
-  "landlordClaim": "30.00",
-  "reasons": [
-    "New scratches on the left side panel",
-    "Left mirror cracked; intact at pickup"
-  ]
-}`}
+          <pre className="mk-code mk-scroll-x mt-5 rounded-lg border border-border bg-surface p-4" tabIndex={0} aria-label={c.codeLabel}>
+            {c.code}
           </pre>
           <figcaption className="mt-3 text-sm text-subtle">
-            The demo&apos;s illustrated photo set and an example proposal on a 200 mUSDT deposit. The contracts say tenant and landlord where
-            this page says renter and owner.
+            {c.caption}
           </figcaption>
         </figure>
       </div>
@@ -225,47 +159,33 @@ export function Inspection() {
 }
 
 /** Three ways a return ends, on one 14-day scale. */
-export function Deadlines() {
+export async function Deadlines() {
+  const { c, h } = await copyFor("deadlines");
   const lanes = [
-    { title: "You agree", days: 0, tone: "bg-[var(--mk-teal)]", end: "Settled at once", body: "One side proposes the split, the other accepts. The deposit moves in the same transaction." },
-    {
-      title: "The owner goes quiet",
-      days: OWNER_RESPONSE_DAYS,
-      tone: "bg-[var(--mk-amber)]",
-      end: `Day ${OWNER_RESPONSE_DAYS}: full deposit back to the renter`,
-      body: `If the owner ignores the renter's proposal for ${OWNER_RESPONSE_DAYS} days, the renter can claim the whole deposit.`,
-    },
-    {
-      title: "You disagree",
-      days: ARBITER_DAYS,
-      tone: "bg-[var(--mk-pink)]",
-      end: `A ruling by day ${ARBITER_DAYS}, or the full deposit goes back to the renter`,
-      body: `The dispute desk rules with the photos, both proposals and the AI report in front of it, and it has ${ARBITER_DAYS} days to do so.`,
-    },
-  ];
+    { days: 0, tone: "bg-[var(--mk-teal)]" },
+    { days: OWNER_RESPONSE_DAYS, tone: "bg-[var(--mk-amber)]" },
+    { days: ARBITER_DAYS, tone: "bg-[var(--mk-pink)]" },
+  ].map((l, i) => ({ ...l, ...c.lanes[i] }));
   return (
     <section aria-labelledby="disputes" className="mk-night">
       <div className={`${WRAP} py-20 sm:py-28`}>
         <h2 id="disputes" className={H2}>
-          Every dispute has a deadline.
+          {h((s) => s.title)}
         </h2>
-        <p className={LEAD}>
-          The KeyEscrow dispute desk is the default arbiter; an owner can name another neutral one, and the renter sees who it is before
-          paying. Whoever it is, the clock protects the renter.
-        </p>
+        <p className={LEAD}>{c.lead}</p>
         <div className="mt-12 hidden gap-x-10 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]" aria-hidden>
           <span />
           <div className="mk-lane-scale mk-num">
-            <span style={{ left: 0 }}>Day 0</span>
-            <span style={{ left: `${(OWNER_RESPONSE_DAYS / ARBITER_DAYS) * 100}%`, transform: "translateX(-50%)" }}>Day {OWNER_RESPONSE_DAYS}</span>
-            <span style={{ right: 0 }}>Day {ARBITER_DAYS}</span>
+            <span style={{ left: 0 }}>{c.day(0)}</span>
+            <span style={{ left: `${(OWNER_RESPONSE_DAYS / ARBITER_DAYS) * 100}%`, transform: "translateX(-50%)" }}>{c.day(OWNER_RESPONSE_DAYS)}</span>
+            <span style={{ right: 0 }}>{c.day(ARBITER_DAYS)}</span>
           </div>
         </div>
         <ol className="mt-10 space-y-9 md:mt-4">
-          {lanes.map((l) => (
-            <li key={l.title} className="grid gap-x-10 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center">
+          {lanes.map((l, i) => (
+            <li key={i} className="grid gap-x-10 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center">
               <div>
-                <h3 className="mk-h3 text-2xl">{l.title}</h3>
+                <h3 className="mk-h3 text-2xl">{h((s) => s.lanes[i].title)}</h3>
                 <p className="mt-2 max-w-[48ch] leading-relaxed text-muted-foreground">{l.body}</p>
               </div>
               <div>
@@ -278,9 +198,9 @@ export function Deadlines() {
           ))}
         </ol>
         <p className="mt-10 text-sm text-subtle">
-          {OWNER_RESPONSE_DAYS} and {ARBITER_DAYS} days are the defaults; each rental fixes its own windows when it is created.{" "}
+          {c.note}{" "}
           <Link prefetch={false} href="/arbiter" className="mk-link">
-            Open the dispute desk
+            {c.desk}
           </Link>
         </p>
       </div>
@@ -288,49 +208,40 @@ export function Deadlines() {
   );
 }
 
-export function FleetVault() {
+export async function FleetVault() {
+  const { c, h } = await copyFor("fleet");
   const rest = 100 - FLEET_OPERATOR_FEE_PERCENT;
   return (
     <section id="fleet" aria-labelledby="fleet-h" className={`${WRAP} py-20 sm:py-28`}>
       <h2 id="fleet-h" className={H2}>
-        Fleet Vault: one fleet, many owners.
+        {h((s) => s.title)}
       </h2>
-      <p className={LEAD}>
-        A shop can point a scooter&apos;s income at a vault instead of its own wallet. Rent and damage payouts land in the vault and are
-        shared among whoever holds its shares. A testnet prototype.
-      </p>
+      <p className={LEAD}>{c.lead}</p>
       <div className="mt-12 grid gap-x-16 gap-y-12 lg:grid-cols-2">
         <div>
-          <h3 className="mk-h3 text-2xl">For shop owners</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">
-            List a scooter with the vault as its payee. You keep every role in the rental (propose, accept, dispute); only the payouts go to
-            the vault. The operator keeps {FLEET_OPERATOR_FEE_PERCENT}% of income for maintenance.
-          </p>
+          <h3 className="mk-h3 text-2xl">{h((s) => s.owners)}</h3>
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">{c.ownersBody}</p>
           <Link prefetch={false} href="/landlord" className="mk-link mt-4 inline-flex items-center gap-2 font-medium">
-            Open the fleet owner view <ArrowIcon />
+            {c.ownersLink} <ArrowIcon />
           </Link>
         </div>
         <div>
-          <h3 className="mk-h3 text-2xl">For shareholders</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">
-            Deposit mUSDT and receive BKK-FLEET-1 shares one to one. Claim your share of the fleet&apos;s income whenever you like, or redeem
-            the shares for your deposit.
-          </p>
+          <h3 className="mk-h3 text-2xl">{h((s) => s.holders)}</h3>
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">{c.holdersBody}</p>
           <Link prefetch={false} href="/shareholders" className="mk-link mt-4 inline-flex items-center gap-2 font-medium">
-            Open the shareholder view <ArrowIcon />
+            {c.holdersLink} <ArrowIcon />
           </Link>
         </div>
       </div>
       <figure className="mt-12">
-        <div className="flex h-14 overflow-hidden rounded-lg text-sm font-medium" role="img" aria-label={`Of every baht of vault income, ${FLEET_OPERATOR_FEE_PERCENT}% goes to the operator and ${rest}% to shareholders.`}>
+        <div className="flex h-14 overflow-hidden rounded-lg text-sm font-medium" role="img" aria-label={c.splitLabel(rest)}>
           <span className="grid place-items-center bg-foreground px-2 text-background" style={{ width: `${FLEET_OPERATOR_FEE_PERCENT}%`, minWidth: "7.5rem" }}>
-            {FLEET_OPERATOR_FEE_PERCENT}% operator
+            {c.operator}
           </span>
-          <span className="grid flex-1 place-items-center bg-[var(--mk-teal)] px-3 text-[#06231f]">{rest}% to shareholders, pro rata</span>
+          <span className="grid flex-1 place-items-center bg-[var(--mk-teal)] px-3 text-[#06231f]">{c.toHolders(rest)}</span>
         </div>
         <figcaption className="mt-3 max-w-[75ch] text-sm text-subtle">
-          Where vault income goes: {FLEET_OPERATOR_FEE_PERCENT}% to the operator for maintenance, the rest to shareholders. Revenue-sharing
-          tokens can be securities; compliant issuance and resale of shares are next steps, and this prototype does neither.
+          {c.caption}
         </figcaption>
       </figure>
     </section>
@@ -338,45 +249,41 @@ export function FleetVault() {
 }
 
 /** One definition per rental action: REST endpoint, MCP tool and A2A skill. */
-export function Agents() {
+export async function Agents() {
+  const { c, h } = await copyFor("agents");
   return (
     <section id="agents" aria-labelledby="agents-h" className="mk-night">
       <div className={`${WRAP} grid gap-x-16 gap-y-12 py-20 sm:py-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}>
         <div>
           <h2 id="agents-h" className={H2}>
-            Built for agents, not only for browsers.
+            {h((s) => s.title)}
           </h2>
           <p className={LEAD}>
-            Every rental action is defined once and served three ways: a REST endpoint, an MCP tool and an A2A skill. The{" "}
-            <code className="mk-code">prepare_*</code> actions return unsigned transactions, already simulated on the chain, for your own wallet
-            to sign. KeyEscrow never holds a key.
+            {c.lead[0]}
+            <code className="mk-code">prepare_*</code>
+            {c.lead[1]}
           </p>
           <p className="mt-5 max-w-[62ch] leading-relaxed text-muted-foreground">
-            The inspector is an agent too: ERC-8004 agent #{INSPECTOR_AGENT.id} in the Identity Registry on BSC testnet (
-            <Ext href={explorerTx(INSPECTOR_AGENT.registerTx)}>registration</Ext>
-            ). Other agents can find it, call it and verify what it signed.
+            {c.inspector[0]}
+            <Ext href={explorerTx(INSPECTOR_AGENT.registerTx)}>{c.inspector[1]}</Ext>
+            {c.inspector[2]}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link prefetch={false} href="/developers" data-testid="mk-developers" className="mk-btn mk-btn-amber">
-              Developer reference
+              {c.developers}
               <ArrowIcon />
             </Link>
             <a href={docsUrl("AGENT.md")} className="mk-btn mk-btn-line">
-              Agent docs
+              {c.docs}
             </a>
           </div>
         </div>
         <div className="min-w-0">
-          <pre className="mk-code mk-scroll-x rounded-lg border border-border bg-surface p-4" tabIndex={0} aria-label="Connect Claude Code to the local KeyEscrow MCP server">
-            {`# the agent, from a checkout of the repo
-pnpm agent:dev
-
-# then, in Claude Code
-claude mcp add --transport http keyescrow \\
-  http://127.0.0.1:8790/mcp`}
+          <pre className="mk-code mk-scroll-x rounded-lg border border-border bg-surface p-4" tabIndex={0} aria-label={c.codeLabel}>
+            {c.code}
           </pre>
           <h3 className="mt-8 text-sm text-subtle">
-            {ACTIONS.length} rental tools and {INSPECTOR_TOOLS.length} inspector tools
+            {c.tools(ACTIONS.length, INSPECTOR_TOOLS.length)}
           </h3>
           <ul className="mk-code mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-muted-foreground">
             {[...ACTIONS.map((a) => a.name), ...INSPECTOR_TOOLS].map((name) => (
@@ -389,43 +296,39 @@ claude mcp add --transport http keyescrow \\
   );
 }
 
-export function Live() {
+export async function Live() {
+  const { c, h } = await copyFor("live");
   return (
     <section id="live" aria-labelledby="live-h" className={`${WRAP} py-20 sm:py-28`}>
       <h2 id="live-h" className={H2}>
-        Live on BSC testnet. Check it yourself.
+        {h((s) => s.title)}
       </h2>
-      <p className={LEAD}>
-        The contracts are deployed on BSC testnet (chain 97) and their source is verified (an exact match on Sourcify), so what runs is
-        what is in the repo. They are small and non-upgradeable. Nobody holds an admin key over a rental&apos;s funds: the money can only
-        go to the two parties named at creation, and the dispute desk can only rule on a rental that is in dispute. Test money only: there
-        is no mainnet deployment yet.
-      </p>
+      <p className={LEAD}>{c.lead}</p>
       <table className="mt-10 block w-full border-collapse text-left md:table">
-        <caption className="sr-only">KeyEscrow contracts on BSC testnet</caption>
+        <caption className="sr-only">{c.caption}</caption>
         <thead className="hidden md:table-header-group">
           <tr className="border-b border-border-strong text-sm text-subtle">
             <th scope="col" className="py-3 pr-6 font-normal">
-              Contract
+              {c.cols[0]}
             </th>
             <th scope="col" className="py-3 pr-6 font-normal">
-              What it does
+              {c.cols[1]}
             </th>
             <th scope="col" className="py-3 font-normal">
-              Address (BscScan testnet)
+              {c.cols[2]}
             </th>
           </tr>
         </thead>
         <tbody className="block border-t border-border-strong md:table-row-group md:border-0">
-          {TESTNET_CONTRACTS.map((c) => (
-            <tr key={c.name} className="block border-b border-border py-4 align-baseline md:table-row md:py-0">
+          {TESTNET_CONTRACTS.map((k) => (
+            <tr key={k.name} className="block border-b border-border py-4 align-baseline md:table-row md:py-0">
               <th scope="row" className="mk-h3 block text-lg whitespace-nowrap md:table-cell md:py-4 md:pr-6">
-                {c.name}
+                {k.name}
               </th>
-              <td className="block pt-1 text-muted-foreground md:table-cell md:py-4 md:pr-6">{c.role}</td>
+              <td className="block pt-1 text-muted-foreground md:table-cell md:py-4 md:pr-6">{c.roles[k.name]}</td>
               <td className="block pt-2 md:table-cell md:py-4">
-                <a href={explorerAddress(c.address)} className="mk-link mk-code inline-flex items-center gap-1.5 whitespace-nowrap" data-testid="mk-contract">
-                  {c.address.slice(0, 10)}…{c.address.slice(-8)}
+                <a href={explorerAddress(k.address)} className="mk-link mk-code inline-flex items-center gap-1.5 whitespace-nowrap" data-testid="mk-contract">
+                  {k.address.slice(0, 10)}…{k.address.slice(-8)}
                   <ExternalIcon />
                 </a>
               </td>
@@ -435,22 +338,17 @@ export function Live() {
       </table>
       <div className="mt-14 grid gap-x-16 gap-y-10 lg:grid-cols-2">
         <div>
-          <h3 className="mk-h3 text-2xl">Prices in baht, with the source on show</h3>
-          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">
-            Everyone at the counter thinks in baht, so every amount is shown in THB first, then USD and the exact token amount. Rates come
-            from the Atlas on-chain feed or the CoinMarketCap Pro API, read on the server, and a badge always says which one you are looking
-            at: Atlas feed, Live CoinMarketCap or Demo rates.
-          </p>
+          <h3 className="mk-h3 text-2xl">{h((s) => s.prices)}</h3>
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">{c.pricesBody}</p>
         </div>
         <div>
-          <h3 className="mk-h3 text-2xl">A deposit that keeps covering the repair bill</h3>
+          <h3 className="mk-h3 text-2xl">{h((s) => s.risk)}</h3>
           <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">
-            The risk engine turns CoinMarketCap volatility into a deposit buffer: none for a stablecoin, more for BNB, and a token that swings
-            too much is refused.{" "}
+            {c.riskBody[0]}
             <Link prefetch={false} href="/integrations" className="mk-link" data-testid="mk-integrations">
-              See each integration and its recent calls
+              {c.riskBody[1]}
             </Link>
-            , including which ones are live on this server.
+            {c.riskBody[2]}
           </p>
         </div>
       </div>
@@ -458,28 +356,20 @@ export function Live() {
   );
 }
 
-export function Fee() {
-  const rows: [string, number, string?][] = [
-    ["Monthly rent", EXAMPLE.rent],
-    ["Deposit, two months, instead of the passport", EXAMPLE.deposit],
-    ["Renter pays in at pickup: deposit and month 1", EXAMPLE.funded],
-    ["KeyEscrow fee, once", EXAMPLE.fee, "font-semibold"],
-    ["Owner receives for month 1", EXAMPLE.firstPayout],
-    ["Owner receives for each later month", EXAMPLE.rent],
-  ];
+export async function Fee() {
+  const { c, h } = await copyFor("fee");
+  const amounts = [EXAMPLE.rent, EXAMPLE.deposit, EXAMPLE.funded, EXAMPLE.fee, EXAMPLE.firstPayout, EXAMPLE.rent];
+  const rows = c.rows.map((label, i): [string, number, string?] => [label, amounts[i], i === 3 ? "font-semibold" : undefined]);
   return (
     <section id="fee" aria-labelledby="fee-h" className="mk-amber" data-testid="fee-pitch">
       <div className={`${WRAP} grid gap-x-16 gap-y-10 py-20 sm:py-28 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]`}>
         <h2 id="fee-h" className="mk-display text-[clamp(2.4rem,1.2rem+5vw,5.5rem)] leading-[0.98] lg:col-span-2">
-          {FEE_PERCENT}% of one month&apos;s rent. Once.
+          {h((s) => s.title)}
         </h2>
-        <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">
-          Paid by the owner out of the first rent payout, however long the rental runs. Never taken from the deposit: that is the
-          renter&apos;s money until the rental is settled. The renter pays nothing extra, and there is no token.
-        </p>
+        <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">{c.body}</p>
         <div>
           <table className="mk-num w-full border-collapse text-left">
-            <caption className="pb-3 text-left text-sm text-subtle">A {EXAMPLE.scooter} rented by the month, in baht</caption>
+            <caption className="pb-3 text-left text-sm text-subtle">{c.caption}</caption>
             <tbody>
               {rows.map(([label, value, cls]) => (
                 <tr key={label} className={`border-t border-border ${cls ?? ""}`}>
@@ -492,8 +382,7 @@ export function Fee() {
             </tbody>
           </table>
           <p className="mt-3 text-sm text-subtle">
-            Illustrative rate of 1 USDT = 34 THB. Over a three-month rental the fee is about 3% of the rent. The rate is capped in the
-            factory contract, and each rental keeps the rate it was created with.
+            {c.note}
           </p>
         </div>
       </div>
@@ -501,55 +390,47 @@ export function Fee() {
   );
 }
 
-export function Roadmap() {
-  const phases = [
-    ["Now", "Hackathon build", "Escrow, vault and inspector agent on BSC testnet. Owner, renter and dispute-desk flows. AI inspection proposals. Baht-first prices."],
-    ["Q1 2027", "Testnet pilot", "10 to 20 real scooter rentals with friendly shops in Chiang Mai and Phuket, on testnet funds. An independent security review of the contracts."],
-    ["Q2 to Q3 2027", "Mainnet and opBNB", "A real, widely held stablecoin. Wallet onboarding for people new to crypto. Legal review of the escrow and dispute-desk roles under Thai law."],
-    ["After that", "Partnerships", "Rental shops, fleet operators and travel platforms. Rental associations as named arbiters. Other places with the same passport problem."],
-  ];
+export async function Roadmap() {
+  const { c, h } = await copyFor("roadmap");
   return (
     <section aria-labelledby="roadmap" className={`${WRAP} py-20 sm:py-28`}>
       <h2 id="roadmap" className={H2}>
-        Where this goes next.
+        {h((s) => s.title)}
       </h2>
-      <p className={LEAD}>Today KeyEscrow is a working testnet build, not a business with customers. This is the plan from here.</p>
+      <p className={LEAD}>{c.lead}</p>
       <ol className="mt-12 border-t border-border-strong">
-        {phases.map(([when, title, body]) => (
-          <li key={title} className="grid gap-x-10 gap-y-1 border-b border-border py-6 md:grid-cols-[10rem_14rem_minmax(0,1fr)] md:items-baseline">
+        {c.phases.map(([when, , body], i) => (
+          <li key={i} className="grid gap-x-10 gap-y-1 border-b border-border py-6 md:grid-cols-[10rem_14rem_minmax(0,1fr)] md:items-baseline">
             <p className="mk-num text-sm text-subtle">{when}</p>
-            <h3 className="mk-h3 text-xl">{title}</h3>
+            <h3 className="mk-h3 text-xl">{h((s) => s.phases[i][1])}</h3>
             <p className="max-w-[68ch] leading-relaxed text-muted-foreground">{body}</p>
           </li>
         ))}
       </ol>
       <p className="mt-6 text-sm text-subtle">
-        The full plan, the risks and how we would handle them: <Ext href={docsUrl("BUSINESS.md")}>business model</Ext>
+        {c.more} <Ext href={docsUrl("BUSINESS.md")}>{c.business}</Ext>
       </p>
     </section>
   );
 }
 
 /** The last ask, on the night band the page opened with. */
-export function ClosingCta({ demo }: { demo: boolean }) {
+export async function ClosingCta({ demo }: { demo: boolean }) {
+  const { c, h } = await copyFor("closing");
   return (
     <section aria-labelledby="closing" className="mk-night">
       <div className={`${WRAP} py-20 sm:py-24`}>
         <h2 id="closing" className="mk-display max-w-[18ch] text-[clamp(2.2rem,1.3rem+3.6vw,4rem)]">
-          See a deposit come back on its own.
+          {h((s) => s.title)}
         </h2>
-        <p className={LEAD}>
-          {demo
-            ? "The demo runs one whole rental: funded, paid out, inspected by AI and settled, with on-chain transactions you can follow."
-            : "Open the app and walk through a rental as the owner, the renter or the dispute desk."}
-        </p>
+        <p className={LEAD}>{demo ? c.demo : c.app}</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link prefetch={false} href={demo ? "/demo" : "/app"} className="mk-btn mk-btn-amber">
             {demo && <PlayIcon />}
-            {demo ? "Play the live demo" : "Open the app"}
+            {demo ? c.playDemo : c.openApp}
           </Link>
           <a href={REPO_URL} className="mk-btn mk-btn-line" data-testid="mk-github">
-            Read the code on GitHub
+            {c.github}
           </a>
         </div>
       </div>
@@ -557,53 +438,58 @@ export function ClosingCta({ demo }: { demo: boolean }) {
   );
 }
 
-export function SiteFooter({ demo }: { demo: boolean }) {
+export async function SiteFooter({ demo }: { demo: boolean }) {
+  const { c, t } = await copyFor("footer");
+  const l = c.links;
   const columns: [string, [string, string, boolean?][]][] = [
     [
-      "Try it",
+      c.tryIt,
       [
-        ...(demo ? ([["/demo", "Play the live demo"]] as [string, string][]) : []),
-        ["/how-it-works", "How it works, as a cartoon"],
-        ["/app", "Open the app"],
-        ["/tenant", "Renter"],
-        ["/landlord", "Fleet owner"],
-        ["/shareholders", "Shareholders"],
-        ["/arbiter", "Dispute desk"],
+        ...(demo ? ([["/demo", l.demo]] as [string, string][]) : []),
+        ["/how-it-works", l.cartoon],
+        ["/app", l.app],
+        ["/tenant", l.tenant],
+        ["/landlord", l.landlord],
+        ["/shareholders", l.shareholders],
+        ["/arbiter", l.arbiter],
       ],
     ],
     [
-      "Build",
+      c.build,
       [
-        ["/developers", "Developer reference"],
-        ["/integrations", "Integrations"],
-        [docsUrl("AGENT.md"), "Inspector agent", true],
-        [docsUrl("API.md"), "API", true],
-        [docsUrl("ARCHITECTURE.md"), "Architecture", true],
+        ["/developers", l.developers],
+        ["/integrations", l.integrations],
+        [docsUrl("AGENT.md"), l.agent, true],
+        [docsUrl("API.md"), l.api, true],
+        [docsUrl("ARCHITECTURE.md"), l.architecture, true],
       ],
     ],
     [
-      "Read",
+      c.read,
       [
-        [REPO_URL, "GitHub", true],
-        [docsUrl("BUSINESS.md"), "Business model", true],
-        [docsUrl("WRITEUP.md"), "CoinMarketCap x Atlas write-up", true],
-        [docsUrl("DEPLOY.md"), "Testnet deployment", true],
+        [REPO_URL, l.github, true],
+        [docsUrl("BUSINESS.md"), l.business, true],
+        [docsUrl("WRITEUP.md"), l.writeup, true],
+        [docsUrl("DEPLOY.md"), l.deploy, true],
       ],
     ],
   ];
   return (
     <footer className="mk-night">
       <div className={`${WRAP} pb-16`}>
-        <nav aria-label="Footer" className="grid gap-x-10 gap-y-10 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <nav aria-label={c.label} className="grid gap-x-10 gap-y-10 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <p className="flex items-center gap-2.5 text-xl">
               <LogoMark className="h-8 w-8" />
               <span className="mk-display">KeyEscrow</span>
             </p>
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-subtle">
-              Scooter rental deposits and rent, held in escrow on BNB Chain. Built for BNB Bangkok 2026. Open source (MIT), testnet only, no
-              token.
-            </p>
+            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-subtle">{c.about}</p>
+            <LangSwitch className="mt-4 inline-flex border-border text-foreground" />
+            {t.mode !== "en" && (
+              <p className="mt-3 max-w-[34ch] text-sm text-subtle" data-testid="ai-translated">
+                {t.h("aiNote")}
+              </p>
+            )}
           </div>
           {columns.map(([title, links]) => (
             <div key={title}>

@@ -3,7 +3,10 @@ import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi
 import type { DevRole } from "../devAccounts";
 import type { UploadedFile } from "../evidence";
 import { hashText } from "../hash";
+import { localized, type Lang } from "../i18n/locales";
 import type { InspectionPhoto, InspectionResult } from "../settlement";
+import { zhPropertyName } from "./places.zh";
+import { zhPaths, zhSteps, zhTxLabel } from "./script.zh";
 
 /**
  * The guided one-click demo (/demo, local anvil only). Each step is a short, plain-English beat of the KeyEscrow
@@ -466,11 +469,33 @@ const vaultIncome: DemoStep = {
 
 const prefix = [createLease, recordCheckIn, getUsdt, fund, payRent, checkOut, inspect, propose];
 
-export function stepsFor(path: DemoPath): DemoStep[] {
+function pathSteps(path: DemoPath): DemoStep[] {
   if (path === "dispute") return [...prefix, dispute, resolve, final];
   if (path === "timeout") return [...prefix, wait, claimTimeout, final];
   if (path === "fleet") return [...prefix, accept, vaultIncome, final];
   return [...prefix, accept, final];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Languages: the English above, Chinese in script.zh.ts (title, caption and badge per step id).
+// ---------------------------------------------------------------------------------------------------------------
+
+const ALL = [...prefix, accept, dispute, resolve, wait, claimTimeout, final, vaultIncome];
+const STEP_TEXT: Record<string, Pick<DemoStep, "title" | "caption" | "demoOnly">> = Object.fromEntries(
+  ALL.map((s) => [s.id, { title: s.title, caption: s.caption, demoOnly: s.demoOnly }]),
+);
+/** Step title, caption and badge by step id, in a language. */
+export const stepText = localized(STEP_TEXT, zhSteps);
+/** The story picker's labels in a language. */
+export const paths = localized(PATHS, zhPaths);
+/** A transaction label as the steps record it, in a language. */
+export const txLabel = (label: string, lang: Lang) => (lang === "zh" ? zhTxLabel(label) : label);
+/** A demo rental's name (PROPERTIES) in a language. */
+export const propertyName = (name: string, lang: Lang) => (lang === "zh" ? zhPropertyName(name) : name);
+
+export function stepsFor(path: DemoPath, lang: Lang = "en"): DemoStep[] {
+  const text = stepText(lang);
+  return pathSteps(path).map((s) => ({ ...s, ...text[s.id] }));
 }
 
 /**

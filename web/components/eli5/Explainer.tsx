@@ -3,7 +3,8 @@
 import { ChevronLeft, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useReducer, useSyncExternalStore } from "react";
-import { baht, copy, dollars, ENDINGS, story, type Ending, type Scene } from "./script";
+import { useT } from "@/lib/i18n/client";
+import { baht, dollars, eli5Copy, ENDINGS, endingsText, sceneText, story, type Ending, type Scene } from "./script";
 import { Stage } from "./Stage";
 import { holdingsAt } from "./timeline";
 
@@ -97,8 +98,11 @@ export function useReducedMotion() {
 export function Explainer({ realDemo }: { realDemo: boolean }) {
   const [s, dispatch] = useReducer(reducer, DEFAULT_START);
   const reduced = useReducedMotion();
+  const t = useT();
+  const copy = t.of(eli5Copy);
   const scenes = STORIES[s.ending];
-  const scene = scenes[s.index];
+  // The clock runs on the English story; the words come in the visitor's language.
+  const scene = { ...scenes[s.index], ...t.of(sceneText)[scenes[s.index].id] };
   const last = scenes.length - 1;
   const done = s.index === last && s.t >= scene.duration;
 
@@ -159,7 +163,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         <div className="flex items-center gap-2" role="radiogroup" aria-label={copy.ending}>
           <span className="text-sm font-medium text-subtle">{copy.ending}</span>
           <div className="inline-flex rounded-xl border border-border-strong bg-surface p-0.5">
-            {ENDINGS.map((e) => (
+            {t.of(endingsText).map((e) => (
               <button
                 key={e.id}
                 type="button"
@@ -205,7 +209,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       {/* Narration + controls. */}
       <div className="grid shrink-0 gap-3 rounded-2xl border border-border bg-surface px-5 py-3 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div key={`${s.ending}-${scene.id}`} className="demo-pop min-w-0" data-testid="eli5-narration" aria-live="polite">
-          <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{scene.text}</p>
+          <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{t.head(sceneText, (x) => x[scene.id].text)}</p>
           <p className="mt-1.5 text-sm text-subtle">
             <span className="font-medium text-muted-foreground">{copy.grownUp}:</span> {scene.detail}
           </p>

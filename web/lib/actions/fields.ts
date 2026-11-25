@@ -7,6 +7,7 @@
  */
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { z } from "zod";
+import type { T } from "@/lib/i18n/t";
 
 /** MockUSDT on anvil and BSC testnet: 6 decimals, symbol mUSDT. */
 export const TOKEN = { symbol: "mUSDT", decimals: 6 } as const;
@@ -144,6 +145,20 @@ export function fieldError(schema: z.ZodObject, key: string, value: unknown): st
   if (!f) throw new Error(`no field ${key}`);
   const r = f.safeParse(value);
   return r.success ? undefined : r.error.issues[0]?.message;
+}
+
+/** fieldError for the web forms, in the active language (ui.field); the API and MCP tools keep the English. */
+export function fieldErrorIn(t: T, schema: z.ZodObject, key: string, value: unknown): string | undefined {
+  const msg = fieldError(schema, key, value);
+  if (!msg || t.lang === "en") return msg;
+  const range = /^(\d+) to (\d+)\.$/.exec(msg);
+  if (range) return t("ui.field.range", { min: range[1], max: range[2] });
+  if (msg.startsWith("Not a valid address")) return t("ui.field.address");
+  if (msg.startsWith("Enter an amount in")) return t("ui.field.amount", { symbol: TOKEN.symbol, decimals: TOKEN.decimals });
+  if (msg.startsWith("Enter a positive amount")) return t("ui.field.positive");
+  if (msg === "Must be more than 0.") return t("ui.field.moreThan0");
+  if (msg === "Enter a whole number.") return t("ui.field.whole");
+  return msg;
 }
 
 /** The label of one field (from its metadata). */
