@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { Suspense } from "react";
 import { Header } from "@/components/Header";
 import { SettingsGear } from "@/components/SettingsGear";
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <span>KeyEscrow · open source (MIT) · testnet demo, no token</span>
               <a href={REPO_URL} className="underline-offset-2 hover:underline">GitHub</a>
               <a href={docsUrl("README.md")} className="underline-offset-2 hover:underline">Docs</a>
+              <Link href="/how-it-works" className="underline-offset-2 hover:underline" data-testid="footer-eli5">How it works, explained simply</Link>
               <Suspense fallback={null}>
                 <SettingsGear variant="footer" />
               </Suspense>

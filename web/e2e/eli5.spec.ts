@@ -136,10 +136,10 @@ test("reduced motion: coins fade in place instead of flying, and the story still
   await expect(page.getByTestId("eli5-recap")).toBeVisible();
 });
 
-test("it is linked from the header, the home page and /demo", async ({ page }) => {
+test("it is linked from the home page, the footer and /demo", async ({ page }) => {
   await page.setViewportSize({ width: 1470, height: 830 });
   await page.goto("/");
-  await expect(page.getByRole("banner").getByRole("link", { name: "How it works" })).toHaveAttribute("href", "/how-it-works");
+  await expect(page.getByTestId("footer-eli5")).toHaveAttribute("href", "/how-it-works");
   await page.getByTestId("home-eli5").click();
   await expect(root(page)).toBeVisible();
   await page.goto("/demo"); // the link shows from 1400 px wide; at 1280 the header's "How it works" covers it
