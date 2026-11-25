@@ -194,9 +194,12 @@ for (const vp of VIEWPORTS) {
     await page.setViewportSize(vp);
     await page.goto("/demo");
     await expect(page.getByTestId("demo-play")).toBeEnabled();
-    await page.keyboard.press("ControlOrMeta+j");
     const panel = page.getByTestId("assistant-panel");
-    await expect(panel).toBeVisible();
+    // A key pressed before the app shell has hydrated is lost: retry, as in e2e/assistant.spec.ts.
+    await expect(async () => {
+      await page.keyboard.press("ControlOrMeta+j");
+      await expect(panel).toBeVisible({ timeout: 1000 });
+    }).toPass();
     await expect(panel).toBeInViewport({ ratio: 1 });
     await watchOverflow(page);
     await expectOneScreen(page, "with the panel open, before play");
