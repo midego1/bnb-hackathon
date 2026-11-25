@@ -206,8 +206,13 @@ step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with
   step) live in `<secrets>/testnet-demo-wallets.json` (mode 600), created on first use. A wallet below 0.002 tBNB is
   topped up by the deployer with 0.005 tBNB (hard cap); if that would leave the deployer under 0.05 tBNB the run is
   refused with a friendly message. Top-ups show on the demo timeline.
-- **Limits.** One run at a time (a lock freed at the end, or after 2 idle minutes); at most one run per 60 s and 12 per
-  hour (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`); 2.5M gas and 20 transactions per run
+- **One run at a time.** The browser pings every 10 s while its run plays (or waits for a click); the lock is freed
+  at the end, when the tab closes, or 45 s after the last ping (an error screen stops the pings). Start over from the
+  same browser takes its own run over. A visitor who finds the demo busy sees "free in ~N s" and starts by itself
+  (up to 10 minutes). A run whose lock lapsed mid-story resumes its demo lease. The stage's contract reads go through
+  `/api/demo-testnet/read` (this run's factory, token and lease only) on the server's RPC, at the run's latest
+  receipt block, so a viewer's slow route to a public RPC cannot stall a step.
+- **Limits.** At most one run per 60 s and 12 per hour (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`); 2.5M gas and 20 transactions per run
   (`DEMO_TESTNET_MAX_GAS_PER_RUN`); 1 gwei legacy gas price; a 45 s receipt timeout (`DEMO_TESTNET_TX_TIMEOUT_S`) after
   which Retry waits for the same transaction instead of sending it again. Only the story's own calls are signed: an
   allowlist checks the contract, function, role and arguments (`guards.ts`, unit-tested).

@@ -6,12 +6,15 @@ import {
   DemoError,
   demoTestnetConfig,
   DEPLOYER_FLOOR_MIN,
+  EXPECTED_RUN_MS,
   gasLeft,
   RateLimiter,
   RunLock,
   TOP_UP_CAP,
   topUpPlan,
   vetCall,
+  vetRead,
+  vetResumeLease,
   type DemoAddresses,
   type RunState,
 } from "@/lib/server/demoTestnet/guards";
@@ -82,29 +85,65 @@ describe("demo testnet routes", () => {
 });
 
 describe("one run at a time", () => {
-  it("refuses a second run while one is live, and frees the lock on release", () => {
+  it("refuses someone else's run while one is live, and frees the lock on release", () => {
     const lock = new RunLock(cfg);
-    lock.acquire("a", "happy", 0);
-    expect(code(() => lock.acquire("b", "dispute", 1_000))).toMatchObject({ status: 409, code: "busy" });
+    lock.acquire("a", "happy", 0, "browser-A");
+    const busy = code(() => lock.acquire("b", "dispute", 1_000, "browser-B"));
+    expect(busy).toMatchObject({ status: 409, code: "busy" });
+    expect(busy?.retry).toBe(60); // "free in ~N s", capped at a minute (a run takes ~EXPECTED_RUN_MS)
+    expect(EXPECTED_RUN_MS).toBe(75_000);
     expect(lock.release("b")).toBeUndefined(); // someone else's id does not free it
     expect(lock.release("a")?.id).toBe("a");
-    expect(lock.acquire("b", "dispute", 2_000).id).toBe("b");
+    expect(lock.acquire("b", "dispute", 2_000, "browser-B").run.id).toBe("b");
   });
 
-  it("frees an abandoned run after the idle timeout, and refuses the stale id", () => {
+  it("estimates when a busy run frees up, and says check back soon when it runs long", () => {
     const lock = new RunLock(cfg);
-    lock.acquire("a", "happy", 0);
-    expect(lock.get("a", 60_000).id).toBe("a"); // activity keeps it alive
-    expect(lock.current(60_000 + cfg.idleMs - 1)?.id).toBe("a");
-    expect(lock.current(60_000 + cfg.idleMs + 1)).toBeUndefined();
-    expect(code(() => lock.get("a", 60_000 + cfg.idleMs + 2))).toMatchObject({ status: 410 });
+    lock.acquire("a", "happy", 0, "browser-A");
+    expect(code(() => lock.acquire("b", "happy", 45_000, "browser-B"))?.retry).toBe(30);
+    for (let t = 0; t <= 120_000; t += 10_000) lock.get("a", t); // still pinging (paused / step by step)
+    expect(code(() => lock.acquire("b", "happy", 120_000, "browser-B"))?.retry).toBe(15);
   });
 
-  it("ends a run that goes on too long even when it stays active", () => {
+  it("lets the same browser take its own run over (Start over)", () => {
     const lock = new RunLock(cfg);
-    lock.acquire("a", "happy", 0);
-    for (let t = 0; t < cfg.maxRunMs; t += 60_000) lock.get("a", t);
+    lock.acquire("a", "happy", 0, "browser-A");
+    expect(lock.heldBy("browser-A", 5_000)).toBe("self");
+    expect(lock.heldBy("browser-B", 5_000)).toBe("other");
+    const { run, replaced } = lock.acquire("a2", "dispute", 5_000, "browser-A");
+    expect(run.id).toBe("a2");
+    expect(replaced?.id).toBe("a");
+    expect(code(() => lock.get("a", 6_000))).toMatchObject({ status: 410, code: "run-gone" });
+  });
+
+  it("frees an abandoned run after 45 s without a ping, and refuses the stale id", () => {
+    const lock = new RunLock(cfg);
+    expect(cfg.idleMs).toBe(45_000);
+    lock.acquire("a", "happy", 0, "browser-A");
+    expect(lock.get("a", 30_000).id).toBe("a"); // a ping keeps it alive
+    expect(lock.current(30_000 + cfg.idleMs - 1)?.id).toBe("a");
+    expect(lock.current(30_000 + cfg.idleMs + 1)).toBeUndefined();
+    expect(lock.heldBy("browser-B", 30_000 + cfg.idleMs + 1)).toBe("free");
+    expect(code(() => lock.get("a", 30_000 + cfg.idleMs + 2))).toMatchObject({ status: 410 });
+  });
+
+  it("ends a run that goes on too long even when it keeps pinging", () => {
+    const lock = new RunLock(cfg);
+    lock.acquire("a", "happy", 0, "browser-A");
+    for (let t = 0; t < cfg.maxRunMs; t += 10_000) lock.get("a", t);
     expect(lock.current(cfg.maxRunMs + 1)).toBeUndefined();
+  });
+});
+
+describe("resuming a demo lease after the lock lapsed", () => {
+  const A = (n: number) => `0x${n.toString(16).padStart(40, "0")}` as Address;
+  const accounts = { landlord: A(11), tenant: A(12), arbiter: A(13) };
+  const ok = { isLease: true, landlord: A(11), tenant: A(12), arbiter: A(13), status: 1 };
+  it("accepts an open lease between the demo wallets only", () => {
+    expect(code(() => vetResumeLease(ok, accounts))).toBeUndefined();
+    expect(code(() => vetResumeLease({ ...ok, isLease: false }, accounts))?.msg).toMatch(/not a KeyEscrow lease/);
+    expect(code(() => vetResumeLease({ ...ok, tenant: A(666) }, accounts))?.msg).toMatch(/not one of the live demo/);
+    expect(code(() => vetResumeLease({ ...ok, status: 4 }, accounts))?.msg).toMatch(/already settled/);
   });
 });
 
@@ -115,6 +154,14 @@ describe("rate limit", () => {
     rate.record(0);
     expect(code(() => rate.check(30_000))).toMatchObject({ status: 429, code: "rate-limited", retry: 30 });
     expect(code(() => rate.check(60_000))).toBeUndefined();
+  });
+
+  it("lets the same browser restart its own run inside the gap, but not past the hourly cap", () => {
+    const rate = new RateLimiter({ minGapMs: 60_000, runsPerHour: 2 });
+    rate.record(0);
+    expect(code(() => rate.check(10_000, { takeover: true }))).toBeUndefined();
+    rate.record(10_000);
+    expect(code(() => rate.check(20_000, { takeover: true }))).toMatchObject({ code: "rate-limited" });
   });
 
   it("caps the runs per hour", () => {
@@ -131,7 +178,7 @@ describe("rate limit", () => {
 });
 
 describe("gas: a cap per run and capped top-ups", () => {
-  const run = (over: Partial<RunState> = {}): RunState => ({ id: "a", path: "happy", startedAt: 0, lastSeen: 0, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0, ...over });
+  const run = (over: Partial<RunState> = {}): RunState => ({ id: "a", owner: "browser-A", path: "happy", startedAt: 0, lastSeen: 0, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0, ...over });
 
   it("leaves the rest of the run's gas allowance, then refuses", () => {
     expect(gasLeft(run({ gasUsed: BigInt(1_000_000) }), cfg)).toBe(cfg.maxGasPerRun - BigInt(1_000_000));
@@ -162,7 +209,7 @@ describe("the calls the server will sign", () => {
   const A = (n: number) => `0x${n.toString(16).padStart(40, "0")}` as Address;
   const addrs: DemoAddresses = { factory: A(1), token: A(2), accounts: { landlord: A(11), tenant: A(12), arbiter: A(13) } };
   const LEASE = A(99);
-  const base: RunState = { id: "a", path: "happy", startedAt: 0, lastSeen: 0, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0 };
+  const base: RunState = { id: "a", owner: "browser-A", path: "happy", startedAt: 0, lastSeen: 0, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0 };
   const withLease = { ...base, lease: LEASE };
   const lease = (o: Partial<{ tenant: Address; arbiter: Address; rentAmount: bigint }> = {}) =>
     encodeFunctionData({
@@ -214,5 +261,12 @@ describe("the calls the server will sign", () => {
     expect(code(() => vetCall({ role: "deployer", address: LEASE, data: esc("fund") }, withLease, addrs))?.msg).toMatch(/Unknown demo role/);
     expect(code(() => vetCall({ role: "tenant", address: LEASE, data: "0xdeadbeef" }, withLease, addrs))?.msg).toMatch(/does not match/);
     expect(code(() => vetCall({ role: "tenant", address: LEASE, data: esc("addEvidence", [1, `0x${"ee".repeat(32)}`]) }, { ...withLease, evidence: 8 }, addrs))?.msg).toMatch(/Enough photos/);
+  });
+
+  it("serves reads only for this run's factory, token and lease", () => {
+    expect(vetRead(LEASE, withLease, addrs)).toBe(LEASE);
+    expect(vetRead(addrs.token, base, addrs)).toBe(addrs.token);
+    expect(code(() => vetRead(LEASE, base, addrs))).toMatchObject({ code: "call-refused" });
+    expect(code(() => vetRead(A(77), withLease, addrs))).toMatchObject({ code: "call-refused" });
   });
 });

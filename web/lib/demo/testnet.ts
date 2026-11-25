@@ -1,4 +1,4 @@
-import { encodeFunctionData, type Address, type Hex, type TransactionReceipt } from "viem";
+import { decodeFunctionResult, encodeFunctionData, type Address, type Hex, type TransactionReceipt } from "viem";
 import type { DevRole } from "../devAccounts";
 import type { DemoPath } from "./script";
 
@@ -68,44 +68,113 @@ type TxResult = {
   logs: { address: Address; topics: Hex[]; data: Hex; logIndex: number | null }[];
 };
 
-/** A rate-limit gap this short is waited out by the client (the step shows "working…" meanwhile). */
-const AUTO_WAIT_SEC = 30;
+/** Waiting for the lock or the rate limit: what the stage tells the viewer while it retries by itself. */
+export type WaitInfo = { code: "busy" | "rate-limited"; sec: number };
 
-/** One live run: the server lock is taken on the first `begin`, freed by `end` (or by the server after 2 idle minutes). */
+/** Give up waiting after this long (someone left a run paused, or the hourly cap is hit). */
+const MAX_WAIT_MS = 10 * 60_000;
+const OWNER_KEY = "keyescrow.demoOwner";
+const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+/** A random id for this browser, so Start over (or a second tab) takes over its own run instead of waiting for it. */
+function ownerId(): string {
+  const fresh = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^0-9a-zA-Z-]/g, "");
+  try {
+    const v = globalThis.localStorage?.getItem(OWNER_KEY);
+    if (v && /^[0-9a-zA-Z-]{8,64}$/.test(v)) return v;
+    const id = fresh();
+    globalThis.localStorage?.setItem(OWNER_KEY, id);
+    return id;
+  } catch {
+    return fresh();
+  }
+}
+
+/**
+ * One live run. The server lock is taken on the first `begin` and kept by `ping` (every 10 s while the stage plays);
+ * `end` frees it, and without pings the server frees it after 45 s (tab closed, error screen). When another visitor
+ * holds it, `begin` waits and retries by itself, reporting the countdown through `onWait`.
+ */
 export class TestnetSession {
   runId: string | undefined;
   path: DemoPath | undefined;
   /** Block of the latest receipt: reads are pinned to it so a lagging RPC backend cannot serve stale state. */
   lastBlock = BigInt(0);
   topUps: TopUp[] = [];
+  readonly owner = ownerId();
   /** The last `end` request: a new run waits for it, so the server sees the old lock freed first. */
   private ending: Promise<unknown> = Promise.resolve();
+  private readonly lease: () => Address | undefined;
+  private readonly onWait: (w: WaitInfo | null) => void;
+
+  /** `lease`: the story's lease so far, so a run whose lock lapsed carries on with it. */
+  constructor(opts: { lease: () => Address | undefined; onWait: (w: WaitInfo | null) => void }) {
+    this.lease = opts.lease;
+    this.onWait = opts.onWait;
+  }
 
   async begin(path: DemoPath) {
     if (this.runId && this.path === path) return;
-    await this.end();
     await this.ending;
-    const start = () => post<{ runId: string; topUps: TopUp[] }>("/api/demo-testnet/run", { path });
-    let r: Awaited<ReturnType<typeof start>>;
-    try {
-      r = await start();
-    } catch (e) {
-      // "Try the dispute path" right after a run: wait out a short gap instead of failing the first step.
-      const wait = e instanceof DemoServerError && e.code === "rate-limited" ? (e.retryAfterSec ?? 99) : 99;
-      if (wait > AUTO_WAIT_SEC) throw e;
-      await new Promise((ok) => setTimeout(ok, wait * 1000 + 500));
-      r = await start();
-    }
-    this.runId = r.runId;
     this.path = path;
-    this.topUps = r.topUps;
+    const t0 = Date.now();
+    try {
+      for (;;) {
+        try {
+          const r = await post<{ runId: string; topUps: TopUp[] }>("/api/demo-testnet/run", { path, owner: this.owner, lease: this.lease() });
+          this.runId = r.runId;
+          this.topUps = r.topUps;
+          return;
+        } catch (e) {
+          const code = e instanceof DemoServerError ? e.code : undefined;
+          if (code !== "busy" && code !== "rate-limited") throw e;
+          const wait = (e as DemoServerError).retryAfterSec ?? 10;
+          if (wait > 300 || Date.now() - t0 + wait * 1000 > MAX_WAIT_MS) throw e; // e.g. the hourly cap: say so
+          // Count down the estimate, and ask again every 10 s: the other run may end sooner.
+          const t1 = Date.now();
+          while (Date.now() - t1 < Math.min(wait, 10) * 1000) {
+            this.onWait({ code, sec: Math.max(1, wait - Math.floor((Date.now() - t1) / 1000)) });
+            await sleep(1000);
+          }
+        }
+      }
+    } finally {
+      this.onWait(null);
+    }
+  }
+
+  /** Runs `fn` for this run; if its lock lapsed (a long pause, a background tab), resumes the lease in a new run once. */
+  private async withRun<T>(fn: (runId: string) => Promise<T>): Promise<T> {
+    if (!this.runId || !this.path) throw new DemoServerError("The live run has not started. Start over.");
+    try {
+      return await fn(this.runId);
+    } catch (e) {
+      if (!(e instanceof DemoServerError) || e.code !== "run-gone") throw e;
+      this.runId = undefined;
+      await this.begin(this.path);
+      return fn(this.runId!);
+    }
+  }
+
+  /** True while this browser holds a live run (reads then go through the server, see `read`). */
+  get live() {
+    return !!this.runId;
+  }
+
+  /**
+   * A contract read through the server (POST /api/demo-testnet/read), at the block of the run's latest receipt and
+   * on the RPC that mined it: a viewer's own route to a public RPC may lag behind and fail block-pinned reads.
+   */
+  async read<T>(call: Call): Promise<T> {
+    const data = encodeFunctionData({ abi: call.abi, functionName: call.functionName, args: call.args ?? [] } as never);
+    const r = await this.withRun((runId) => post<{ data: Hex }>("/api/demo-testnet/read", { runId, address: call.address, data }));
+    return decodeFunctionResult({ abi: call.abi, functionName: call.functionName, data: r.data } as never) as T;
   }
 
   /** Sign and send `call` as `role` on chain 97 (server-side), and return the receipt the server waited for. */
   async send(role: DevRole, call: Call): Promise<TransactionReceipt> {
-    if (!this.runId) throw new DemoServerError("The live run has not started. Start over.");
     const data = encodeFunctionData({ abi: call.abi, functionName: call.functionName, args: call.args ?? [] } as never);
-    const r = await post<TxResult>("/api/demo-testnet/tx", { runId: this.runId, role, address: call.address, data });
+    const r = await this.withRun((runId) => post<TxResult>("/api/demo-testnet/tx", { runId, role, address: call.address, data }));
     const blockNumber = BigInt(r.blockNumber);
     if (blockNumber > this.lastBlock) this.lastBlock = blockNumber;
     return {
@@ -117,13 +186,28 @@ export class TestnetSession {
     } as unknown as TransactionReceipt;
   }
 
-  async end() {
+  /** Heartbeat while the stage plays; `error` reports the step error the viewer sees (server log only). */
+  async ping(error?: string) {
+    const runId = this.runId;
+    if (!runId) return;
+    try {
+      await post("/api/demo-testnet/ping", { runId, error });
+    } catch (e) {
+      if (e instanceof DemoServerError && e.code === "run-gone" && this.runId === runId) this.runId = undefined; // resumes on the next step
+    }
+  }
+
+  /** Drop the run here without freeing it: the next `begin` from this browser takes it over (Start over). */
+  forget() {
+    this.runId = undefined;
+  }
+
+  async end(reason?: string) {
     const runId = this.runId;
     this.runId = undefined;
-    this.path = undefined;
     if (!runId) return;
     // keepalive: still delivered when the page is being closed.
-    this.ending = post("/api/demo-testnet/end", { runId }, { keepalive: true }).catch(() => undefined);
+    this.ending = post("/api/demo-testnet/end", { runId, reason }, { keepalive: true }).catch(() => undefined);
     await this.ending;
   }
 }

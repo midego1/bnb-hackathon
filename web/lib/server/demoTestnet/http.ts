@@ -23,6 +23,8 @@ export async function handle(req: Request | undefined, fn: (runner: DemoTestnetR
     return NextResponse.json(await fn(runner, body), { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     if (e instanceof DemoError) {
+      // Busy and rate-limited answers are expected (the browser retries them); every other refusal is worth a line.
+      if (e.code !== "busy" && e.code !== "rate-limited") console.warn(`[demo-testnet] refused (${e.code}): ${scrub(e.message)}`);
       return NextResponse.json(
         { error: e.message, code: e.code, retryAfterSec: e.retryAfterSec },
         { status: e.status, headers: e.retryAfterSec ? { "Retry-After": String(e.retryAfterSec) } : undefined },
@@ -35,14 +37,23 @@ export async function handle(req: Request | undefined, fn: (runner: DemoTestnetR
   }
 }
 
-export const StartBody = z.object({ path: z.enum(["happy", "dispute"]) });
+const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/);
+const owner = z.string().regex(/^[0-9a-zA-Z-]{8,64}$/);
+const note = z
+  .string()
+  .max(1000)
+  .optional()
+  .transform((v) => (v ? scrub(v).replace(/[\r\n]+/g, " ").slice(0, 300) : undefined));
+export const StartBody = z.object({ path: z.enum(["happy", "dispute"]), owner, lease: address.optional() });
+export const ReadBody = z.object({ runId: z.string().uuid(), address, data: z.string().regex(/^0x[0-9a-fA-F]{8,2000}$/) });
+export const PingBody = z.object({ runId: z.string().uuid(), error: note });
 export const TxBody = z.object({
   runId: z.string().uuid(),
   role: z.enum(["landlord", "tenant", "arbiter"]),
-  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  address,
   data: z.string().regex(/^0x[0-9a-fA-F]{8,20000}$/),
 });
-export const EndBody = z.object({ runId: z.string().uuid() });
+export const EndBody = z.object({ runId: z.string().uuid(), reason: note });
 
 /** Drops URLs (an RPC URL can carry an API key) from anything that leaves the server or reaches the log. */
 export const scrub = (s: string) => s.replace(/\b(?:https?|wss?):\/\/\S+/gi, "[rpc]");

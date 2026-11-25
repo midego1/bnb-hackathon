@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { formatEther, formatGwei, getAddress, parseEventLogs, type Address, type Hash, type TransactionReceipt } from "viem";
+import { formatEther, formatGwei, getAddress, parseEventLogs, type Address, type Hash, type Hex, type TransactionReceipt } from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
-import { escrowFactoryAbi, getDeployment } from "@/lib/contracts";
+import { escrowFactoryAbi, getDeployment, rentalEscrowAbi } from "@/lib/contracts";
 import { createChain97, gasPriceFrom, loadDeployer, loadWallets, parseEnvFile, TxStalledError, txUrl, type Chain97 } from "../chain97.mts";
 import type { Env } from "../env";
 import {
@@ -18,6 +18,8 @@ import {
   RunLock,
   topUpPlan,
   vetCall,
+  vetRead,
+  vetResumeLease,
   type DemoAddresses,
   type DemoRole,
   type DemoTestnetConfig,
@@ -129,12 +131,31 @@ export class DemoTestnetRunner {
     };
   }
 
-  async start(path: DemoTestnetPath) {
+  /**
+   * Starts a run for browser `owner`. If that browser already holds the lock (Start over) its run is replaced; if
+   * `resumeLease` is given (its lock lapsed mid-story) the new run carries on with that demo lease.
+   */
+  async start(path: DemoTestnetPath, owner: string, resumeLease?: Address) {
     const l = await this.load();
     const now = Date.now();
-    if (this.lock.current(now)) this.lock.acquire("probe", path, now); // throws the friendly 409
-    this.rate.check(now);
-    const run = this.lock.acquire(randomUUID(), path, now);
+    const held = this.lock.heldBy(owner, now);
+    if (held === "other") this.lock.acquire("probe", path, now, owner); // throws the friendly 409 with an estimate
+    this.rate.check(now, { takeover: held === "self" });
+    let lease: Address | undefined;
+    if (resumeLease) {
+      const [isLease, terms, status] = await Promise.all([
+        l.c97.pub.readContract({ address: l.addresses.factory, abi: escrowFactoryAbi, functionName: "isLease", args: [resumeLease] }),
+        l.c97.pub.readContract({ address: resumeLease, abi: rentalEscrowAbi, functionName: "terms" }).catch(() => undefined),
+        l.c97.pub.readContract({ address: resumeLease, abi: rentalEscrowAbi, functionName: "status" }).catch(() => 99),
+      ]);
+      const t = terms as { landlord: Address; tenant: Address; arbiter: Address } | undefined;
+      if (!t) throw new DemoError(400, "call-refused", "That is not a KeyEscrow lease.");
+      vetResumeLease({ isLease: isLease as boolean, ...t, status: Number(status) }, l.addresses.accounts);
+      lease = getAddress(resumeLease);
+    }
+    const { run, replaced } = this.lock.acquire(randomUUID(), path, now, owner);
+    if (replaced) console.log(`[demo-testnet] run ${replaced.id.slice(0, 8)} replaced by the same browser: ${replaced.txs} txs, ${formatEther(replaced.cost)} tBNB`);
+    run.lease = lease;
     this.rate.record(now);
     try {
       const topUps = await this.serial(async () => {
@@ -145,7 +166,9 @@ export class DemoTestnetRunner {
         }
         return out;
       });
-      console.log(`[demo-testnet] run ${run.id.slice(0, 8)} ${path} started${topUps.length ? `, topped up ${topUps.map((t) => t.role).join(", ")}` : ""}`);
+      console.log(
+        `[demo-testnet] run ${run.id.slice(0, 8)} ${path} started${lease ? ` (resumes lease ${lease})` : ""}${topUps.length ? `, topped up ${topUps.map((t) => t.role).join(", ")}` : ""}`,
+      );
       return { runId: run.id, path, accounts: l.addresses.accounts, topUps };
     } catch (e) {
       this.lock.release(run.id);
@@ -216,6 +239,7 @@ export class DemoTestnetRunner {
       }
       run.gasUsed += receipt.gasUsed;
       run.cost += receipt.gasUsed * receipt.effectiveGasPrice;
+      if (!run.lastBlock || receipt.blockNumber > run.lastBlock) run.lastBlock = receipt.blockNumber;
       if (!run.lease && receipt.status === "success") {
         const factoryLogs = receipt.logs.filter((g) => g.address.toLowerCase() === l.addresses.factory.toLowerCase());
         const [created] = parseEventLogs({ abi: escrowFactoryAbi, eventName: "LeaseCreated", logs: factoryLogs });
@@ -232,10 +256,40 @@ export class DemoTestnetRunner {
     });
   }
 
-  end(runId: string) {
+  /**
+   * eth_call for the stage, through the server's RPC (the one that mined the run's transactions) at the run's latest
+   * receipt block, retried while a load-balanced backend catches up. Browsers far from the RPC (or behind a lagging
+   * public endpoint) otherwise fail reads pinned to a block they have not seen yet. Read-only; this run's contracts only.
+   */
+  async read(runId: string, req: { address: string; data: Hex }): Promise<{ data: Hex }> {
+    const l = await this.load();
+    const run = this.lock.get(runId, Date.now());
+    const to = vetRead(req.address, run, l.addresses);
+    for (let i = 0; ; i++) {
+      try {
+        const r = await l.c97.pub.call({ to, data: req.data, ...(run.lastBlock ? { blockNumber: run.lastBlock } : {}) });
+        return { data: r.data ?? "0x" };
+      } catch (e) {
+        // A revert is an answer; anything else (unknown block, timeout) is retried for ~12 s.
+        if ((e instanceof Error && /revert/i.test(e.message)) || i >= 12) throw e;
+        await new Promise((ok) => setTimeout(ok, 1_000));
+      }
+    }
+  }
+
+  /** Heartbeat from the browser while a run plays; `error` = the step error the viewer sees (logged for diagnosis). */
+  ping(runId: string, error?: string) {
+    if (error) console.warn(`[demo-testnet] run ${runId.slice(0, 8)} browser error: ${error}`);
+    this.lock.get(runId, Date.now());
+    return { ok: true as const };
+  }
+
+  end(runId: string, reason?: string) {
     const run = this.lock.release(runId);
     if (!run) return { ended: false as const };
-    console.log(`[demo-testnet] run ${run.id.slice(0, 8)} ${run.path} ended: ${run.txs} txs, ${run.gasUsed} gas, ${formatEther(run.cost)} tBNB`);
+    console.log(
+      `[demo-testnet] run ${run.id.slice(0, 8)} ${run.path} ended${reason ? ` (${reason})` : ""}: ${run.txs} txs, ${run.gasUsed} gas, ${formatEther(run.cost)} tBNB`,
+    );
     return { ended: true as const, txs: run.txs, gasUsed: run.gasUsed.toString(), costTbnb: formatEther(run.cost), lease: run.lease };
   }
 }

@@ -70,7 +70,9 @@ export function demoTestnetConfig(env: Env): DemoTestnetConfig | undefined {
     runsPerHour: int(env.DEMO_TESTNET_RUNS_PER_HOUR, 12, 1, 60),
     maxGasPerRun: BigInt(int(env.DEMO_TESTNET_MAX_GAS_PER_RUN, 2_500_000, 500_000, 5_000_000)),
     maxTxsPerRun: 20,
-    idleMs: 120_000,
+    // Short: the browser pings every 10 s while a run plays (or waits for a click), so only a closed tab, a
+    // crashed browser or an error screen lets it lapse, and the next visitor waits at most this long.
+    idleMs: 45_000,
     maxRunMs: 15 * 60_000,
     receiptTimeoutMs: int(env.DEMO_TESTNET_TX_TIMEOUT_S, 45, 10, 180) * 1000,
     topUp: { floor: parseEther("0.002"), amount: topUpAmount, deployerFloor: DEPLOYER_FLOOR_MIN },
@@ -101,6 +103,8 @@ export class DemoError extends Error {
 
 export type RunState = {
   id: string;
+  /** Random id of the browser that started it: the same browser may take its own run over (Start over). */
+  owner: string;
   path: DemoTestnetPath;
   startedAt: number;
   lastSeen: number;
@@ -109,7 +113,12 @@ export type RunState = {
   txs: number;
   evidence: number;
   lease?: Address;
+  /** Block of this run's latest receipt: reads for the run are served at (or after) it. */
+  lastBlock?: bigint;
 };
+
+/** How long a run usually takes at normal speed: the basis of the "free in ~N s" estimate. */
+export const EXPECTED_RUN_MS = 75_000;
 
 export class RunLock {
   private run: RunState | undefined;
@@ -122,14 +131,25 @@ export class RunLock {
     return this.run;
   }
 
-  acquire(id: string, path: DemoTestnetPath, now: number): RunState {
+  /** Whether `owner` may start now: the lock is free, or it holds the lock itself (a takeover). */
+  heldBy(owner: string, now: number): "free" | "self" | "other" {
+    const r = this.current(now);
+    return !r ? "free" : r.owner === owner ? "self" : "other";
+  }
+
+  /**
+   * Takes the lock for a new run. A run held by the same browser is replaced (Start over, a new tab); someone else's
+   * run is refused with an estimate of when it frees up (a run takes about 70 s at normal speed).
+   */
+  acquire(id: string, path: DemoTestnetPath, now: number, owner: string): { run: RunState; replaced?: RunState } {
     const busy = this.current(now);
-    if (busy) {
-      const wait = Math.max(1, Math.ceil((busy.lastSeen + this.limits.idleMs - now) / 1000));
-      throw new DemoError(409, "busy", "Someone else is playing the live testnet demo right now. Try again in a minute.", Math.min(wait, 60));
+    if (busy && busy.owner !== owner) {
+      const left = busy.startedAt + EXPECTED_RUN_MS - now;
+      const wait = left > 0 ? Math.ceil(left / 1000) : 15; // running long (paused, step by step): check back soon
+      throw new DemoError(409, "busy", "Someone else is playing the live testnet demo right now.", Math.min(Math.max(wait, 3), 60));
     }
-    this.run = { id, path, startedAt: now, lastSeen: now, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0 };
-    return this.run;
+    this.run = { id, owner, path, startedAt: now, lastSeen: now, gasUsed: BigInt(0), cost: BigInt(0), txs: 0, evidence: 0 };
+    return { run: this.run, replaced: busy };
   }
 
   /** The caller's run, refreshed; throws when it is not (or no longer) the lock holder. */
@@ -161,8 +181,9 @@ export class RateLimiter {
     return Math.max(0, Math.ceil((until - now) / 1000));
   }
 
-  check(now: number) {
-    const wait = this.waitSec(now);
+  /** `takeover`: the same browser restarting its own run skips the gap (the hourly cap still counts). */
+  check(now: number, opts: { takeover?: boolean } = {}) {
+    const wait = opts.takeover ? this.hourlyWaitSec(now) : this.waitSec(now);
     if (wait > 0) {
       const hourly = this.starts.length >= this.limits.runsPerHour;
       throw new DemoError(
@@ -174,6 +195,11 @@ export class RateLimiter {
         wait,
       );
     }
+  }
+
+  private hourlyWaitSec(now: number): number {
+    this.starts = this.starts.filter((t) => now - t < 3_600_000);
+    return this.starts.length >= this.limits.runsPerHour ? Math.max(0, Math.ceil((this.starts[0] + 3_600_000 - now) / 1000)) : 0;
   }
 
   record(now: number) {
@@ -300,6 +326,29 @@ function decodeOrRefuse(abi: DemoAbi, data: Hex) {
   } catch {
     return refuse("Call data does not match the contract.");
   }
+}
+
+/**
+ * A run whose lock lapsed (tab in the background, a long pause) may carry on with its lease in a new run, but only a
+ * lease of this factory between the demo wallets that is not finished yet.
+ */
+export function vetResumeLease(
+  lease: { isLease: boolean; landlord: Address; tenant: Address; arbiter: Address; status: number },
+  accounts: Record<DemoRole, Address>,
+) {
+  if (!lease.isLease) refuse("That is not a KeyEscrow lease.");
+  if (!same(lease.landlord, accounts.landlord) || !same(lease.tenant, accounts.tenant) || !same(lease.arbiter, accounts.arbiter)) {
+    refuse("That lease is not one of the live demo's.");
+  }
+  if (lease.status >= 4) refuse("That demo lease is already settled. Start over with a fresh lease.");
+}
+
+/** Reads for the stage go through the server only for this run's contracts: the factory, the token and its lease. */
+export function vetRead(address: string, run: RunState, a: Pick<DemoAddresses, "factory" | "token">): Address {
+  if (!isAddress(address, { strict: false })) refuse("Not a contract address.");
+  const ok = same(address, a.factory) || same(address, a.token) || (!!run.lease && same(address, run.lease));
+  if (!ok) refuse("That contract is not part of this demo run.");
+  return getAddress(address);
 }
 
 /** The zero address is never a demo actor (guards a half-loaded wallet file). */

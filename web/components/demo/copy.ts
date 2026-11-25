@@ -133,6 +133,8 @@ export const testnetCopy = {
   ],
   timeoutNote: "Landlord ignores it needs 7 days of real time on a public chain; play it on the local demo.",
   timeoutShort: "needs 7 days; play it on the local demo",
+  waiting: (code: "busy" | "rate-limited", sec: number) =>
+    code === "busy" ? `Someone else is playing the live demo. Free in ~${sec} s; yours starts by itself.` : `The live demo just ran. Yours starts in ${sec} s…`,
   presenting: "One live run at a time. Pick Step by step to click through it; Pause works any time.",
   txTitle: (hash: string) => `Open transaction ${hash} on BscScan`,
   topUp: (role: string) => `Gas top-up for the ${role} (tBNB from KeyEscrow)`,
