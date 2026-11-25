@@ -20,8 +20,8 @@ import { usePrices } from "@/lib/usePrices";
 import type { RentalSummary } from "@/lib/rentals";
 import { FlagBadge, Kpi, useFleet } from "./shared";
 
-/** Scooter rentals are offered month by month; the renter funds deposit + the month up front. */
-export const BOOKING_TERM_MONTHS = 1;
+/** Booked scooters are offered for one monthly rent period; the renter funds deposit + the month up front. */
+export const BOOKING_TERM_PERIODS = 1;
 
 export const stateStyle: Record<ScooterState, string> = {
   available: "bg-success-soft text-success-fg ring-success-border",
@@ -188,7 +188,8 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       arbiter: zeroAddress,
       rentAmount: rent,
       depositAmount: deposit,
-      termMonths: BOOKING_TERM_MONTHS,
+      termPeriods: BOOKING_TERM_PERIODS,
+      rentPeriod: 0, // factory default: monthly
       responseWindow: 0,
       arbiterWindow: 0,
       leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb: scooter.rentThb, depositThb: scooter.depositThb, thbPerUsdt: rate, booking: booking.id })),

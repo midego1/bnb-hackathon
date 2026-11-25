@@ -9,3 +9,17 @@ contract RentalEscrow18DecimalsTest is RentalEscrowTest {
         return 18;
     }
 }
+
+/// ...with weekly rent and an 18-decimal token (the mainnet pilot's likely setup).
+contract RentalEscrowWeekly18DecimalsTest is RentalEscrow18DecimalsTest {
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 7 days;
+    }
+}
+
+/// ...with rent every two weeks (MockUSDT, 6 decimals).
+contract RentalEscrowTwoWeeklyTest is RentalEscrowTest {
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 14 days;
+    }
+}

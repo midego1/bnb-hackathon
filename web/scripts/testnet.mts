@@ -232,7 +232,8 @@ async function createLease(r: Roles, step: string, opts: { arbiterWindow?: numbe
       arbiter: zeroAddress, // KeyEscrow dispute desk
       rentAmount: RENT,
       depositAmount: DEPOSIT,
-      termMonths: 12,
+      termPeriods: 12,
+      rentPeriod: 0,
       responseWindow: 0,
       arbiterWindow: opts.arbiterWindow ?? 0,
       leaseHash: keccak256(toHex(`testnet e2e lease ${Date.now()}`)),

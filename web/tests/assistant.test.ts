@@ -341,7 +341,7 @@ describe("mock model scripts", () => {
       rent: "3400",
       deposit: "6800",
       renter: RENTER,
-      termMonths: 1,
+      termPeriods: 1,
     });
   });
 
@@ -349,7 +349,7 @@ describe("mock model scripts", () => {
     const ask = `Create a rental for 3,400 baht a month with a 6,800 deposit for ${RENTER} for 3 months`;
     const ctx = { address: OWNER, path: "/landlord" };
     const first = nextReply(ask, ctx, { calls: [], results: [] });
-    expect(first.tool).toEqual({ name: "prepare_create_lease", input: { renter: RENTER, rent: "3400", deposit: "6800", currency: "THB", termMonths: 3 } });
+    expect(first.tool).toEqual({ name: "prepare_create_lease", input: { renter: RENTER, rent: "3400", deposit: "6800", currency: "THB", termPeriods: 3 } });
     const call = { calls: [first.tool!], results: [] as string[] };
     expect(nextReply(ask, ctx, { ...call, results: [`APPLIED: 1 change(s)\nRental address: ${LEASE}`] }).text).toContain(LEASE);
     expect(nextReply(ask, ctx, { ...call, results: ["DECLINED: no"] }).text).toContain("did not create the rental");

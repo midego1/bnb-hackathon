@@ -17,6 +17,7 @@ import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { EvidencePanel } from "./EvidencePanel";
 import { FundingPanel, Stat } from "./FundingPanel";
+import { oneTimeFee, periodCount, periodName } from "@/lib/rentals";
 import { nextStep, roleName, viewerRole, type Viewer } from "./model";
 import { MoveOutPanel } from "./MoveOutPanel";
 import { RentPanel } from "./RentPanel";
@@ -134,7 +135,7 @@ export function LeaseDetail({ address }: { address: Address }) {
 function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; viewer: Viewer }) {
   const t = lease.terms;
   const money = useMoney();
-  const fee = (t.rentAmount * BigInt(t.feeBps)) / BigInt(10_000);
+  const fee = oneTimeFee(t.rentAmount, t.rentPeriod, t.feeBps);
   return (
     <>
       <Card title="In escrow now" aside={<PriceSourceBadge />}>
@@ -143,14 +144,14 @@ function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; 
           <Stat label="Deposit">
             <Amount value={t.depositAmount} />
           </Stat>
-          <Stat label="Rent / month">
+          <Stat label={`Rent / ${periodName(t.rentPeriod)}`}>
             <Amount value={t.rentAmount} />
           </Stat>
         </div>
       </Card>
       <Card title="Terms">
         <dl className="space-y-3 text-sm">
-          <Row label="Rental period">{t.termMonths} months</Row>
+          <Row label="Rental period">{periodCount(t.termPeriods, t.rentPeriod)} ({t.termPeriods} × rent per {periodName(t.rentPeriod)})</Row>
           {lease.startTime > BigInt(0) && <Row label="Started">{formatDate(lease.startTime)}</Row>}
           <Row label="Owner reply window">{t.responseWindow / 86400} days</Row>
           <Row label="Dispute desk deadline">{t.arbiterWindow / 86400} days</Row>
@@ -215,8 +216,8 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   return (
     <Card title="Waiting for the renter">
       <p className="mb-4 text-sm text-muted-foreground">
-        Send this page&apos;s link to your renter. Once they fund the deposit and first month&apos;s rent, the rental starts and rent is paid
-        out to you every month. You can withdraw the offer until then; nothing has been paid yet.
+        Send this page&apos;s link to your renter. Once they fund the deposit and the first {periodName(lease.terms.rentPeriod)}&apos;s rent, the rental starts and rent is
+        paid out to you every {periodName(lease.terms.rentPeriod)}. You can withdraw the offer until then; nothing has been paid yet.
       </p>
       <ActionButton variant="danger" busy={pending === "Cancel offer"} onClick={() => send("Cancel offer", { address: lease.address, abi: rentalEscrowAbi, functionName: "cancel" })}>
         Withdraw offer

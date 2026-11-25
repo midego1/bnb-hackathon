@@ -223,8 +223,8 @@ tx() { # label key to sig args...
 H=0x$(printf 'ab%.0s' {1..32})
 tx "faucet 300 mUSDT (test setup only)" "$TENANT_KEY" "$TOKEN" 'faucet(address,uint256)' "$TENANT" 300000000 && RENTAL_GAS=0
 tx "createLease (owner)" "$FRESH_KEY" "$FACTORY" \
-  'createLease((address,address,uint256,uint256,uint32,uint32,uint32,bytes32))' \
-  "($TENANT,0x0000000000000000000000000000000000000000,100000000,200000000,1,0,0,$H)"
+  'createLease((address,address,uint256,uint256,uint32,uint32,uint32,uint32,bytes32))' \
+  "($TENANT,0x0000000000000000000000000000000000000000,100000000,200000000,1,0,0,0,$H)"
 LEASE="$(cast call "$FACTORY" 'leasesByTenant(address)(address[])' "$TENANT" --rpc-url "$RPCNET" | tr -d '[]')"
 tx "approve (renter)" "$TENANT_KEY" "$TOKEN" 'approve(address,uint256)' "$LEASE" 300000000
 tx "fund rent + deposit (renter)" "$TENANT_KEY" "$LEASE" 'fund()'

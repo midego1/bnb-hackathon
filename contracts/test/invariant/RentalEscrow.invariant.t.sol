@@ -25,10 +25,10 @@ contract EscrowHandler is Test {
     uint256 public feeOut;
     uint256 public landlordClaim; // the part of the deposit that went to the landlord
     uint256 public tenantRefund; // the part of the deposit that went back to the tenant
-    uint32 public maxDueSeen; // highest monthsDue() observed at any payout
-    uint32 public tenantEarlyRelease; // highest monthsFunded the tenant released early
+    uint32 public maxDueSeen; // highest periodsDue() observed at any payout
+    uint32 public tenantEarlyRelease; // highest periodsFunded the tenant released early
     bool public settled;
-    uint32 public dueAtSettle; // monthsDue() when the lease settled
+    uint32 public dueAtSettle; // periodsDue() when the lease settled
     bytes4 public settledBy; // selector of the call that settled the lease
     address public settledCaller;
     bool public tenantActed; // the tenant made a successful propose/accept
@@ -64,7 +64,7 @@ contract EscrowHandler is Test {
         uint256 t0 = usdt.balanceOf(tenant);
         uint256 l0 = usdt.balanceOf(landlord);
         uint256 f0 = usdt.balanceOf(treasury);
-        uint32 due = escrow.monthsDue();
+        uint32 due = escrow.periodsDue();
         bool wasSettled = escrow.status() == RentalEscrow.Status.Settled;
 
         vm.prank(who);
@@ -87,14 +87,14 @@ contract EscrowHandler is Test {
         }
     }
 
-    function payRent(uint32 months) external {
+    function payRent(uint32 periods) external {
         if (!_has(tenant)) return;
-        _run(tenant, abi.encodeCall(RentalEscrow.payRent, (uint32(bound(months, 1, 12)))));
+        _run(tenant, abi.encodeCall(RentalEscrow.payRent, (uint32(bound(periods, 1, 12)))));
     }
 
     function releaseRent(uint256 seed) external {
         address who = _actor(seed);
-        uint32 funded = escrow.monthsFunded();
+        uint32 funded = escrow.periodsFunded();
         if (_run(who, abi.encodeCall(RentalEscrow.releaseRent, ())) && who == tenant) {
             if (funded > tenantEarlyRelease) tenantEarlyRelease = funded;
         }
@@ -200,7 +200,8 @@ contract RentalEscrowInvariantTest is Test {
                     arbiter: arbiter,
                     rentAmount: RENT,
                     depositAmount: DEPOSIT,
-                    termMonths: TERM,
+                    termPeriods: TERM,
+                    rentPeriod: 0, // default: 30 days
                     responseWindow: 0,
                     arbiterWindow: 0,
                     leaseHash: keccak256("lease")
@@ -232,20 +233,20 @@ contract RentalEscrowInvariantTest is Test {
         if (s == RentalEscrow.Status.Settled) {
             assertEq(bal, 0);
         } else {
-            assertEq(bal, DEPOSIT + uint256(escrow.monthsFunded() - escrow.monthsReleased()) * RENT);
+            assertEq(bal, DEPOSIT + uint256(escrow.periodsFunded() - escrow.periodsReleased()) * RENT);
         }
         assertEq(factory.activeValue(), bal); // the pilot-cap book matches what the escrow really holds
-        assertLe(escrow.monthsReleased(), escrow.monthsFunded());
-        assertLe(escrow.monthsFunded(), TERM);
+        assertLe(escrow.periodsReleased(), escrow.periodsFunded());
+        assertLe(escrow.periodsFunded(), TERM);
     }
 
     /// Rent leaves only for released months, and only per schedule or by the tenant's own early release.
     function invariant_rentFollowsSchedule() public view {
         uint256 rentOut = handler.landlordOut() - handler.landlordClaim() + handler.feeOut();
-        assertEq(rentOut, uint256(escrow.monthsReleased()) * RENT);
+        assertEq(rentOut, uint256(escrow.periodsReleased()) * RENT);
         uint32 due = handler.maxDueSeen();
         uint32 cap = due > handler.tenantEarlyRelease() ? due : handler.tenantEarlyRelease();
-        assertLe(escrow.monthsReleased(), cap);
+        assertLe(escrow.periodsReleased(), cap);
         // One-time protocol fee: 10% of ONE month's rent, charged at most once.
         assertEq(handler.feeOut(), escrow.feeCharged() ? (RENT * FEE_BPS) / 10_000 : 0);
     }
@@ -298,9 +299,9 @@ contract TenantAloneInvariantTest is RentalEscrowInvariantTest {
 
     function invariant_tenantAloneCannotSkipDueRent() public view {
         if (!handler.settled()) return;
-        uint32 funded = escrow.monthsFunded();
+        uint32 funded = escrow.periodsFunded();
         uint32 due = handler.dueAtSettle();
-        assertGe(escrow.monthsReleased(), due < funded ? due : funded);
+        assertGe(escrow.periodsReleased(), due < funded ? due : funded);
     }
 }
 
@@ -313,7 +314,7 @@ contract ArbiterAloneInvariantTest is RentalEscrowInvariantTest {
 
     function invariant_arbiterAloneCannotSettle() public view {
         assertFalse(handler.settled());
-        uint256 unreleased = uint256(escrow.monthsFunded() - escrow.monthsReleased()) * RENT;
+        uint256 unreleased = uint256(escrow.periodsFunded() - escrow.periodsReleased()) * RENT;
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT + unreleased);
     }
 }

@@ -8,10 +8,11 @@ import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
+import { periodName } from "@/lib/rentals";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
-/** Renter: get test USDT, approve, fund deposit + first month. */
+/** Renter: get test USDT, approve, fund deposit + the first period's rent. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {
   const { address } = useAccount();
   const { data: token } = useTokenState(address, lease.address);
@@ -26,10 +27,10 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
     <Card title="Fund the escrow" aside={<PriceSourceBadge />}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <Stat label="Deposit (stays locked)"><Amount value={lease.terms.depositAmount} /></Stat>
-        <Stat label="First month's rent"><Amount value={lease.terms.rentAmount} /></Stat>
+        <Stat label={`First ${periodName(lease.terms.rentPeriod)}'s rent`}><Amount value={lease.terms.rentAmount} /></Stat>
         <Stat label="Total to fund"><Amount value={need} /></Stat>
       </div>
-      <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={Number(lease.terms.termMonths) * 30} /></div>
+      <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={(lease.terms.termPeriods * lease.terms.rentPeriod) / 86400} /></div>
       <p className="mb-4 text-sm text-muted-foreground">
         Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
         The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.

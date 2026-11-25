@@ -296,7 +296,7 @@ export function vetCall(req: { role: string; address: string; data: string }, ru
     if (functionName !== "createLease") refuse(`The demo does not call factory.${functionName}.`);
     if (role !== "landlord") refuse("Only the demo landlord creates the lease.");
     if (run.lease) refuse("This run already created its lease.");
-    const p = (args as readonly [{ tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termMonths: number }])[0];
+    const p = (args as readonly [{ tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termPeriods: number }])[0];
     if (!same(p.tenant, a.accounts.tenant)) refuse("The lease tenant must be the demo tenant.");
     if (!same(p.arbiter, a.accounts.arbiter)) refuse("The lease referee must be the demo dispute desk.");
     if (p.rentAmount > MAX_RENT || p.depositAmount > MAX_DEPOSIT) refuse("Demo rent or deposit too large.");

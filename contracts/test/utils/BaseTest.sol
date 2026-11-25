@@ -25,7 +25,8 @@ abstract contract BaseTest is Test {
     uint256 internal UNIT;
     uint256 internal RENT; // 500 tokens / month
     uint256 internal DEPOSIT; // 2 months' rent
-    uint256 internal FEE; // 10% of one month's rent = 50 tokens
+    uint256 internal FEE; // 10% of one month's rent (monthly equivalent) = 50 tokens for monthly rent
+    uint32 internal PERIOD; // rent period of the suite's leases (_rentPeriod)
     uint32 internal constant TERM = 12;
     uint32 internal constant WINDOW = 5 days; // landlord-response window (non-default on purpose)
     uint32 internal constant ARB_WINDOW = 10 days; // arbiter window (non-default on purpose)
@@ -41,11 +42,17 @@ abstract contract BaseTest is Test {
         assertEq(usdt.decimals(), _decimals());
         UNIT = 10 ** _decimals();
         (RENT, DEPOSIT) = (500 * UNIT, 1_000 * UNIT);
-        FEE = (RENT * FEE_BPS) / 10_000;
+        PERIOD = _rentPeriod();
+        FEE = (RENT * 30 days * FEE_BPS) / (uint256(PERIOD) * 10_000);
         factory = new EscrowFactory(
             IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk, NO_CAP, NO_CAP, NO_CAP
         );
         usdt.faucet(tenant, 10_000 * UNIT);
+    }
+
+    /// @dev Rent period of the suite's leases: 30 days by default; 7 or 14 in the weekly suites.
+    function _rentPeriod() internal pure virtual returns (uint32) {
+        return 30 days;
     }
 
     /// @dev Token decimals for the suite: 6 (MockUSDT, testnet) by default; 18 (BSC-USD) in the *18Decimals suites.
@@ -59,7 +66,8 @@ abstract contract BaseTest is Test {
             arbiter: arbiter,
             rentAmount: RENT,
             depositAmount: DEPOSIT,
-            termMonths: TERM,
+            termPeriods: TERM,
+            rentPeriod: PERIOD,
             responseWindow: WINDOW,
             arbiterWindow: ARB_WINDOW,
             leaseHash: LEASE_HASH

@@ -38,7 +38,7 @@ contract SecurityRegressionTest is BaseTest {
         escrow.fund();
         escrow.payRent(2);
         vm.stopPrank();
-        skip(2 * escrow.RENT_PERIOD()); // three funded months are due; anyone may release them
+        skip(2 * PERIOD); // three funded months are due; anyone may release them
         skip(1);
     }
 

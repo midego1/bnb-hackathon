@@ -13,6 +13,7 @@ import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi, TOKEN } from "@/lib/co
 import { devAccounts } from "@/lib/devAccounts";
 import { uploadEvidence } from "@/lib/evidence";
 import { parseUsdt, shortAddress } from "@/lib/format";
+import { oneTimeFee, periodCount, periodName, RENT_PERIODS, rentPerPeriod } from "@/lib/rentals";
 import { ZERO_HASH } from "@/lib/hash";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useFactorySettings } from "@/lib/hooks/useFactory";
@@ -28,6 +29,7 @@ export function CreateLeaseForm() {
   const [rent, setRent] = useState("500");
   const [deposit, setDeposit] = useState("1000");
   const [term, setTerm] = useState("12");
+  const [periodDays, setPeriodDays] = useState("30");
   const [windowDays, setWindowDays] = useState("7");
   const [arbiterDays, setArbiterDays] = useState("14");
   const [useDesk, setUseDesk] = useState(true);
@@ -42,9 +44,12 @@ export function CreateLeaseForm() {
   const feeBps = settings?.feeBps;
   // The factory's defaultArbiter is the KeyEscrow dispute desk; passing address(0) selects it on-chain.
   const desk = settings ? settings.defaultArbiter : deployment?.disputeDesk;
-  const rentAmount = parseUsdt(rent);
+  const monthlyRent = parseUsdt(rent);
+  const rentPeriod = Number(periodDays) * 86400;
+  // On-chain rent is per period: monthly x days / 30, rounded down (same rule as prepare_create_lease).
+  const rentAmount = monthlyRent === undefined ? undefined : rentPerPeriod(monthlyRent, rentPeriod);
   const depositAmount = parseUsdt(deposit);
-  const termMonths = Number(term);
+  const termPeriods = Number(term);
   const days = Number(windowDays);
   const arbDays = Number(arbiterDays);
   const arbiterAddr = useDesk ? desk : isAddress(arbiter) ? getAddress(arbiter) : undefined;
@@ -56,9 +61,9 @@ export function CreateLeaseForm() {
     tenant: !tenant
       ? undefined
       : fieldError(S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? "You can't rent to yourself." : undefined),
-    rent: fieldError(S, "rent", rent) ?? decimals(rentAmount),
+    rent: fieldError(S, "rent", rent) ?? decimals(monthlyRent) ?? (rentAmount === BigInt(0) ? "Too low: the rent per period rounds down to 0." : undefined),
     deposit: fieldError(S, "deposit", deposit) ?? decimals(depositAmount),
-    term: fieldError(S, "termMonths", term),
+    term: fieldError(S, "termPeriods", term),
     window: fieldError(S, "responseWindowDays", windowDays),
     arbiterWindow: fieldError(S, "arbiterWindowDays", arbiterDays),
     arbiter: useDesk
@@ -107,7 +112,8 @@ export function CreateLeaseForm() {
           arbiter: useDesk ? zeroAddress : arbiterAddr,
           rentAmount: rentAmount!,
           depositAmount: depositAmount!,
-          termMonths,
+          termPeriods,
+          rentPeriod,
           responseWindow: days * 86400,
           arbiterWindow: arbDays * 86400,
           leaseHash,
@@ -154,20 +160,33 @@ export function CreateLeaseForm() {
             <input name="tenant" className={inputClass} placeholder="0x…" value={tenant} onChange={(e) => setTenant(e.target.value.trim())} />
           </Field>
         </div>
-        <Field label="Monthly rent (USDT)" error={errors.rent} hint={rentAmount ? <>≈ {money(rentAmount)}</> : "Paid in USDT; shown in baht and dollars."}>
+        <Field
+          label="Monthly rent (USDT)"
+          error={errors.rent}
+          hint={rentAmount ? <>≈ {money(monthlyRent!)}{rentPeriod !== RENT_PERIODS[2] ? ` · charged ${money(rentAmount)} per ${periodName(rentPeriod)}` : ""}</> : "Paid in USDT; shown in baht and dollars."}
+        >
           <input name="rent" inputMode="decimal" className={inputClass} value={rent} onChange={(e) => setRent(e.target.value)} />
+        </Field>
+        <Field label="Rent paid every" hint="The renter pays rent into escrow per period; each period is paid out to you when it starts.">
+          <select name="rentPeriod" className={inputClass} value={periodDays} onChange={(e) => setPeriodDays(e.target.value)}>
+            {RENT_PERIODS.map((p) => (
+              <option key={p} value={p / 86400}>
+                {periodName(p)}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field
           label="Deposit (USDT)"
           error={errors.deposit}
-          hint={depositAmount ? <>≈ {money(depositAmount)}{rentAmount ? ` · ${(Number(depositAmount) / Number(rentAmount)).toFixed(1).replace(/\.0$/, "")} months of rent` : ""}</> : undefined}
+          hint={depositAmount ? <>≈ {money(depositAmount)}{monthlyRent ? ` · ${(Number(depositAmount) / Number(monthlyRent)).toFixed(1).replace(/\.0$/, "")} months of rent` : ""}</> : undefined}
         >
           <input name="deposit" inputMode="decimal" className={inputClass} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </Field>
-        <Field label="Rental period (months)" error={errors.term}>
+        <Field label="Rental length (rent periods)" error={errors.term} hint={termPeriods > 0 ? `= ${periodCount(termPeriods, rentPeriod)}` : undefined}>
           <input name="term" type="number" min={1} max={60} className={inputClass} value={term} onChange={(e) => setTerm(e.target.value)} />
         </Field>
-        <div className="sm:col-span-2"><DepositRiskForUsdt deposit={depositAmount} rentalDays={termMonths * 30} /></div>
+        <div className="sm:col-span-2"><DepositRiskForUsdt deposit={depositAmount} rentalDays={(termPeriods * rentPeriod) / 86400} /></div>
         <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the renter's return proposal. If you stay silent, the full deposit goes back to the renter.">
           <input name="window" type="number" min={1} max={60} className={inputClass} value={windowDays} onChange={(e) => setWindowDays(e.target.value)} />
         </Field>
@@ -195,7 +214,7 @@ export function CreateLeaseForm() {
           {feeBps !== undefined && (
             <p className="text-xs text-subtle" data-testid="fee-note">
               KeyEscrow fee: one-time {(Number(feeBps) / 100).toFixed(0)}% of one month&apos;s rent
-              {rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : ""}, taken from your first rent payout.
+              {rentAmount ? ` (${money(oneTimeFee(rentAmount, rentPeriod, Number(feeBps)))})` : ""}, taken from your first rent payout.
               The renter never pays it and the deposit is never charged.
             </p>
           )}

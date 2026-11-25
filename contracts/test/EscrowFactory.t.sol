@@ -19,7 +19,8 @@ contract EscrowFactoryTest is BaseTest {
         assertEq(t.arbiter, arbiter);
         assertEq(t.rentAmount, RENT);
         assertEq(t.depositAmount, DEPOSIT);
-        assertEq(t.termMonths, TERM);
+        assertEq(t.termPeriods, TERM);
+        assertEq(t.rentPeriod, PERIOD);
         assertEq(t.responseWindow, WINDOW);
         assertEq(t.arbiterWindow, ARB_WINDOW);
         assertEq(t.leaseHash, LEASE_HASH);
@@ -37,7 +38,7 @@ contract EscrowFactoryTest is BaseTest {
     function test_createLease_emitsEvent() public {
         vm.expectEmit(false, true, true, true, address(factory));
         emit EscrowFactory.LeaseCreated(
-            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, WINDOW, ARB_WINDOW, LEASE_HASH
+            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, PERIOD, WINDOW, ARB_WINDOW, LEASE_HASH
         );
         _createLease();
     }
@@ -68,7 +69,17 @@ contract EscrowFactoryTest is BaseTest {
 
         vm.expectEmit(false, true, true, true, address(factory));
         emit EscrowFactory.LeaseCreated(
-            address(0), landlord, tenant, disputeDesk, RENT, DEPOSIT, TERM, WINDOW, ARB_WINDOW, LEASE_HASH
+            address(0),
+            landlord,
+            tenant,
+            disputeDesk,
+            RENT,
+            DEPOSIT,
+            TERM,
+            PERIOD,
+            WINDOW,
+            ARB_WINDOW,
+            LEASE_HASH
         );
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(factory.createLease(p));
@@ -162,15 +173,34 @@ contract EscrowFactoryTest is BaseTest {
 
     function test_createLease_revertsOnInvalidTerm() public {
         EscrowFactory.LeaseParams memory p = _params();
-        p.termMonths = 0;
+        p.termPeriods = 0;
         vm.prank(landlord);
         vm.expectRevert(abi.encodeWithSelector(EscrowFactory.InvalidTerm.selector, uint32(0)));
         factory.createLease(p);
 
-        p.termMonths = 61;
+        p.termPeriods = 61;
         vm.prank(landlord);
         vm.expectRevert(abi.encodeWithSelector(EscrowFactory.InvalidTerm.selector, uint32(61)));
         factory.createLease(p);
+    }
+
+    function test_createLease_rentPeriod_weeklyTwoWeeklyMonthly_zeroIsMonthly() public {
+        EscrowFactory.LeaseParams memory p = _params();
+        vm.startPrank(landlord);
+        p.rentPeriod = 0;
+        assertEq(RentalEscrow(factory.createLease(p)).terms().rentPeriod, 30 days);
+        uint32[3] memory ok = [uint32(7 days), 14 days, 30 days];
+        for (uint256 i; i < ok.length; ++i) {
+            p.rentPeriod = ok[i];
+            assertEq(RentalEscrow(factory.createLease(p)).terms().rentPeriod, ok[i]);
+        }
+        uint32[4] memory bad = [uint32(1), 1 days, 15 days, 31 days];
+        for (uint256 i; i < bad.length; ++i) {
+            p.rentPeriod = bad[i];
+            vm.expectRevert(abi.encodeWithSelector(EscrowFactory.InvalidRentPeriod.selector, bad[i]));
+            factory.createLease(p);
+        }
+        vm.stopPrank();
     }
 
     function test_createLease_revertsOnInvalidResponseWindow() public {
@@ -197,7 +227,7 @@ contract EscrowFactoryTest is BaseTest {
 
         vm.expectEmit(false, true, true, true, address(factory));
         emit EscrowFactory.LeaseCreated(
-            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, 7 days, 14 days, LEASE_HASH
+            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, PERIOD, 7 days, 14 days, LEASE_HASH
         );
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(factory.createLease(p));
@@ -327,7 +357,8 @@ contract EscrowFactoryTest is BaseTest {
             arbiter: arbiter,
             rentAmount: RENT,
             depositAmount: DEPOSIT,
-            termMonths: TERM,
+            termPeriods: TERM,
+            rentPeriod: PERIOD,
             responseWindow: WINDOW,
             arbiterWindow: ARB_WINDOW,
             leaseHash: LEASE_HASH,

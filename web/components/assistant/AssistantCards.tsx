@@ -102,7 +102,7 @@ function LeaseCardView({ c }: { c: Lease }) {
       </dl>
       <p className="mt-2 text-xs text-muted-foreground">
         Owner {short(c.owner)} · Renter {short(c.renter)}
-        {c.you ? ` · You: ${c.you}` : ""} · {c.months.funded}/{c.months.term} month(s) paid
+        {c.you ? ` · You: ${c.you}` : ""} · {c.periods.funded}/{c.periods.term} rent periods paid (per {c.periods.per})
       </p>
       {c.next && (
         <p className="mt-2 rounded-lg bg-muted px-2 py-1.5 text-xs" data-testid="assistant-card-next">

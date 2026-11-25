@@ -31,7 +31,9 @@ export type RentalSummary = {
   payee: Address;
   rentAmount: bigint;
   depositAmount: bigint;
-  termMonths: number;
+  termPeriods: number;
+  /** Seconds per rent period: 7, 14 or 30 days. */
+  rentPeriod: number;
   responseWindow: number;
   arbiterWindow: number;
   leaseHash: Hex;
@@ -39,8 +41,8 @@ export type RentalSummary = {
   createdAt: bigint;
   createdTx: Hex;
   startTime: bigint;
-  monthsFunded: number;
-  monthsReleased: number;
+  periodsFunded: number;
+  periodsReleased: number;
   pickupPhotos: Hex[];
   returnPhotos: Hex[];
   /** Latest return (deposit-split) proposal; `reportHash` is the AI inspection report it is based on. */
@@ -53,7 +55,7 @@ export type RentalSummary = {
   totals: {
     /** Deposit currently locked in the escrow. */
     depositLocked: bigint;
-    /** Rent paid into the escrow (first month + prepaid months). */
+    /** Rent paid into the escrow (first period + prepaid periods). */
     rentPaidIn: bigint;
     /** Net rent paid out to the owner / vault (after the one-time fee). */
     rentToOwner: bigint;
@@ -67,7 +69,34 @@ export type RentalSummary = {
   flags: RentalFlag[];
 };
 
-export const RENT_PERIOD = 30 * 86_400;
+const DAY = 86_400;
+/** Rent periods a rental can use (EscrowFactory): weekly, every two weeks, monthly (the default). */
+export const RENT_PERIODS = [7 * DAY, 14 * DAY, 30 * DAY] as const;
+export const DEFAULT_RENT_PERIOD = 30 * DAY;
+const MONTH = 30 * DAY;
+
+/** "week", "2 weeks", "month": the unit after "rent per". */
+export function periodName(rentPeriod: number): string {
+  if (rentPeriod === MONTH) return "month";
+  if (rentPeriod === 7 * DAY) return "week";
+  return rentPeriod % (7 * DAY) === 0 ? `${rentPeriod / (7 * DAY)} weeks` : `${rentPeriod / DAY} days`;
+}
+
+/** `n` rent periods in words: "3 months", "1 week", "6 weeks" (3 periods of 2 weeks). */
+export function periodCount(n: number, rentPeriod: number): string {
+  const [k, unit] = rentPeriod % MONTH === 0 ? [(n * rentPeriod) / MONTH, "month"] : rentPeriod % (7 * DAY) === 0 ? [(n * rentPeriod) / (7 * DAY), "week"] : [(n * rentPeriod) / DAY, "day"];
+  return `${k} ${unit}${k === 1 ? "" : "s"}`;
+}
+
+/** Rent per period from a monthly price: monthly x days / 30, rounded down to token units. */
+export function rentPerPeriod(monthly: bigint, rentPeriod: number): bigint {
+  return (monthly * BigInt(rentPeriod)) / BigInt(MONTH);
+}
+
+/** The one-time KeyEscrow fee: `feeBps` of the monthly-equivalent rent (rent x 30 days / period), rounded down. */
+export function oneTimeFee(rentAmount: bigint, rentPeriod: number, feeBps: number): bigint {
+  return (rentAmount * BigInt(MONTH) * BigInt(feeBps)) / (BigInt(rentPeriod) * BigInt(10_000));
+}
 /** An offer nobody funded for this long is flagged as stuck. */
 export const STALE_OFFER_SECONDS = 2 * 86_400;
 
@@ -79,11 +108,11 @@ function sortEvents(a: ChainEvent, b: ChainEvent) {
   return a.logIndex - b.logIndex;
 }
 
-/** Rent months that are due at `now` (same rule as RentalEscrow.monthsDue; pass `moveOutAt` once it is set). */
-export function monthsDueAt(startTime: bigint, termMonths: number, now: bigint): number {
+/** Rent periods that are due at `now` (same rule as RentalEscrow.periodsDue; pass `moveOutAt` once it is set). */
+export function periodsDueAt(startTime: bigint, termPeriods: number, rentPeriod: number, now: bigint): number {
   if (startTime === BigInt(0)) return 0;
-  const due = Number((now - startTime) / BigInt(RENT_PERIOD)) + 1;
-  return Math.min(due, termMonths);
+  const due = Number((now - startTime) / BigInt(rentPeriod)) + 1;
+  return Math.min(due, termPeriods);
 }
 
 /**
@@ -108,7 +137,8 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
       payee: payees.get(address.toLowerCase()) ?? (a.landlord as Address),
       rentAmount: big(a.rentAmount),
       depositAmount: big(a.depositAmount),
-      termMonths: num(a.termMonths),
+      termPeriods: num(a.termPeriods),
+      rentPeriod: num(a.rentPeriod) || DEFAULT_RENT_PERIOD,
       responseWindow: num(a.responseWindow),
       arbiterWindow: num(a.arbiterWindow),
       leaseHash: a.leaseHash as Hex,
@@ -116,8 +146,8 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
       createdAt: e.timestamp,
       createdTx: e.txHash,
       startTime: BigInt(0),
-      monthsFunded: 0,
-      monthsReleased: 0,
+      periodsFunded: 0,
+      periodsReleased: 0,
       pickupPhotos: [],
       returnPhotos: [],
       disputedAt: BigInt(0),
@@ -137,16 +167,16 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
       case "Funded":
         r.status = LeaseStatus.Active;
         r.startTime = big(a.startTime) || e.timestamp;
-        r.monthsFunded = 1;
+        r.periodsFunded = 1;
         r.totals.depositLocked = big(a.deposit);
         r.totals.rentPaidIn += big(a.firstRent);
         break;
       case "RentPaid":
-        r.monthsFunded = num(a.monthsFunded);
+        r.periodsFunded = num(a.periodsFunded);
         r.totals.rentPaidIn += big(a.amount);
         break;
       case "RentReleased":
-        r.monthsReleased += num(a.months);
+        r.periodsReleased += num(a.periods);
         r.totals.rentToOwner += big(a.toLandlord);
         r.totals.fees += big(a.fee);
         break;
@@ -184,7 +214,7 @@ export function summarizeRentals(events: ChainEvent[], now: bigint, failedTx: Ma
           txHash: e.txHash,
         };
         r.settled = s;
-        r.monthsReleased = r.monthsFunded - Number(s.rentToTenant / (r.rentAmount || BigInt(1)));
+        r.periodsReleased = r.periodsFunded - Number(s.rentToTenant / (r.rentAmount || BigInt(1)));
         r.totals.depositLocked = BigInt(0);
         r.totals.rentToOwner += s.rentToLandlord - s.fee;
         r.totals.fees += s.fee;
@@ -235,11 +265,11 @@ export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): Ren
     flags.push({ level: "warn", code: "unfunded", text: `Offer not funded for ${days(now - r.createdAt)}` });
   }
   if (open) {
-    const due = Math.min(monthsDueAt(r.startTime, r.termMonths, r.moveOutAt || now), r.monthsFunded);
-    if (due > r.monthsReleased) {
-      flags.push({ level: "warn", code: "rent-due", text: `${due - r.monthsReleased} month${due - r.monthsReleased > 1 ? "s" : ""} of rent due, not paid out yet` });
+    const due = Math.min(periodsDueAt(r.startTime, r.termPeriods, r.rentPeriod, r.moveOutAt || now), r.periodsFunded);
+    if (due > r.periodsReleased) {
+      flags.push({ level: "warn", code: "rent-due", text: `${periodCount(due - r.periodsReleased, r.rentPeriod)} of rent due, not paid out yet` });
     }
-    const end = r.startTime + BigInt(r.termMonths * RENT_PERIOD);
+    const end = r.startTime + BigInt(r.termPeriods * r.rentPeriod);
     if (r.startTime > BigInt(0) && now >= end) flags.push({ level: "warn", code: "overdue-return", text: "Rental period over, deposit not settled yet" });
   }
   return flags;
@@ -257,13 +287,13 @@ export function describeEvent(e: ChainEvent, money: (v: bigint) => string): stri
   const a = e.args;
   switch (e.name) {
     case "LeaseCreated":
-      return `Rental created: ${money(big(a.rentAmount))}/month, ${money(big(a.depositAmount))} deposit, ${num(a.termMonths)} months`;
+      return `Rental created: ${money(big(a.rentAmount))}/${periodName(num(a.rentPeriod) || DEFAULT_RENT_PERIOD)}, ${money(big(a.depositAmount))} deposit, ${periodCount(num(a.termPeriods), num(a.rentPeriod) || DEFAULT_RENT_PERIOD)}`;
     case "PayeeSet":
       return "Owner payouts routed to the Fleet Vault";
     case "Funded":
       return `Deposit locked (${money(big(a.deposit))}) + first rent paid (${money(big(a.firstRent))})`;
     case "RentPaid":
-      return `Renter prepaid ${num(a.months)} month(s): ${money(big(a.amount))}`;
+      return `Renter prepaid ${num(a.periods)} rent period(s): ${money(big(a.amount))}`;
     case "RentReleased":
       return `Rent paid out: ${money(big(a.toLandlord))} to the owner${big(a.fee) > BigInt(0) ? ` + ${money(big(a.fee))} KeyEscrow fee` : ""}`;
     case "EvidenceAdded":

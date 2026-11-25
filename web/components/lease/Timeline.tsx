@@ -7,27 +7,29 @@ import { explorerLink } from "@/lib/chains";
 import { formatDate } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
+import { periodCount, periodName } from "@/lib/rentals";
 import { roleOfAddress } from "./model";
 
 const LANDLORD_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.landlord-response"));
 const ARBITER_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.arbiter-deadline"));
 type Money = (v: bigint) => string;
-const months = (n: unknown) => `${n} month${Number(n) === 1 ? "" : "s"}`;
 const evidenceKinds = ["pickup photo", "return photo", "document"];
 
 function describe(e: TimelineEvent, lease: LeaseData, money: Money): { title: string; body?: ReactNode; tone: string } {
   const a = e.args;
   const usdt = (v: unknown) => money(v as bigint);
+  const per = periodName(lease.terms.rentPeriod);
+  const periods = (n: unknown) => periodCount(Number(n), lease.terms.rentPeriod);
   switch (e.name) {
     case "LeaseCreated":
-      return { title: "Rental offered by the owner", body: `${usdt(a.rentAmount)} / month, ${usdt(a.depositAmount)} deposit, ${a.termMonths} months`, tone: "bg-dot-neutral" };
+      return { title: "Rental offered by the owner", body: `${usdt(a.rentAmount)} / ${per}, ${usdt(a.depositAmount)} deposit, ${periods(a.termPeriods)}`, tone: "bg-dot-neutral" };
     case "Funded":
-      return { title: "Renter funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} first month's rent`, tone: "bg-dot-success" };
+      return { title: "Renter funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} rent for the first ${per}`, tone: "bg-dot-success" };
     case "RentPaid":
-      return { title: `Renter prepaid ${months(a.months)} of rent`, body: usdt(a.amount), tone: "bg-dot-success" };
+      return { title: `Renter prepaid ${periods(a.periods)} of rent`, body: usdt(a.amount), tone: "bg-dot-success" };
     case "RentReleased":
       return {
-        title: `${months(a.months)} of rent paid out to the owner`,
+        title: `${periods(a.periods)} of rent paid out to the owner`,
         body: `${usdt(a.toLandlord)} to owner${(a.fee as bigint) > BigInt(0) ? `, ${usdt(a.fee)} KeyEscrow fee` : ""} · triggered by the ${roleOfAddress(lease, a.caller)}`,
         tone: "bg-dot-success",
       };

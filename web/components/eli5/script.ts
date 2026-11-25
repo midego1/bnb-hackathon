@@ -91,7 +91,7 @@ export const MONEY = {
   rent: ctx.rent,
   deposit: ctx.deposit,
   paidIn: ctx.deposit + ctx.rent,
-  termMonths: ctx.termMonths,
+  termPeriods: ctx.termPeriods,
   fee: (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   rentToLandlord: ctx.rent - (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   aiLandlord: AI_LANDLORD_CLAIM,
@@ -200,7 +200,7 @@ const shared: SceneDef[] = [
     detail: `RentalEscrow.releaseRent(): month 1 pays ${baht(MONEY.rentToLandlord)} to the ${owner} and the one-time fee of ${baht(MONEY.fee)} (10% of one month) to the KeyEscrow treasury. Later months: no fee.`,
     duration: 9000,
     cues: { rental: 0, safe: 0, locks: 0, keys: 0, closed: 0, jar: 400, calendar: 0 },
-    calendar: months(MONEY.termMonths),
+    calendar: months(MONEY.termPeriods),
     flows: [
       { from: "safe", to: "landlord", amount: MONEY.rentToLandlord, at: 1000, coins: 4 },
       { from: "safe", to: "jar", amount: MONEY.fee, at: 2600, coins: 1 },

@@ -28,7 +28,7 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 /// `checkin-manifest.json`, which in turn lists the SHA-256 of every pickup photo of the scooter.
 contract Seed is ScriptBase {
     uint256 internal constant RENT_THB = 3_400;
-    uint32 internal constant TERM_MONTHS = 3;
+    uint32 internal constant TERM_PERIODS = 3;
     uint32 internal constant DISPUTED_ARBITER_WINDOW = 60 days;
     /// @dev Anvil default account #4 (public dev key, not a secret): the demo shareholder.
     uint256 internal constant ANVIL_KEY_4 =
@@ -83,7 +83,8 @@ contract Seed is ScriptBase {
                 arbiter: address(0), // KeyEscrow dispute desk (factory default)
                 rentAmount: rent,
                 depositAmount: deposit,
-                termMonths: TERM_MONTHS,
+                termPeriods: TERM_PERIODS,
+                rentPeriod: 0, // factory default: monthly (30 days)
                 responseWindow: 0, // factory default: 7 days
                 arbiterWindow: 0, // factory default: 14 days
                 leaseHash: leaseHash
@@ -118,7 +119,8 @@ contract Seed is ScriptBase {
                 arbiter: address(0),
                 rentAmount: rent,
                 depositAmount: deposit,
-                termMonths: TERM_MONTHS,
+                termPeriods: TERM_PERIODS,
+                rentPeriod: 0, // factory default: monthly (30 days)
                 responseWindow: 0,
                 arbiterWindow: DISPUTED_ARBITER_WINDOW,
                 leaseHash: leaseHash
@@ -166,7 +168,8 @@ contract Seed is ScriptBase {
                 arbiter: address(0),
                 rentAmount: rent,
                 depositAmount: deposit,
-                termMonths: TERM_MONTHS,
+                termPeriods: TERM_PERIODS,
+                rentPeriod: 0, // factory default: monthly (30 days)
                 responseWindow: 0,
                 arbiterWindow: 0,
                 leaseHash: leaseHash
@@ -202,7 +205,7 @@ contract Seed is ScriptBase {
         vm.serializeUint(k, "rentThb", RENT_THB);
         vm.serializeUint(k, "rentAmount", rent);
         vm.serializeUint(k, "depositAmount", deposit);
-        vm.serializeUint(k, "termMonths", TERM_MONTHS);
+        vm.serializeUint(k, "termPeriods", TERM_PERIODS);
         vm.serializeBytes32(k, "leaseHash", leaseHash);
         vm.serializeString(k, "leaseFile", "/demo/lease.pdf");
         vm.serializeBytes32(k, "checkInHash", checkInHash);

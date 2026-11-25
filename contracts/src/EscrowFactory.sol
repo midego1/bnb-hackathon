@@ -10,7 +10,8 @@ import {RentalEscrow} from "./RentalEscrow.sol";
 /// @notice Creates one {RentalEscrow} per lease as an EIP-1167 minimal proxy (~10x cheaper than a full
 /// deployment) and indexes leases by participant so the frontend can list them without an indexer.
 ///
-/// Business model: a one-time protocol fee per lease of `feeBps` of ONE month's rent (default 10%), deducted
+/// Business model: a one-time protocol fee per lease of `feeBps` of ONE month's rent (default 10%; for weekly or
+/// two-weekly rent the monthly equivalent `rentAmount * 30 days / rentPeriod`), deducted
 /// from the landlord's first rent payout. Platform role: KeyEscrow's dispute desk is the `defaultArbiter`,
 /// used whenever a landlord does not name an arbiter of their own.
 ///
@@ -27,7 +28,8 @@ contract EscrowFactory is Ownable2Step {
         address arbiter; // address(0) = the factory's defaultArbiter (KeyEscrow dispute desk)
         uint256 rentAmount;
         uint256 depositAmount;
-        uint32 termMonths;
+        uint32 termPeriods; // number of rent periods
+        uint32 rentPeriod; // seconds per rent period: 7, 14 or 30 days; 0 = DEFAULT_RENT_PERIOD (30 days)
         uint32 responseWindow; // seconds; 0 = DEFAULT_RESPONSE_WINDOW
         uint32 arbiterWindow; // seconds; 0 = DEFAULT_ARBITER_WINDOW
         bytes32 leaseHash;
@@ -35,8 +37,10 @@ contract EscrowFactory is Ownable2Step {
 
     /// @notice Hard cap on the one-time fee: 10% of one month's rent.
     uint16 public constant MAX_FEE_BPS = 1_000;
-    uint32 public constant MIN_TERM_MONTHS = 1;
-    uint32 public constant MAX_TERM_MONTHS = 60;
+    /// @notice Rent periods a lease can use: weekly, every two weeks or monthly. Monthly is the default.
+    uint32 public constant DEFAULT_RENT_PERIOD = 30 days;
+    uint32 public constant MIN_TERM_PERIODS = 1;
+    uint32 public constant MAX_TERM_PERIODS = 60;
     uint32 public constant MIN_RESPONSE_WINDOW = 1 days;
     uint32 public constant MAX_RESPONSE_WINDOW = 60 days;
     uint32 public constant DEFAULT_RESPONSE_WINDOW = 7 days;
@@ -76,7 +80,8 @@ contract EscrowFactory is Ownable2Step {
         address arbiter,
         uint256 rentAmount,
         uint256 depositAmount,
-        uint32 termMonths,
+        uint32 termPeriods,
+        uint32 rentPeriod,
         uint32 responseWindow,
         uint32 arbiterWindow,
         bytes32 leaseHash
@@ -90,7 +95,8 @@ contract EscrowFactory is Ownable2Step {
     error ZeroAddress();
     error RolesNotDistinct();
     error InvalidAmount();
-    error InvalidTerm(uint32 termMonths);
+    error InvalidTerm(uint32 termPeriods);
+    error InvalidRentPeriod(uint32 rentPeriod);
     error InvalidResponseWindow(uint32 responseWindow);
     error InvalidArbiterWindow(uint32 arbiterWindow);
     error FeeTooHigh(uint16 feeBps);
@@ -117,7 +123,7 @@ contract EscrowFactory is Ownable2Step {
     }
 
     /// @notice Create a lease offer. The tenant activates it by calling {RentalEscrow.fund}.
-    /// @dev `responseWindow` / `arbiterWindow` of 0 select the defaults (7 and 14 days).
+    /// @dev `rentPeriod` / `responseWindow` / `arbiterWindow` of 0 select the defaults (30, 7 and 14 days).
     function createLease(LeaseParams calldata p) external returns (address escrow) {
         return _createLease(p, msg.sender);
     }
@@ -154,7 +160,8 @@ contract EscrowFactory is Ownable2Step {
             t.arbiter,
             t.rentAmount,
             t.depositAmount,
-            t.termMonths,
+            t.termPeriods,
+            t.rentPeriod,
             t.responseWindow,
             t.arbiterWindow,
             t.leaseHash
@@ -177,8 +184,12 @@ contract EscrowFactory is Ownable2Step {
         if (p.rentAmount == 0 || p.depositAmount == 0) revert InvalidAmount();
         if (p.depositAmount > maxDeposit) revert DepositAboveCap(p.depositAmount, maxDeposit);
         if (p.rentAmount > maxRentPerPeriod) revert RentAboveCap(p.rentAmount, maxRentPerPeriod);
-        if (p.termMonths < MIN_TERM_MONTHS || p.termMonths > MAX_TERM_MONTHS) {
-            revert InvalidTerm(p.termMonths);
+        if (p.termPeriods < MIN_TERM_PERIODS || p.termPeriods > MAX_TERM_PERIODS) {
+            revert InvalidTerm(p.termPeriods);
+        }
+        uint32 rentPeriod = p.rentPeriod == 0 ? DEFAULT_RENT_PERIOD : p.rentPeriod;
+        if (rentPeriod != 7 days && rentPeriod != 14 days && rentPeriod != 30 days) {
+            revert InvalidRentPeriod(rentPeriod);
         }
         uint32 responseWindow = p.responseWindow == 0 ? DEFAULT_RESPONSE_WINDOW : p.responseWindow;
         if (responseWindow < MIN_RESPONSE_WINDOW || responseWindow > MAX_RESPONSE_WINDOW) {
@@ -195,7 +206,8 @@ contract EscrowFactory is Ownable2Step {
             arbiter: arbiter,
             rentAmount: p.rentAmount,
             depositAmount: p.depositAmount,
-            termMonths: p.termMonths,
+            termPeriods: p.termPeriods,
+            rentPeriod: rentPeriod,
             responseWindow: responseWindow,
             arbiterWindow: arbiterWindow,
             leaseHash: p.leaseHash,

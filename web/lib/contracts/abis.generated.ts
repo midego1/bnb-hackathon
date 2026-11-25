@@ -62,6 +62,19 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "function",
+    "name": "DEFAULT_RENT_PERIOD",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "DEFAULT_RESPONSE_WINDOW",
     "inputs": [],
     "outputs": [
@@ -114,7 +127,7 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "function",
-    "name": "MAX_TERM_MONTHS",
+    "name": "MAX_TERM_PERIODS",
     "inputs": [],
     "outputs": [
       {
@@ -153,7 +166,7 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "function",
-    "name": "MIN_TERM_MONTHS",
+    "name": "MIN_TERM_PERIODS",
     "inputs": [],
     "outputs": [
       {
@@ -214,7 +227,12 @@ export const escrowFactoryAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "termMonths",
+            "name": "termPeriods",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "rentPeriod",
             "type": "uint32",
             "internalType": "uint32"
           },
@@ -275,7 +293,12 @@ export const escrowFactoryAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "termMonths",
+            "name": "termPeriods",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "rentPeriod",
             "type": "uint32",
             "internalType": "uint32"
           },
@@ -752,7 +775,13 @@ export const escrowFactoryAbi = [
         "internalType": "uint256"
       },
       {
-        "name": "termMonths",
+        "name": "termPeriods",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "rentPeriod",
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"
@@ -917,6 +946,17 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "error",
+    "name": "InvalidRentPeriod",
+    "inputs": [
+      {
+        "name": "rentPeriod",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "InvalidResponseWindow",
     "inputs": [
       {
@@ -931,7 +971,7 @@ export const escrowFactoryAbi = [
     "name": "InvalidTerm",
     "inputs": [
       {
-        "name": "termMonths",
+        "name": "termPeriods",
         "type": "uint32",
         "internalType": "uint32"
       }
@@ -1045,7 +1085,7 @@ export const rentalEscrowAbi = [
   },
   {
     "type": "function",
-    "name": "RENT_PERIOD",
+    "name": "MONTH",
     "inputs": [],
     "outputs": [
       {
@@ -1172,7 +1212,7 @@ export const rentalEscrowAbi = [
     "name": "dueDate",
     "inputs": [
       {
-        "name": "month",
+        "name": "period",
         "type": "uint32",
         "internalType": "uint32"
       }
@@ -1259,7 +1299,12 @@ export const rentalEscrowAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "termMonths",
+            "name": "termPeriods",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "rentPeriod",
             "type": "uint32",
             "internalType": "uint32"
           },
@@ -1301,45 +1346,6 @@ export const rentalEscrowAbi = [
   },
   {
     "type": "function",
-    "name": "monthsDue",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "monthsFunded",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "monthsReleased",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "moveOutAt",
     "inputs": [],
     "outputs": [
@@ -1356,7 +1362,7 @@ export const rentalEscrowAbi = [
     "name": "payRent",
     "inputs": [
       {
-        "name": "months",
+        "name": "periods",
         "type": "uint32",
         "internalType": "uint32"
       }
@@ -1373,6 +1379,45 @@ export const rentalEscrowAbi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "periodsDue",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "periodsFunded",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "periodsReleased",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
       }
     ],
     "stateMutability": "view"
@@ -1532,7 +1577,12 @@ export const rentalEscrowAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "termMonths",
+            "name": "termPeriods",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "rentPeriod",
             "type": "uint32",
             "internalType": "uint32"
           },
@@ -1697,7 +1747,7 @@ export const rentalEscrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "months",
+        "name": "periods",
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"
@@ -1709,7 +1759,7 @@ export const rentalEscrowAbi = [
         "internalType": "uint256"
       },
       {
-        "name": "monthsFunded",
+        "name": "periodsFunded",
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"
@@ -1728,7 +1778,7 @@ export const rentalEscrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "months",
+        "name": "periods",
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"

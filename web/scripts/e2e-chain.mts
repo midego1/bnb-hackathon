@@ -208,7 +208,8 @@ async function createLease(opts: { arbiter?: Address } = {}): Promise<Address> {
       arbiter: opts.arbiter ?? zeroAddress, // zero = KeyEscrow dispute desk
       rentAmount: RENT,
       depositAmount: DEPOSIT,
-      termMonths: 12,
+      termPeriods: 12,
+      rentPeriod: 0,
       responseWindow: 0, // default 7 days
       arbiterWindow: 0, // default 14 days
       leaseHash: keccak256(toHex("e2e lease")),
@@ -238,7 +239,7 @@ async function checkSeed() {
   const terms = await read<Record<string, unknown>>(lease, ctx.escrowAbi, "terms");
 
   eq(await status(lease), Status.Active, "demo lease status");
-  eq(await read<number>(lease, ctx.escrowAbi, "monthsFunded"), 1, "demo lease monthsFunded");
+  eq(await read<number>(lease, ctx.escrowAbi, "periodsFunded"), 1, "demo lease periodsFunded");
   eq(await balance(lease), DEPOSIT + RENT, "demo escrow holds deposit + first month");
   eq(terms.landlord, landlord.address, "demo landlord = anvil #1");
   eq(terms.tenant, tenant.address, "demo tenant = anvil #2");

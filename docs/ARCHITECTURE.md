@@ -92,8 +92,8 @@ flowchart TB
 
 | Contract | Where | Responsibility |
 | --- | --- | --- |
-| `EscrowFactory` | `contracts/src/EscrowFactory.sol` | Checks the rental parameters (term 1–60 months, reply window 1–60 days, dispute deadline 1–90 days, three different parties) and clones one `RentalEscrow` per rental (EIP-1167). Indexes rentals by owner, renter and arbiter, plus a paginated list. Holds the fee setting (`feeBps`, hard cap `MAX_FEE_BPS = 1000`) and the default arbiter for **future** rentals, and the owner-set pilot caps (`maxDeposit`, `maxRentPerPeriod`, `maxActiveValue` over `activeValue`, the value all escrows hold; unlimited off mainnet). |
-| `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds one rental's deposit and rent. Releases rent on a fixed 30-day schedule, charges the one-time fee on the first rent payout, anchors evidence hashes, and settles the deposit by agreement, ruling or timeout. Initialised once, not upgradeable, no admin functions. |
+| `EscrowFactory` | `contracts/src/EscrowFactory.sol` | Checks the rental parameters (rent period 7, 14 or 30 days (default 30), term 1–60 periods, reply window 1–60 days, dispute deadline 1–90 days, three different parties) and clones one `RentalEscrow` per rental (EIP-1167). Indexes rentals by owner, renter and arbiter, plus a paginated list. Holds the fee setting (`feeBps`, hard cap `MAX_FEE_BPS = 1000`) and the default arbiter for **future** rentals, and the owner-set pilot caps (`maxDeposit`, `maxRentPerPeriod`, `maxActiveValue` over `activeValue`, the value all escrows hold; unlimited off mainnet). |
+| `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds one rental's deposit and rent. Releases rent per period on the rental's own schedule (`rentPeriod`: 7, 14 or 30 days), charges the one-time fee (10 % of the monthly-equivalent rent) on the first rent payout, stops the rent clock at the move-out (`moveOutAt`), anchors evidence hashes, and settles the deposit by agreement, ruling or timeout. Initialised once, not upgradeable, no admin functions. |
 | `FleetVault` | `contracts/src/FleetVault.sol` | Testnet prototype. Investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim into it. `sync()` splits new income into the operator fee (immutable, max 30 %; 10 % on testnet) and a per-share accumulator that holders `claim()`. Shares redeem 1:1. |
 | `MockUSDT` | `contracts/src/mocks/MockUSDT.sol` | Testnet-only stablecoin: 6 decimals, faucet capped at 10,000 per call. Not a project token. |
 
@@ -350,10 +350,10 @@ All amounts are in the factory's stablecoin (MockUSDT on testnet, 6 decimals). "
 
 | Flow | Trigger | Money |
 | --- | --- | --- |
-| Funding | `fund()` by the renter | `depositAmount + rentAmount` into the escrow; starts the 30-day rent clock |
-| Prepay | `payRent(months)` by the renter | `months × rentAmount`, never past the term |
-| Rent release | `releaseRent()`: anyone once a month is due, or the renter early | due months to the payee; the **first** payout pays the one-time fee (`rentAmount × feeBps / 10000`) to the fee recipient |
-| Settlement | `accept`, `resolve` or a timeout | deposit: `tenantRefund` to the renter, `landlordClaim` to the payee (always summing to the deposit); rent: due months to the payee, prepaid months not yet due back to the renter |
+| Funding | `fund()` by the renter | `depositAmount + rentAmount` into the escrow; starts the rent clock (one `rentPeriod` per period) |
+| Prepay | `payRent(periods)` by the renter | `periods × rentAmount`, never past the term |
+| Rent release | `releaseRent()`: anyone once a period is due, or the renter early | due periods to the payee; the **first** payout pays the one-time fee (`rentAmount × 30 days × feeBps / (rentPeriod × 10000)`, i.e. `feeBps` of the monthly equivalent) to the fee recipient |
+| Settlement | `accept`, `resolve` or a timeout | deposit: `tenantRefund` to the renter, `landlordClaim` to the payee (always summing to the deposit); rent: periods due at the move-out to the payee, the other prepaid periods back to the renter |
 | Cancel | `cancel()` by the owner, only while unfunded | nothing moves |
 | Fleet income | `sync()` (also run by `deposit`, `redeem`, `claim`) | anything above principal and reserved income: operator fee out, the rest claimable pro rata |
 
