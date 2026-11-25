@@ -44,7 +44,8 @@ import {
   type TransactionReceipt,
 } from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
-import { CHAIN_ID, createChain97, EXPLORER, gasPriceFrom, loadDeployer as loadDeployerFromEnv, loadWallets, parseEnvFile } from "../lib/server/chain97.mts";
+import { CHAIN_ID, createChain97, EXPLORER, gasPriceFrom, parseEnvFile } from "../lib/server/chain97.mts";
+import { loadDeployer as loadDeployerFromEnv, loadWallets } from "../lib/server/chain97-keys.mts";
 
 // ---------------------------------------------------------------------------------------------------------
 // Paths and environment

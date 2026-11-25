@@ -216,6 +216,16 @@ step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with
   (`DEMO_TESTNET_MAX_GAS_PER_RUN`); 1 gwei legacy gas price; a 45 s receipt timeout (`DEMO_TESTNET_TX_TIMEOUT_S`) after
   which Retry waits for the same transaction instead of sending it again. Only the story's own calls are signed: an
   allowlist checks the contract, function, role and arguments (`guards.ts`, unit-tested).
+- **Two seams for other hosts (Cloudflare Workers).** Keys come from one loader, `lib/server/demoTestnet/keys.ts`
+  `loadDemoSecrets`: with `DEMO_TESTNET_KEYS` set (JSON `{"landlord","tenant","arbiter"}` private keys, as Worker
+  secrets) plus `DEMO_TESTNET_RPC_URL` and an optional `DEMO_TESTNET_FUNDER_KEY` (a small dedicated top-up wallet, not
+  the deployer; without it a low wallet refuses the run), it uses env vars and touches no filesystem; otherwise the
+  secrets dir as above, with the deployer keystore as funder. The lock, rate limit and run state sit behind
+  `lib/server/demoTestnet/store.ts` `DemoRunStore` (in memory for `next start`); on Workers back it with one Durable
+  Object (`begin` must be atomic, see the interface) and pass it to `getDemoTestnetRunner(env, { store })`. The node:fs
+  key code lives in `lib/server/chain97-keys.mts`; `chain97.mts` is viem-only.
+- **Dispute desk.** Leases take an arbiter per lease, so the demo names its own desk wallet; the runner refuses to
+  start if that wallet is the factory's default arbiter (the deployer and factory owner), the funder, or a party.
 - **Cost.** About 0.0012 tBNB of gas per run. "Landlord ignores it" is disabled on testnet (it needs 7 days of real
   time); play it on the local demo.
 
