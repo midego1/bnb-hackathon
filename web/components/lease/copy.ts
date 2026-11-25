@@ -1,159 +1,194 @@
+import { useMemo, type ReactNode } from "react";
+import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n/t";
+
 /**
- * Every sentence of the rental page and the renter page (English). Kept in one object so a translation can replace it
- * whole; amounts arrive already formatted (baht first) and dates as unix seconds.
+ * Every sentence of the rental page, built from the dictionary (lib/i18n/dictionaries/en/rental.ts and zh/rental.ts)
+ * for the active language. Amounts arrive already formatted (baht first) and dates as unix seconds. The banner titles
+ * are headlines (t.h): English with the Chinese line under it in EN+中文.
  */
-const day = (ts: bigint) => new Date(Number(ts) * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-const months = (n: number) => `${n} month${n === 1 ? "" : "s"}`;
 
-export const rentalCopy = {
-  day,
-  fallbackTitle: "Scooter rental",
-  ownerShort: (a: string) => `owner ${a}`,
-  period: (from: bigint, to: bigint) => `${day(from)} to ${day(to)}`,
-  notStarted: "starts when the renter pays in",
-  escrowLink: (short: string, explorer: boolean) => `Escrow ${short}${explorer ? " on BscScan" : ""}`,
-  youAre: { landlord: "You are the owner", tenant: "You are the renter", arbiter: "You are the dispute desk" },
-  readOnly: (wallet: boolean) => (wallet ? "Your wallet is not part of this rental: read-only." : "Connect a wallet to act on this rental."),
-  back: { arbiter: "Dispute desk", landlord: "My fleet", tenant: "My rentals", none: "Home" },
+const locale = (t: T) => (t.lang === "zh" ? "zh-CN" : "en-GB");
 
-  pill: {
-    created: "Waiting for the renter to pay in",
-    month: (m: number, term: number) => `Active, month ${m} of ${term}`,
-    proposal: "Return: deposit proposal open",
-    closed: (at: bigint) => `Return · reply window closed ${day(at)}`,
-    disputed: "In dispute",
-    settled: "Closed",
-    cancelled: "Offer withdrawn",
-  },
+/** "12 Jan" (UTC). */
+export const dayIn = (t: T) => (ts: bigint) => new Date(Number(ts) * 1000).toLocaleDateString(locale(t), { day: "numeric", month: "short", timeZone: "UTC" });
 
-  banner: {
-    fundTitle: (total: string) => `Pay ${total} to start: the deposit plus month 1.`,
-    fundBody: "It goes into this rental's own escrow, not to the shop. The deposit stays locked there until you return the scooter.",
-    fundAction: (total: string) => `Pay in ${total}`,
-    fundNote: "Get test USDT, approve, then fund",
-    waitFundTitle: "Waiting for the renter to pay in.",
-    waitFundOwner: "Send the renter this page. Nothing has moved yet, and you can withdraw the offer until they pay.",
-    waitFundOther: "Nothing has moved yet.",
+/** "12 Jan 2027, 08:00" in the browser's time zone (lib/format formatDate, in the active language). */
+export const dateTimeIn = (t: T) => (ts: bigint | number) =>
+  new Date(Number(ts) * 1000).toLocaleString(locale(t), { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-    lockedTitle: (deposit: string, you: boolean) => `${you ? "Your" : "The"} ${deposit} deposit is locked in escrow.`,
-    payBody: (paidThrough: number, next: number, due: bigint) =>
-      `Rent is paid through month ${paidThrough}. Pay month ${next} by ${day(due)} to keep riding. The owner can never take the deposit alone.`,
-    payAction: (next: number, rent: string) => `Pay month ${next} · ${rent}`,
-    payNote: "Approve, then pay: two wallet confirmations",
-    allPaidBody: (term: number) => `All ${months(term)} are paid in. At return, take the return photos and propose how to split the deposit.`,
-    returnedTitle: "Your scooter is back. Propose how to split the deposit.",
-    returnedBody: (days: number) => `The AI inspector compares the pickup and return photos and suggests a split. The owner then has ${days} days to reply.`,
-    proposeAction: "Propose the split",
+/** "15 Jan 2027, 08:00 UTC" (lib/windows.ts UTC_DATE, in the active language). */
+export const utcDateTimeIn = (t: T) => (ts: bigint | number) =>
+  new Date(Number(ts) * 1000).toLocaleString(locale(t), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
 
-    collectTitle: (amount: string) => `${amount} of rent is ready for you.`,
-    collectBody: (fee: string | null) =>
-      fee ? `The one-time ${fee} KeyEscrow fee comes out of this first payout. Later months pay the full rent.` : "No fee: the one-time KeyEscrow fee was already paid.",
-    collectAction: (month: number, amount: string) => `Collect month ${month} rent · ${amount}`,
-    paidOwnerTitle: (n: number, net: string) => `${months(n)} of rent paid: ${net} is in your wallet.`,
-    runningTitle: "The rental is running.",
-    nextDueBody: (due: bigint) => `The renter's next rent is due ${day(due)}. The deposit stays locked until return.`,
-    allRentBody: "All rent is paid out. The deposit stays locked until the scooter is returned.",
-    idleUntil: (due: bigint) => `Nothing for you to do until ${day(due)}`,
+export const monthsIn = (t: T) => (n: number) => t(n === 1 ? "rental.months.one" : "rental.months.other", { n });
 
-    noDisputeTitle: "No dispute on this rental.",
-    noDisputeBody: "You only rule if the renter and the owner disagree about the deposit at return. Until then you cannot move any money.",
-    nothingToRule: "Nothing for you to rule on",
-    monthOf: (m: number, term: number) => `Month ${m} of ${term}. Only the renter and the owner act on this rental.`,
+type Role = "arbiter" | "landlord" | "tenant" | "none";
+const roleKey = (by: string | null): Role => (by === "arbiter" || by === "landlord" || by === "tenant" ? by : "none");
 
-    proposedTitle: (by: string, back: string, kept: string) => `The ${by} proposed: ${back} back to the renter, ${kept} to the owner.`,
-    replyBy: (at: bigint, owner: boolean) =>
-      `Reply by ${day(at)}: accept, counter or open a dispute.${owner ? " Without a reply, the renter gets the full deposit back." : ""}`,
-    replyAnytime: "Accept it, counter it or open a dispute.",
-    replyAction: "Reply to the proposal",
-    yourProposalTitle: "Your proposal is waiting for the other side.",
-    theyHaveUntil: (at: bigint) => `They have until ${day(at)} to answer. After that you can claim the full deposit.`,
-    theyDecide: "They can accept it, counter it or open a dispute.",
-    proposalWaitingTitle: "A deposit proposal is waiting for an answer.",
+export function rentalCopyFor(t: T) {
+  const day = dayIn(t);
+  const months = monthsIn(t);
+  const h = (key: Parameters<T["h"]>[0], vars?: Record<string, string | number>): ReactNode => t.h(key, vars);
+  return {
+    day,
+    fallbackTitle: h("rental.fallbackTitle"),
+    ownerShort: (a: string) => t("rental.ownerShort", { address: a }),
+    period: (from: bigint, to: bigint) => t("rental.period", { from: day(from), to: day(to) }),
+    notStarted: t("rental.notStarted"),
+    escrowLink: (short: string, explorer: boolean) => t(explorer ? "rental.escrowLink" : "rental.escrowLinkLocal", { short }),
+    youAre: { landlord: t("rental.youAre.landlord"), tenant: t("rental.youAre.tenant"), arbiter: t("rental.youAre.arbiter") },
+    readOnly: (wallet: boolean) => t(wallet ? "rental.readOnlyWallet" : "rental.readOnlyConnect"),
+    back: { arbiter: t("rental.back.arbiter"), landlord: t("rental.back.landlord"), tenant: t("rental.back.tenant"), none: t("rental.back.none") },
 
-    claimTitle: (deposit: string) => `Claim your full ${deposit} deposit.`,
-    claimBody: (days: number) => `The owner did not reply to your proposal within ${days} days, so the deposit is yours. One confirmation moves it to your wallet.`,
-    claimAction: (deposit: string) => `Claim deposit · ${deposit}`,
-    closedOwnerTitle: (at: bigint) => `The reply window closed on ${day(at)}.`,
-    closedOwnerBody: (days: number, deposit: string) =>
-      `You had ${days} days to accept, counter or dispute the renter's proposal. None arrived, so the renter can now claim the full ${deposit} deposit. Rent already paid to you is not affected.`,
-    closedGone: "Accept, counter and dispute can no longer be sent.",
-    closedOtherTitle: "Nothing to rule on: no dispute was opened in time.",
-    closedOtherBody: (deposit: string) => `The owner's reply window closed. The renter can claim the full ${deposit} deposit.`,
+    pill: {
+      created: t("rental.pill.created"),
+      month: (m: number, term: number) => t("rental.pill.month", { m, term }),
+      proposal: t("rental.pill.proposal"),
+      closed: (at: bigint) => t("rental.pill.closed", { date: day(at) }),
+      disputed: t("rental.pill.disputed"),
+      settled: t("rental.pill.settled"),
+      cancelled: t("rental.pill.cancelled"),
+    },
 
-    ruleTitle: "Rule on the deposit split.",
-    ruleBody: (at: bigint) => `Rule by ${day(at)}. You can only split the deposit between the renter and the owner, nothing else.`,
-    ruleAction: "Rule now",
-    deskDecidingTitle: "The dispute desk is deciding.",
-    deskDecidingBody: (at: bigint) => `It rules by ${day(at)}. If it does not, the full deposit goes back to the renter.`,
-    deskLateTitle: "The dispute desk missed its deadline.",
-    deskLateBody: "Anyone can now return the full deposit to the renter.",
-    deskLateAction: (deposit: string) => `Return ${deposit} to the renter`,
+    banner: {
+      fundTitle: (total: string) => h("rental.banner.fundTitle", { total }),
+      fundBody: t("rental.banner.fundBody"),
+      fundAction: (total: string) => t("rental.banner.fundAction", { total }),
+      fundNote: t("rental.banner.fundNote"),
+      waitFundTitle: h("rental.banner.waitFundTitle"),
+      waitFundOwner: t("rental.banner.waitFundOwner"),
+      waitFundOther: t("rental.banner.waitFundOther"),
 
-    settledTenantTitle: (back: string) => `Closed: you got ${back} back.`,
-    settledOwnerTitle: (net: string) => `Closed: you received ${net} in total.`,
-    settledTitle: "Closed: all money is paid out.",
-    settledBody: "This rental is finished and its escrow is empty.",
-    cancelledTitle: "The owner withdrew this offer.",
-    cancelledBody: "Nothing was paid in.",
+      lockedTitle: (deposit: string, you: boolean) => h(you ? "rental.banner.lockedTitleYou" : "rental.banner.lockedTitle", { deposit }),
+      payBody: (paidThrough: number, next: number, due: bigint) => t("rental.banner.payBody", { paid: paidThrough, next, due: day(due) }),
+      payAction: (next: number, rent: string) => t("rental.banner.payAction", { next, rent }),
+      payNote: t("rental.banner.payNote"),
+      allPaidBody: (term: number) => t("rental.banner.allPaidBody", { months: months(term) }),
+      returnedTitle: h("rental.banner.returnedTitle"),
+      returnedBody: (days: number) => t("rental.banner.returnedBody", { days }),
+      proposeAction: t("rental.banner.proposeAction"),
 
-    nothing: "Nothing for you to do",
-    nothingLeft: "Nothing left to do",
-    oneConfirmation: "One wallet confirmation",
-  },
+      collectTitle: (amount: string) => h("rental.banner.collectTitle", { amount }),
+      collectBody: (fee: string | null) => (fee ? t("rental.banner.collectBodyFee", { fee }) : t("rental.banner.collectBodyNoFee")),
+      collectAction: (month: number, amount: string) => t("rental.banner.collectAction", { month, amount }),
+      paidOwnerTitle: (n: number, net: string) => h(n === 1 ? "rental.banner.paidOwnerTitle.one" : "rental.banner.paidOwnerTitle.other", { n, net }),
+      runningTitle: h("rental.banner.runningTitle"),
+      nextDueBody: (due: bigint) => t("rental.banner.nextDueBody", { due: day(due) }),
+      allRentBody: t("rental.banner.allRentBody"),
+      idleUntil: (due: bigint) => t("rental.banner.idleUntil", { date: day(due) }),
 
-  monthsLabel: "Rental progress by month",
-  month: (n: number) => `Month ${n}`,
-  monthPaidOut: "paid",
-  monthPaidIn: "paid in",
-  monthDue: (at: bigint) => `due ${day(at)}`,
-  returnOn: (at: bigint) => `Return ${day(at)}`,
+      noDisputeTitle: h("rental.banner.noDisputeTitle"),
+      noDisputeBody: t("rental.banner.noDisputeBody"),
+      nothingToRule: t("rental.banner.nothingToRule"),
+      monthOf: (m: number, term: number) => t("rental.banner.monthOf", { m, term }),
 
-  strip: {
-    paidIn: (you: boolean) => `Renter${you ? " (you)" : ""} paid in`,
-    escrow: "This rental's escrow",
-    owner: (you: boolean) => `Owner${you ? " (you)" : ""} received`,
-    vault: "Fleet Vault received",
-    stillToPay: (rent: string) => `Still to pay: ${rent} rent`,
-    allPaidIn: "All rent paid in",
-    gotBack: (v: string) => `Got back ${v}`,
-    escrowEmpty: "Empty until the renter pays in",
-    escrowLocked: "The deposit, locked until return",
-    escrowAhead: "The deposit plus rent paid in ahead",
-    escrowClaim: "Ready for the renter to claim",
-    escrowDone: "Empty: everything is paid out",
-    afterFee: (fee: string) => `After the one-time ${fee} fee`,
-    feeLater: "The one-time fee comes out of the first payout",
-    trust: "Only moves when you both agree, or the dispute desk rules.",
-    fee: (pct: string) => `Fee: ${pct}% of one month's rent, once, from the first payout. Never from the deposit.`,
-  },
+      /** `by`: the proposer's role (model.ts Viewer). */
+      proposedTitle: (by: string | null, back: string, kept: string) => h(`rental.banner.proposedTitle.${roleKey(by)}`, { back, kept }),
+      proposedBody: (by: string | null, back: string, kept: string) => t(`rental.banner.proposed.${roleKey(by)}`, { back, kept }),
+      replyBy: (at: bigint, owner: boolean) => t(owner ? "rental.banner.replyByOwner" : "rental.banner.replyBy", { date: day(at) }),
+      replyAnytime: t("rental.banner.replyAnytime"),
+      replyAction: t("rental.banner.replyAction"),
+      yourProposalTitle: h("rental.banner.yourProposalTitle"),
+      theyHaveUntil: (at: bigint) => t("rental.banner.theyHaveUntil", { date: day(at) }),
+      theyDecide: t("rental.banner.theyDecide"),
+      proposalWaitingTitle: h("rental.banner.proposalWaitingTitle"),
 
-  timeline: { title: "What happened", sub: "newest last · every step is a transaction", none: "Nothing yet.", payee: "The owner's rent goes to the Fleet Vault" },
+      claimTitle: (deposit: string) => h("rental.banner.claimTitle", { deposit }),
+      claimBody: (days: number) => t("rental.banner.claimBody", { days }),
+      claimAction: (deposit: string) => t("rental.banner.claimAction", { deposit }),
+      closedOwnerTitle: (at: bigint) => h("rental.banner.closedOwnerTitle", { date: day(at) }),
+      closedOwnerBody: (days: number, deposit: string) => t("rental.banner.closedOwnerBody", { days, deposit }),
+      closedGone: t("rental.banner.closedGone"),
+      closedOtherTitle: h("rental.banner.closedOtherTitle"),
+      closedOtherBody: (deposit: string) => t("rental.banner.closedOtherBody", { deposit }),
 
-  ret: {
-    title: "What happens at return",
-    planned: (at: bigint) => `Planned for ${day(at)}`,
-    photos: "Return photos",
-    photosSub: "The same angles as at pickup, taken at drop-off.",
-    split: "A split is proposed",
-    splitSub: "The AI inspector compares pickup and return photos.",
-    reply: (days: number) => `The other side replies within ${days} days`,
-    replySub: "Accept, counter, or open a dispute.",
-    desk: (days: number) => `Dispute desk rules within ${days} days`,
-    deskSub: "Only if disputed. It can split the deposit, nothing else.",
-    back: "Otherwise the full deposit goes back",
-    backSub: "No reply or ruling in time: the renter claims the whole deposit.",
-    by: (at: bigint) => `by ${day(at)}`,
-    on: (at: bigint) => day(at),
-    closed: (at: bigint) => `closed ${day(at)}`,
-    now: "now",
-    skipped: "skipped",
-    ifDisputed: "only if disputed",
-    afterDeadline: "after a deadline",
-    later: "later",
-  },
+      ruleTitle: h("rental.banner.ruleTitle"),
+      ruleBody: (at: bigint) => t("rental.banner.ruleBody", { date: day(at) }),
+      ruleAction: t("rental.banner.ruleAction"),
+      deskDecidingTitle: h("rental.banner.deskDecidingTitle"),
+      deskDecidingBody: (at: bigint) => t("rental.banner.deskDecidingBody", { date: day(at) }),
+      deskLateTitle: h("rental.banner.deskLateTitle"),
+      deskLateBody: t("rental.banner.deskLateBody"),
+      deskLateAction: (deposit: string) => t("rental.banner.deskLateAction", { deposit }),
 
-  details: "Do it here",
+      settledTenantTitle: (back: string) => h("rental.banner.settledTenantTitle", { back }),
+      settledOwnerTitle: (net: string) => h("rental.banner.settledOwnerTitle", { net }),
+      settledTitle: h("rental.banner.settledTitle"),
+      settledBody: t("rental.banner.settledBody"),
+      cancelledTitle: h("rental.banner.cancelledTitle"),
+      cancelledBody: t("rental.banner.cancelledBody"),
 
-};
+      nothing: t("rental.banner.nothing"),
+      nothingLeft: t("rental.banner.nothingLeft"),
+      oneConfirmation: t("rental.banner.oneConfirmation"),
+    },
 
-export type RentalCopy = typeof rentalCopy;
+    monthsLabel: t("rental.monthsLabel"),
+    month: (n: number) => t("rental.month", { n }),
+    monthPaidOut: t("rental.monthPaidOut"),
+    monthPaidIn: t("rental.monthPaidIn"),
+    monthDue: (at: bigint) => t("rental.monthDue", { date: day(at) }),
+    returnOn: (at: bigint) => t("rental.returnOn", { date: day(at) }),
+
+    strip: {
+      paidIn: (you: boolean) => t(you ? "rental.strip.paidInYou" : "rental.strip.paidIn"),
+      escrow: t("rental.strip.escrow"),
+      owner: (you: boolean) => t(you ? "rental.strip.ownerYou" : "rental.strip.owner"),
+      vault: t("rental.strip.vault"),
+      stillToPay: (rent: string) => t("rental.strip.stillToPay", { rent }),
+      allPaidIn: t("rental.strip.allPaidIn"),
+      gotBack: (v: string) => t("rental.strip.gotBack", { amount: v }),
+      escrowEmpty: t("rental.strip.escrowEmpty"),
+      escrowLocked: t("rental.strip.escrowLocked"),
+      escrowAhead: t("rental.strip.escrowAhead"),
+      escrowClaim: t("rental.strip.escrowClaim"),
+      escrowDone: t("rental.strip.escrowDone"),
+      afterFee: (fee: string) => t("rental.strip.afterFee", { fee }),
+      feeLater: t("rental.strip.feeLater"),
+      trust: t("rental.strip.trust"),
+      fee: (pct: string) => t("rental.strip.fee", { pct }),
+    },
+
+    timeline: { title: h("rental.timeline"), sub: t("rental.timeline.sub"), none: t("rental.timeline.none"), payee: t("rental.timeline.payee") },
+
+    ret: {
+      title: h("rental.ret"),
+      planned: (at: bigint) => t("rental.ret.planned", { date: day(at) }),
+      photos: t("rental.ret.photos"),
+      photosSub: t("rental.ret.photosSub"),
+      split: t("rental.ret.split"),
+      splitSub: t("rental.ret.splitSub"),
+      reply: (days: number) => t("rental.ret.reply", { days }),
+      replySub: t("rental.ret.replySub"),
+      desk: (days: number) => t("rental.ret.desk", { days }),
+      deskSub: t("rental.ret.deskSub"),
+      back: t("rental.ret.back"),
+      backSub: t("rental.ret.backSub"),
+      by: (at: bigint) => t("rental.ret.by", { date: day(at) }),
+      on: (at: bigint) => day(at),
+      closed: (at: bigint) => t("rental.ret.closed", { date: day(at) }),
+      now: t("rental.ret.now"),
+      skipped: t("rental.ret.skipped"),
+      ifDisputed: t("rental.ret.ifDisputed"),
+      afterDeadline: t("rental.ret.afterDeadline"),
+      later: t("rental.ret.later"),
+    },
+  };
+}
+
+export type RentalCopy = ReturnType<typeof rentalCopyFor>;
+
+/** The rental page's copy in the visitor's language. */
+export function useRentalCopy() {
+  const t = useT();
+  return useMemo(() => rentalCopyFor(t), [t]);
+}

@@ -2,7 +2,8 @@
 
 import { useEffect, useReducer } from "react";
 import { useReducedMotion } from "@/components/eli5/Explainer";
-import { BUDGET_S, mmss, pitchCopy as copy, SCENES } from "./script";
+import { useT } from "@/lib/i18n/client";
+import { BUDGET_S, mmss, SCENES, sceneWords } from "./script";
 import { PitchStage } from "./Stage";
 
 /**
@@ -57,7 +58,10 @@ export function pitchReducer(s: State, a: Action): State {
 export function Pitch() {
   const [s, dispatch] = useReducer(pitchReducer, DEFAULT);
   const reduced = useReducedMotion();
+  const t = useT();
   const scene = SCENES[s.index];
+  const words = sceneWords(t, scene);
+  const sceneOf = t("pitch.sceneOf", { n: s.index + 1, total: SCENES.length });
   const done = s.index === LAST && s.t >= scene.duration;
   const elapsed = Math.min(BUDGET_S, scene.at + s.t / 1000);
 
@@ -108,8 +112,8 @@ export function Pitch() {
       data-motion={reduced ? "reduced" : "full"}
     >
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">{copy.heading}</h1>
-        <span className="text-sm text-subtle">{copy.sub}</span>
+        <h1 className="text-xl font-semibold tracking-tight">{t.h("pitch.heading")}</h1>
+        <span className="text-sm text-subtle">{t("pitch.sub")}</span>
       </div>
 
       <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="pitch-cartoon">
@@ -121,7 +125,7 @@ export function Pitch() {
       <div className="grid shrink-0 gap-3 rounded-2xl border border-border bg-surface px-5 py-3 shadow-sm">
         {/* The 3:00 budget, with every scene's time mark. */}
         <div className="flex items-center gap-3" data-testid="pitch-timer">
-          <div className="relative h-2.5 flex-1 rounded-full bg-surface-strong" role="progressbar" aria-label={copy.budget} aria-valuemin={0} aria-valuemax={BUDGET_S} aria-valuenow={Math.round(elapsed)} aria-valuetext={`${mmss(elapsed)} / ${mmss(BUDGET_S)}`}>
+          <div className="relative h-2.5 flex-1 rounded-full bg-surface-strong" role="progressbar" aria-label={t("pitch.budget")} aria-valuemin={0} aria-valuemax={BUDGET_S} aria-valuenow={Math.round(elapsed)} aria-valuetext={`${mmss(elapsed)} / ${mmss(BUDGET_S)}`}>
             <div className="absolute inset-y-0 left-0 rounded-full bg-amber-400" style={{ width: `${(elapsed / BUDGET_S) * 100}%` }} />
             {SCENES.slice(1, -1).map((x) => (
               <span key={x.id} className="absolute inset-y-0 w-0.5 bg-surface" style={{ left: `${(x.at / BUDGET_S) * 100}%` }} />
@@ -134,32 +138,35 @@ export function Pitch() {
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div key={scene.id} className="demo-pop min-w-0" data-testid="pitch-narration" aria-live="polite">
-            <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{scene.text}</p>
+            {/* Also the stage's accessible name (aria-labelledby in Stage.tsx). */}
+            <p id="pitch-sentence" className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">
+              {words.text}
+            </p>
             <p className="mt-1.5 text-sm text-subtle" data-testid="pitch-note">
-              <span className="font-semibold text-muted-foreground tabular-nums">{mmss(scene.at)}</span> · {scene.note}
+              <span className="font-semibold text-muted-foreground tabular-nums">{mmss(scene.at)}</span> · {words.note}
             </p>
           </div>
 
           <div className="flex flex-col gap-2 lg:items-end">
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => dispatch({ type: "back" })} disabled={s.index === 0} className={secondaryBtn} data-testid="pitch-back" aria-label={copy.back}>
-                ◀ {copy.back}
+              <button type="button" onClick={() => dispatch({ type: "back" })} disabled={s.index === 0} className={secondaryBtn} data-testid="pitch-back" aria-label={t("pitch.back")}>
+                ◀ {t("pitch.back")}
               </button>
               <button type="button" onClick={() => dispatch({ type: "toggle" })} className={primaryBtn} data-testid="pitch-play" aria-pressed={s.playing}>
-                {done ? `↺ ${copy.replay}` : s.playing ? `❚❚ ${copy.pause}` : `▶ ${copy.play}`}
+                {done ? `↺ ${t("pitch.replay")}` : s.playing ? `❚❚ ${t("pitch.pause")}` : `▶ ${t("pitch.play")}`}
               </button>
-              <button type="button" onClick={() => dispatch({ type: "next" })} disabled={s.index === LAST} className={secondaryBtn} data-testid="pitch-next" aria-label={copy.next}>
-                {copy.next} ▶
+              <button type="button" onClick={() => dispatch({ type: "next" })} disabled={s.index === LAST} className={secondaryBtn} data-testid="pitch-next" aria-label={t("pitch.next")}>
+                {t("pitch.next")} ▶
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <ol className="flex items-center gap-1" aria-label={copy.sceneOf(s.index + 1, SCENES.length)}>
+              <ol className="flex items-center gap-1" aria-label={sceneOf}>
                 {SCENES.map((x, i) => (
                   <li key={x.id}>
                     <button
                       type="button"
                       onClick={() => dispatch({ type: "go", index: i })}
-                      aria-label={copy.goTo(i + 1, mmss(x.at))}
+                      aria-label={t("pitch.goTo", { n: i + 1, mark: mmss(x.at) })}
                       aria-current={i === s.index ? "step" : undefined}
                       data-testid="pitch-dot"
                       className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-8 bg-surface-strong" : i < s.index ? "w-3 bg-amber-400" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
@@ -169,9 +176,9 @@ export function Pitch() {
                   </li>
                 ))}
               </ol>
-              <span className="text-xs whitespace-nowrap text-subtle tabular-nums">{copy.sceneOf(s.index + 1, SCENES.length)}</span>
+              <span className="text-xs whitespace-nowrap text-subtle tabular-nums">{sceneOf}</span>
             </div>
-            <span className="hidden text-xs text-subtle lg:block">{copy.keys}</span>
+            <span className="hidden text-xs text-subtle lg:block">{t("pitch.keys")}</span>
           </div>
         </div>
       </div>

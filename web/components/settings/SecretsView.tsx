@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Card, Notice, PageTitle, Skeleton, inputClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * The write-only secrets page. A value is read from the input once, the input is cleared before the request leaves,
@@ -40,6 +41,7 @@ export function SecretsView() {
   const [phase, setPhase] = useState<"loading" | "locked" | "ready" | "error">("loading");
   const [listing, setListing] = useState<Listing | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   /** Applies a GET answer: locked, error or the listing. */
   const apply = useCallback((res: Response, data: Record<string, unknown>): Listing | null => {
@@ -49,14 +51,14 @@ export function SecretsView() {
       return null;
     }
     if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : `Request failed (${res.status}).`);
+      setError(typeof data.error === "string" ? data.error : t("secrets.errors.request", { status: res.status }));
       setPhase("error");
       return null;
     }
     setListing(data as unknown as Listing);
     setPhase("ready");
     return data as unknown as Listing;
-  }, []);
+  }, [t]);
 
   const load = useCallback(async () => {
     const { res, data } = await api(API);
@@ -67,10 +69,10 @@ export function SecretsView() {
     api(API)
       .then(({ res, data }) => apply(res, data))
       .catch(() => {
-        setError("The server did not answer.");
+        setError(t("secrets.errors.noAnswer"));
         setPhase("error");
       });
-  }, [apply]);
+  }, [apply, t]);
 
   const lock = async () => {
     await api(`${API}/session`, { method: "DELETE" }).catch(() => {});
@@ -80,10 +82,7 @@ export function SecretsView() {
 
   return (
     <div data-testid="secrets-page">
-      <PageTitle title="Secrets">
-        Set the API keys and testnet keys the scooter rental app runs with. Values are written straight into the server&apos;s
-        env files and are never shown again: this page only tells you whether a name is set.
-      </PageTitle>
+      <PageTitle title={t.h("secrets.title")}>{t("secrets.lead")}</PageTitle>
       {phase === "loading" && <Skeleton className="h-40" />}
       {phase === "error" && <Notice kind="error">{error}</Notice>}
       {phase === "locked" && <Unlock onUnlocked={() => void load()} />}
@@ -91,10 +90,10 @@ export function SecretsView() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Local only: this page exists on the paseo-box units and answers only on this machine and the tailnet.
+              {t("secrets.local")}
             </p>
             <ActionButton variant="secondary" onClick={() => void lock()} data-testid="secrets-lock">
-              Lock
+              {t("secrets.lock")}
             </ActionButton>
           </div>
           {listing.restartEnabled && <Units units={listing.units} reload={load} />}
@@ -123,6 +122,7 @@ function Unlock({ onUnlocked }: { onUnlocked: () => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const input = ref.current;
@@ -134,25 +134,25 @@ function Unlock({ onUnlocked }: { onUnlocked: () => void }) {
     try {
       const { res, data } = await api(`${API}/session`, { method: "POST", body: JSON.stringify({ passcode }) });
       if (res.ok) onUnlocked();
-      else setError(typeof data.error === "string" ? data.error : "Could not unlock.");
+      else setError(typeof data.error === "string" ? data.error : t("secrets.errors.unlock"));
     } catch {
-      setError("The server did not answer.");
+      setError(t("secrets.errors.noAnswer"));
     } finally {
       setBusy(false);
     }
   };
   return (
-    <Card title="Enter the admin passcode" className="max-w-xl">
+    <Card title={t.h("secrets.unlock")} className="max-w-xl">
       <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3" data-testid="secrets-unlock">
         <p className="text-sm text-muted-foreground">
-          The server created it on first use. Read it on paseo-box with{" "}
+          {t("secrets.passcodeHint")}{" "}
           <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">cat {PASSCODE_PATH}</code>
         </p>
         <input
           ref={ref}
           type="password"
           name="passcode"
-          aria-label="Passcode"
+          aria-label={t("secrets.passcode")}
           autoComplete="off"
           spellCheck={false}
           className={inputClass}
@@ -160,7 +160,7 @@ function Unlock({ onUnlocked }: { onUnlocked: () => void }) {
         />
         {error && <p className="text-sm text-danger" role="alert">{error}</p>}
         <ActionButton type="submit" busy={busy} className="self-start" data-testid="secrets-unlock-submit">
-          Unlock
+          {t("secrets.unlock")}
         </ActionButton>
       </form>
     </Card>
@@ -168,6 +168,7 @@ function Unlock({ onUnlocked }: { onUnlocked: () => void }) {
 }
 
 function StatusChip({ set, label }: { set: boolean; label?: string }) {
+  const t = useT();
   return (
     <span
       data-testid="secret-status"
@@ -176,7 +177,7 @@ function StatusChip({ set, label }: { set: boolean; label?: string }) {
         set ? "bg-success-soft text-success-fg ring-success-border" : "bg-muted text-subtle ring-border"
       }`}
     >
-      {set ? "SET" : "NOT SET"}
+      {set ? t("secrets.set") : t("secrets.notSet")}
       {label && <span className="font-normal">· {label}</span>}
     </span>
   );
@@ -188,12 +189,14 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
   const [savedAt, setSavedAt] = useState<{ at: string; cleared: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tested, setTested] = useState<TestOutcome | null>(null);
+  const t = useT();
+  const files = s.files.map((f) => f.label).join(t("secrets.and"));
 
   /** Test the stored value, or (typed) the value in the field without saving it. Only the verdict is kept. */
   const test = async (typed: boolean) => {
     const value = typed ? ref.current?.value : undefined;
     if (typed && !value) {
-      setError("Type a value to test first.");
+      setError(t("secrets.errors.typeFirst"));
       return;
     }
     setBusy(typed ? "testTyped" : "test");
@@ -201,12 +204,12 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
     try {
       const { res, data } = await api(`${API}/test`, { method: "POST", body: JSON.stringify(typed ? { name: s.name, value } : { name: s.name }) });
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not run the test.");
+        setError(typeof data.error === "string" ? data.error : t("secrets.errors.test"));
         return;
       }
       setTested({ status: data.status as TestOutcome["status"], reason: String(data.reason), testedAt: String(data.testedAt), source: data.source as TestOutcome["source"] });
     } catch {
-      setError("The server did not answer.");
+      setError(t("secrets.errors.noAnswer"));
     } finally {
       setBusy(null);
     }
@@ -218,13 +221,13 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
     try {
       const { res, data } = await api(API, { method: "POST", body: JSON.stringify(payload) });
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not save.");
+        setError(typeof data.error === "string" ? data.error : t("secrets.errors.save"));
         return;
       }
       setSavedAt({ at: new Date(String(data.savedAt)).toLocaleTimeString(), cleared: kind === "clear" });
       onChanged();
     } catch {
-      setError("The server did not answer.");
+      setError(t("secrets.errors.noAnswer"));
     } finally {
       setBusy(null);
     }
@@ -242,9 +245,9 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
   const { confirm, dialog } = useConfirm();
   const clear = async () => {
     const ok = await confirm({
-      title: `Clear ${s.name}?`,
-      description: `The current value is removed from ${s.files.map((f) => f.label).join(" and ")}.`,
-      confirmLabel: "Clear",
+      title: t("secrets.clearTitle", { name: s.name }),
+      description: t("secrets.clearBody", { files }),
+      confirmLabel: t("secrets.clear"),
       destructive: true,
     });
     if (!ok) return;
@@ -266,19 +269,19 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
       <div className="flex flex-col gap-1 text-sm">
         <p className="text-muted-foreground">{s.purpose}</p>
         <p className="text-subtle">
-          Get it: {s.source.url ? (
+          {t("secrets.getIt")} {s.source.url ? (
             <a href={s.source.url} target="_blank" rel="noreferrer noopener" className="text-foreground underline underline-offset-2">
               {s.source.label}
             </a>
           ) : (
             s.source.label
           )}
-          {" · "}Format: {s.format}
+          {" · "}{t("secrets.format")} {s.format}
         </p>
         <p className="text-subtle" data-testid="secret-where">
-          Written to {s.files.map((f) => f.label).join(" and ")}
+          {t("secrets.writtenTo", { files })}
           {" · "}
-          {s.restart.length ? <>Restart: {s.restart.map((u) => `${u.label} (${u.unit})`).join(", ")}</> : "No restart needed"}
+          {s.restart.length ? <>{t("secrets.restart")} {s.restart.map((u) => `${u.label} (${u.unit})`).join(", ")}</> : t("secrets.noRestart")}
         </p>
         {s.note && <p className="text-subtle">{s.note}</p>}
       </div>
@@ -288,8 +291,8 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
           id={`${id}-input`}
           type="password"
           name="value"
-          aria-label={`New value for ${s.name}`}
-          placeholder={s.set ? "Replace the current value" : "Paste the value"}
+          aria-label={t("secrets.newValue", { name: s.name })}
+          placeholder={s.set ? t("secrets.replace") : t("secrets.paste")}
           autoComplete="new-password"
           autoCorrect="off"
           autoCapitalize="off"
@@ -301,10 +304,10 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
         />
         <div className="flex gap-2">
           <ActionButton type="submit" busy={busy === "save"} disabled={busy !== null} data-testid="secret-save">
-            Save
+            {t("secrets.save")}
           </ActionButton>
           <ActionButton type="button" variant="danger" busy={busy === "clear"} disabled={busy !== null || !s.files.some((f) => f.set)} onClick={() => void clear()} data-testid="secret-clear">
-            Clear
+            {t("secrets.clear")}
           </ActionButton>
         </div>
       </form>
@@ -314,50 +317,52 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
           onClick={() => void test(false)}
           disabled={busy !== null || !s.files.some((f) => f.set)}
           className="rounded-lg border border-border-strong px-3 py-1.5 font-medium transition hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-45"
-          title={s.testable ? "Check the stored value with a free, read-only call" : "No free test for this name"}
+          title={s.testable ? t("secrets.testTitle") : t("secrets.noTest")}
           data-testid="secret-test"
         >
-          {busy === "test" ? "Testing..." : "Test"}
+          {busy === "test" ? t("secrets.testing") : t("secrets.test")}
         </button>
         <button
           type="button"
           onClick={() => void test(true)}
           disabled={busy !== null}
           className="rounded-lg border border-border-strong px-3 py-1.5 font-medium transition hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-45"
-          title="Check the value in the field without saving it"
+          title={t("secrets.testTypedTitle")}
           data-testid="secret-test-typed"
         >
-          {busy === "testTyped" ? "Testing..." : "Test before saving"}
+          {busy === "testTyped" ? t("secrets.testing") : t("secrets.testTyped")}
         </button>
         {tested && <TestBadge outcome={tested} />}
       </div>
       {error && <p className="text-sm text-danger" role="alert" data-testid="secret-error">{error}</p>}
       {savedAt && !error && (
         <p className="text-sm text-success-fg" data-testid="secret-saved">
-          {savedAt.cleared ? "Cleared" : "Saved"} at {savedAt.at}
-          {s.restart.length > 0 && <> · restart {s.restart.map((u) => u.label).join(" and ")} to use it</>}
+          {t(savedAt.cleared ? "secrets.cleared" : "secrets.saved", { at: savedAt.at })}
+          {s.restart.length > 0 && t("secrets.restartToUse", { units: s.restart.map((u) => u.label).join(t("secrets.and")) })}
         </p>
       )}
     </li>
   );
 }
 
-const TEST_STYLE: Record<TestOutcome["status"], { label: string; className: string }> = {
-  valid: { label: "Valid", className: "bg-success-soft text-success-fg ring-success-border" },
-  invalid: { label: "Invalid", className: "bg-danger-soft text-danger-fg ring-danger-border" },
-  untestable: { label: "Can't test", className: "bg-muted text-subtle ring-border" },
-};
+const TEST_STYLE = {
+  valid: { label: "secrets.valid", className: "bg-success-soft text-success-fg ring-success-border" },
+  invalid: { label: "secrets.invalid", className: "bg-danger-soft text-danger-fg ring-danger-border" },
+  untestable: { label: "secrets.untestable", className: "bg-muted text-subtle ring-border" },
+} as const satisfies Record<TestOutcome["status"], { label: string; className: string }>;
 
 function TestBadge({ outcome: o }: { outcome: TestOutcome }) {
+  const t = useT();
   const st = TEST_STYLE[o.status] ?? TEST_STYLE.untestable;
-  // The reason starts with the verdict ("Valid: models listed"); show the part after it next to the chip.
+  // The reason starts with the verdict ("Valid: models listed"); show the part after it next to the chip. The server's
+  // reason stays English.
   const detail = o.reason.replace(/^(Valid|Invalid|Can't test)(:\s*|\s+|$)/, "");
   return (
     <span className="flex flex-wrap items-center gap-1.5" data-testid="secret-test-result" data-status={o.status} aria-live="polite">
-      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${st.className}`}>{st.label}</span>
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${st.className}`}>{t(st.label)}</span>
       {detail && <span className="text-muted-foreground">{detail}</span>}
       <span className="text-xs text-subtle">
-        · {o.source === "typed" ? "typed value, not saved" : "stored value"} · {new Date(o.testedAt).toLocaleTimeString()}
+        · {o.source === "typed" ? t("secrets.typed") : t("secrets.stored")} · {new Date(o.testedAt).toLocaleTimeString()}
       </span>
     </span>
   );
@@ -368,12 +373,13 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
   const [error, setError] = useState<string | null>(null);
 
   const { confirm, dialog } = useConfirm();
+  const t = useT();
 
   const restart = async (u: Unit) => {
     const ok = await confirm({
-      title: `Restart ${u.unit} (${u.label})?`,
-      description: "The page there is unavailable for a few seconds.",
-      confirmLabel: "Restart",
+      title: t("secrets.restartTitle", { unit: u.unit, label: u.label }),
+      description: t("secrets.restartBody"),
+      confirmLabel: t("secrets.restartOk"),
       destructive: true,
     });
     if (!ok) return;
@@ -382,9 +388,9 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
     const before = u.since;
     try {
       const { res, data } = await api(`${API}/restart`, { method: "POST", body: JSON.stringify({ unit: u.unit }) });
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not restart.");
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : t("secrets.errors.restart"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not restart.");
+      setError(e instanceof Error ? e.message : t("secrets.errors.restart"));
       setRestarting((r) => ({ ...r, [u.unit]: undefined }));
       return;
     }
@@ -402,9 +408,9 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
   };
 
   return (
-    <Card title="Services">
+    <Card title={t.h("secrets.services")}>
       {dialog}
-      <p className="mb-3 text-sm text-muted-foreground">A new value is used after the service that reads it restarts.</p>
+      <p className="mb-3 text-sm text-muted-foreground">{t("secrets.servicesLead")}</p>
       <ul className="flex flex-col gap-2">
         {units.map((u) => {
           const st = restarting[u.unit];
@@ -412,13 +418,13 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
             <li key={u.unit} className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid={`unit-${u.unit}`}>
               <span>
                 <code className="font-mono">{u.unit}</code> <span className="text-muted-foreground">· {u.label} · </span>
-                <span className={u.active === "active" ? "text-success-fg" : "text-subtle"}>{u.loaded ? u.active : "not running"}</span>
-                {st === "restarting" && <span className="text-warning-fg"> · restarting...</span>}
-                {st === "back" && <span className="text-success-fg"> · back up</span>}
-                {st === "slow" && <span className="text-warning-fg"> · still restarting, reload the page in a moment</span>}
+                <span className={u.active === "active" ? "text-success-fg" : "text-subtle"}>{u.loaded ? u.active : t("secrets.notRunning")}</span>
+                {st === "restarting" && <span className="text-warning-fg">{t("secrets.restarting")}</span>}
+                {st === "back" && <span className="text-success-fg">{t("secrets.back")}</span>}
+                {st === "slow" && <span className="text-warning-fg">{t("secrets.slow")}</span>}
               </span>
               <ActionButton variant="secondary" busy={st === "restarting"} disabled={!u.loaded} onClick={() => void restart(u)}>
-                Restart {u.unit}
+                {t("secrets.restartUnit", { unit: u.unit })}
               </ActionButton>
             </li>
           );

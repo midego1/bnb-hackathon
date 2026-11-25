@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { IntegrationsView } from "@/components/risk/IntegrationsView";
+import { getDictionary } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Integrations · KeyEscrow" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary())("nav.integrations")} · KeyEscrow` };
+}
 
 export default function IntegrationsPage() {
   return (

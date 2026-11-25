@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { keccak256, toBytes, zeroHash } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
-import { RENT_PERIOD, releasableMonths, roleName, viewerRole, type Viewer } from "./model";
+import { RENT_PERIOD, releasableMonths, viewerRole, type Viewer } from "./model";
 
 /**
  * The rental page as plain sentences (pure, tests/lease-story.test.ts): what state it is in, the ONE thing the viewer
@@ -25,7 +26,8 @@ export type BannerAction =
   | { kind: "jump"; to: "fund" | "rent" | "return" | "rule"; label: string; note?: string }
   | { kind: "idle"; label: string };
 
-export type Banner = { tone: "ok" | "warn" | "danger" | "neutral"; pill: string; title: string; body: string; action: BannerAction };
+/** `title` is a headline (bilingual in EN+中文). */
+export type Banner = { tone: "ok" | "warn" | "danger" | "neutral"; pill: string; title: ReactNode; body: string; action: BannerAction };
 
 export const feeOf = (lease: Pick<LeaseData, "terms">) => (lease.terms.rentAmount * BigInt(lease.terms.feeBps)) / BigInt(10_000);
 const returnAt = (lease: LeaseData) => lease.startTime + BigInt(lease.terms.termMonths) * RENT_PERIOD;
@@ -134,12 +136,12 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
         return {
           tone: "warn",
           pill,
-          title: b.proposedTitle(roleName(by), fmt(p.tenantRefund), fmt(p.landlordClaim)),
+          title: b.proposedTitle(by, fmt(p.tenantRefund), fmt(p.landlordClaim)),
           body: lease.timeoutAt > ZERO ? b.replyBy(lease.timeoutAt, viewer === "landlord") : b.replyAnytime,
           action: { kind: "jump", to: "return", label: b.replyAction },
         };
       if (viewer && viewer === by) return { tone: "neutral", pill, title: b.yourProposalTitle, body: lease.timeoutAt > ZERO ? b.theyHaveUntil(lease.timeoutAt) : b.theyDecide, action: idle() };
-      return { tone: "neutral", pill, title: b.proposalWaitingTitle, body: b.proposedTitle(roleName(by), fmt(p.tenantRefund), fmt(p.landlordClaim)), action: idle(viewer === "arbiter" ? b.nothingToRule : b.nothing) };
+      return { tone: "neutral", pill, title: b.proposalWaitingTitle, body: b.proposedBody(by, fmt(p.tenantRefund), fmt(p.landlordClaim)), action: idle(viewer === "arbiter" ? b.nothingToRule : b.nothing) };
     }
     case LeaseStatus.Disputed: {
       const pill = c.pill.disputed;

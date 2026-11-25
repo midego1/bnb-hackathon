@@ -7,29 +7,29 @@ import { WalletGate } from "@/components/WalletGate";
 import { LeaseStatus } from "@/lib/contracts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useLease, useLeaseList } from "@/lib/hooks/useLease";
+import { useT } from "@/lib/i18n/client";
+import type { ReactNode } from "react";
 import type { Address } from "viem";
 
 export default function ArbiterPage() {
+  const t = useT();
   const { address } = useAccount();
   const { deployment } = useDeployment();
   const { data } = useLeaseList("arbiter", address);
   const isDesk = !!address && deployment?.disputeDesk?.toLowerCase() === address.toLowerCase();
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
-      <PageTitle title="Dispute desk">
-        Rentals where this wallet is the neutral reviewer. When owner and renter can&apos;t agree on the deposit, you decide the
-        split and write down why. If you miss the deadline, the full deposit goes back to the renter.
-      </PageTitle>
-      <WalletGate what="see the rentals you arbitrate">
-        {isDesk && <div className="mb-4"><Notice>You are connected as the KeyEscrow dispute desk, the default reviewer for every new rental.</Notice></div>}
+      <PageTitle title={t.h("desk.title")}>{t("desk.intro")}</PageTitle>
+      <WalletGate what={t("desk.gate")}>
+        {isDesk && <div className="mb-4"><Notice>{t("desk.isDesk")}</Notice></div>}
         {!data ? (
           <Skeleton className="h-36" />
         ) : data.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle">No rentals name this wallet as their dispute desk. Owners pick the reviewer when they create a rental; the KeyEscrow dispute desk is the default.</p>
+          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle">{t("desk.none")}</p>
         ) : (
           <div className="space-y-8">
-            <Section title="Needs a ruling" addresses={data} want="disputed" empty="Nothing to rule on. Disputed rentals show up here." />
-            <Section title="Other rentals" addresses={data} want="other" empty="No other rentals." />
+            <Section title={t.h("desk.needsRuling")} addresses={data} want="disputed" empty={t("desk.needsEmpty")} />
+            <Section title={t.h("desk.other")} addresses={data} want="other" empty={t("desk.otherEmpty")} />
           </div>
         )}
       </WalletGate>
@@ -37,7 +37,7 @@ export default function ArbiterPage() {
   );
 }
 
-function Section({ title, addresses, want, empty }: { title: string; addresses: readonly Address[]; want: "disputed" | "other"; empty: string }) {
+function Section({ title, addresses, want, empty }: { title: ReactNode; addresses: readonly Address[]; want: "disputed" | "other"; empty: string }) {
   return (
     <div>
       <h2 className="mb-3 text-lg font-semibold">{title}</h2>

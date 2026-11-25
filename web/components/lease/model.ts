@@ -1,7 +1,8 @@
 import type { Address } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
-import { formatDate } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
+import type { T } from "@/lib/i18n/t";
+import { dateTimeIn } from "./copy";
 
 export type Viewer = "landlord" | "tenant" | "arbiter" | null;
 
@@ -15,12 +16,12 @@ export function viewerRole(lease: LeaseData, who: Address | undefined): Viewer {
 }
 
 /** How a role is named in the UI: landlord = "owner" (the rental shop), tenant = "renter", arbiter = "dispute desk". */
-export function roleName(v: Viewer): string {
-  return v === "arbiter" ? "dispute desk" : v === "landlord" ? "owner" : v === "tenant" ? "renter" : "someone";
+export function roleName(v: Viewer, t: T): string {
+  return t(`rental.role.${v ?? "none"}`);
 }
 
-export function roleOfAddress(lease: LeaseData, a: unknown): string {
-  return roleName(viewerRole(lease, a as Address));
+export function roleOfAddress(lease: LeaseData, a: unknown, t: T): string {
+  return roleName(viewerRole(lease, a as Address), t);
 }
 
 export const RENT_PERIOD = BigInt(30 * 24 * 3600);
@@ -40,30 +41,30 @@ export function releasableMonths(lease: LeaseData, viewer: Viewer): number {
 }
 
 /** One-line "what happens next" for the person looking at the rental. */
-export function nextStep(lease: LeaseData, viewer: Viewer): string {
+export function nextStep(lease: LeaseData, viewer: Viewer, t: T): string {
   const p = lease.proposal;
   switch (lease.status) {
     case LeaseStatus.Created:
-      return viewer === "tenant" ? "Your move: fund the deposit and first month's rent." : "Waiting for the renter to fund the deposit and first month's rent.";
+      return t(viewer === "tenant" ? "rental.next.fundTenant" : "rental.next.fundOther");
     case LeaseStatus.Active: {
       const r = releasableMonths(lease, viewer);
-      if (r > 0) return `${r} month${r > 1 ? "s" : ""} of rent ready to pay out to the owner.`;
+      if (r > 0) return t(r > 1 ? "rental.next.ready.other" : "rental.next.ready.one", { n: r });
       const due = nextDue(lease);
-      return `Month ${Math.min(lease.monthsDue, lease.terms.termMonths)} of ${lease.terms.termMonths}. ${
-        due ? `Next rent due ${formatDate(due)}.` : "All rent paid out."
-      }`;
+      return (
+        t("rental.next.month", { m: Math.min(lease.monthsDue, lease.terms.termMonths), term: lease.terms.termMonths }) +
+        (due ? t("rental.next.nextDue", { date: dateTimeIn(t)(due) }) : t("rental.next.allOut"))
+      );
     }
     case LeaseStatus.MoveOut: {
       const mine = viewer && p.proposer.toLowerCase() === (viewer === "landlord" ? lease.terms.landlord : lease.terms.tenant).toLowerCase();
-      if (viewer === "landlord" || viewer === "tenant")
-        return mine ? "Waiting for the other side to accept your deposit proposal." : "Your move: accept the deposit proposal, counter it or open a dispute.";
-      return "A deposit proposal is waiting for an answer.";
+      if (viewer === "landlord" || viewer === "tenant") return t(mine ? "rental.next.waitOther" : "rental.next.yourMove");
+      return t("rental.next.waiting");
     }
     case LeaseStatus.Disputed:
-      return viewer === "arbiter" ? "Your move: rule on the deposit split." : "In dispute: waiting for the dispute desk to rule.";
+      return t(viewer === "arbiter" ? "rental.next.rule" : "rental.next.disputed");
     case LeaseStatus.Settled:
-      return "Closed. Deposit and rent fully paid out.";
+      return t("rental.next.settled");
     case LeaseStatus.Cancelled:
-      return "Offer withdrawn before funding.";
+      return t("rental.next.cancelled");
   }
 }

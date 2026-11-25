@@ -1,12 +1,19 @@
+import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { zeroHash, type Address, type Hex } from "viem";
-import { rentalCopy } from "@/components/lease/copy";
+import { rentalCopyFor } from "@/components/lease/copy";
 import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, returnPlan } from "@/components/lease/story";
-import { renterCopy, renterLine } from "@/components/roles/renterStory";
+import { renterCopyFor, renterLine } from "@/components/roles/renterStory";
+import { en as enDictionary } from "@/lib/i18n/dictionaries/en";
+import { makeT as makeEnglishT } from "@/lib/i18n/t";
+import { stateFor } from "@/lib/i18n/server";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import type { RentalSummary } from "@/lib/rentals";
+
+const renterCopy = renterCopyFor(makeEnglishT({ mode: "en", dict: enDictionary }));
+const rentalCopy = rentalCopyFor(makeEnglishT({ mode: "en", dict: enDictionary }));
 
 const OWNER = "0x0000000000000000000000000000000000000001" as Address;
 const RENTER = "0x0000000000000000000000000000000000000002" as Address;
@@ -74,6 +81,19 @@ describe("rental page banner: one honest action per role", () => {
 
   it("not yet funded: the renter pays in deposit + month 1", () => {
     expect(banner(lease({ status: LeaseStatus.Created, startTime: BigInt(0) }), "tenant", [], fmt, rentalCopy).action).toMatchObject({ kind: "jump", to: "fund", label: "Pay in 300u" });
+  });
+});
+
+describe("rental page in Chinese", () => {
+  it("banner and return plan read Chinese; EN+中文 keeps English body with a bilingual title", () => {
+    const zhCopy = rentalCopyFor(makeEnglishT(stateFor("zh")));
+    const b = banner(lease(), "tenant", [], fmt, zhCopy);
+    expect(b.title).toBe("你的 200u 押金已锁在托管合约中。");
+    expect(b.body).toMatch(/\p{Script=Han}/u);
+    expect(returnPlan(lease(), [], zhCopy).steps[0].title).toBe("还车照片");
+    const both = banner(lease(), "tenant", [], fmt, rentalCopyFor(makeEnglishT(stateFor("both"))));
+    expect(isValidElement(both.title)).toBe(true);
+    expect(both.body).toBe(banner(lease(), "tenant", [], fmt, rentalCopy).body);
   });
 });
 

@@ -3,6 +3,7 @@
 import { Notice } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 
 type Props = {
   /** The query's error (react-query), if the last fetch failed. */
@@ -15,6 +16,7 @@ type Props = {
   block?: bigint;
   onRetry: () => void;
   retrying?: boolean;
+  /** What failed to load, in the active language ("your rentals"); default "the chain". */
   what?: string;
 };
 
@@ -22,7 +24,8 @@ type Props = {
  * The one retry state every chain-backed view shows when a read fails: a blocking error with a Retry button when there
  * is nothing to show yet, or a warning above the last good data. Polling keeps retrying on its own every 8 s.
  */
-export function ChainReadNotice({ error, hasData, stale, block, onRetry, retrying, what = "the chain" }: Props) {
+export function ChainReadNotice({ error, hasData, stale, block, onRetry, retrying, what }: Props) {
+  const t = useT();
   if (!error && !stale) return null;
   const reason = stale?.error ?? (error instanceof Error ? error.message : undefined);
   const button = (
@@ -35,7 +38,7 @@ export function ChainReadNotice({ error, hasData, stale, block, onRetry, retryin
       data-testid="chain-retry"
       className="ml-auto border-current bg-transparent text-current hover:bg-current/10 hover:text-current dark:border-current dark:bg-transparent dark:hover:bg-current/10"
     >
-      {retrying ? "Retrying…" : "Retry now"}
+      {retrying ? t("shell.read.retrying") : t("shell.read.retry")}
     </Button>
   );
   if (!hasData) {
@@ -44,7 +47,7 @@ export function ChainReadNotice({ error, hasData, stale, block, onRetry, retryin
         <Notice kind="error">
           <div className="flex flex-wrap items-center gap-3">
             <span>
-              Could not read {what} right now: the public RPC is busy or refused the request. The page retries every 8 s.
+              {t("shell.read.failed", { what: what ?? t("shell.read.chain") })}
               {reason && <span className="block text-xs opacity-80">{reason}</span>}
             </span>
             {button}
@@ -58,8 +61,10 @@ export function ChainReadNotice({ error, hasData, stale, block, onRetry, retryin
       <Notice kind="warn">
         <div className="flex flex-wrap items-center gap-3">
           <span>
-            Showing the last good read{block !== undefined ? ` (block ${block.toString()})` : ""}
-            {stale ? `, since ${formatDate(BigInt(Math.floor(stale.since / 1000)))}` : ""}: refreshing failed, retrying every 8 s.
+            {t("shell.read.stale")}
+            {block !== undefined ? t("shell.read.block", { block: block.toString() }) : ""}
+            {stale ? t("shell.read.since", { date: formatDate(BigInt(Math.floor(stale.since / 1000))) }) : ""}
+            {t("shell.read.staleEnd")}
           </span>
           {button}
         </div>

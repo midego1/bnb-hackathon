@@ -1,16 +1,17 @@
 import { Shareholders } from "@/components/roles/Shareholders";
 import { PageTitle } from "@/components/ui";
+import { getDictionary } from "@/lib/i18n/server";
 
-export const metadata = { title: "Shareholders" };
+export async function generateMetadata() {
+  const t = await getDictionary();
+  return { title: t("holders.name") };
+}
 
-export default function ShareholdersPage() {
+export default async function ShareholdersPage() {
+  const t = await getDictionary();
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
-      <PageTitle title="Shareholders">
-        Own part of a scooter fleet. Deposit test USDT into the Fleet Vault and get BKK-FLEET-1 shares; rent from completed rentals and
-        damage payouts from slashed deposits flow in, minus the operator&apos;s maintenance fee, and you claim your share. Testnet prototype,
-        not an offer of securities.
-      </PageTitle>
+      <PageTitle title={t.h("holders.title")}>{t("holders.intro")}</PageTitle>
       <Shareholders />
     </section>
   );

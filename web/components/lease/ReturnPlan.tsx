@@ -5,7 +5,7 @@ import { Card } from "@/components/ui";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { cn } from "@/lib/utils";
-import { rentalCopy as c } from "./copy";
+import { useRentalCopy } from "./copy";
 import { returnPlan, type ReturnStep } from "./story";
 
 const DOT: Record<ReturnStep["state"], string> = {
@@ -19,6 +19,7 @@ const ICON = { done: Check, warn: X, next: ArrowRight, skip: Minus } as const;
 
 /** The return steps with their deadlines (reply window, dispute desk), from the escrow's terms and events. */
 export function ReturnPlan({ lease, events }: { lease: LeaseData; events: TimelineEvent[] | undefined }) {
+  const c = useRentalCopy();
   const plan = returnPlan(lease, events, c);
   return (
     <Card title={c.ret.title} aside={<span className="text-xs text-subtle">{plan.sub}</span>}>

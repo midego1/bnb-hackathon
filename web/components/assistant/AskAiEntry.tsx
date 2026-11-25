@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/shell/icons";
+import { useT } from "@/lib/i18n/client";
 import { useAssistantPanel } from "./AssistantProvider";
 
 /**
@@ -9,6 +10,7 @@ import { useAssistantPanel } from "./AssistantProvider";
  */
 export function AskAiEntry({ onOpen }: { onOpen?: () => void }) {
   const { open, toggle } = useAssistantPanel();
+  const t = useT();
   return (
     <button
       type="button"
@@ -18,7 +20,7 @@ export function AskAiEntry({ onOpen }: { onOpen?: () => void }) {
       }}
       aria-pressed={open}
       data-testid="ask-ai-entry"
-      title="Ask AI (Ctrl+J / ⌘J)"
+      title={t("ai.entryTitle")}
       className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sidebar-ring rail:justify-center rail:px-0 ${
         open ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
       }`}
@@ -26,7 +28,7 @@ export function AskAiEntry({ onOpen }: { onOpen?: () => void }) {
       <span className="text-[var(--assistant-waiting)]">
         <Icon name="ask" />
       </span>
-      <span className="truncate rail:sr-only">Ask AI</span>
+      <span className="truncate rail:sr-only">{t("ai.name")}</span>
       <kbd className="ml-auto rounded border border-border px-1 font-sans text-[10px] font-normal text-subtle rail:hidden max-lg:hidden">⌘J</kbd>
     </button>
   );

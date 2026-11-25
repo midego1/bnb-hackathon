@@ -9,14 +9,15 @@ import { postFleet, scooterState, type Scooter } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useRentals } from "@/lib/hooks/useRentals";
+import { useT } from "@/lib/i18n/client";
 import { usePrices } from "@/lib/usePrices";
 import { RentalCard } from "./RentalCard";
-import { renterCopy as c } from "./renterStory";
 import { useFleet } from "./shared";
 import { ScooterStateBadge, thbToUsdt } from "./FleetOwner";
 
 /** Renter with a wallet: their rentals as big cards first, then the scooters they can book. */
 export function Renter() {
+  const t = useT();
   const { address } = useAccount();
   const { chainId } = useDeployment();
   const { data: fleet } = useFleet();
@@ -34,11 +35,11 @@ export function Renter() {
 
   return (
     <div className="space-y-10">
-      <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
+      <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what={t("roles.what.rentals")} />
       <section>
-        <h1 className="mb-4 text-3xl font-semibold tracking-tight">{c.yours}</h1>
+        <h1 className="mb-4 text-3xl font-semibold tracking-tight">{t.h("renter.yours")}</h1>
         {myRentals.length === 0 ? (
-          <p className="text-base text-muted-foreground">{c.noneYet}</p>
+          <p className="text-base text-muted-foreground">{t("renter.noneYet")}</p>
         ) : (
           <ul className="space-y-4" data-testid="renter-rentals">
             {myRentals.map((r) => (
@@ -49,9 +50,9 @@ export function Renter() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Find a scooter</h2>
+        <h2 className="mb-3 text-lg font-semibold">{t.h("renter.find")}</h2>
         {scooters.length === 0 ? (
-          <p className="text-sm text-subtle">No scooters listed on this network yet.</p>
+          <p className="text-sm text-subtle">{t("renter.noScooters")}</p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="scooter-catalog">
             {scooters.map(({ s, state }) => (
@@ -63,8 +64,9 @@ export function Renter() {
 
       {myBookings.filter((b) => b.status === "requested").length > 0 && (
         <Notice>
-          Booking sent. The shop now issues the rental contract for your wallet {address && <span className="font-mono">{shortAddress(address)}</span>}; it shows up
-          under &ldquo;My rentals&rdquo; to pay deposit + rent.
+          {t("renter.bookingSentBefore")}
+          {address && <span className="font-mono">{shortAddress(address)}</span>}
+          {t("renter.bookingSentAfter")}
         </Notice>
       )}
 
@@ -73,6 +75,7 @@ export function Renter() {
 }
 
 function BookCard({ s, state, chainId, mine }: { s: Scooter; state: ReturnType<typeof scooterState>["state"]; chainId: number; mine?: string }) {
+  const t = useT();
   const { address } = useAccount();
   const { prices } = usePrices();
   const queryClient = useQueryClient();
@@ -109,20 +112,21 @@ function BookCard({ s, state, chainId, mine }: { s: Scooter; state: ReturnType<t
         </div>
         <p>
           <span className="font-semibold">฿{s.rentThb.toLocaleString("en-US")}</span>
-          <span className="text-subtle"> / month · ฿{s.depositThb.toLocaleString("en-US")} deposit in escrow, no passport</span>
+          <span className="text-subtle">{t("renter.bookTerms", { deposit: s.depositThb.toLocaleString("en-US") })}</span>
         </p>
         <p className="text-xs text-subtle">
-          Pay up front: <Amount value={total} className="inline-flex" />
+          {t("renter.payUpFront")}
+          <Amount value={total} className="inline-flex" />
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}
         <ActionButton
           className="w-full"
           busy={busy}
           data-testid="book-scooter"
-          disabledReason={!address ? "Connect a wallet to book." : mine ? "Requested. Waiting for the shop." : state !== "available" ? "Not available right now." : null}
+          disabledReason={!address ? t("renter.connectToBook") : mine ? t("renter.requested") : state !== "available" ? t("renter.notAvailable") : null}
           onClick={book}
         >
-          Book this scooter
+          {t("renter.book")}
         </ActionButton>
       </div>
     </li>

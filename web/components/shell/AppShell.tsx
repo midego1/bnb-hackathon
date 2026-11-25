@@ -13,6 +13,7 @@ import { PriceSourceBadge } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { DEV_CONNECTOR_ID, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 import { getSidebarSnapshot, setSidebar, subscribeSidebar, syncSidebarToRoute } from "@/lib/sidebar";
 import { Icon } from "./icons";
 import { isActive, NAV_GROUPS, SETTINGS_ITEM, type NavItem } from "./nav";
@@ -31,15 +32,16 @@ import { WalletButton } from "./WalletButton";
 export function AppShell({ children, footer, settings }: { children: ReactNode; footer: ReactNode; settings?: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const t = useT();
   return (
     <div data-app-shell className="flex min-h-dvh">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
-        Skip to content
+        {t("skip")}
       </a>
-      {drawerOpen && <button type="button" aria-label="Close menu" tabIndex={-1} className="fixed inset-0 z-40 bg-overlay/40 lg:hidden" onClick={closeDrawer} />}
+      {drawerOpen && <button type="button" aria-label={t("shell.closeMenu")} tabIndex={-1} className="fixed inset-0 z-40 bg-overlay/40 lg:hidden" onClick={closeDrawer} />}
       <Sidebar drawerOpen={drawerOpen} closeDrawer={closeDrawer} settings={settings} />
       <div data-app-content className="flex min-w-0 flex-1 flex-col">
         <MobileBar menuOpen={drawerOpen} openMenu={() => setDrawerOpen(true)} />
@@ -74,6 +76,7 @@ function RouteSync({ setDrawerOpen }: { setDrawerOpen: (open: boolean) => void }
 function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; closeDrawer: () => void; settings?: ReactNode }) {
   const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarSnapshot, () => "expanded" as const) === "collapsed";
   const closeRef = useRef<HTMLButtonElement>(null);
+  const t = useT();
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -86,7 +89,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
   return (
     <aside
       id="app-sidebar"
-      aria-label="Sidebar"
+      aria-label={t("shell.sidebar")}
       data-testid="sidebar"
       data-collapsed={collapsed || undefined}
       className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-3 lg:z-auto lg:my-3 lg:ml-3 lg:flex lg:h-[calc(100dvh-1.5rem)] lg:w-56 lg:max-w-none lg:rounded-xl lg:border lg:shadow-sidebar rail:w-16`}
@@ -100,10 +103,10 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
           variant="ghost"
           size="icon"
           onClick={() => setSidebar(collapsed ? "expanded" : "collapsed", window.location.pathname)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("shell.expand") : t("shell.collapse")}
           aria-expanded={!collapsed}
           aria-controls="app-sidebar"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? t("shell.expand") : t("shell.collapse")}
           data-testid="sidebar-toggle"
           className="ml-auto hidden text-subtle hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-transparent aria-expanded:text-subtle aria-expanded:hover:bg-sidebar-accent aria-expanded:hover:text-sidebar-accent-foreground lg:inline-flex rail:ml-0 dark:hover:bg-sidebar-accent"
         >
@@ -114,7 +117,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
           variant="ghost"
           size="icon"
           onClick={closeDrawer}
-          aria-label="Close menu"
+          aria-label={t("shell.closeMenu")}
           className="ml-auto text-subtle hover:bg-sidebar-accent lg:hidden dark:hover:bg-sidebar-accent"
         >
           <Icon name="close" />
@@ -126,11 +129,11 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
         <AskAiEntry onOpen={closeDrawer} />
       </div>
 
-      <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+      <nav aria-label={t("shell.main")} className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((g) => (
           <div key={g.id} className="mb-3 last:mb-0 rail:mb-2 rail:border-b rail:border-sidebar-border rail:pb-2 rail:last:border-0">
             <p id={`nav-${g.id}`} className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase rail:sr-only">
-              {g.label}
+              {t(g.label)}
             </p>
             <ul aria-labelledby={`nav-${g.id}`} className="flex flex-col gap-0.5" data-testid={g.id === "roles" ? "role-switcher" : `nav-group-${g.id}`}>
               <NavLinks items={g.items} />
@@ -179,6 +182,8 @@ function ActiveNavLinks({ items }: { items: NavItem[] }) {
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const switchRole = useDevRoleSwitch();
+  const t = useT();
+  const label = t(item.label);
   return (
     <li>
       <Link
@@ -187,13 +192,13 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         onClick={() => item.role && switchRole?.(item.role)}
         data-testid={item.testId}
         aria-current={active ? "page" : undefined}
-        title={item.title ?? item.label}
+        title={item.title ? t(item.title) : label}
         className={`relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sidebar-ring rail:justify-center rail:px-0 ${
           active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         }`}
       >
         <Icon name={item.icon} />
-        <span className="truncate rail:sr-only">{item.label}</span>
+        <span className="truncate rail:sr-only">{label}</span>
       </Link>
     </li>
   );
@@ -201,13 +206,14 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 /** Phones and tablets: logo, rates, theme, and the menu button that opens the sidebar as a drawer. */
 function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => void }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-2 border-b border-border bg-surface px-4 py-2 lg:hidden" data-testid="mobile-nav">
       <Button
         variant="ghost"
         size="icon-lg"
         onClick={openMenu}
-        aria-label="Open menu"
+        aria-label={t("shell.openMenu")}
         aria-controls="app-sidebar"
         aria-expanded={menuOpen}
         data-testid="menu-open"

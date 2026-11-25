@@ -5,12 +5,15 @@ import Link from "next/link";
 import { Amount, StatusBadge, useBaht } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import type { Scooter } from "@/lib/fleet";
+import { useT } from "@/lib/i18n/client";
 import type { RentalSummary } from "@/lib/rentals";
-import { renterCopy as c, renterLine } from "./renterStory";
+import { renterCopyFor, renterLine } from "./renterStory";
 
 /** One rental as a big, plain card: the scooter, where it stands in one sentence, the money in baht, the next step. */
 export function RentalCard({ r, scooter, now, you }: { r: RentalSummary; scooter?: Scooter; now: bigint; you: boolean }) {
   const baht = useBaht();
+  const t = useT();
+  const c = renterCopyFor(t);
   const line = renterLine(r, now, baht, c, you);
   return (
     <li className="grid gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-testid="renter-rental" data-address={r.address} data-status={r.status}>
@@ -26,11 +29,11 @@ export function RentalCard({ r, scooter, now, you }: { r: RentalSummary; scooter
         <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
           <div>
             <Amount value={r.depositAmount} size="lg" />
-            <p className="text-sm text-subtle">{c.depositLabel}</p>
+            <p className="text-sm text-subtle">{t("renter.depositLabel")}</p>
           </div>
           <div>
             <Amount value={r.rentAmount} size="lg" />
-            <p className="text-sm text-subtle">{c.perMonth}</p>
+            <p className="text-sm text-subtle">{t("renter.perMonth")}</p>
           </div>
         </div>
       </div>

@@ -4,38 +4,56 @@ import { PageTitle } from "@/components/ui";
 import { ACTIONS, toolDescription, type Action } from "@/lib/actions/definitions";
 import { inputJsonSchema } from "@/lib/actions/openapi";
 import { API_BASE, methodOf } from "@/lib/actions/rest";
+import { getDictionary } from "@/lib/i18n/server";
+import type { T } from "@/lib/i18n/t";
 
-export const metadata: Metadata = { title: "Developers · KeyEscrow" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary())("dev.metaTitle") };
+}
 
-/** Static docs page for the /api/v1 actions, generated from the same definitions as the API and the MCP tools. */
-export default function DevelopersPage() {
+/**
+ * Static docs page for the /api/v1 actions, generated from the same definitions as the API and the MCP tools. The
+ * page's own words follow the language; the action titles and descriptions stay English (they are the API's docs).
+ */
+export default async function DevelopersPage() {
+  const t = await getDictionary();
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
-      <PageTitle title="Developers">
-        Every rental action is one definition that works as a REST endpoint, an MCP tool for AI agents and the web app&apos;s form
-        validation. Reads return JSON. <code>prepare_*</code> actions return unsigned transactions, already simulated on the chain,
-        for your own wallet to sign: KeyEscrow never holds your key.
+      <PageTitle title={t.h("dev.title")}>
+        {t("dev.lead.before")}
+        <code>prepare_*</code>
+        {t("dev.lead.after")}
       </PageTitle>
 
       <div className="mb-8 space-y-3 text-sm text-muted-foreground">
         <p>
-          OpenAPI 3.1: <a className="underline" href={`${API_BASE}/openapi.json`}>{API_BASE}/openapi.json</a>. MCP: the same actions are tools
-          on the KeyEscrow Inspector agent (<code>POST /mcp</code>, see docs/AGENT.md for the Claude config). Amounts: mUSDT has 6 decimals;
-          inputs take human amounts like <code>&quot;441.18&quot;</code>, outputs give <code>units</code> (base units) and <code>display</code>.
+          {t("dev.notes.openapi")}
+          <a className="underline" href={`${API_BASE}/openapi.json`}>
+            {API_BASE}/openapi.json
+          </a>
+          {t("dev.notes.mcp")}
+          <code>POST /mcp</code>
+          {t("dev.notes.config")}
+          <code>&quot;441.18&quot;</code>
+          {t("dev.notes.outputs")}
+          <code>units</code>
+          {t("dev.notes.base")}
+          <code>display</code>
+          {t("dev.notes.end")}
         </p>
         <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
       </div>
 
       <div className="space-y-6">
         {ACTIONS.map((a) => (
-          <ActionDoc key={a.name} action={a} />
+          <ActionDoc key={a.name} action={a} t={t} />
         ))}
       </div>
     </section>
   );
 }
 
-function ActionDoc({ action: a }: { action: Action }) {
+function ActionDoc({ action: a, t }: { action: Action; t: T }) {
   const schema = inputJsonSchema(a.input);
   const props = Object.entries((schema.properties ?? {}) as Record<string, Record<string, unknown>>);
   return (
@@ -50,9 +68,9 @@ function ActionDoc({ action: a }: { action: Action }) {
       <table className="mt-3 w-full text-left text-xs">
         <thead className="text-subtle">
           <tr>
-            <th className="py-1 pr-3 font-medium">Field</th>
-            <th className="py-1 pr-3 font-medium">Type</th>
-            <th className="py-1 font-medium">Meaning</th>
+            <th className="py-1 pr-3 font-medium">{t("dev.field")}</th>
+            <th className="py-1 pr-3 font-medium">{t("dev.type")}</th>
+            <th className="py-1 font-medium">{t("dev.meaning")}</th>
           </tr>
         </thead>
         <tbody>
@@ -66,7 +84,7 @@ function ActionDoc({ action: a }: { action: Action }) {
               <td className="py-1">
                 {p.title ? <strong className="font-medium">{String(p.title)}. </strong> : null}
                 {String(p.description ?? "")}
-                {p.default !== undefined ? ` Default ${JSON.stringify(p.default)}.` : ""}
+                {p.default !== undefined ? t("dev.default", { value: JSON.stringify(p.default) }) : ""}
               </td>
             </tr>
           ))}

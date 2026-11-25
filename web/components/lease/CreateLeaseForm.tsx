@@ -17,8 +17,10 @@ import { ZERO_HASH } from "@/lib/hash";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useFactorySettings } from "@/lib/hooks/useFactory";
 import { useTx } from "@/lib/hooks/useTx";
+import { useT } from "@/lib/i18n/client";
 
 export function CreateLeaseForm() {
+  const t = useT();
   const router = useRouter();
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
@@ -51,11 +53,11 @@ export function CreateLeaseForm() {
 
   // Same field schemas as the prepare_create_lease API / MCP tool (lib/actions), so the rules and messages match.
   const S = prepareCreateLease.input;
-  const decimals = (units: bigint | undefined) => (units === undefined ? "At most 6 decimals for a USDT amount." : undefined);
+  const decimals = (units: bigint | undefined) => (units === undefined ? t("createLease.decimals") : undefined);
   const errors = {
     tenant: !tenant
       ? undefined
-      : fieldError(S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? "You can't rent to yourself." : undefined),
+      : fieldError(S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? t("createLease.self") : undefined),
     rent: fieldError(S, "rent", rent) ?? decimals(rentAmount),
     deposit: fieldError(S, "deposit", deposit) ?? decimals(depositAmount),
     term: fieldError(S, "termMonths", term),
@@ -63,7 +65,7 @@ export function CreateLeaseForm() {
     arbiterWindow: fieldError(S, "arbiterWindowDays", arbiterDays),
     arbiter: useDesk
       ? !desk
-        ? "No KeyEscrow dispute desk on this network; enter your own reviewer's wallet."
+        ? t("createLease.noDesk")
         : undefined
       : !arbiter
         ? undefined
@@ -75,11 +77,11 @@ export function CreateLeaseForm() {
       : new Set([arbiterAddr.toLowerCase(), me.toLowerCase(), tenant.toLowerCase()]).size === 3;
 
   const blocker =
-    !deployment ? "KeyEscrow is not deployed on this network. Switch your wallet's network." :
-    !tenant ? "Enter the renter's wallet address." :
+    !deployment ? t("createLease.notDeployed") :
+    !tenant ? t("createLease.enterRenter") :
     errors.tenant || errors.rent || errors.deposit || errors.term || errors.window || errors.arbiterWindow || errors.arbiter ||
-    (!arbiterAddr ? "Enter the dispute desk's wallet address." : undefined) ||
-    (!distinct ? "Owner, renter and dispute desk must be three different wallets." : undefined);
+    (!arbiterAddr ? t("createLease.enterDesk") : undefined) ||
+    (!distinct ? t("createLease.distinct") : undefined);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -89,15 +91,15 @@ export function CreateLeaseForm() {
     let leaseHash: Hex = ZERO_HASH;
     let photoHashes: Hex[] = [];
     if (leaseDoc.length || photos.length) {
-      setStatus("Uploading documents…");
+      setStatus(t("createLease.uploading"));
       const docs = await uploadEvidence([...leaseDoc, ...photos]);
       if (docs.warning) setWarning(docs.warning);
       if (leaseDoc.length) leaseHash = docs.items[0].hash;
       photoHashes = docs.items.slice(leaseDoc.length).map((i) => i.hash);
     }
 
-    setStatus("Creating rental…");
-    const receipt = await send("Create rental", {
+    setStatus(t("createLease.creating"));
+    const receipt = await send(t("createLease.create"), {
       address: deployment.escrowFactory,
       abi: escrowFactoryAbi,
       functionName: "createLease",
@@ -120,8 +122,8 @@ export function CreateLeaseForm() {
     if (!escrow) return setStatus(null);
 
     for (const [i, hash] of photoHashes.entries()) {
-      setStatus(`Anchoring pickup photo ${i + 1} of ${photoHashes.length}…`);
-      await send(`Anchor pickup photo ${i + 1}/${photoHashes.length}`, {
+      setStatus(t("createLease.anchoring", { i: i + 1, n: photoHashes.length }));
+      await send(t("createLease.anchorTx", { i: i + 1, n: photoHashes.length }), {
         address: escrow,
         abi: rentalEscrowAbi,
         functionName: "addEvidence",
@@ -135,73 +137,74 @@ export function CreateLeaseForm() {
   const showDevTenant = process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337;
 
   return (
-    <Card title="New rental" aside={<PriceSourceBadge />}>
+    <Card title={t.h("createLease.title")} aside={<PriceSourceBadge />}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" data-testid="create-lease-form">
         <div className="sm:col-span-2">
           <Field
-            label="Renter wallet"
+            label={t("createLease.renterWallet")}
             error={errors.tenant}
             hint={
               showDevTenant ? (
                 <button type="button" className="underline" onClick={() => setTenant(devAccounts.tenant)}>
-                  Use anvil renter {shortAddress(devAccounts.tenant)}
+                  {t("createLease.useAnvil", { address: shortAddress(devAccounts.tenant) })}
                 </button>
               ) : (
-                "The renter funds the escrow from this address."
+                t("createLease.renterHint")
               )
             }
           >
             <input name="tenant" className={inputClass} placeholder="0x…" value={tenant} onChange={(e) => setTenant(e.target.value.trim())} />
           </Field>
         </div>
-        <Field label="Monthly rent (USDT)" error={errors.rent} hint={rentAmount ? <>≈ {money(rentAmount)}</> : "Paid in USDT; shown in baht and dollars."}>
+        <Field label={t("createLease.rent")} error={errors.rent} hint={rentAmount ? <>≈ {money(rentAmount)}</> : t("createLease.rentHint")}>
           <input name="rent" inputMode="decimal" className={inputClass} value={rent} onChange={(e) => setRent(e.target.value)} />
         </Field>
         <Field
-          label="Deposit (USDT)"
+          label={t("createLease.deposit")}
           error={errors.deposit}
-          hint={depositAmount ? <>≈ {money(depositAmount)}{rentAmount ? ` · ${(Number(depositAmount) / Number(rentAmount)).toFixed(1).replace(/\.0$/, "")} months of rent` : ""}</> : undefined}
+          hint={depositAmount ? <>≈ {money(depositAmount)}{rentAmount ? t("createLease.monthsOfRent", { n: (Number(depositAmount) / Number(rentAmount)).toFixed(1).replace(/\.0$/, "") }) : ""}</> : undefined}
         >
           <input name="deposit" inputMode="decimal" className={inputClass} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </Field>
-        <Field label="Rental period (months)" error={errors.term}>
+        <Field label={t("createLease.term")} error={errors.term}>
           <input name="term" type="number" min={1} max={60} className={inputClass} value={term} onChange={(e) => setTerm(e.target.value)} />
         </Field>
         <div className="sm:col-span-2"><DepositRiskForUsdt deposit={depositAmount} rentalDays={termMonths * 30} /></div>
-        <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the renter's return proposal. If you stay silent, the full deposit goes back to the renter.">
+        <Field label={t("createLease.window")} error={errors.window} hint={t("createLease.windowHint")}>
           <input name="window" type="number" min={1} max={60} className={inputClass} value={windowDays} onChange={(e) => setWindowDays(e.target.value)} />
         </Field>
         <div className="flex flex-col gap-2 sm:col-span-2">
-          <span className="text-sm font-medium">Dispute desk</span>
+          <span className="text-sm font-medium">{t("createLease.desk")}</span>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={useDesk} onChange={(e) => setUseDesk(e.target.checked)} />
             <span>
-              Use the KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-subtle">({shortAddress(desk)})</span>}
+              {t("createLease.useDesk")}
+              {desk && <span className="font-mono text-xs text-subtle">({shortAddress(desk)})</span>}
               <span className="block text-xs text-subtle">
-                A neutral reviewer that only steps in if you and the renter disagree on the deposit. Untick to name your own; the renter sees
-                it before funding.
+                {t("createLease.deskHelp")}
               </span>
             </span>
           </label>
-          <Field label="Dispute desk deadline (days)" error={errors.arbiterWindow} hint="If the dispute desk has not ruled within this time, the full deposit can go back to the renter.">
+          <Field label={t("createLease.deskDeadline")} error={errors.arbiterWindow} hint={t("createLease.deskDeadlineHint")}>
             <input name="arbiterWindow" type="number" min={1} max={90} className={inputClass} value={arbiterDays} onChange={(e) => setArbiterDays(e.target.value)} />
           </Field>
-          {!useDesk && <input name="arbiter" className={inputClass} placeholder="Your reviewer's wallet 0x…" aria-label="Dispute desk wallet" value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
+          {!useDesk && <input name="arbiter" className={inputClass} placeholder={t("createLease.reviewerPlaceholder")} aria-label={t("createLease.deskWallet")} value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
           {errors.arbiter && <span className="text-xs text-danger">{errors.arbiter}</span>}
         </div>
-        <FilePicker label="Rental agreement (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional: scooter model, plate and included helmets. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain." testId="lease-pdf" />
-        <FilePicker label="Pickup photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Front, back, left, right and a plate close-up. Optional, can be added later. The AI return inspection compares against these." testId="checkin-photos" />
+        <FilePicker label={t("createLease.agreement")} accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint={t("createLease.agreementHint")} testId="lease-pdf" />
+        <FilePicker label={t("createLease.photos")} accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint={t("createLease.photosHint")} testId="checkin-photos" />
         <div className="flex flex-col gap-3 sm:col-span-2">
           {feeBps !== undefined && (
             <p className="text-xs text-subtle" data-testid="fee-note">
-              KeyEscrow fee: one-time {(Number(feeBps) / 100).toFixed(0)}% of one month&apos;s rent
-              {rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : ""}, taken from your first rent payout.
-              The renter never pays it and the deposit is never charged.
+              {t("createLease.fee", {
+                pct: (Number(feeBps) / 100).toFixed(0),
+                amount: rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : "",
+              })}
             </p>
           )}
           {warning && <Notice kind="warn">{warning}</Notice>}
           <ActionButton type="submit" busy={!!pending || !!status} disabledReason={blocker}>
-            {status ?? "Create rental"}
+            {status ?? t("createLease.create")}
           </ActionButton>
         </div>
       </form>

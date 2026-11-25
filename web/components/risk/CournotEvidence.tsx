@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Notice } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 import type { CournotStoredResult, CournotView } from "@/lib/risk";
 
 const pct = (p: number) => `${(p * 100).toFixed(1)}%`;
@@ -15,13 +16,14 @@ export function CournotEvidence({ view, cmcBuffer, cournotBuffer }: { view: Cour
   const [error, setError] = useState<string | null>(null);
   const r = view.result;
   const { confirm, dialog } = useConfirm();
+  const t = useT();
 
   async function ask() {
     if (!view.claim) return;
     const ok = await confirm({
-      title: "Ask Cournot live?",
-      description: `"${view.claim}"\n\nThis uses one of the 3 free Cournot calls for this server's IP.`,
-      confirmLabel: "Ask Cournot",
+      title: t("risk.cournot.confirmTitle"),
+      description: t("risk.cournot.confirmBody", { claim: view.claim }),
+      confirmLabel: t("risk.cournot.confirmLabel"),
     });
     if (!ok) return;
     setBusy(true);
@@ -42,43 +44,45 @@ export function CournotEvidence({ view, cmcBuffer, cournotBuffer }: { view: Cour
     <div className="rounded-xl border border-border p-4 text-sm" data-testid="cournot-panel">
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium">Cournot Intelligence Oracle</p>
-        <span className="text-xs text-subtle">{r ? `${r.source === "live" ? "live call" : "stored answer"} · ${new Date(r.at).toUTCString()}` : "no answer yet"}</span>
+        <p className="font-medium">{t.h("risk.cournot")}</p>
+        <span className="text-xs text-subtle">{r ? `${t(r.source === "live" ? "risk.cournot.live" : "risk.cournot.stored")} · ${new Date(r.at).toUTCString()}` : t("risk.cournot.noAnswer")}</span>
       </div>
       {r ? (
         <>
-          <p className="mt-2 text-xs text-subtle">Claim evaluated (exact text sent)</p>
+          <p className="mt-2 text-xs text-subtle">{t("risk.cournot.claim")}</p>
           <p className="font-medium" data-testid="cournot-claim">&ldquo;{r.claim}&rdquo;</p>
-          {r.marketTitle && <p className="mt-1 text-xs text-subtle">Reference market: {r.marketTitle}</p>}
+          {r.marketTitle && <p className="mt-1 text-xs text-subtle">{t("risk.cournot.market", { title: r.marketTitle })}</p>}
           <p className="mt-2">
-            Probability returned: <span className="text-lg font-semibold tabular-nums" data-testid="cournot-probability">{pct(r.probability)}</span>
+            {t("risk.cournot.probability")}
+            <span className="text-lg font-semibold tabular-nums" data-testid="cournot-probability">{pct(r.probability)}</span>
           </p>
           <ResultFields result={r.result} />
           <Basis basis={r.basis} />
-          <p className="mt-2 text-xs text-subtle">Request id: <span className="font-mono">{r.requestId}</span></p>
+          <p className="mt-2 text-xs text-subtle">
+            {t("risk.cournot.requestId")}
+            <span className="font-mono">{r.requestId}</span>
+          </p>
         </>
       ) : (
         <p className="mt-2 text-muted-foreground">
-          No Cournot answer is stored yet, so the buffer uses CoinMarketCap volatility alone. {view.live === "enabled" ? "Ask Cournot below." : "Live calls are off on this server (start it with COURNOT_LIVE=1)."}
+          {t("risk.cournot.none")}
+          {view.live === "enabled" ? t("risk.cournot.askBelow") : t("risk.cournot.off")}
         </p>
       )}
       {r && cmcBuffer !== undefined && cmcBuffer > 0 && (
         <div className="mt-3 rounded-lg bg-muted p-3 text-xs" data-testid="cournot-explanation">
-          <p className="font-semibold">Explanation added by KeyEscrow (not from Cournot)</p>
-          <p className="mt-1 text-muted-foreground">
-            The BNB buffer of {pct(cmcBuffer)} from CoinMarketCap volatility is scaled by (1 + {pct(r.probability)}), adding {pct(cournotBuffer ?? 0)}:
-            the more likely BNB falls through the coverage floor before the return date, the larger the deposit.
-          </p>
+          <p className="font-semibold">{t("risk.cournot.explanationTitle")}</p>
+          <p className="mt-1 text-muted-foreground">{t("risk.cournot.explanation", { cmc: pct(cmcBuffer), p: pct(r.probability), added: pct(cournotBuffer ?? 0) })}</p>
         </div>
       )}
       {view.claim && view.claim !== r?.claim && (
         <p className="mt-3 text-xs text-subtle">
-          Claim for this rental: &ldquo;{view.claim}&rdquo;{r ? " (the buffer uses the latest stored answer above until this one is asked)" : ""}
+          {t(r ? "risk.cournot.forRentalStored" : "risk.cournot.forRental", { claim: view.claim })}
         </p>
       )}
       {view.live === "enabled" && view.claim && view.claim !== r?.claim && (
         <ActionButton variant="secondary" className="mt-2" busy={busy} onClick={ask} data-testid="cournot-ask">
-          Ask Cournot (live, uses 1 free call)
+          {t("risk.cournot.ask")}
         </ActionButton>
       )}
       {error && <div className="mt-2"><Notice kind="error">{error}</Notice></div>}
@@ -104,13 +108,14 @@ function ResultFields({ result }: { result: CournotStoredResult["result"] }) {
 
 /** Evidence ("basis") rendered verbatim, section by section, as the Cournot skill requires. */
 function Basis({ basis }: { basis: unknown }) {
+  const t = useT();
   if (basis == null || (Array.isArray(basis) && !basis.length) || (typeof basis === "object" && !Object.keys(basis as object).length)) {
-    return <p className="mt-2 text-xs text-subtle">Cournot returned no external data basis.</p>;
+    return <p className="mt-2 text-xs text-subtle">{t("risk.cournot.noBasis")}</p>;
   }
   const sections: [string, unknown][] = Array.isArray(basis) ? [["basis", basis]] : Object.entries(basis as Record<string, unknown>);
   return (
     <div className="mt-3 space-y-2" data-testid="cournot-basis">
-      <p className="text-xs font-semibold">External data basis (from Cournot, verbatim)</p>
+      <p className="text-xs font-semibold">{t("risk.cournot.basis")}</p>
       {sections.map(([name, value]) => (
         <div key={name} className="overflow-x-auto">
           <p className="text-xs text-subtle">{name}</p>

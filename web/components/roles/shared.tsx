@@ -8,11 +8,13 @@ import { explorerLink } from "@/lib/chains";
 import { fetchFleet } from "@/lib/fleet";
 import { formatDate, shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 import type { FlagLevel, RentalFlag } from "@/lib/rentals";
 import { CopyButton } from "@/components/ui";
 
 /** A transaction hash: links to the block explorer on testnet; on local anvil, short hash + copy. */
 export function TxLink({ hash, chainId }: { hash: Hex; chainId: number }) {
+  const t = useT();
   const href = explorerLink(chainId, "tx", hash);
   const text = <span className="font-mono text-xs">{shortAddress(hash)}</span>;
   return href ? (
@@ -22,7 +24,7 @@ export function TxLink({ hash, chainId }: { hash: Hex; chainId: number }) {
   ) : (
     <span className="inline-flex items-center gap-1" data-testid="tx-link" title={hash}>
       {text}
-      <CopyButton value={hash} label="Copy transaction hash" />
+      <CopyButton value={hash} label={t("roles.copyTx")} />
     </span>
   );
 }
@@ -58,7 +60,8 @@ export function Kpi({ label, children, hint, testId }: { label: string; children
 }
 
 export function When({ ts }: { ts: bigint }) {
-  if (ts === BigInt(0)) return <span className="text-subtle">earlier</span>;
+  const t = useT();
+  if (ts === BigInt(0)) return <span className="text-subtle">{t("roles.earlier")}</span>;
   return <span className="tabular-nums">{formatDate(ts)}</span>;
 }
 

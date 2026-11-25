@@ -3,6 +3,7 @@
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { toast as sonner } from "sonner";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { Spinner, type Toast, type ToastKind } from "./Toasts";
 import { Toaster } from "./ui/sonner";
@@ -44,6 +45,7 @@ const toastIcon: Record<ToastKind, ReactNode> = {
 };
 
 function ToastView({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+  const tr = useT();
   return (
     <div role="status" data-kind={t.kind} className={cn("w-(--width) max-w-full rounded-xl border px-4 py-3 text-sm shadow-lg", toastStyle[t.kind])}>
       <div className="flex items-start gap-3">
@@ -55,11 +57,11 @@ function ToastView({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
           {t.body && <p className="mt-0.5 break-words opacity-80">{t.body}</p>}
           {t.href && (
             <a href={t.href} target="_blank" rel="noreferrer" className="mt-1 inline-block underline">
-              View on BscScan
+              {tr("shell.toast.explorer")}
             </a>
           )}
         </div>
-        <button type="button" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100" aria-label="Dismiss">
+        <button type="button" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100" aria-label={tr("shell.toast.dismiss")}>
           <X aria-hidden className="size-4" />
         </button>
       </div>

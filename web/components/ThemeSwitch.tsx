@@ -2,9 +2,8 @@
 
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { useT } from "@/lib/i18n/client";
 import { getThemePrefSnapshot, setThemePref, subscribeTheme, THEME_PREFS, type ThemePref } from "@/lib/theme";
-
-const LABEL: Record<ThemePref, string> = { light: "Light", dark: "Dark", system: "System" };
 
 const ICON: Record<ThemePref, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
 
@@ -17,13 +16,15 @@ const Icon = ({ pref }: { pref: ThemePref }) => {
 export function ThemeCycleButton({ className = "" }: { className?: string }) {
   const pref = useSyncExternalStore(subscribeTheme, getThemePrefSnapshot, () => null) ?? "system";
   const next = THEME_PREFS[(THEME_PREFS.indexOf(pref) + 1) % THEME_PREFS.length];
+  const t = useT();
+  const name = (p: ThemePref) => t(`shell.theme.${p}`);
   return (
     <button
       type="button"
       data-testid="theme-cycle"
       data-theme-pref={pref}
-      aria-label={`Color theme: ${LABEL[pref]}. Switch to ${LABEL[next]}`}
-      title={`${LABEL[pref]} theme`}
+      aria-label={t("shell.theme.cycle", { now: name(pref), next: name(next) })}
+      title={t("shell.theme.option", { name: name(pref) })}
       onClick={() => setThemePref(next)}
       className={`h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${className}`}
     >
@@ -36,6 +37,7 @@ export function ThemeCycleButton({ className = "" }: { className?: string }) {
 export function ThemeSwitch({ className = "inline-flex" }: { className?: string }) {
   // The server cannot know the stored choice: render "system" there and on hydration, then the real value.
   const pref = useSyncExternalStore(subscribeTheme, getThemePrefSnapshot, () => null);
+  const t = useT();
 
   const move = (group: HTMLElement | null, from: ThemePref, step: number) => {
     const next = THEME_PREFS[(THEME_PREFS.indexOf(from) + step + THEME_PREFS.length) % THEME_PREFS.length];
@@ -44,7 +46,7 @@ export function ThemeSwitch({ className = "inline-flex" }: { className?: string 
   };
 
   return (
-    <div role="radiogroup" aria-label="Color theme" data-testid="theme-switch" className={`shrink-0 items-center rounded-lg border border-border bg-muted p-0.5 ${className}`}>
+    <div role="radiogroup" aria-label={t("shell.theme.group")} data-testid="theme-switch" className={`shrink-0 items-center rounded-lg border border-border bg-muted p-0.5 ${className}`}>
       {THEME_PREFS.map((p) => {
         const checked = (pref ?? "system") === p;
         return (
@@ -53,8 +55,8 @@ export function ThemeSwitch({ className = "inline-flex" }: { className?: string 
             type="button"
             role="radio"
             aria-checked={checked}
-            aria-label={`${LABEL[p]} theme`}
-            title={`${LABEL[p]} theme`}
+            aria-label={t("shell.theme.option", { name: t(`shell.theme.${p}`) })}
+            title={t("shell.theme.option", { name: t(`shell.theme.${p}`) })}
             data-theme-option={p}
             tabIndex={checked ? 0 : -1}
             onClick={() => setThemePref(p)}
