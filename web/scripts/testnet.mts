@@ -22,43 +22,34 @@
  * Keys are never printed or logged. The test wallet keys live in <secrets>/testnet-e2e-wallets.json (mode 600).
  */
 import { spawnSync } from "node:child_process";
-import { createDecipheriv, pbkdf2Sync, scryptSync } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   BaseError,
   ContractFunctionRevertedError,
-  concat,
-  createPublicClient,
-  createWalletClient,
   formatEther,
   formatUnits,
   getAddress,
-  http,
   isAddress,
   keccak256,
   parseEther,
   parseEventLogs,
-  parseGwei,
   parseUnits,
   toHex,
   zeroAddress,
   type Abi,
   type Address,
   type Hash,
-  type Hex,
   type TransactionReceipt,
 } from "viem";
-import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
-import { bscTestnet } from "viem/chains";
+import type { PrivateKeyAccount } from "viem/accounts";
+import { CHAIN_ID, createChain97, EXPLORER, gasPriceFrom, loadDeployer as loadDeployerFromEnv, loadWallets, parseEnvFile } from "../lib/server/chain97.mts";
 
 // ---------------------------------------------------------------------------------------------------------
 // Paths and environment
 // ---------------------------------------------------------------------------------------------------------
 
-const CHAIN_ID = 97;
-const EXPLORER = "https://testnet.bscscan.com";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CONTRACTS = path.join(ROOT, "contracts");
 
@@ -72,13 +63,7 @@ const MAIN = mainCheckout();
 function loadDotenv() {
   const file = process.env.KEYESCROW_ENV_FILE ?? [path.join(ROOT, ".env"), path.join(MAIN, ".env")].find(existsSync);
   if (!file || !existsSync(file)) return;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-    if (!m) continue;
-    let v = m[2].trim();
-    if (/^".*"$|^'.*'$/.test(v)) v = v.slice(1, -1);
-    if (!process.env[m[1]] && v) process.env[m[1]] = v;
-  }
+  for (const [k, v] of Object.entries(parseEnvFile(readFileSync(file, "utf8")))) if (!process.env[k]) process.env[k] = v;
 }
 loadDotenv();
 
@@ -97,16 +82,9 @@ function need(name: string): string {
 // ---------------------------------------------------------------------------------------------------------
 
 const RPC = need("BSC_TESTNET_RPC_URL");
-const chain = { ...bscTestnet, rpcUrls: { default: { http: [RPC] } } };
-const transport = http(RPC, { retryCount: 5, retryDelay: 750, timeout: 30_000 });
-const pub = createPublicClient({ chain, transport, pollingInterval: 1_500 });
-const GAS_PRICE = parseGwei(process.env.TESTNET_GAS_PRICE_GWEI ?? "1");
-if (GAS_PRICE < parseGwei("0.1") || GAS_PRICE > parseGwei("10")) throw new Error("TESTNET_GAS_PRICE_GWEI must be 0.1-10");
-
-async function assertChain97() {
-  const id = await pub.getChainId();
-  if (id !== CHAIN_ID) throw new Error(`BSC_TESTNET_RPC_URL answers chainId ${id}, expected ${CHAIN_ID}. Refusing.`);
-}
+const GAS_PRICE = gasPriceFrom(process.env.TESTNET_GAS_PRICE_GWEI);
+const c97 = createChain97({ rpc: RPC, gasPrice: GAS_PRICE });
+const { pub, assertChain97 } = c97;
 
 const deployment = JSON.parse(readFileSync(path.join(CONTRACTS, "deployments", `${CHAIN_ID}.json`), "utf8")) as {
   chainId: number;
@@ -131,51 +109,15 @@ const escrowAbi = artifactAbi("RentalEscrow");
 // Keys: deployer keystore (in memory) and the throwaway test wallets
 // ---------------------------------------------------------------------------------------------------------
 
-/** Decrypts a Web3 Secret Storage (v3) keystore, as written by `cast wallet new` / `cast wallet import`. */
-function decryptKeystore(file: string, password: string): Hex {
-  const { crypto: c } = JSON.parse(readFileSync(file, "utf8"));
-  const salt = Buffer.from(c.kdfparams.salt, "hex");
-  let dk: Buffer;
-  if (c.kdf === "scrypt") {
-    const { n, r, p, dklen } = c.kdfparams;
-    dk = scryptSync(password, salt, dklen, { N: n, r, p, maxmem: 256 * n * r + 1024 * 1024 });
-  } else if (c.kdf === "pbkdf2") {
-    dk = pbkdf2Sync(password, salt, c.kdfparams.c, c.kdfparams.dklen, "sha256");
-  } else throw new Error(`unsupported keystore kdf ${c.kdf}`);
-  const ciphertext = Buffer.from(c.ciphertext, "hex");
-  const mac = keccak256(concat([toHex(dk.subarray(16, 32)), toHex(ciphertext)])).slice(2);
-  if (mac !== String(c.mac).toLowerCase()) throw new Error("keystore password does not match (MAC check failed)");
-  const d = createDecipheriv("aes-128-ctr", dk.subarray(0, 16), Buffer.from(c.cipherparams.iv, "hex"));
-  return toHex(Buffer.concat([d.update(ciphertext), d.final()]));
-}
-
-function loadDeployer(): PrivateKeyAccount {
-  const password = readFileSync(need("DEPLOYER_PASSWORD_FILE"), "utf8").replace(/\r?\n$/, "");
-  const account = privateKeyToAccount(decryptKeystore(need("DEPLOYER_KEYSTORE"), password));
-  if (account.address.toLowerCase() !== need("DEPLOYER_ADDRESS").toLowerCase()) {
-    throw new Error("DEPLOYER_KEYSTORE does not hold DEPLOYER_ADDRESS. Refusing.");
-  }
-  return account;
-}
+const loadDeployer = () => loadDeployerFromEnv(process.env);
 
 type Wallets = { landlord: PrivateKeyAccount; tenant: PrivateKeyAccount; created: boolean };
 
 /** Loads the throwaway landlord/tenant keys, creating them on first use (file mode 600, never printed). */
 function loadTestWallets(create: boolean): Wallets | undefined {
-  if (existsSync(WALLETS_FILE)) {
-    const w = JSON.parse(readFileSync(WALLETS_FILE, "utf8")) as Record<"landlord" | "tenant", { key: Hex }>;
-    return { landlord: privateKeyToAccount(w.landlord.key), tenant: privateKeyToAccount(w.tenant.key), created: false };
-  }
-  if (!create) return undefined;
-  mkdirSync(SECRETS_DIR, { recursive: true, mode: 0o700 });
-  const keys = { landlord: generatePrivateKey(), tenant: generatePrivateKey() };
-  const out = Object.fromEntries(
-    Object.entries(keys).map(([role, key]) => [role, { address: privateKeyToAccount(key).address, key }]),
-  );
   const note = "KeyEscrow BSC testnet (97) throwaway test wallets. Testnet only. Never fund on mainnet. Never commit.";
-  writeFileSync(WALLETS_FILE, JSON.stringify({ note, chainId: CHAIN_ID, ...out }, null, 2) + "\n", { mode: 0o600 });
-  chmodSync(WALLETS_FILE, 0o600);
-  return { landlord: privateKeyToAccount(keys.landlord), tenant: privateKeyToAccount(keys.tenant), created: true };
+  const w = loadWallets(WALLETS_FILE, ["landlord", "tenant"] as const, { create, note });
+  return w && { ...w.accounts, created: w.created };
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -189,18 +131,8 @@ const label = (a: Address) => names.get(a.toLowerCase()) ?? a;
 let section = "";
 /** Block of the latest receipt: reads are pinned to it so a lagging RPC backend cannot serve stale state. */
 let lastBlock = 0n;
-const nonces = new Map<string, number>();
-
-async function nextNonce(a: Address): Promise<number> {
-  const key = a.toLowerCase();
-  if (!nonces.has(key)) nonces.set(key, await pub.getTransactionCount({ address: a, blockTag: "pending" }));
-  const n = nonces.get(key)!;
-  nonces.set(key, n + 1);
-  return n;
-}
-
 async function finish(step: string, who: PrivateKeyAccount, hash: Hash): Promise<TransactionReceipt> {
-  const r = await pub.waitForTransactionReceipt({ hash, timeout: 180_000, retryCount: 20 });
+  const r = await c97.wait(hash);
   lastBlock = r.blockNumber > lastBlock ? r.blockNumber : lastBlock;
   const cost = r.gasUsed * r.effectiveGasPrice;
   ledger.push({ section, step, from: label(who.address), hash, gasUsed: r.gasUsed, cost, ok: r.status === "success" });
@@ -209,30 +141,14 @@ async function finish(step: string, who: PrivateKeyAccount, hash: Hash): Promise
   return r;
 }
 
+/** Simulates first (a revert is caught for free instead of burning gas on-chain), then sends at GAS_PRICE. */
 async function send(step: string, who: PrivateKeyAccount, address: Address, abi: Abi, functionName: string, args: readonly unknown[] = []) {
-  // Simulate first: a revert is caught for free instead of burning gas on-chain.
-  const { request } = await pub.simulateContract({ account: who, address, abi, functionName, args });
-  const wallet = createWalletClient({ chain, transport, account: who });
-  const hash = await wallet.writeContract({
-    ...request,
-    type: "legacy",
-    gasPrice: GAS_PRICE,
-    nonce: await nextNonce(who.address),
-  } as never);
+  const { hash } = await c97.sendCall(who, { address, abi, functionName, args });
   return finish(step, who, hash);
 }
 
 async function sendValue(step: string, who: PrivateKeyAccount, to: Address, value: bigint) {
-  const wallet = createWalletClient({ chain, transport, account: who });
-  const hash = await wallet.sendTransaction({
-    to,
-    value,
-    type: "legacy",
-    gasPrice: GAS_PRICE,
-    gas: 21_000n,
-    nonce: await nextNonce(who.address),
-  });
-  return finish(step, who, hash);
+  return finish(step, who, await c97.sendValue(who, to, value));
 }
 
 /** eth_call only (free): the call must revert with `error`. */

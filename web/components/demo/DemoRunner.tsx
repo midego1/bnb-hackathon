@@ -3,14 +3,15 @@
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { Address } from "viem";
+import { zeroAddress, type Address } from "viem";
 import { useAccount, useConnect, usePublicClient } from "wagmi";
 import { LeaseDetail } from "@/components/lease/LeaseDetail";
 import { Amount, PriceSourceBadge, StatusBadge, useMoney } from "@/components/ui";
 import { Spinner, useToasts } from "@/components/Toasts";
-import { escrowFactoryAbi, LeaseStatus, mockUsdtAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, getDeployment, LeaseStatus, mockUsdtAbi } from "@/lib/contracts";
 import { fastForward } from "@/lib/demo/anvil";
 import { ledger, newContext, PATHS, stepsFor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
+import { bscscanAddress, bscscanTx, testnetPaths, TestnetSession, type TestnetInfo, type WaitInfo } from "@/lib/demo/testnet";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { friendlyError } from "@/lib/errors";
 import { uploadEvidence } from "@/lib/evidence";
@@ -19,7 +20,7 @@ import { useTx } from "@/lib/hooks/useTx";
 import { runInspection } from "@/lib/settlement";
 import { usePrices } from "@/lib/usePrices";
 import { ActorBoard, FlowStrip, type Wallets } from "./ActorBoard";
-import { actorLabel, controls, errorCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy } from "./copy";
+import { actorLabel, controls, errorCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy, testnetCopy } from "./copy";
 import { StepTimeline, type StepStatus } from "./StepTimeline";
 
 type Speed = "normal" | "fast";
@@ -40,6 +41,18 @@ const actorTone: Record<DemoStep["actor"], string> = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** On testnet a read pinned to a fresh block can briefly fail while the RPC backend catches up: retry a few times. */
+async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!on || i >= 20) throw e;
+      await sleep(1_000);
+    }
+  }
+}
+
 /**
  * One-click guided demo: plays the whole KeyEscrow story against the real contracts on the local anvil chain,
  * switching the anvil demo accounts as it goes.
@@ -48,8 +61,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * on top, the actors with their live balances on the left, the current step and the real lease page in the middle,
  * the timeline of every step on the right, and the end summary over the middle. Below `lg` it stacks and scrolls.
  */
-export function DemoRunner() {
-  const { chainId, deployment } = useDeployment();
+export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
+  // Live BSC testnet mode: the server signs every step with its demo wallets on chain 97, whatever the visitor's
+  // wallet is connected to. Locally: the anvil dev accounts on the connected chain.
+  const local = useDeployment();
+  const chainId = testnet ? testnet.chainId : local.chainId;
+  const deployment = testnet ? getDeployment(testnet.chainId) : local.deployment;
+  const accounts = testnet?.accounts ?? devAccounts;
   const client = usePublicClient({ chainId });
   const { address, connector } = useAccount();
   const { connectors, connectAsync } = useConnect();
@@ -97,18 +115,52 @@ export function DemoRunner() {
   const walletsRef = useRef<Wallets | null>(null);
   const treasuryRef = useRef<Address | null>(null);
   const walletSeq = useRef(0);
+  const [wait, setWait] = useState<WaitInfo | null>(null);
+  const sessionRef = useRef<TestnetSession | null>(null);
+  if (testnet && !sessionRef.current) sessionRef.current = new TestnetSession({ lease: () => ctxRef.current?.lease, onWait: setWait });
+  const roleRef = useRef<DevRole>("landlord");
+  /** On testnet, reads are pinned to the block of the latest receipt (a lagging RPC backend must not serve old state). */
+  const at = () => (sessionRef.current?.lastBlock ? { blockNumber: sessionRef.current.lastBlock } : {});
 
   useEffect(
     () => () => {
       tokenRef.current++; // stop the loop when the page unmounts
       nextRef.current?.();
+      void sessionRef.current?.end("left the page"); // free the live testnet run
     },
     [],
   );
 
+  // Live testnet: keep the run's server lock while the stage plays or waits for a click (a ping every 10 s), and
+  // free it when the tab closes. On an error screen the pings stop, so the lock lapses for the next visitor in 45 s.
+  const playing = phase === "running" || phase === "paused" || phase === "waiting";
+  useEffect(() => {
+    if (!testnet || !playing) return;
+    const t = setInterval(() => void sessionRef.current?.ping(), 10_000);
+    return () => clearInterval(t);
+  }, [testnet, playing]);
+  useEffect(() => {
+    if (!testnet) return;
+    const bye = () => void sessionRef.current?.end("tab closed");
+    window.addEventListener("pagehide", bye);
+    return () => window.removeEventListener("pagehide", bye);
+  }, [testnet]);
+
   const ready = !!deployment && !!client;
   const publish = () => setView(ctxRef.current ? { ...ctxRef.current } : null);
   const mark = (i: number, s: StepStatus) => setStatuses((prev) => prev.map((v, k) => (k === i ? s : v)));
+
+  /**
+   * A contract read. Live testnet run: through the server (lib/demo/testnet `read`), on the RPC that mined the run's
+   * transactions; otherwise the browser's own client (pinned to the latest receipt's block on testnet).
+   */
+  function chainRead<T>(call: Parameters<DemoApi["read"]>[0]): Promise<T> {
+    const session = sessionRef.current;
+    if (session?.live) return session.read<T>(call as never);
+    const c = live.current.client;
+    if (!c) return Promise.reject(new Error(testnet ? testnetCopy.noRpc : "Not connected to the local chain."));
+    return withRetry(() => c.readContract({ ...call, ...at() } as never) as Promise<T>, !!testnet);
+  }
 
   /** Re-read the live balances on the actor cards. Best effort: a failed read keeps the last numbers. */
   async function syncWallets() {
@@ -116,12 +168,12 @@ export function DemoRunner() {
     if (!c || !deployment) return;
     const seq = ++walletSeq.current;
     try {
-      treasuryRef.current ??= (await c.readContract({ address: deployment.escrowFactory, abi: escrowFactoryAbi, functionName: "feeRecipient" })) as Address;
-      const bal = (who: Address) => c.readContract({ address: deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] }) as Promise<bigint>;
+      treasuryRef.current ??= await chainRead<Address>({ address: deployment.escrowFactory, abi: escrowFactoryAbi, functionName: "feeRecipient" });
+      const bal = (who: Address) => chainRead<bigint>({ address: deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] });
       const lease = ctxRef.current?.lease;
       const [landlord, tenant, treasury, escrow] = await Promise.all([
-        bal(devAccounts.landlord),
-        bal(devAccounts.tenant),
+        bal(accounts.landlord),
+        bal(accounts.tenant),
         bal(treasuryRef.current),
         lease ? bal(lease) : Promise.resolve(undefined),
       ]);
@@ -140,8 +192,63 @@ export function DemoRunner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as soon as the chain is reachable
   }, [ready]);
 
-  const api = (): DemoApi => ({
+  const api = (): DemoApi => (testnet ? testnetApi() : localApi());
+
+  /** Shared by both modes: what a step does after its transaction confirmed. */
+  function recordTx(label: string, hash: `0x${string}`) {
+    const id = stepsRef.current[curRef.current]?.id ?? "?";
+    setTxs((t) => ({ ...t, [id]: [...(t[id] ?? []), { label, hash }] }));
+    publish();
+  }
+
+  async function uploadDemoFiles(files: Parameters<DemoApi["upload"]>[0]) {
+    const blobs = await Promise.all(
+      files.map(async (f) => {
+        const res = await fetch(f.path);
+        if (!res.ok) throw new Error(`The demo file ${f.name} is missing from the app (${res.status}).`);
+        return new File([await res.blob()], f.name, { type: f.type });
+      }),
+    );
+    const { items } = await uploadEvidence(blobs);
+    publish();
+    return items;
+  }
+
+  /** BSC testnet: no keys in the browser. Each transaction is signed by the server (POST /api/demo-testnet/tx). */
+  const testnetApi = (): DemoApi => ({
     deployment: deployment!,
+    accounts,
+    leaseArbiter: accounts.arbiter, // the demo dispute desk, a server wallet: the factory default is the deployer
+    async as(role: DevRole) {
+      roleRef.current = role;
+      const session = sessionRef.current!;
+      await session.begin(ctxRef.current!.path); // takes the one-run lock on the first step
+      // Gas the server topped up before this run (deployer -> demo wallet): on the timeline too, nothing hidden.
+      for (const t of session.topUps.splice(0)) recordTx(testnetCopy.topUp(actorLabel[t.role].toLowerCase()), t.hash);
+    },
+    async tx(label, call) {
+      const receipt = await sessionRef.current!.send(roleRef.current, call);
+      if (receipt.status !== "success") throw new Error(testnetCopy.reverted(label, bscscanTx(receipt.transactionHash)));
+      recordTx(label, receipt.transactionHash);
+      await live.current.queryClient.invalidateQueries();
+      await syncWallets();
+      return receipt;
+    },
+    read: chainRead,
+    upload: uploadDemoFiles,
+    inspect: (input) => runInspection(input),
+    async fastForward() {
+      throw new Error(testnetCopy.timeoutNote);
+    },
+    async refresh() {
+      await live.current.queryClient.refetchQueries({ type: "active" });
+    },
+  });
+
+  const localApi = (): DemoApi => ({
+    deployment: deployment!,
+    accounts,
+    leaseArbiter: zeroAddress,
     async as(role: DevRole) {
       setDevRole(role);
       if (live.current.connector?.id !== DEV_CONNECTOR_ID) {
@@ -161,9 +268,7 @@ export function DemoRunner() {
     async tx(label, call) {
       const receipt = await live.current.send(label, call, { throwOnError: true });
       if (!receipt) throw new Error(`"${label}" did not go through.`);
-      const id = stepsRef.current[curRef.current]?.id ?? "?";
-      setTxs((t) => ({ ...t, [id]: [...(t[id] ?? []), { label, hash: receipt.transactionHash }] }));
-      publish();
+      recordTx(label, receipt.transactionHash);
       await syncWallets();
       return receipt;
     },
@@ -172,18 +277,7 @@ export function DemoRunner() {
       if (!c) throw new Error("Not connected to the local chain.");
       return (await c.readContract(call as never)) as T;
     },
-    async upload(files) {
-      const blobs = await Promise.all(
-        files.map(async (f) => {
-          const res = await fetch(f.path);
-          if (!res.ok) throw new Error(`The demo file ${f.name} is missing from the app (${res.status}).`);
-          return new File([await res.blob()], f.name, { type: f.type });
-        }),
-      );
-      const { items } = await uploadEvidence(blobs);
-      publish();
-      return items;
-    },
+    upload: uploadDemoFiles,
     inspect: (input) => runInspection(input),
     async fastForward(seconds) {
       await fastForward(seconds);
@@ -240,6 +334,7 @@ export function DemoRunner() {
         if (tokenRef.current !== token) return;
         mark(i, "error");
         setError(friendlyError(err));
+        void sessionRef.current?.ping(`step ${all[i].id}: ${friendlyError(err)}`); // live testnet: log what the viewer saw
         setPhase("error");
         publish();
         return;
@@ -251,6 +346,7 @@ export function DemoRunner() {
       if (i < all.length - 1 && !(await gate(token))) return;
     }
     setPhase("done");
+    void sessionRef.current?.end("done"); // free the live testnet run for the next visitor
     clearSettled(); // nothing may cover the summary
     setPauseAsked(false);
     pausedRef.current = false;
@@ -258,6 +354,8 @@ export function DemoRunner() {
 
   function start(p: DemoPath = path) {
     if (!ready) return;
+    if (testnet && !testnetPaths.includes(p)) p = "happy";
+    sessionRef.current?.forget(); // a restart is a fresh live run: the server lets this browser take its run over
     const token = ++tokenRef.current;
     nextRef.current?.();
     pausedRef.current = false;
@@ -306,7 +404,7 @@ export function DemoRunner() {
     if (autoplayed.current || !ready) return;
     const q = new URLSearchParams(window.location.search);
     const p = q.get("path");
-    const initial: DemoPath = p === "dispute" || p === "timeout" ? p : "happy";
+    const initial: DemoPath = (p === "dispute" || p === "timeout") && (!testnet || testnetPaths.includes(p)) ? p : "happy";
     if (q.get("speed") === "fast") speedRef.current = "fast";
     if (q.get("step") === "1") stepModeRef.current = true;
     autoplayed.current = true;
@@ -328,7 +426,12 @@ export function DemoRunner() {
   const books = view ? ledger(view) : undefined;
   const showSummary = phase === "done" && !!view && !summaryHidden;
   // "Step n of m" is on the narration; the controls only say why nothing moves.
-  const note = phase === "paused" ? controls.paused : running && pauseAsked ? controls.pausing : undefined;
+  const note =
+    phase === "paused"
+      ? controls.paused
+      : running && pauseAsked
+        ? controls.pausing
+        : undefined;
 
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
@@ -336,11 +439,15 @@ export function DemoRunner() {
       <div className="relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <h1 className="text-xl font-semibold tracking-tight">{pageTitle}</h1>
+          {testnet && <LiveBadge />}
           <Segmented
             label={controls.story}
             value={path}
             disabled={running}
-            options={(Object.keys(PATHS) as DemoPath[]).map((p) => ({ value: p, label: PATHS[p].label, testId: `demo-path-${p}`, title: PATHS[p].blurb }))}
+            options={(Object.keys(PATHS) as DemoPath[]).map((p) => {
+              const off = !!testnet && !testnetPaths.includes(p);
+              return { value: p, label: PATHS[p].label, testId: `demo-path-${p}`, title: off ? testnetCopy.timeoutNote : PATHS[p].blurb, disabled: off };
+            })}
             onChange={(p) => {
               setPath(p);
               if (phase === "idle") setSteps(stepsFor(p));
@@ -412,11 +519,18 @@ export function DemoRunner() {
         </div>
 
         <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0">
-          {phase === "idle" && <Intro path={path} />}
+          {phase === "idle" && <Intro path={path} testnet={!!testnet} />}
 
           {step && phase !== "done" && (
             <Narration step={step} index={current} total={steps.length} status={statuses[current]} caption={view ? step.caption(view, money) : ""}>
-              <FlowStrip base={base} wallets={wallets} />
+              {wait ? (
+                // Live testnet: another visitor's run holds the chain (or one just ended); this one starts by itself.
+                <p className="flex items-center gap-2 text-base font-medium" data-testid="demo-wait">
+                  <Spinner /> {testnetCopy.waiting(wait.code, wait.sec)}
+                </p>
+              ) : (
+                <FlowStrip base={base} wallets={wallets} />
+              )}
             </Narration>
           )}
 
@@ -435,15 +549,24 @@ export function DemoRunner() {
             </div>
           )}
 
-          {showSummary && <Summary ctx={view} books={books} onAgain={() => start(view.path)} onPath={(p) => start(p)} onHide={() => setSummaryHidden(true)} />}
+          {showSummary && (
+            <Summary ctx={view} books={books} testnet={!!testnet} onAgain={() => start(view.path)} onPath={(p) => start(p)} onHide={() => setSummaryHidden(true)} />
+          )}
 
           <LivePanel lease={view?.lease} idle={phase === "idle"}>
-            {view?.inspection && <InspectionCard ctx={view} />}
+            {view?.inspection && <InspectionCard ctx={view} testnet={!!testnet} />}
           </LivePanel>
         </div>
 
         <div className="order-3 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
-          <StepTimeline steps={steps} statuses={statuses} current={running || phase === "error" ? current : -1} txs={txs} lease={view?.lease} />
+          <StepTimeline
+            steps={steps}
+            statuses={statuses}
+            current={running || phase === "error" ? current : -1}
+            txs={txs}
+            lease={view?.lease}
+            explorer={testnet ? { tx: bscscanTx, title: testnetCopy.txTitle } : undefined}
+          />
         </div>
       </div>
     </div>
@@ -478,7 +601,7 @@ function Segmented<T extends string>({
 }: {
   label: string;
   value: T;
-  options: { value: T; label: string; testId: string; title?: string }[];
+  options: { value: T; label: string; testId: string; title?: string; disabled?: boolean }[];
   onChange: (v: T) => void;
   disabled?: boolean;
 }) {
@@ -490,7 +613,7 @@ function Segmented<T extends string>({
           <button
             key={o.value}
             type="button"
-            disabled={disabled}
+            disabled={disabled || o.disabled}
             title={o.title}
             aria-pressed={value === o.value}
             data-testid={o.testId}
@@ -509,20 +632,37 @@ function Segmented<T extends string>({
   );
 }
 
-function Intro({ path }: { path: DemoPath }) {
+/** "● Live on BSC Testnet": this run sends real, public transactions. */
+function LiveBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-success-border bg-success-soft px-2.5 py-0.5 text-sm font-semibold text-success-fg"
+      title={testnetCopy.badgeTitle}
+      data-testid="demo-live-badge"
+    >
+      <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-success" />
+      {/* Short between lg and 1400px, so the controls stay on one row at 1280. */}
+      <span className="lg:max-[1399px]:hidden">{testnetCopy.badge}</span>
+      <span className="hidden lg:max-[1399px]:inline">{testnetCopy.badgeShort}</span>
+    </span>
+  );
+}
+
+function Intro({ path, testnet }: { path: DemoPath; testnet: boolean }) {
   return (
     <section className="shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg xl:px-6 xl:py-5">
-      <p className="text-base leading-relaxed xl:text-lg">{pageIntro}</p>
+      <p className="text-base leading-relaxed xl:text-lg">{testnet ? testnetCopy.pageIntro : pageIntro}</p>
       <h2 className="mt-3 text-lg font-semibold">{intro.title}</h2>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-base">
-        {intro.bullets.map((b) => (
+        {(testnet ? testnetCopy.bullets : intro.bullets).map((b) => (
           <li key={b}>{b}</li>
         ))}
       </ul>
       <p className="mt-3 text-base">
         <span className="font-semibold">{PATHS[path].label}:</span> {PATHS[path].blurb}
       </p>
-      <p className="mt-1 text-sm opacity-80">{intro.presenting}</p>
+      {testnet && <p className="mt-1 text-sm opacity-80">{testnetCopy.timeoutNote}</p>}
+      <p className="mt-1 text-sm opacity-80">{testnet ? testnetCopy.presenting : intro.presenting}</p>
     </section>
   );
 }
@@ -592,7 +732,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
   );
 }
 
-function InspectionCard({ ctx }: { ctx: DemoCtx }) {
+function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
   const r = ctx.inspection!;
   return (
     <section className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900 dark:bg-cyan-950/40" data-testid="demo-inspection">
@@ -616,7 +756,7 @@ function InspectionCard({ ctx }: { ctx: DemoCtx }) {
         ))}
       </ul>
       <p className="mt-2 text-sm text-muted" data-testid="demo-inspector">
-        {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : inspectionCopy.unsigned}{" "}
+        {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : testnet ? testnetCopy.unsigned : inspectionCopy.unsigned}{" "}
         {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
       </p>
     </section>
@@ -626,19 +766,21 @@ function InspectionCard({ ctx }: { ctx: DemoCtx }) {
 function Summary({
   ctx,
   books,
+  testnet,
   onAgain,
   onPath,
   onHide,
 }: {
   ctx: DemoCtx;
   books: ReturnType<typeof ledger>;
+  testnet: boolean;
   onAgain: () => void;
   onPath: (p: DemoPath) => void;
   onHide: () => void;
 }) {
   const money = useMoney();
   const settled = ctx.finalStatus === LeaseStatus.Settled;
-  const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path);
+  const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path && (!testnet || testnetPaths.includes(p)));
   return (
     <section
       className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
@@ -693,6 +835,11 @@ function Summary({
             {summaryCopy.tryLabel[p]}
           </button>
         ))}
+        {ctx.lease && testnet && (
+          <a href={bscscanAddress(ctx.lease)} target="_blank" rel="noopener noreferrer" className={secondaryBtn} data-testid="demo-escrow-bscscan">
+            {testnetCopy.escrowOnBscscan}
+          </a>
+        )}
         {ctx.lease && (
           <Link href={`/lease/${ctx.lease}`} target="_blank" className={`${secondaryBtn} lg:hidden`}>
             {summaryCopy.openLease}
