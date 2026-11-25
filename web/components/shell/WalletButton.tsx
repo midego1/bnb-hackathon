@@ -7,7 +7,7 @@ import { Icon } from "./icons";
 export const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const row =
-  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary rail:justify-center rail:px-0";
+  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sidebar-ring rail:justify-center rail:px-0";
 
 /**
  * The sidebar's network and wallet rows (RainbowKit's modals behind our own buttons, so they fit the sidebar and the
