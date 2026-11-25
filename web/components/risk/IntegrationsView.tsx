@@ -10,7 +10,7 @@ const STATE: Record<IntegrationStatus["state"], { text: string; className: strin
   live: { text: "Live", className: "bg-success-soft text-success-fg ring-success-border" },
   "not-configured": { text: "Not configured", className: "bg-warning-soft text-warning-fg ring-warning-border" },
   blocked: { text: "Blocked", className: "bg-danger-soft text-danger ring-danger-border" },
-  off: { text: "Live calls off", className: "bg-surface-muted text-muted ring-border" },
+  off: { text: "Live calls off", className: "bg-muted text-muted-foreground ring-border" },
 };
 
 /** Sponsor integrations: status, env var names, the risk engine on a sample deposit, and the call log (evidence). */
@@ -54,10 +54,10 @@ export function IntegrationsView() {
                 </span>
               }
             >
-              <p className="text-sm text-muted">{i.detail}</p>
+              <p className="text-sm text-muted-foreground">{i.detail}</p>
               <p className="mt-2 text-xs text-subtle">Env (server-side, web/.env.local):</p>
               <p className="mt-1 flex flex-wrap gap-1 text-xs">
-                {i.env.map((e) => <code key={e} className="break-all rounded bg-surface-muted px-1">{e}</code>)}
+                {i.env.map((e) => <code key={e} className="break-all rounded bg-muted px-1">{e}</code>)}
               </p>
               <p className="mt-3 text-xs font-semibold">Recent calls</p>
               {i.calls.length ? (

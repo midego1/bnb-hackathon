@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useReducer, useSyncExternalStore } from "react";
 import { baht, copy, dollars, ENDINGS, story, type Ending, type Scene } from "./script";
@@ -166,7 +167,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                 aria-checked={s.ending === e.id}
                 onClick={() => dispatch({ type: "ending", ending: e.id })}
                 data-testid={`eli5-ending-${e.id}`}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${s.ending === e.id ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-muted"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${s.ending === e.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
                 <span aria-hidden>{e.short}</span> {e.label}
               </button>
@@ -175,7 +176,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         </div>
         <Link
           href={realDemo ? "/demo" : "/landlord"}
-          className="text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
+          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
           data-testid="eli5-real"
         >
           {realDemo ? copy.realDemo : copy.tryIt}
@@ -206,26 +207,30 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         <div key={`${s.ending}-${scene.id}`} className="demo-pop min-w-0" data-testid="eli5-narration" aria-live="polite">
           <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{scene.text}</p>
           <p className="mt-1.5 text-sm text-subtle">
-            <span className="font-medium text-muted">{copy.grownUp}:</span> {scene.detail}
+            <span className="font-medium text-muted-foreground">{copy.grownUp}:</span> {scene.detail}
           </p>
         </div>
 
         <div className="flex flex-col gap-2 lg:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => dispatch({ type: "back" })} disabled={s.index === 0} className={secondaryBtn} data-testid="eli5-back" aria-label={copy.back}>
-              ◀ {copy.back}
+              <ChevronLeft aria-hidden className="size-4" />
+              {copy.back}
             </button>
             {done ? (
               <button type="button" onClick={() => dispatch({ type: "replay" })} className={primaryBtn} data-testid="eli5-replay">
-                ↺ {copy.replay}
+                <RotateCcw aria-hidden className="size-4" />
+                {copy.replay}
               </button>
             ) : (
               <button type="button" onClick={() => dispatch({ type: "toggle" })} className={primaryBtn} data-testid="eli5-play" aria-pressed={s.playing}>
-                {s.playing ? `❚❚ ${copy.pause}` : `▶ ${copy.play}`}
+                {s.playing ? <Pause aria-hidden className="size-4 fill-current" /> : <Play aria-hidden className="size-4 fill-current" />}
+                {s.playing ? copy.pause : copy.play}
               </button>
             )}
             <button type="button" onClick={() => dispatch({ type: "next" })} disabled={s.index === last} className={secondaryBtn} data-testid="eli5-next" aria-label={copy.next}>
-              {copy.next} ▶
+              {copy.next}
+              <Play aria-hidden className="size-3.5 fill-current" />
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -238,9 +243,9 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                     aria-label={copy.goTo(i + 1)}
                     aria-current={i === s.index ? "step" : undefined}
                     data-testid="eli5-dot"
-                    className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-10 bg-surface-strong" : i < s.index ? "w-3 bg-amber-400" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
+                    className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-10 bg-surface-strong" : i < s.index ? "w-3 bg-highlight" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
                   >
-                    {i === s.index && <span className="absolute inset-y-0 left-0 bg-amber-400" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}
+                    {i === s.index && <span className="absolute inset-y-0 left-0 bg-highlight" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}
                   </button>
                 </li>
               ))}
@@ -257,4 +262,4 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
 const secondaryBtn =
   "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border-strong bg-surface px-4 py-2 text-base font-medium hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-40";
 const primaryBtn =
-  "inline-flex min-h-11 min-w-32 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-2 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300";
+  "inline-flex min-h-11 min-w-32 items-center justify-center gap-2 rounded-xl bg-highlight px-5 py-2 text-base font-semibold text-highlight-foreground shadow-sm transition hover:bg-highlight-hover";

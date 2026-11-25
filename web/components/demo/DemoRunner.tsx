@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck, Play, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -36,12 +37,12 @@ const BETWEEN_MS = 2600;
 const ROLE_SWITCH_TIMEOUT_MS = 10_000;
 
 const actorTone: Record<DemoStep["actor"], string> = {
-  landlord: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
+  landlord: "bg-actor-owner-soft text-actor-owner-fg",
   tenant: "bg-success-soft text-success-fg",
   arbiter: "bg-danger-soft text-danger-fg",
-  inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
+  inspector: "bg-actor-inspector-soft text-actor-inspector-fg",
   investor: "bg-info-soft text-info-fg",
-  anyone: "bg-surface-muted text-muted",
+  anyone: "bg-muted text-muted-foreground",
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -506,7 +507,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <h1 className="text-xl font-semibold tracking-tight @max-[1419px]:sr-only">{pageTitle}</h1>
           {testnet && <LiveBadge />}
-          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline @min-[1300px]:inline" data-testid="demo-eli5">Explain it simply</Link>
+          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline @min-[1300px]:inline" data-testid="demo-eli5">Explain it simply</Link>
           <Segmented
             label={controls.story}
             value={path}
@@ -541,14 +542,15 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           />
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
             {note && !(isGuided && caption) && (
-              <span className="text-sm font-medium text-muted" data-testid="demo-phase-note">
+              <span className="text-sm font-medium text-muted-foreground" data-testid="demo-phase-note">
                 {note}
               </span>
             )}
             {!ready && <span className="text-sm text-subtle">{controls.connecting}</span>}
             {!running && phase !== "error" && (
               <BigButton onClick={() => start()} disabled={!ready} testId="demo-play">
-                ▶ {phase === "done" ? controls.playAgain : controls.play}
+                <Play aria-hidden className="size-4 fill-current" />
+                {phase === "done" ? controls.playAgain : controls.play}
               </BigButton>
             )}
             {phase === "waiting" && (
@@ -563,6 +565,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             )}
             {running && (
               <button type="button" onClick={() => start(path)} className={secondaryBtn}>
+                <RotateCcw aria-hidden className="size-4" />
                 {controls.restart}
               </button>
             )}
@@ -574,8 +577,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           </div>
         </div>
         {phase !== "idle" && (
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-surface-muted" aria-hidden>
-            <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-muted" aria-hidden>
+            <div className="h-full bg-highlight transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         )}
       </div>
@@ -594,7 +597,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         {/* Should a card ever be taller than the space left, this column scrolls on its own (wheel, trackpad, or focus it
             and use the arrow keys): the page itself is pinned on a tall-enough desktop and would only clip it. */}
         <div
-          className="relative order-1 flex flex-col gap-3 rounded-2xl lg:order-none stage:min-h-0 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          className="relative order-1 flex flex-col gap-3 rounded-2xl lg:order-none stage:min-h-0 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
           role="region"
           aria-label={panels.stage}
           tabIndex={0}
@@ -673,7 +676,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
 const secondaryBtn =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover";
 const primarySmall =
-  "inline-flex min-h-10 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover";
 
 function BigButton({ children, onClick, disabled, testId }: { children: ReactNode; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
@@ -682,7 +685,7 @@ function BigButton({ children, onClick, disabled, testId }: { children: ReactNod
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-2 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300"
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-highlight px-5 py-2 text-base font-semibold text-highlight-foreground shadow-sm transition hover:bg-highlight-hover disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}
     </button>
@@ -705,7 +708,7 @@ function Segmented<T extends string>({
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs font-medium uppercase tracking-wide text-subtle lg:sr-only">{label}</span>
-      <div className="inline-flex flex-wrap rounded-lg bg-surface-muted p-0.5" role="group" aria-label={label}>
+      <div className="inline-flex flex-wrap rounded-lg bg-muted p-0.5" role="group" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}
@@ -718,7 +721,7 @@ function Segmented<T extends string>({
             className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
               value === o.value
                 ? "bg-surface text-foreground shadow-sm"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {o.label}
@@ -788,7 +791,7 @@ function Narration({
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold uppercase tracking-wide opacity-70">{panels.stepOf(index + 1, total)}</span>
         <span className={`rounded-full px-2.5 py-0.5 font-semibold ${actorTone[step.actor]}`}>{actorLabel[step.actor]}</span>
-        {step.demoOnly && <span className="rounded-full bg-amber-300 px-2.5 py-0.5 font-semibold text-amber-950 dark:bg-amber-400">{step.demoOnly}</span>}
+        {step.demoOnly && <span className="rounded-full bg-highlight-chip px-2.5 py-0.5 font-semibold text-highlight-foreground">{step.demoOnly}</span>}
         {status === "running" && (
           <span className="inline-flex items-center gap-1 opacity-70">
             <Spinner /> {panels.working}
@@ -821,7 +824,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
           </Link>
         )}
       </div>
-      <div className="relative space-y-4 p-4 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent" role="region" aria-labelledby="live-lease" tabIndex={0} data-testid="demo-live">
+      <div className="relative space-y-4 p-4 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" role="region" aria-labelledby="live-lease" tabIndex={0} data-testid="demo-live">
         {children}
         {lease ? <LeaseDetail address={lease} /> : <p className="text-base text-subtle">{panels.liveEmpty}</p>}
       </div>
@@ -832,18 +835,18 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
 function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
   const r = ctx.inspection!;
   return (
-    <section className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900 dark:bg-cyan-950/40" data-testid="demo-inspection">
+    <section className="rounded-xl border border-actor-inspector-border bg-actor-inspector-tint p-4" data-testid="demo-inspection">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold">{inspectionCopy.title}</h3>
         <PriceSourceBadge />
       </div>
       <div className="mt-2 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-sm text-muted">{inspectionCopy.back}</p>
+          <p className="text-sm text-muted-foreground">{inspectionCopy.back}</p>
           <Amount value={BigInt(r.tenantRefund)} />
         </div>
         <div>
-          <p className="text-sm text-muted">{inspectionCopy.keeps}</p>
+          <p className="text-sm text-muted-foreground">{inspectionCopy.keeps}</p>
           <Amount value={BigInt(r.landlordClaim)} />
         </div>
       </div>
@@ -852,7 +855,7 @@ function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
           <li key={i}>{reason}</li>
         ))}
       </ul>
-      <p className="mt-2 text-sm text-muted" data-testid="demo-inspector">
+      <p className="mt-2 text-sm text-muted-foreground" data-testid="demo-inspector">
         {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : testnet ? testnetCopy.unsigned : inspectionCopy.unsigned}{" "}
         {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
       </p>
@@ -880,7 +883,7 @@ function Summary({
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path && (!testnet || testnetPaths.includes(p)));
   return (
     <section
-      className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:flex lg:flex-col stage:absolute stage:inset-0 stage:z-10 stage:overflow-y-auto tall:p-5 xl:tall:p-6"
+      className="rounded-2xl border border-success-border bg-surface p-4 shadow-lg lg:flex lg:flex-col stage:absolute stage:inset-0 stage:z-10 stage:overflow-y-auto tall:p-5 xl:tall:p-6"
       data-testid="demo-summary"
       data-path={ctx.path}
       data-status={settled ? "settled" : "open"}
@@ -891,13 +894,13 @@ function Summary({
         <button
           type="button"
           onClick={onHide}
-          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-muted hover:bg-surface-muted lg:block"
+          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-muted lg:block"
           data-testid="demo-hide-summary"
         >
           {summaryCopy.hide}
         </button>
       </div>
-      <p className="mt-1 text-base text-muted">
+      <p className="mt-1 text-base text-muted-foreground">
         {ctx.finalStatus !== undefined && (
           <span className="mr-2 inline-block align-middle">
             <StatusBadge status={ctx.finalStatus as LeaseStatus} />
@@ -922,6 +925,7 @@ function Summary({
             className={`mt-3 text-base font-medium tall:mt-4 ${books.balanced ? "text-success" : "text-danger"}`}
             data-testid="demo-balanced"
           >
+            {books.balanced && <CircleCheck aria-hidden className="mr-1.5 inline size-4 align-[-3px]" />}
             {books.balanced
               ? summaryCopy.balanced(money(books.paidIn), money(books.tenantBack), money(books.landlord), money(books.treasury))
               : summaryCopy.unbalanced}
@@ -930,6 +934,7 @@ function Summary({
       )}
       <div className="mt-3 flex flex-wrap gap-2 lg:mt-auto lg:pt-3">
         <button type="button" onClick={onAgain} className={primarySmall} data-testid="demo-run-again">
+          <RotateCcw aria-hidden className="size-4" />
           {summaryCopy.again}
         </button>
         {others.map((p) => (
@@ -954,7 +959,7 @@ function Summary({
 
 function Party({ who, note, value, testId }: { who: string; note: string; value: bigint; testId: string }) {
   return (
-    <div className="rounded-xl bg-surface-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
+    <div className="rounded-xl bg-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
       <p className="text-base font-semibold">{who}</p>
       <p className="hidden text-sm leading-snug text-subtle tall:block">{note}</p>
       <div className="mt-1">

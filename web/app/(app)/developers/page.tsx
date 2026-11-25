@@ -17,13 +17,13 @@ export default function DevelopersPage() {
         for your own wallet to sign: KeyEscrow never holds your key.
       </PageTitle>
 
-      <div className="mb-8 space-y-3 text-sm text-muted">
+      <div className="mb-8 space-y-3 text-sm text-muted-foreground">
         <p>
           OpenAPI 3.1: <a className="underline" href={`${API_BASE}/openapi.json`}>{API_BASE}/openapi.json</a>. MCP: the same actions are tools
           on the KeyEscrow Inspector agent (<code>POST /mcp</code>, see docs/AGENT.md for the Claude config). Amounts: mUSDT has 6 decimals;
           inputs take human amounts like <code>&quot;441.18&quot;</code>, outputs give <code>units</code> (base units) and <code>display</code>.
         </p>
-        <pre className="overflow-x-auto rounded-xl bg-surface-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
+        <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
       </div>
 
       <div className="space-y-6">
@@ -46,7 +46,7 @@ function ActionDoc({ action: a }: { action: Action }) {
           {methodOf(a)} {API_BASE}/{a.name} · {a.title}
         </span>
       </h2>
-      <p className="mt-2 text-sm text-muted">{toolDescription(a)}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{toolDescription(a)}</p>
       <table className="mt-3 w-full text-left text-xs">
         <thead className="text-subtle">
           <tr>

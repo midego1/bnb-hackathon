@@ -79,7 +79,7 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
   return (
     <li className="group min-w-0" data-testid="evidence-thumb">
-      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-muted">
+      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted">
         {failed ? (
           <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-subtle">
             <span>File not in storage</span>
@@ -89,12 +89,12 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
           // eslint-disable-next-line @next/next/no-img-element -- content-addressed evidence (API) or bundled demo file
           <img src={photo.src} alt={photo.label ? `${photo.label} photo` : `Photo ${short}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
         )}
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-slate-950/70 px-2 py-1 font-mono text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-overlay/70 px-2 py-1 font-mono text-[10px] text-overlay-foreground opacity-0 transition group-hover:opacity-100">
           {photo.hash}
         </span>
       </a>
       <p className="mt-1 flex items-center justify-between gap-2 text-xs">
-        <span className="truncate capitalize text-muted">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
+        <span className="truncate capitalize text-muted-foreground">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
         <CopyButton value={photo.hash} label="Copy photo hash" />
       </p>
     </li>

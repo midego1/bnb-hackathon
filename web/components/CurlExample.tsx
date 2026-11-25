@@ -15,5 +15,5 @@ export function CurlExample({ path, method, example }: { path: string; method: s
     method === "GET"
       ? `curl -s "${path}?${new URLSearchParams(Object.entries(input).map(([k, v]) => [k, String(v)])).toString()}"`
       : `curl -s -X POST "${path}" \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify(input)}'`;
-  return <pre className="mt-3 overflow-x-auto rounded-xl bg-surface-muted p-3 text-xs">{text}</pre>;
+  return <pre className="mt-3 overflow-x-auto rounded-xl bg-muted p-3 text-xs">{text}</pre>;
 }

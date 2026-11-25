@@ -9,6 +9,7 @@ import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { LogoMark } from "@/components/LogoMark";
 import { ThemeCycleButton, ThemeSwitch } from "@/components/ThemeSwitch";
 import { PriceSourceBadge } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { DEV_CONNECTOR_ID, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { getSidebarSnapshot, setSidebar, subscribeSidebar, syncSidebarToRoute } from "@/lib/sidebar";
@@ -32,11 +33,11 @@ export function AppShell({ children, footer, settings }: { children: ReactNode; 
     <div data-app-shell className="flex min-h-dvh">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-foreground"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
         Skip to content
       </a>
-      {drawerOpen && <button type="button" aria-label="Close menu" tabIndex={-1} className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={closeDrawer} />}
+      {drawerOpen && <button type="button" aria-label="Close menu" tabIndex={-1} className="fixed inset-0 z-40 bg-overlay/40 lg:hidden" onClick={closeDrawer} />}
       <Sidebar drawerOpen={drawerOpen} closeDrawer={closeDrawer} settings={settings} />
       <div data-app-content className="flex min-w-0 flex-1 flex-col">
         <MobileBar menuOpen={drawerOpen} openMenu={() => setDrawerOpen(true)} />
@@ -57,9 +58,13 @@ export function AppShell({ children, footer, settings }: { children: ReactNode; 
 /** On every client-side navigation: close the phone drawer and give the sidebar the state of the new page. */
 function RouteSync({ setDrawerOpen }: { setDrawerOpen: (open: boolean) => void }) {
   const pathname = usePathname();
+  const shownPath = useRef<string | null>(null);
   useEffect(() => {
     syncSidebarToRoute(pathname);
-    setDrawerOpen(false);
+    // Close the drawer on navigation only: this boundary can hydrate after the menu button, and closing on its first
+    // run would shut a drawer the visitor has just opened.
+    if (shownPath.current !== null && shownPath.current !== pathname) setDrawerOpen(false);
+    shownPath.current = pathname;
   }, [pathname, setDrawerOpen]);
   return null;
 }
@@ -82,34 +87,36 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
       aria-label="Sidebar"
       data-testid="sidebar"
       data-collapsed={collapsed || undefined}
-      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-surface lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
+      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-3 rail:h-auto rail:flex-col rail:gap-2 rail:py-3">
         <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
           <LogoMark />
           <span className="truncate rail:sr-only">KeyEscrow</span>
         </Link>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setSidebar(collapsed ? "expanded" : "collapsed", window.location.pathname)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
           aria-controls="app-sidebar"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-testid="sidebar-toggle"
-          className="ml-auto hidden h-8 w-8 items-center justify-center rounded-lg text-subtle transition hover:bg-surface-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent lg:inline-flex rail:ml-0"
+          className="ml-auto hidden text-subtle hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-transparent aria-expanded:text-subtle aria-expanded:hover:bg-sidebar-accent aria-expanded:hover:text-sidebar-accent-foreground lg:inline-flex rail:ml-0 dark:hover:bg-sidebar-accent"
         >
           <Icon name="rail" />
-        </button>
-        <button
+        </Button>
+        <Button
           ref={closeRef}
-          type="button"
+          variant="ghost"
+          size="icon"
           onClick={closeDrawer}
           aria-label="Close menu"
-          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-subtle hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent lg:hidden"
+          className="ml-auto text-subtle hover:bg-sidebar-accent lg:hidden dark:hover:bg-sidebar-accent"
         >
           <Icon name="close" />
-        </button>
+        </Button>
       </div>
 
       {/* Ask AI: opens the assistant panel (also Cmd+J / Ctrl+J); on a phone the drawer closes first. */}
@@ -119,7 +126,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
 
       <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((g) => (
-          <div key={g.id} className="mb-3 last:mb-0 rail:mb-2 rail:border-b rail:border-border rail:pb-2 rail:last:border-0">
+          <div key={g.id} className="mb-3 last:mb-0 rail:mb-2 rail:border-b rail:border-sidebar-border rail:pb-2 rail:last:border-0">
             <p id={`nav-${g.id}`} className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase rail:sr-only">
               {g.label}
             </p>
@@ -130,7 +137,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
         ))}
       </nav>
 
-      <div className="flex shrink-0 flex-col gap-2 border-t border-border px-3 py-3">
+      <div className="flex shrink-0 flex-col gap-2 border-t border-sidebar-border px-3 py-3">
         {settings}
         <div className="flex items-center justify-between gap-2 px-1 rail:flex-col rail:px-0">
           <ThemeSwitch className="inline-flex rail:flex-col" />
@@ -177,8 +184,8 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         data-testid={item.testId}
         aria-current={active ? "page" : undefined}
         title={item.title ?? item.label}
-        className={`relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent rail:justify-center rail:px-0 ${
-          active ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground"
+        className={`relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sidebar-ring rail:justify-center rail:px-0 ${
+          active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         }`}
       >
         <Icon name={item.icon} />
@@ -192,17 +199,18 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => void }) {
   return (
     <div className="flex items-center gap-2 border-b border-border bg-surface px-4 py-2 lg:hidden" data-testid="mobile-nav">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon-lg"
         onClick={openMenu}
         aria-label="Open menu"
         aria-controls="app-sidebar"
         aria-expanded={menuOpen}
         data-testid="menu-open"
-        className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent"
+        className="-ml-1"
       >
-        <Icon name="menu" className="h-5 w-5" />
-      </button>
+        <Icon name="menu" className="size-5" />
+      </Button>
       <Link href="/app" className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
         <LogoMark className="h-6 w-6" />
         KeyEscrow

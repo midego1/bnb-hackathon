@@ -1,6 +1,7 @@
 "use client";
 
 import { Notice } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 
 type Props = {
@@ -25,15 +26,17 @@ export function ChainReadNotice({ error, hasData, stale, block, onRetry, retryin
   if (!error && !stale) return null;
   const reason = stale?.error ?? (error instanceof Error ? error.message : undefined);
   const button = (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="xs"
       onClick={onRetry}
       disabled={retrying}
       data-testid="chain-retry"
-      className="ml-auto shrink-0 rounded-md border border-current px-2.5 py-1 text-xs font-medium disabled:opacity-60"
+      className="ml-auto border-current bg-transparent text-current hover:bg-current/10 hover:text-current dark:border-current dark:bg-transparent dark:hover:bg-current/10"
     >
       {retrying ? "Retrying…" : "Retry now"}
-    </button>
+    </Button>
   );
   if (!hasData) {
     return (

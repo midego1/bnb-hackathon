@@ -30,7 +30,7 @@ export default function TenantPage() {
             <p className="font-semibold">
               {i + 1}. {t}
             </p>
-            <p className="mt-1 text-muted">{b}</p>
+            <p className="mt-1 text-muted-foreground">{b}</p>
           </li>
         ))}
       </ol>

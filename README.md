@@ -271,7 +271,7 @@ contracts/                 Foundry project
   src/FleetVault.sol         BKK-FLEET-1 shares: rental income in, operator fee out, pro-rata claims
   src/mocks/MockUSDT.sol     testnet-only 6-decimal stablecoin with a capped faucet
   deployments/97.json        the BSC testnet addresses
-web/                       Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
+web/                       Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + wagmi/viem + RainbowKit
   app/                       / (marketing page) /app (app home) /tenant /landlord /shareholders /backoffice /arbiter /lease/[address]
                              /demo /how-it-works /developers /integrations /settings/secrets (local only)
   app/api/                   settlement (AI), price, risk, cournot, evidence, fleet, integrations,
