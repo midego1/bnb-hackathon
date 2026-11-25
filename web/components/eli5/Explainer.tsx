@@ -81,7 +81,7 @@ function reducer(s: State, a: Action): State {
 }
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
-function useReducedMotion() {
+export function useReducedMotion() {
   return useSyncExternalStore(
     (cb) => {
       const m = window.matchMedia(motionQuery);
