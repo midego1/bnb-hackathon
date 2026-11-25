@@ -77,9 +77,9 @@ export const DEMO_PRICES: PriceResponse = {
 export const FEE_BPS = 1000;
 /**
  * What the demo's AI inspector (the deterministic mock, lib/server/settlement/mock.ts) suggests the landlord keeps for
- * the bundled move-out photos: 174 mUSDT. tests/eli5-script.test.ts recomputes it from the photo files.
+ * the bundled move-out photos: 39 mUSDT. tests/eli5-script.test.ts recomputes it from the photo files.
  */
-export const AI_LANDLORD_CLAIM = BigInt(174_000_000);
+export const AI_LANDLORD_CLAIM = BigInt(39_000_000);
 
 const ctx = newContext("happy", 0, THB_PER_USD);
 ctx.inspection = { landlordClaim: AI_LANDLORD_CLAIM.toString() } as NonNullable<typeof ctx.inspection>;
