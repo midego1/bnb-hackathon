@@ -9,9 +9,15 @@
 - Price data is fetched **only on the server**, cached, and backed by a fallback chain. It never gates a
   contract call.
 
-> **Status:** the design below is fixed. The price route (`web/app/api/price`) and the UI that uses it are
-> being built (M5/M4). The environment variable names are already in `.env.example`. During the hackathon
-> we make no calls to paid APIs. Local runs use a labelled fixture.
+> **Status:**
+>
+> - **On `main`:** `GET /api/price` (Atlas feeds → CoinMarketCap → last good quote → static demo rates), cached
+>   in memory, and a UI that shows every amount THB first, then USD and the exact USDT, with a source badge:
+>   **Atlas feed**, **Live CoinMarketCap** or **Demo rates** (plus *stale* when a live source just failed).
+> - **Roadmap:** typing the rent in THB on the create form, and the THB "fair settlement value" conversion in
+>   the AI report (section 2 below).
+>
+> During the hackathon we make no calls to paid APIs. Local runs and the demo use the labelled demo rates.
 
 ## Where price data is used
 
@@ -21,20 +27,25 @@ Every amount in the app is stored on-chain in token units (MockUSDT, 6 decimals)
 units:
 
 ```
-Rent      750.00 mUSDT   ≈ ฿25,500   ≈ $750.00
-Deposit 1,500.00 mUSDT   ≈ ฿51,000   ≈ $1,500.00
-          rate 1 USDT = 34.00 THB · CoinMarketCap · 2 min ago
+Rent / month   ฿14,559                      [● Live CoinMarketCap]
+               $441.18 · 441.18 USDT
+Deposit        ฿29,118
+               $882.36 · 882.36 USDT
 ```
 
-- **Landlord** creating a lease: they type the rent in THB, the form converts it to token units, and they
-  can see exactly what the tenant will pay.
+Running text (timeline, fee note, proposals) uses the short form `฿14,559 ($441.18)`. Hovering an amount shows
+the exact on-chain USDT and the rate source; hovering the badge shows the source, its update time and any
+warning.
+
+- **Landlord** creating a lease: they type the rent and deposit in USDT and see the THB and USD value live
+  underneath, plus the one-time fee in THB. (Typing the rent in THB directly is on the roadmap.)
 - **Tenant** funding a lease: before signing the funding transaction, they see the deposit plus first
   month in THB.
-- **Arbiter:** compares the claim amounts in THB, the currency in which repair quotes are written.
-- **Every rate shown** carries its **source and age**. A stale or fallback rate is clearly marked as
-  indicative.
+- **Dispute desk:** compares the claim amounts in THB, the currency in which repair quotes are written.
+- **Every rate shown** carries its **source and age** in the badge. Fallback rates read *Demo rates*; a live
+  source that just failed adds *stale*.
 
-### 2. Fair settlement value
+### 2. Fair settlement value (roadmap)
 
 The AI inspection estimates damage in THB, for example "repaint living-room wall ≈ ฿3,000", because that is
 how Bangkok contractors quote. To turn this into an on-chain proposal, the server:
@@ -54,19 +65,19 @@ claim the rate was invented.
 
 | Order | Source | Used for | How |
 | --- | --- | --- | --- |
-| 1 | **Atlas on-chain price feed** | USD price of the stablecoin, and THB where the feed offers it | `viem` `readContract` on the feed at `ATLAS_FEED_ADDRESS`, called from the server route. Verifiable on-chain data within the BNB ecosystem. |
-| 2 | **CoinMarketCap Pro API** | THB and USD quotes for the stablecoin | Server-side request with `CMC_PRO_API_KEY` sent as the `X-CMC_PRO_API_KEY` header. The quotes endpoint with `convert=THB` / `convert=USD`. |
-| 3 | Last good quote | Short outages | In-memory cache, shown as "stale" in the UI. |
-| 4 | Fixture | Local dev and the demo without keys | Static rate, always labelled "indicative". |
+| 1 | **Atlas on-chain price feed** | USD price of USDT and BNB, and THB where a USD/THB feed is set | `viem` `readContract` (AggregatorV3 `latestRoundData()`) on `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD` and optionally `ATLAS_FEED_USD_THB` via `ATLAS_RPC_URL`, from the server route. Verifiable on-chain data within the BNB ecosystem. |
+| 2 | **CoinMarketCap Pro API** | THB and USD quotes for USDT and BNB | Server-side request with `CMC_API_KEY` (alias `CMC_PRO_API_KEY`) sent as the `X-CMC_PRO_API_KEY` header. The quotes endpoint with `convert=USD` and `convert=THB`. |
+| 3 | Last good quote | Short outages | In-memory cache, badge shows *stale*. |
+| 4 | Static demo rates | Local dev and the demo without keys | Fixed rates, always labelled *Demo rates*. |
 
 The route reports the source it used, and the UI shows it.
 
 ## Server-side only
 
-- **Keys live only on the server.** `CMC_PRO_API_KEY` is read inside a Next.js route handler on the
+- **Keys live only on the server.** `CMC_API_KEY` is read inside a Next.js route handler on the
   server. It is never a `NEXT_PUBLIC_` variable and never reaches the browser bundle.
-  `ATLAS_FEED_ADDRESS` is not a secret, but it is read on the server too, so that the fallback logic stays
-  in one place.
+  The `ATLAS_*` feed addresses are not secret, but they are read on the server too, so that the fallback logic
+  stays in one place.
 - **The browser calls only `/api/price`.** It never calls CoinMarketCap directly, so the key cannot leak
   and the CMC rate limits apply to one server, not to every visitor.
 - **The contracts never read a price.** Escrow amounts are fixed in token units when the lease is created.
@@ -75,27 +86,27 @@ The route reports the source it used, and the UI shows it.
 
 ## Caching
 
-- An in-memory cache keyed by pair (`USDT/THB`, `USDT/USD`). Every page load and every lease card reads
-  the same cached value, so upstream traffic depends on the TTL, not on the number of visitors.
-- The TTL is a few minutes and is configurable, so upstream usage stays inside the API plan's credit
-  budget. Fiat rates for a stablecoin move slowly, so a few minutes is accurate enough for display.
-- **Stale-while-revalidate.** An expired value is served at once, marked with its age, while one
-  background refresh runs. Many concurrent requests never trigger many upstream requests.
-- A fixed **`maxAge` for settlement.** When the server prepares a proposal, it refuses quotes older than a
-  short limit, such as 10 minutes, and refreshes first. A display can tolerate a slightly old rate. A
+- One in-memory quote (USDT and BNB in USD and THB). Every page load and every lease card reads the same
+  cached value, and the browser refetches once a minute, so upstream traffic depends on the TTL, not on the
+  number of visitors.
+- The TTL is `PRICE_CACHE_TTL_SECONDS` (default 60 s). One CoinMarketCap refresh costs 2 credits, so the
+  default stays inside a free plan's budget. Fiat rates for a stablecoin move slowly.
+- **In-flight de-duplication.** Concurrent requests after expiry share one upstream fetch.
+- **Stale on error.** If every live source fails, the last good live quote is served with a warning before
+  falling back to demo rates.
+- **Roadmap: a `maxAge` for settlement.** When the server prepares a THB-based proposal (section 2), it will
+  refuse quotes older than a short limit and refresh first. A display can tolerate a slightly old rate; a
   report that moves money cannot.
 
 ## Fallback
 
-The route tries the sources in order (Atlas → CoinMarketCap → last good quote → fixture) and returns the
-first valid one. A quote is valid if it is a positive number, newer than the limit, and within a sanity
-band compared with the last good quote. This guards against a broken feed returning 0 or a value 100 times
-off. If every live source fails:
+The route tries the sources in order (Atlas → CoinMarketCap → last good quote → demo rates) and returns the
+first valid one. An Atlas answer of zero or below is rejected. (A sanity band against the last good quote, to
+catch a feed that is 100 times off, is on the roadmap.) If every live source fails:
 
-- **Display:** shows the last good quote, or the fixture, with an "indicative rate" badge.
-- **Settlement:** the AI proposal is still produced in token units, but the report marks the THB conversion
-  as unavailable, so the parties can see it. No transaction is blocked: the contracts do not depend on the
-  price route.
+- **Display:** shows the last good quote with a *stale* badge, or the demo rates with a *Demo rates* badge.
+- **Settlement:** the AI proposal is produced in token units and does not depend on the price route, so no
+  transaction is blocked. (Once the THB conversion of section 2 lands, the report will mark it as unavailable.)
 
 ## Why it matters for the track
 

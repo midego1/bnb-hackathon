@@ -8,8 +8,8 @@ Documents and photos stay off-chain, on BNB Greenfield, or in a local folder whe
 configured. Only their content hashes go on-chain. A vision LLM compares check-in and check-out photos and
 proposes how to split the deposit. The parties settle that proposal on-chain themselves.
 
-> **How to read the Status lines.** Each section says what is on `main` today and what is still being built.
-> "Being built" means the design below is fixed but the code is not merged yet. Do not treat it as done.
+> **How to read the Status lines.** Each section says what is on `main` today. Anything not on `main` yet is
+> marked **Roadmap**; do not treat it as done.
 
 ## 1. Components
 
@@ -68,11 +68,11 @@ flowchart LR
 
 **Status:**
 
-- **Done:** the three contracts and 80 Foundry tests (100 % line and branch coverage), the local anvil deploy
-  and seed scripts with a scripted chain end-to-end run (M3), the server routes for AI, price and evidence
-  (M5), and the web shell (wallet connect; chains anvil 31337, BSC testnet 97 and opBNB testnet 5611) with
-  role pages as placeholders.
-- **Being built:** wiring the pages to the contracts (M4).
+All on `main`: the three contracts and 80 Foundry tests (100 % line and branch coverage), the local anvil
+deploy and seed scripts with a scripted chain end-to-end run, the server routes for AI, price and evidence, the
+BSC testnet deploy path (prepared, see [DEPLOY.md](DEPLOY.md)), and the web app wired to the contracts:
+landlord, tenant, dispute desk and lease pages on anvil (31337) or BSC testnet (97), with a Playwright
+end-to-end test of the full lease flow.
 
 ## 2. Roles and trust model
 
@@ -226,11 +226,11 @@ submit that proposal with their own wallet, and the other party has to accept it
 
 ## 6. Off-chain services
 
-| Service | Route (planned) | Inputs → outputs | Secrets (server env only) | Fallback |
+| Service | Route | Inputs → outputs | Secrets (server env only) | Fallback |
 | --- | --- | --- | --- | --- |
-| Evidence | `web/app/api/evidence` | Files → `contentHash` (bytes32) and a storage reference | `GREENFIELD_*` | Local `web/.evidence/` directory |
-| AI inspection | `web/app/api/...` (settlement) | Check-in and check-out photo sets plus lease terms → `{tenantRefund, landlordClaim, reasons[]}` and `reportHash` | `VISION_LLM_API_KEY`, `VISION_LLM_MODEL` | Deterministic mock proposal, clearly labelled as a mock |
-| Price | `web/app/api/price` | → THB and USD per stablecoin unit, with source and timestamp | `CMC_PRO_API_KEY`, `ATLAS_FEED_ADDRESS` | Cached last good quote, then a fixture labelled "indicative" |
+| Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | Files → `contentHash` (bytes32) and a storage reference | `GREENFIELD_*` | Local `web/.evidence/` directory |
+| AI inspection | `POST /api/settlement` | Check-in and check-out photo sets plus the deposit → `{tenantRefund, landlordClaim, reasons[]}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL` | Deterministic demo inspector, labelled as such in the UI |
+| Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and timestamp | `CMC_API_KEY`; Atlas: `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Last good live quote (marked stale), then static rates labelled "Demo rates" |
 
 Design rules:
 
@@ -245,7 +245,8 @@ Design rules:
 - **Secrets stay on the server.** Every key is read from the environment by server routes.
   `.env.example` lists the variable names only.
 
-**Status:** being built (M5). The environment variable names are already defined in `.env.example`.
+**Status:** on `main`. The request and response shapes are in [API.md](API.md); the variable names are in
+`.env.example`.
 
 ## 7. Scalability
 
@@ -280,5 +281,6 @@ Design rules:
 - `pnpm e2e:chain` starts a throwaway anvil (port 28545), deploys, seeds, and drives the happy path, a
   dispute, the landlord timeout and the arbiter fallback with real transactions and anvil time travel,
   asserting every balance (exits non-zero on failure).
-- Playwright is installed in `web/` for browser smoke tests against a throwaway local anvil.
-  **Status:** the smoke tests are being written alongside the M4 pages.
+- `pnpm -C web test` runs the vitest suite for the server routes (offline, no keys).
+- `pnpm -C web test:e2e` (Playwright) starts its own anvil (port 28546), deploys and seeds it, builds the app
+  and drives landlord create → tenant fund → rent payout → AI proposal → landlord accept in a real browser.

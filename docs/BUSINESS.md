@@ -75,9 +75,9 @@ For the landlord, KeyEscrow costs about **one-tenth of a typical agent commissio
 part of an agent's job that matters most at move-out: deciding fairly who gets the deposit. Over a 12-month
 lease, the fee is under 1 % of the total rent.
 
-> **Status:** the contracts on `main` still use an earlier fee model: a capped share (at most 1 %) of
-> *every* rent release. The one-time "10 % of one month" model is being built in the contracts and is the
-> model we pitch. On both versions, the deposit never pays a fee.
+> **Status:** on `main`. The factory charges the fee once per lease (`feeBps` = 1,000, i.e. 10 % of one
+> month), from the landlord's first rent payout, and the app shows it on the create form and the lease page.
+> The deposit never pays a fee.
 
 ### Dispute-desk revenue
 
@@ -94,8 +94,9 @@ volume:
   default. This keeps the desk fast, and it builds trust, because the platform cannot hold a deposit
   hostage.
 
-> **Status:** the dispute fee and the arbiter tooling are on the business roadmap. They are not in the
-> contracts or the app yet.
+> **Status:** the dispute desk itself is on `main`: a default arbiter set in the factory, a queue of disputed
+> leases with the photos, proposals and a ruling form, and the 14-day deadline. The dispute fee and the paid
+> arbitration tooling are roadmap; they are not in the contracts or the app yet.
 
 ### Other revenue (later)
 

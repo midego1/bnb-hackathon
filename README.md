@@ -4,11 +4,23 @@
 The deposit and rent sit in a per-lease smart contract on BNB Chain, not with the landlord.
 At move-out, an AI inspection proposes the split, the parties agree on-chain, and the money settles instantly.
 
-Built for BNB Bangkok 2026 (Developer Track + CoinMarketCap x Atlas).
+Built for BNB Bangkok 2026 (Developer Track + CoinMarketCap x Atlas). Open source (MIT), testnet only, no token.
+
+![Lease page: rent schedule, check-in and check-out photos, on-chain timeline, amounts in THB first](docs/screenshots/lease-detail.png)
 
 ## How it works
 
-A landlord creates a lease. The tenant funds the deposit plus the first month's rent in a stablecoin into a
+1. **Landlord offers the lease:** rent, deposit, term. The lease PDF and check-in photos stay off-chain; only
+   their SHA-256 fingerprints go on-chain.
+2. **Tenant funds the escrow:** deposit plus first month's rent go into that lease's own contract. Rent is paid
+   out to the landlord month by month.
+3. **Move out, settle in minutes:** an AI inspection compares the photos and proposes a split. One side
+   proposes, the other accepts, and the money moves at once. If they disagree, the dispute desk rules.
+
+**Fee:** 10 % of one month's rent, once per lease, paid by the landlord from the first payout. A Bangkok agent
+usually charges a full month.
+
+In more detail: a landlord creates a lease. The tenant funds the deposit plus the first month's rent in a stablecoin into a
 per-lease `RentalEscrow` contract. Rent is released monthly. At move-out, an AI inspection compares check-in
 and check-out photos and proposes a deposit split. One party submits it on-chain, the other accepts, and the
 deposit settles instantly. If they disagree, the arbiter rules. If the landlord does not respond in time,
@@ -29,20 +41,29 @@ the deposit goes back to the tenant. **Neither party can move funds alone.**
   not rule within 14 days, the full deposit goes back to the tenant.
 - **Evidence off-chain, hashes on-chain.** The lease PDF and photos go to BNB Greenfield, with a local
   fallback. Only content hashes are stored on-chain.
-- **Prices in baht.** Every amount is shown in THB and USD, using the Atlas on-chain feed or the
-  CoinMarketCap Pro API. Both are called server-side only and cached.
+- **Prices in baht.** Every amount is shown THB first, then USD and the exact USDT, using the Atlas on-chain
+  feed or the CoinMarketCap Pro API, both called server-side only and cached. A badge always says where the
+  rate comes from: *Atlas feed*, *Live CoinMarketCap* or *Demo rates*.
 - **Fair fee.** The protocol fee is 10 % of one month's rent, charged once per lease and taken from the
   landlord's first rent release, never from the deposit. Bangkok agents typically charge a full month.
 - **No token.** KeyEscrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
 
-> **Status:**
->
-> - **Done:** the contracts and their tests (one-time fee, dispute desk as default arbiter, 7-day landlord
->   timeout and 14-day arbiter deadline), the local deploy / seed scripts and chain end-to-end checks, the
->   AI, price and evidence routes, and the web shell (wallet connect, chains, role pages).
-> - **Being built:** the UI flows.
->
-> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the details.
+> **Status:** everything above is on `main`: contracts with 80 Foundry tests, the AI / price / evidence
+> routes, the full UI for landlord, tenant and dispute desk, local deploy + seed scripts, a scripted chain
+> end-to-end run, a Playwright browser test of the whole lease flow, and a prepared (not yet broadcast) BSC
+> testnet deploy path. The roadmap is in [docs/BUSINESS.md](docs/BUSINESS.md).
+
+## Screenshots
+
+| Landlord: new lease | Tenant: fund the escrow | AI move-out proposal |
+| --- | --- | --- |
+| ![New lease form with THB hints and the fee note](docs/screenshots/landlord-create.png) | ![Funding panel with deposit, first month and total in THB](docs/screenshots/tenant-fund.png) | ![AI inspection proposal with reasons](docs/screenshots/ai-proposal.png) |
+
+| Dispute desk | Ruling | Mobile (390 px) |
+| --- | --- | --- |
+| ![Dispute desk queue](docs/screenshots/dispute-desk.png) | ![Dispute desk ruling form](docs/screenshots/arbiter-resolve.png) | ![Settled lease on a phone](docs/screenshots/lease-mobile.png) |
+
+More in [docs/screenshots](docs/screenshots/README.md).
 
 ## Quickstart
 
@@ -52,20 +73,30 @@ Requirements: [Foundry](https://book.getfoundry.sh/getting-started/installation)
 git clone --recursive https://github.com/midego1/bnb-hackathon.git && cd bnb-hackathon && pnpm run setup
 ```
 
-Then:
+Then run the whole thing locally, with no wallet or keys:
 
 ```bash
-pnpm test          # forge test
-pnpm -C web test   # API unit tests (vitest, offline)
-pnpm dev           # web on http://localhost:3000
-pnpm build         # forge build + next build
+pnpm chain:anvil                                     # terminal 1: anvil on 127.0.0.1:8545
+pnpm chain:deploy && pnpm chain:seed                 # terminal 2: contracts + demo accounts and leases
+echo "NEXT_PUBLIC_DEV_ACCOUNTS=1" > web/.env.local   # "Demo accounts" bar: act as landlord / tenant / dispute desk
+pnpm dev                                             # http://localhost:3000
 ```
 
-Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
-falls back to a local mock when its key is missing. See [docs/API.md](docs/API.md) for the server API.
+[docs/DEMO.md](docs/DEMO.md) has the seeded accounts and leases and a 3-minute demo script.
 
-For a full local walkthrough with anvil and seeded landlord, tenant and dispute-desk accounts, see
-[docs/DEMO.md](docs/DEMO.md).
+Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
+falls back to a labelled local mock when its key is missing. See [docs/API.md](docs/API.md) for the server API
+and [docs/DEPLOY.md](docs/DEPLOY.md) for the BSC testnet deploy.
+
+## Tests
+
+```bash
+cd contracts && forge build && forge test   # 80 contract tests (unit + fuzz)
+pnpm -C web lint && pnpm -C web test        # eslint + vitest (server routes, offline)
+pnpm -C web build                           # production build
+pnpm -C web test:e2e                        # Playwright: create -> fund -> pay out -> AI proposal -> accept, own anvil :28546
+pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
+```
 
 ## Networks
 
@@ -88,8 +119,10 @@ contracts/           Foundry project
 web/                 Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
   app/                     pages: / /landlord /tenant /arbiter /lease/[address]
   app/api/                 server routes: AI settlement, price (CMC/Atlas), evidence upload (Greenfield)
-  lib/                     chain + wallet config
-docs/                Architecture, business model, CMC x Atlas write-up, demo script
+  components/              UI: role pages, lease detail panels (rent, move-out, evidence, ruling, timeline)
+  lib/                     chain + wallet config, generated contract bindings, server services
+  e2e/                     Playwright browser test
+docs/                Architecture, business model, CMC x Atlas write-up, API, deploy, demo script, screenshots
 ```
 
 ## Docs
@@ -100,7 +133,10 @@ docs/                Architecture, business model, CMC x Atlas write-up, demo sc
   and risks.
 - [CoinMarketCap x Atlas write-up](docs/WRITEUP.md): how price data is used, server-side caching and
   fallbacks.
-- [Demo script](docs/DEMO.md): the 3-minute local demo.
+- [API](docs/API.md): the server routes (`/api/settlement`, `/api/price`, `/api/evidence`) and their fallbacks.
+- [Deploy](docs/DEPLOY.md): the BSC testnet path: preflight, guarded broadcast, verification, rehearsal.
+- [Demo script](docs/DEMO.md): the 3-minute local demo with the seeded accounts and leases.
+- [Screenshots](docs/screenshots/README.md)
 - [Contracts README](contracts/README.md)
 
 ## Run locally

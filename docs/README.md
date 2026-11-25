@@ -6,6 +6,8 @@
 | [BUSINESS.md](BUSINESS.md) | The problem, users, the fee model with a THB example, dispute-desk revenue, the roadmap and risks. |
 | [WRITEUP.md](WRITEUP.md) | The CoinMarketCap x Atlas track: how KeyEscrow uses price data (server-side, cached, with fallbacks). |
 | [API.md](API.md) | The server routes (`/api/settlement`, `/api/price`, `/api/evidence`) and their mock fallbacks. |
-| [DEMO.md](DEMO.md) | A 3-minute demo script on a local anvil chain. |
+| [DEPLOY.md](DEPLOY.md) | The BSC testnet (97) deploy path: preflight, guarded broadcast, verification, local rehearsal. |
+| [DEMO.md](DEMO.md) | A 3-minute demo script on a local anvil chain, with the seeded accounts and leases. |
+| [screenshots/](screenshots/) | Screenshots of every page, taken from a seeded local anvil. |
 
-Each document has **Status** lines that separate what is on `main` from what is still being built.
+Each document has **Status** lines that separate what is on `main` from what is on the roadmap.
