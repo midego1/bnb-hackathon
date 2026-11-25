@@ -23,8 +23,17 @@ async function actAs(page: Page, role: "landlord" | "tenant" | "arbiter") {
   await expect(page.getByTestId(`dev-role-${role}`)).toHaveAttribute("aria-pressed", "true");
 }
 
+/** Ctrl/Cmd+J, again until it lands: the shortcut listener only exists once the page has hydrated. */
+async function pressOpen(page: Page) {
+  const opened = page.locator("html[data-assistant-open]");
+  await expect(async () => {
+    if ((await opened.count()) === 0) await page.keyboard.press("ControlOrMeta+j");
+    await expect(opened).toHaveCount(1, { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+}
+
 async function openPanel(page: Page) {
-  await page.keyboard.press("ControlOrMeta+j");
+  await pressOpen(page);
   await expect(page.getByTestId("assistant-panel")).toBeVisible();
   await expect(page.getByTestId("assistant-mock-badge")).toBeVisible();
 }
