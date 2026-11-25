@@ -37,7 +37,7 @@ Versions are pinned: `@opennextjs/cloudflare` 1.20.16 (supports Next `>=16.4.5`;
 
 Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC testnet:
 
-- Addresses come from `contracts/deployments/97.json`; `NEXT_PUBLIC_CHAIN_ID=97`. Every `NEXT_PUBLIC_*` variable is set
+- Addresses (factory, token, dispute desk, Fleet Vault) are read from `contracts/deployments/97.json` at build time, never hardcoded; `NEXT_PUBLIC_CHAIN_ID=97`. Every `NEXT_PUBLIC_*` variable is set
   explicitly, so a developer's `web/.env.local` cannot leak anvil addresses or dev accounts into the bundle.
 - **`NEXT_PUBLIC_DEV_ACCOUNTS=1` fails the build**, checked three times: by `scripts/cf.mjs` before building, by
   `next.config.ts` (with `KEYESCROW_BUILD_TARGET=cloudflare`), and after the build by scanning the client bundle for the
@@ -50,6 +50,11 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
 - Two Next settings differ from the Node build: `cacheComponents` / `partialPrefetching` are off (with them every page
   render hangs under workerd; nothing uses `"use cache"`), and the BNB Greenfield SDK is replaced by a stub (it adds
   ~5 MiB and evidence goes to R2 on Workers).
+
+`cf:build` ends by copying the prerendered pages into the static assets (`opennextjs-cloudflare populateCache local`,
+which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the
+`KeyEscrowState` class is not exported: it inspects `.open-next/worker.js`, not the real entry
+`cloudflare/worker.ts`, and is harmless (the preview and deploy load the class).
 
 Wallet RPC: the browser talks to BSC testnet through `NEXT_PUBLIC_BSC_TESTNET_RPC_URL`, default
 `https://bsc-testnet-rpc.publicnode.com` (answers `eth_getLogs` for the lease lists and timelines).
@@ -140,12 +145,12 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 12.6 MiB | **2.50 MiB** | fits Free (3 MiB) |
+| `keyescrow-web` | 12.7 MiB | **2.53 MiB** | fits Free (3 MiB) |
 | `keyescrow-agent` | 3.6 MiB | **0.62 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.5 MiB. The sponsor and role-view
-merges added 0.09 MiB; if a later merge pushes it over 3 MiB the Worker needs Workers Paid ($5/month).
+time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.47 MiB. The sponsor, role-view, guided-demo
+and how-it-works merges added 0.12 MiB; if a later merge pushes it over 3 MiB the Worker needs Workers Paid ($5/month).
 
 ## One-time setup (Michiel)
 
@@ -185,7 +190,7 @@ After the agent is live, its ERC-8004 registration still lists the GitHub URL as
 ## Tested locally (this branch)
 
 - `pnpm cf:preview`: home, landlord, tenant, dispute desk, `/demo` (live testnet gate) and a real chain 97 lease
-  (`/lease/0x115bb93282F8928D64d7d29e3278D0B19dCAd57a`, settled, full timeline from PublicNode) render with no page
+  (`/lease/0x2cB9a2610e279510Dc3d14008e5487A7c312519b` on the redeployed factory, timeline from PublicNode) render with no page
   errors. `/api/price` (mock), `/api/settlement` (mock), `/api/evidence` (503 disabled / 404), `/api/risk`,
   `/api/cournot`, `/api/integrations` and `/api/fleet` (a listing written and read back) answer as above. The back
   office loads its events straight from the browser and PublicNode answers part of that burst (44 `eth_getLogs`)
