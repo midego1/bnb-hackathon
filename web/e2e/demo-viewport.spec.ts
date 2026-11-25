@@ -29,7 +29,7 @@ async function watchOverflow(page: Page) {
       if (y > w.__overflow.y || x > w.__overflow.x) {
         const runner = document.querySelector('[data-testid="demo-runner"]');
         const title = document.querySelector('[data-testid="demo-narration"] h2')?.textContent ?? "";
-        w.__overflow = { y: Math.max(y, w.__overflow.y), x: Math.max(x, w.__overflow.x), at: `${runner?.getAttribute("data-phase")} ${title}` };
+        w.__overflow = { y: Math.max(y, w.__overflow.y), x: Math.max(x, w.__overflow.x), at: `${runner?.getAttribute("data-phase")} ${document.querySelector('[data-testid="demo-narration"]')?.getAttribute("data-beat") ?? ""} ${title}` };
       }
     };
     new MutationObserver(check).observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
@@ -124,6 +124,47 @@ for (const vp of VIEWPORTS) {
     if (main) await page.screenshot({ path: path.join(SHOTS, `${name}-8-timeout-summary.png`) });
 
     // Never once, during any of the three runs.
+    const worst = await worstOverflow(page);
+    expect(worst, `worst page overflow (at: ${worst.at})`).toMatchObject({ y: 0, x: 0 });
+  });
+}
+
+for (const vp of VIEWPORTS) {
+  const name = `${vp.width}x${vp.height}`;
+  test(`one screen at ${name} in Guided speed: intro and every beat of all four stories`, async ({ page }) => {
+    test.setTimeout(300_000);
+    await page.setViewportSize(vp);
+    await page.goto("/demo?timescale=0.03");
+    await expect(page.getByTestId("demo-speed-guided")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("demo-play")).toBeEnabled();
+    await watchOverflow(page);
+    // Step by step through the intro and the first steps, checking each beat sits fully on screen.
+    await page.getByTestId("demo-mode-step").click();
+    await page.getByTestId("demo-play").click();
+    const narration = page.getByTestId("demo-narration");
+    const onScreen = async (beat: string) => {
+      await expect(narration).toHaveAttribute("data-beat", beat, { timeout: 60_000 });
+      await expect(narration).toBeInViewport({ ratio: 1 });
+      await expect(page.getByTestId("demo-beat-next")).toBeInViewport({ ratio: 1 });
+      await expectOneScreen(page, `on the ${beat} beat`);
+    };
+    await onScreen("intro");
+    for (let i = 0; i < 4; i++) {
+      await page.getByTestId("demo-beat-next").click();
+      await onScreen("now");
+      await page.getByTestId("demo-beat-next").click();
+      await onScreen("changed");
+    }
+    // Then autoplay, with the overflow monitor watching every beat (including "On-chain now") of all three stories.
+    await page.getByTestId("demo-mode-auto").click();
+    await page.getByTestId("demo-beat-next").click();
+    await expectSummary(page, "happy");
+    await page.getByTestId("demo-try-dispute").click();
+    await expectSummary(page, "dispute");
+    await page.getByTestId("demo-try-timeout").click();
+    await expectSummary(page, "timeout");
+    await page.getByTestId("demo-try-fleet").click();
+    await expectSummary(page, "fleet");
     const worst = await worstOverflow(page);
     expect(worst, `worst page overflow (at: ${worst.at})`).toMatchObject({ y: 0, x: 0 });
   });

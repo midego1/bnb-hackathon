@@ -10,6 +10,8 @@ import { Amount, PriceSourceBadge, StatusBadge, useMoney } from "@/components/ui
 import { Spinner, useToasts } from "@/components/Toasts";
 import { escrowFactoryAbi, getDeployment, LeaseStatus, mockUsdtAbi } from "@/lib/contracts";
 import { fastForward } from "@/lib/demo/anvil";
+import { explainFor, type Cast } from "@/lib/demo/explain";
+import { GUIDED, parseTimeScale, readingMs, type Speed } from "@/lib/demo/pacing";
 import { ledger, newContext, PATHS, stepsFor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
 import { bscscanAddress, bscscanTx, testnetPaths, TestnetSession, type TestnetInfo, type WaitInfo } from "@/lib/demo/testnet";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
@@ -20,10 +22,11 @@ import { useTx } from "@/lib/hooks/useTx";
 import { runInspection } from "@/lib/settlement";
 import { usePrices } from "@/lib/usePrices";
 import { ActorBoard, FlowStrip, type Wallets } from "./ActorBoard";
-import { actorLabel, controls, errorCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy, testnetCopy } from "./copy";
+import { actorCards, actorLabel, controls, errorCopy, guidedCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy, testnetCopy } from "./copy";
+import { GuidedIntro, GuidedStep, type BeatNav } from "./GuidedBeat";
 import { StepTimeline, type StepStatus } from "./StepTimeline";
+import { useDemoKeys, useGuided } from "./useGuided";
 
-type Speed = "normal" | "fast";
 type Phase = "idle" | "running" | "paused" | "waiting" | "error" | "done";
 
 /** Normal speed: how long a caption stays up before its transactions start, and the pause between steps. */
@@ -54,6 +57,9 @@ async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
   }
 }
 
+/** The two sides as they are named on the actor cards, for the Guided narration. */
+const CAST: Cast = { landlord: actorCards.landlord.name.toLowerCase(), tenant: actorCards.tenant.name.toLowerCase() };
+
 /**
  * One-click guided demo: plays the whole KeyEscrow story against the real contracts on the local anvil chain,
  * switching the anvil demo accounts as it goes.
@@ -61,6 +67,9 @@ async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
  * On desktop it is a one-screen stage (the page never scrolls; app/globals.css pins it to the viewport): controls
  * on top, the actors with their live balances on the left, the current step and the real rental page in the middle,
  * the timeline of every step on the right, and the end summary over the middle. Below `lg` it stacks and scrolls.
+ *
+ * Pacing is a layer around the step executor (useGuided, lib/demo/pacing.ts): Guided speed (the default) shows an
+ * intro card and three beats per step, Normal one caption, Fast none. Steps themselves run the same at every speed.
  */
 export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   // Live BSC testnet mode: the server signs every step with its demo wallets on chain 97, whatever the visitor's
@@ -85,7 +94,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   }, [setCompact]);
 
   const [path, setPath] = useState<DemoPath>("happy");
-  const [speed, setSpeed] = useState<Speed>("normal");
+  const [speed, setSpeed] = useState<Speed>("guided");
   const [stepMode, setStepMode] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [pauseAsked, setPauseAsked] = useState(false);
@@ -112,6 +121,21 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   const pausedRef = useRef(false);
   const speedRef = useRef<Speed>(speed);
   const stepModeRef = useRef(stepMode);
+  const scaleRef = useRef(1);
+  const introDoneRef = useRef(false);
+  const baseRef = useRef<Wallets | null>(null);
+  const moneyRef = useRef(money);
+  useEffect(() => {
+    moneyRef.current = money;
+  }, [money]);
+  const guided = useGuided({
+    speed: speedRef,
+    stepMode: stepModeRef,
+    paused: pausedRef,
+    token: tokenRef,
+    scale: scaleRef,
+    onFreeze: (f) => setPhase((ph) => (ph === "running" || ph === "paused" ? (f ? "paused" : "running") : ph)),
+  });
   const nextRef = useRef<(() => void) | null>(null);
   const walletsRef = useRef<Wallets | null>(null);
   const treasuryRef = useRef<Address | null>(null);
@@ -293,7 +317,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   async function nap(token: number, ms: number) {
     const end = Date.now() + ms;
     while (Date.now() < end) {
-      if (tokenRef.current !== token || speedRef.current === "fast" || stepModeRef.current || pausedRef.current) return;
+      if (tokenRef.current !== token || speedRef.current !== "normal" || stepModeRef.current || pausedRef.current) return;
       await sleep(100);
     }
   }
@@ -317,9 +341,20 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
     }
   }
 
+  /** Guided narration of step i, from the live context (lib/demo/explain.ts). */
+  const nowText = (i: number) => explainFor(stepsRef.current[i].id).now(ctxRef.current!, moneyRef.current, CAST);
+  const changedText = (i: number) => explainFor(stepsRef.current[i].id).changed(ctxRef.current!, moneyRef.current, CAST);
+
   async function loop(from: number, token: number) {
     const all = stepsRef.current;
-    const deps = api();
+    const deps = guided.wrap(api()); // the beat layer sees every transaction; the steps run unchanged
+    const isGuided = () => speedRef.current === "guided";
+    if (!introDoneRef.current && isGuided()) {
+      setPhase("running");
+      guided.show("intro", -1, null, walletsRef.current);
+      if (!(await guided.wait(readingMs(`${guidedCopy.intro.body} ${PATHS[ctxRef.current!.path].blurb} ${guidedCopy.intro.beats}`, { minMs: GUIDED.introMinMs })))) return;
+    }
+    introDoneRef.current = true;
     for (let i = from; i < all.length; i++) {
       curRef.current = i;
       setCurrent(i);
@@ -327,8 +362,13 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       setError(null);
       setPhase("running");
       setBase(walletsRef.current); // "money moved" counts from here
-      if (speedRef.current === "normal") await nap(token, READ_MS);
+      baseRef.current = walletsRef.current;
+      guided.show("now", i, baseRef.current, walletsRef.current);
+      if (isGuided()) {
+        if (!(await guided.wait(readingMs(nowText(i), { minMs: GUIDED.nowMinMs })))) return;
+      } else if (speedRef.current === "normal") await nap(token, READ_MS);
       if (tokenRef.current !== token) return;
+      guided.show("run", i, baseRef.current, walletsRef.current);
       try {
         await all[i].run(deps, ctxRef.current!);
       } catch (err) {
@@ -344,7 +384,13 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       await syncWallets();
       mark(i, "done");
       publish();
-      if (i < all.length - 1 && !(await gate(token))) return;
+      if (isGuided()) {
+        // Beat 3: hold on the confirmed hashes, then "What just changed" (in step-by-step mode it waits for Next).
+        if (!(await guided.wait(GUIDED.afterRunMs, "timed"))) return;
+        guided.show("changed", i, baseRef.current, walletsRef.current);
+        if (!(await guided.wait(readingMs(changedText(i), { minMs: GUIDED.changedMinMs })))) return;
+        if (!(await guided.hold())) return;
+      } else if (i < all.length - 1 && !(await gate(token))) return;
     }
     setPhase("done");
     void sessionRef.current?.end("done"); // free the live testnet run for the next visitor
@@ -363,6 +409,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
     setPauseAsked(false);
     const list = stepsFor(p);
     stepsRef.current = list;
+    introDoneRef.current = false;
+    guided.bind(token, true);
     ctxRef.current = newContext(p, runsRef.current++, prices?.rates.USDT.THB);
     if (walletsRef.current) walletsRef.current = { ...walletsRef.current, escrow: undefined }; // a fresh lease
     setWallets(walletsRef.current);
@@ -379,11 +427,13 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
 
   function retry() {
     const token = ++tokenRef.current;
+    guided.bind(token, false);
     void loop(Math.max(0, curRef.current), token);
   }
 
   function togglePause() {
     pausedRef.current = !pausedRef.current;
+    if (!pausedRef.current) guided.clearReview();
     setPauseAsked(pausedRef.current);
     if (!pausedRef.current && phase === "paused") setPhase("running");
   }
@@ -399,14 +449,16 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
     if (!on) nextRef.current?.(); // continue automatically if it was waiting for a click
   }
 
-  // /demo?autoplay=1[&path=dispute|timeout][&speed=fast][&step=1]: the landing page's button starts right away.
+  // /demo?autoplay=1[&path=dispute|timeout][&speed=guided|normal|fast][&step=1][&timescale=0.05 (tests)]: the landing page's button starts right away.
   const autoplayed = useRef(false);
   useEffect(() => {
     if (autoplayed.current || !ready) return;
     const q = new URLSearchParams(window.location.search);
     const p = q.get("path");
     const initial: DemoPath = (p === "dispute" || p === "timeout" || p === "fleet") && (!testnet || testnetPaths.includes(p)) ? p : "happy";
-    if (q.get("speed") === "fast") speedRef.current = "fast";
+    const sp = q.get("speed");
+    if (sp === "fast" || sp === "normal" || sp === "guided") speedRef.current = sp;
+    scaleRef.current = parseTimeScale(window.location.search);
     if (q.get("step") === "1") stepModeRef.current = true;
     autoplayed.current = true;
     // Deferred so the state updates happen outside the effect body.
@@ -434,12 +486,22 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         ? controls.pausing
         : undefined;
 
+  // Guided: the caption on screen (a reviewed one while going Back), its Back / Next, and the presenter keys.
+  const isGuided = speed === "guided";
+  const onStage = running || phase === "error";
+  const canReview = isGuided && (stepMode || phase === "paused");
+  const next = () => (guided.review === null && nextRef.current ? nextRef.current() : guided.next());
+  const nav: BeatNav = { canBack: canReview && !guided.atStart, onBack: guided.back, onNext: next, reviewing: !!guided.shown };
+  const caption = guided.shown ?? (guided.beat && onStage ? { beat: guided.beat, step: current, base, wallets } : undefined);
+  const captionStep = caption && caption.step >= 0 ? steps[caption.step] : undefined;
+  useDemoKeys({ space: running ? togglePause : undefined, next: running ? next : undefined, back: canReview ? guided.back : undefined });
+
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
       {/* Controls: one row on desktop. */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <h1 className="text-xl font-semibold tracking-tight">{pageTitle}</h1>
+          <h1 className="text-xl font-semibold tracking-tight max-[1399px]:sr-only">{pageTitle}</h1>
           {testnet && <LiveBadge />}
           <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline min-[1400px]:inline" data-testid="demo-eli5">Explain it simply</Link>
           <Segmented
@@ -459,8 +521,9 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             label={controls.speed}
             value={speed}
             options={[
-              { value: "normal", label: controls.normal, testId: "demo-speed-normal" },
-              { value: "fast", label: controls.fast, testId: "demo-speed-fast" },
+              { value: "guided", label: guidedCopy.speed, testId: "demo-speed-guided", title: guidedCopy.speedTitle },
+              { value: "normal", label: controls.normal, testId: "demo-speed-normal", title: guidedCopy.normalTitle },
+              { value: "fast", label: controls.fast, testId: "demo-speed-fast", title: guidedCopy.fastTitle },
             ]}
             onChange={chooseSpeed}
           />
@@ -474,7 +537,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             onChange={(v) => chooseStepMode(v === "step")}
           />
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-            {note && (
+            {note && !(isGuided && caption) && (
               <span className="text-sm font-medium text-muted" data-testid="demo-phase-note">
                 {note}
               </span>
@@ -490,7 +553,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
                 {controls.next}
               </BigButton>
             )}
-            {running && !stepMode && (
+            {running && phase !== "waiting" && (
               <button type="button" onClick={togglePause} data-testid="demo-pause" className={secondaryBtn}>
                 {pauseAsked ? controls.resume : controls.pause}
               </button>
@@ -517,13 +580,34 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       {/* The stage: actors | current step + live lease page | timeline. */}
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
         <div className="order-2 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
-          <ActorBoard wallets={wallets} base={running || phase === "error" ? base : null} actor={running || phase === "error" ? step?.actor : undefined} />
+          <ActorBoard
+            wallets={wallets}
+            base={onStage ? base : null}
+            actor={onStage ? step?.actor : undefined}
+            receiving={onStage && step ? explainFor(step.id).to : undefined}
+          />
         </div>
 
         <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0">
           {phase === "idle" && <Intro path={path} testnet={!!testnet} />}
 
-          {step && phase !== "done" && (
+          {isGuided && caption?.beat === "intro" && <GuidedIntro path={path} pacer={guided.pacer} nav={nav} />}
+          {isGuided && caption && captionStep && caption.beat !== "intro" && phase !== "done" && view && (
+            <GuidedStep
+              step={captionStep}
+              index={caption.step}
+              total={steps.length}
+              beat={caption.beat}
+              actorTone={actorTone[captionStep.actor]}
+              now={explainFor(captionStep.id).now(view, money, CAST)}
+              changed={explainFor(captionStep.id).changed(view, money, CAST)}
+              activities={guided.shown ? [] : guided.activities}
+              flow={<FlowStrip base={caption.base} wallets={caption.wallets} />}
+              pacer={guided.pacer}
+              nav={nav}
+            />
+          )}
+          {!isGuided && step && phase !== "done" && (
             <Narration step={step} index={current} total={steps.length} status={statuses[current]} caption={view ? step.caption(view, money) : ""}>
               {wait ? (
                 // Live testnet: another visitor's run holds the chain (or one just ended); this one starts by itself.
