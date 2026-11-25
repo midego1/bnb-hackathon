@@ -74,7 +74,8 @@ flowchart LR
 
 **Status:**
 
-All on `main`: the three contracts and 80 Foundry tests (100 % line and branch coverage), the local anvil
+All on `main`: the three contracts and their Foundry tests (unit, fuzz and invariant; see
+[SECURITY.md](SECURITY.md) for the pre-audit review), the local anvil
 deploy and seed scripts with a scripted chain end-to-end run, the server routes for AI, price and evidence, the
 BSC testnet deploy path (prepared, see [DEPLOY.md](DEPLOY.md)), and the web app wired to the contracts:
 owner, renter, dispute desk and rental pages on anvil (31337) or BSC testnet (97), with a Playwright
@@ -123,7 +124,10 @@ Notes:
   their own proposal.
 - **Owner-silence timeout:** if the renter made the latest proposal and the owner does not accept,
   counter-propose or dispute within `responseWindow` (default **7 days**), anyone can call
-  `claimTimeout()`. The **full deposit** then goes to the renter.
+  `claimTimeout()`. The **full deposit** then goes to the renter. The deadline is hard: from that moment
+  `propose`, `accept` and `dispute` revert with `ResponseWindowClosed`, so a late owner cannot race the
+  timeout (same rule as the arbiter deadline; [SECURITY.md](SECURITY.md) KE-02, not on the deployed testnet
+  contracts yet).
 - **Arbiter deadline:** if the arbiter has not ruled within `arbiterWindow` (default **14 days**) of the
   dispute, `resolve()` stops working. Anyone can then call `claimArbiterTimeout()`, which returns the
   **full deposit** to the renter. The outcome cannot be raced, because the arbiter cannot rule after the
@@ -185,11 +189,14 @@ Safety properties enforced in code:
 **Fleet Vault payee.** `createLeaseWithPayee(params, payee)` is `createLease` plus one address: every payout
 that would go to the owner (released rent, rent due at settlement, the deposit claim) goes to `payee()`
 instead, typically the `FleetVault`. The owner keeps every role (propose, accept, dispute, cancel); the
-factory emits `PayeeSet(escrow, payee)`. Plain `createLease` sets `payee = owner`, so existing flows are
+factory emits `PayeeSet(escrow, payee)`; the payee may not be the renter or the arbiter. Plain `createLease` sets `payee = owner`, so existing flows are
 unchanged. The vault needs no callback: anything above `totalPrincipal + reservedIncome` is new income,
 which `sync()` (also run by `deposit`, `redeem` and `claim`) splits into the operator fee (max 30 %) and a
 per-share accumulator. Shares are 1:1 with deposited principal, redeemable 1:1; income credited before a
-redeem stays claimable. Rounding dust stays reserved, so the vault is always solvent (fuzz-tested).
+redeem stays claimable. Shares cannot be redeemed or transferred for `SHARE_LOCK` (7 days) after the
+holder's latest deposit, so nobody can deposit, trigger a payout, claim and redeem in one transaction
+(claiming is never locked; [SECURITY.md](SECURITY.md) KE-01). Rounding dust stays reserved, so the vault is
+always solvent (fuzz- and invariant-tested).
 
 ## 5. Return settlement sequence
 
