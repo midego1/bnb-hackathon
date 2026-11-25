@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSyncExternalStore, type ComponentProps } from "react";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * The stage screens render in the browser only. Server-rendering them would put a second copy of the wallet stack
@@ -9,7 +10,9 @@ import { useSyncExternalStore, type ComponentProps } from "react";
  */
 // Not imported from ./wallet: that would pull viem into this page's server chunks.
 const subscribeNothing = () => () => {};
-const Loading = () => <p className="p-6 text-muted-foreground">Loading…</p>;
+function Loading() {
+  return <p className="p-6 text-muted-foreground">{useT()("stage.loading")}</p>;
+}
 const StageView = dynamic(() => import("./StageView").then((m) => m.StageView), { ssr: false, loading: Loading });
 const JudgeTree = dynamic(() => import("./JudgeTree"), { ssr: false, loading: Loading });
 
@@ -19,7 +22,8 @@ const JudgeTree = dynamic(() => import("./JudgeTree"), { ssr: false, loading: Lo
  */
 export function LiveScreen({ enabled, ...p }: ComponentProps<typeof StageView> & { enabled: boolean }) {
   const path = useSyncExternalStore(subscribeNothing, () => window.location.pathname, () => "");
+  const t = useT();
   if (!path) return <Loading />;
-  if (!enabled) return <p className="p-6 text-muted-foreground">The live stage demo is not enabled on this server.</p>;
+  if (!enabled) return <p className="p-6 text-muted-foreground">{t("stage.disabled")}</p>;
   return path.startsWith("/r/") ? <JudgeTree {...p} /> : <StageView {...p} />;
 }

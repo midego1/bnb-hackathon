@@ -1,5 +1,6 @@
 import { zeroHash, type Address } from "viem";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
+import type { T } from "@/lib/i18n/t";
 import type { Listing } from "@/lib/listings";
 import type { ChainEvent } from "@/lib/rentals";
 
@@ -69,27 +70,20 @@ export function replaceable(s: Pick<StageStatus, "rental" | "lease">, now = Date
   return s.lease.status === "Created" && now - s.rental.createdAt > STALE_OFFER_MS;
 }
 
-/** The stage timeline in plain words, one line per event of the rental. */
-export function eventLabel(e: ChainEvent): string {
+/** The stage timeline in plain words, one line per event of the rental, in the active language (stage.event). */
+export function eventLabel(e: ChainEvent, t: T): string {
   switch (e.name) {
-    case "LeaseCreated":
-      return "Owner offered the rental: escrow created";
-    case "Funded":
-      return "Renter paid deposit + rent into the escrow";
     case "EvidenceAdded":
-      return Number(e.args.kind) === 0 ? "Pickup photo anchored on-chain" : Number(e.args.kind) === 1 ? "Return photo anchored on-chain" : "Evidence anchored on-chain";
+      return t(Number(e.args.kind) === 0 ? "stage.event.pickupPhoto" : Number(e.args.kind) === 1 ? "stage.event.returnPhoto" : "stage.event.evidence");
+    case "LeaseCreated":
+    case "Funded":
     case "SettlementProposed":
-      return "AI split proposed";
     case "Settled":
-      return "Both agreed: money settled";
     case "RentReleased":
-      return "Rent paid out to the owner";
     case "ProtocolFeePaid":
-      return "KeyEscrow fee paid";
     case "DisputeRaised":
-      return "Dispute raised";
     case "Cancelled":
-      return "Offer cancelled";
+      return t(`stage.event.${e.name}`);
     default:
       return e.name;
   }

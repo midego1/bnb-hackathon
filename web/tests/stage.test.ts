@@ -17,7 +17,10 @@ import {
   stageConfig,
   thbToUnits,
 } from "@/lib/server/stage/guards";
-import { judgeStep, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, type StageStatus } from "@/lib/stage";
+import { stateFor } from "@/lib/i18n/server";
+import { makeT } from "@/lib/i18n/t";
+import type { ChainEvent } from "@/lib/rentals";
+import { eventLabel, judgeStep, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -180,5 +183,17 @@ describe("evidence in the Durable Object (no R2 on Workers)", () => {
     // and the expired slot no longer counts towards the cap
     await storeEvidence(store, JPEG(700), "b.jpg");
     expect((await state.get<unknown[]>("evidence:index"))?.value).toHaveLength(1);
+  });
+});
+
+describe("stage timeline labels", () => {
+  const ev = (name: string, args: Record<string, unknown> = {}) => ({ name, args }) as unknown as ChainEvent;
+  it("English as before, Chinese in 中文, unknown events by name", () => {
+    const enT = makeT(stateFor("en"));
+    const zhT = makeT(stateFor("zh"));
+    expect(eventLabel(ev("Settled"), enT)).toBe("Both agreed: money settled");
+    expect(eventLabel(ev("EvidenceAdded", { kind: 1 }), enT)).toBe("Return photo anchored on-chain");
+    expect(eventLabel(ev("Settled"), zhT)).toBe("双方同意：资金已结算");
+    expect(eventLabel(ev("PayeeSet"), zhT)).toBe("PayeeSet");
   });
 });

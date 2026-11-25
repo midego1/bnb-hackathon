@@ -78,6 +78,16 @@ product name stays English in running text only where the UI shows it as a name;
 | on-ramp | 入金通道 | PromptPay page |
 | judge | 评委 | /pitch |
 | Mystery Box | 神秘盒子 | /pitch |
+| subscription / subscribe | 订阅 | /app/subscriptions |
+| subscriber | 订阅者 | |
+| payment rhythm | 付款周期 | |
+| MRR (monthly recurring revenue) | 月经常性收入；KPI 短标签用 MRR | |
+| listing (an item to rent) | 租赁信息 | /app/listings |
+| guest wallet (live judge demo) | 临时钱包 | /r |
+| presenter | 演讲者 | /stage |
+| big screen | 大屏幕 | /stage |
+| test money | 测试资金 | /r: test BNB + mUSDT |
+| pickup / return (the Mystery Box on /stage) | 取件 / 归还 | not a scooter, so not 取车 / 还车 |
 | AI-translated; corrections welcome | 中文内容由 AI 翻译，欢迎指正。 | footer note in 中文 and EN+中文 |
 
 ## Style
