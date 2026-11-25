@@ -17,7 +17,7 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
         <p className="text-sm">Connect a wallet to {what}.</p>
         <ConnectButton />
         {process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337 && (
-          <p className="text-xs text-slate-500">Local demo: pick a role in the yellow &ldquo;Anvil dev accounts&rdquo; bar instead.</p>
+          <p className="text-xs text-slate-500">Local demo: pick Landlord, Tenant or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
         )}
       </div>
     );
@@ -25,7 +25,7 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
   if (!deployment) {
     return (
       <Notice kind="warn">
-        KeyEscrow is not deployed on {chainName(chainId)} yet. Switch your wallet to the local Anvil chain or BSC testnet.
+        KeyEscrow is not deployed on {chainName(chainId)} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).
       </Notice>
     );
   }

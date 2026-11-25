@@ -14,8 +14,13 @@ export function viewerRole(lease: LeaseData, who: Address | undefined): Viewer {
   return null;
 }
 
+/** How a role is named in the UI: the arbiter is "the dispute desk" everywhere. */
+export function roleName(v: Viewer): string {
+  return v === "arbiter" ? "dispute desk" : (v ?? "someone");
+}
+
 export function roleOfAddress(lease: LeaseData, a: unknown): string {
-  return viewerRole(lease, a as Address) ?? "someone";
+  return roleName(viewerRole(lease, a as Address));
 }
 
 export const RENT_PERIOD = BigInt(30 * 24 * 3600);
@@ -39,25 +44,25 @@ export function nextStep(lease: LeaseData, viewer: Viewer): string {
   const p = lease.proposal;
   switch (lease.status) {
     case LeaseStatus.Created:
-      return viewer === "tenant" ? "Your move: fund the deposit and first month's rent." : "Waiting for the tenant to fund the escrow.";
+      return viewer === "tenant" ? "Your move: fund the deposit and first month's rent." : "Waiting for the tenant to fund the deposit and first month's rent.";
     case LeaseStatus.Active: {
       const r = releasableMonths(lease, viewer);
-      if (r > 0) return `${r} month${r > 1 ? "s" : ""} of rent ready to release.`;
+      if (r > 0) return `${r} month${r > 1 ? "s" : ""} of rent ready to pay out to the landlord.`;
       const due = nextDue(lease);
       return `Month ${Math.min(lease.monthsDue, lease.terms.termMonths)} of ${lease.terms.termMonths}. ${
-        due ? `Next rent due ${formatDate(due)}.` : "All rent released."
+        due ? `Next rent due ${formatDate(due)}.` : "All rent paid out."
       }`;
     }
     case LeaseStatus.MoveOut: {
       const mine = viewer && p.proposer.toLowerCase() === (viewer === "landlord" ? lease.terms.landlord : lease.terms.tenant).toLowerCase();
       if (viewer === "landlord" || viewer === "tenant")
-        return mine ? "Waiting for the other party to accept your proposal." : "Your move: review the deposit proposal.";
+        return mine ? "Waiting for the other side to accept your deposit proposal." : "Your move: accept the deposit proposal, counter it or open a dispute.";
       return "A deposit proposal is waiting for an answer.";
     }
     case LeaseStatus.Disputed:
-      return viewer === "arbiter" ? "Your move: rule on the deposit split." : "Waiting for the arbiter's ruling.";
+      return viewer === "arbiter" ? "Your move: rule on the deposit split." : "In dispute: waiting for the dispute desk to rule.";
     case LeaseStatus.Settled:
-      return "Closed. All funds paid out.";
+      return "Closed. Deposit and rent fully paid out.";
     case LeaseStatus.Cancelled:
       return "Offer withdrawn before funding.";
   }

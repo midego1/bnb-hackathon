@@ -30,7 +30,7 @@ pnpm -C web sync:contracts   # contracts/out → lib/contracts/abis.generated.ts
 | `NEXT_PUBLIC_RPC_URL` (alias `NEXT_PUBLIC_ANVIL_RPC_URL`) | `http://127.0.0.1:8545` | anvil RPC the browser talks to |
 | `NEXT_PUBLIC_BSC_TESTNET_RPC_URL` | viem default | BSC testnet (97) RPC |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | unset | enables RainbowKit's full wallet list; otherwise injected wallets only |
-| `NEXT_PUBLIC_DEV_ACCOUNTS` | `0` | `1` = anvil account switcher (landlord / tenant / arbiter = anvil accounts #1–#3). Only shown on chain 31337, signs via anvil's unlocked accounts (no keys in the browser), and is compiled out of builds without the flag |
+| `NEXT_PUBLIC_DEV_ACCOUNTS` | `0` | `1` = "Demo accounts" bar (landlord / tenant / dispute desk = anvil accounts #1–#3). Only shown on chain 31337, signs via anvil's unlocked accounts (no keys in the browser), and is compiled out of builds without the flag |
 
 Prices come from `GET /api/price` (`lib/usePrices.ts`), evidence from `POST /api/evidence`, the AI move-out proposal
 from `POST /api/settlement`. See `docs/API.md`.

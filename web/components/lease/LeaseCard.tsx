@@ -11,10 +11,15 @@ import { nextStep, viewerRole } from "./model";
 export function LeaseCard({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { data: lease, error } = useLease(address);
-  if (error) return <div className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700">Could not load lease {shortAddress(address)}.</div>;
+  if (error) return <div className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700">Could not load lease {shortAddress(address)}. Check that your wallet is on the right network.</div>;
   if (!lease) return <Skeleton className="h-36" />;
   const viewer = viewerRole(lease, me);
-  const other = viewer === "landlord" ? `Tenant ${shortAddress(lease.terms.tenant)}` : `Landlord ${shortAddress(lease.terms.landlord)}`;
+  const other =
+    viewer === "landlord"
+      ? `Tenant ${shortAddress(lease.terms.tenant)}`
+      : viewer === "arbiter"
+        ? `Landlord ${shortAddress(lease.terms.landlord)} · tenant ${shortAddress(lease.terms.tenant)}`
+        : `Landlord ${shortAddress(lease.terms.landlord)}`;
   return (
     <Link
       href={`/lease/${address}`}
@@ -24,7 +29,7 @@ export function LeaseCard({ address }: { address: Address }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-mono text-sm font-medium">{shortAddress(address)}</p>
+          <p className="text-sm font-medium">Lease <span className="font-mono">{shortAddress(address)}</span></p>
           <p className="text-xs text-slate-500 dark:text-slate-400">{other}</p>
         </div>
         <StatusBadge status={lease.status} />
@@ -45,7 +50,7 @@ export function LeaseCard({ address }: { address: Address }) {
   );
 }
 
-export function LeaseGrid({ addresses, empty }: { addresses: readonly Address[] | undefined; empty: string }) {
+export function LeaseGrid({ addresses, empty }: { addresses: readonly Address[] | undefined; empty: React.ReactNode }) {
   if (!addresses) return <div className="grid gap-4 sm:grid-cols-2"><Skeleton className="h-36" /><Skeleton className="h-36" /></div>;
   if (addresses.length === 0) return <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">{empty}</p>;
   return (

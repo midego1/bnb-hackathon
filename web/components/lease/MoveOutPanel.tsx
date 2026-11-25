@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { Hex } from "viem";
-import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice } from "@/components/ui";
+import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
+import { photosForHash } from "@/lib/demoEvidence";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { formatDate, formatUsdt, parseUsdt } from "@/lib/format";
 import { hashText } from "@/lib/hash";
@@ -12,7 +13,7 @@ import { useTx } from "@/lib/hooks/useTx";
 import { runInspection, type InspectionResult } from "@/lib/settlement";
 import { evidenceFromEvents } from "./evidence";
 import { HashLink } from "./EvidencePanel";
-import { viewerRole, type Viewer } from "./model";
+import { roleName, viewerRole, type Viewer } from "./model";
 
 /** Move-out: current proposal, accept / timeout, AI inspection, manual proposal, dispute. */
 export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined }) {
@@ -23,7 +24,7 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
   if (!hasProposal && !canPropose) return null;
 
   return (
-    <Card title="Move-out & deposit">
+    <Card title="Move-out & deposit" aside={<PriceSourceBadge />}>
       <div className="space-y-6">
         {hasProposal && <CurrentProposal lease={lease} viewer={viewer} />}
         {canPropose && <ProposeForms lease={lease} events={events} />}
@@ -43,7 +44,7 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   return (
     <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 dark:border-sky-900 dark:bg-sky-950/40" data-testid="current-proposal">
       <p className="text-sm font-medium">
-        Proposal #{p.nonce} by the {proposer ?? "unknown"} · {formatDate(p.proposedAt)}
+        Proposal #{p.nonce} by the {roleName(proposer)} · {formatDate(p.proposedAt)}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
@@ -51,12 +52,12 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
           <Amount value={p.tenantRefund} />
         </div>
         <div>
-          <p className="text-xs text-slate-500">To landlord (damages)</p>
+          <p className="text-xs text-slate-500">Landlord keeps (damages)</p>
           <Amount value={p.landlordClaim} />
         </div>
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        Report hash: <HashLink hash={p.reportHash} />
+        Inspection report fingerprint: <HashLink hash={p.reportHash} />
       </p>
       {lease.timeoutAt > BigInt(0) && (
         <p className="mt-2 text-sm">
@@ -64,8 +65,8 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
             <>The landlord did not answer in time. Anyone can now close the lease and return the full deposit to the tenant.</>
           ) : (
             <>
-              Landlord response deadline {formatDate(lease.timeoutAt)} (<Countdown target={lease.timeoutAt} clock={lease} />). If the
-              landlord does not accept, counter or dispute by then, the full deposit goes back to the tenant.
+              The landlord has until {formatDate(lease.timeoutAt)} (<Countdown target={lease.timeoutAt} clock={lease} />) to accept, counter
+              or open a dispute. After that, the full deposit goes back to the tenant.
             </>
           )}
         </p>
@@ -74,7 +75,7 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
         <ActionButton
           busy={pending === "Accept proposal"}
           disabledReason={
-            isCounterparty ? null : proposer === viewer ? "You made this proposal. The other party has to accept it." : "Only the landlord or tenant can accept."
+            isCounterparty ? null : proposer === viewer ? "You made this proposal, so the other side has to accept it." : "Only the landlord or the tenant can accept a proposal."
           }
           onClick={() => send("Accept proposal", { address: lease.address, abi: rentalEscrowAbi, functionName: "accept", args: [p.nonce] })}
           data-testid="accept-proposal"
@@ -85,11 +86,11 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
           <ActionButton
             variant="secondary"
             busy={pending === "Claim landlord timeout"}
-            disabledReason={timeoutReached ? null : "The landlord's response window is still open."}
+            disabledReason={timeoutReached ? null : `Available after ${formatDate(lease.timeoutAt)}, if the landlord has not answered.`}
             onClick={() => send("Claim landlord timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
             data-testid="claim-timeout"
           >
-            Return full deposit (landlord timeout)
+            Return full deposit to tenant
           </ActionButton>
         )}
       </div>
@@ -100,6 +101,8 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
 function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEvent[] | undefined }) {
   const { send, pending } = useTx();
   const { checkIn, checkOut } = evidenceFromEvents(events);
+  const money = useMoney();
+  const photoCount = (hashes: Hex[]) => hashes.flatMap(photosForHash).length;
   const [inspecting, setInspecting] = useState(false);
   const [report, setReport] = useState<InspectionResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -130,7 +133,8 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
       <div>
         <h3 className="text-sm font-semibold">AI move-out inspection</h3>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Compares the {checkIn.length} check-in and {checkOut.length} check-out photo(s) anchored on this lease and suggests how to split the deposit.
+          Compares the {photoCount(checkIn)} check-in and {photoCount(checkOut)} check-out photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
+          lease and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
         </p>
         <div className="mt-3 grid gap-3">
           <Field label="Notes for the inspector (optional)">
@@ -139,7 +143,13 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
           <ActionButton
             variant="secondary"
             busy={inspecting}
-            disabledReason={checkIn.length === 0 ? "Anchor at least one check-in photo first." : checkOut.length === 0 ? "Anchor at least one check-out photo first." : null}
+            disabledReason={
+              checkIn.length === 0
+                ? "Needs at least one check-in photo. Add one under Documents & photos."
+                : checkOut.length === 0
+                  ? "Needs at least one check-out photo. Add them under Documents & photos."
+                  : null
+            }
             onClick={inspect}
             data-testid="run-inspection"
           >
@@ -150,9 +160,9 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
         {report && (
           <div className="mt-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700" data-testid="inspection-result">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">Inspector suggestion</p>
+              <p className="text-sm font-medium">AI inspection proposal</p>
               <span className="text-xs text-slate-500">
-                confidence {(report.confidence * 100).toFixed(0)}% · {report.mock ? "demo inspector (no AI key configured)" : report.provider}
+                confidence {(report.confidence * 100).toFixed(0)}% · {report.mock ? "demo inspector (no AI key configured)" : `vision model: ${report.provider}`}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -161,7 +171,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
                 <Amount value={BigInt(report.tenantRefund)} />
               </div>
               <div>
-                <p className="text-xs text-slate-500">To landlord</p>
+                <p className="text-xs text-slate-500">Landlord keeps</p>
                 <Amount value={BigInt(report.landlordClaim)} />
               </div>
             </div>
@@ -180,6 +190,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
             >
               Propose this split on-chain
             </ActionButton>
+            <p className="mt-2 text-xs text-slate-500">The other side then accepts (paid out at once), counters, or opens a dispute.</p>
           </div>
         )}
       </div>
@@ -187,10 +198,10 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
       <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
         <h3 className="text-sm font-semibold">Propose a split yourself</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Deposit back to tenant (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Landlord keeps {formatUsdt(deposit - refundAmount)} USDT</> : undefined}>
+          <Field label="Deposit back to tenant (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Tenant gets {money(refundAmount)}, landlord keeps {money(deposit - refundAmount)}</> : undefined}>
             <input name="tenantRefund" inputMode="decimal" className={inputClass} value={refund} onChange={(e) => setRefund(e.target.value)} />
           </Field>
-          <Field label="Reason (hashed on-chain)">
+          <Field label="Reason (its fingerprint is stored on-chain)">
             <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. full refund, flat in good order" />
           </Field>
         </div>
@@ -217,7 +228,10 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
   return (
     <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
       <h3 className="text-sm font-semibold">Can&apos;t agree?</h3>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Send the deposit decision to the arbiter. Rent keeps flowing as scheduled.</p>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Hand the deposit decision to the dispute desk ({lease.terms.arbiterWindow / 86400} days to rule, or the full deposit goes back to the
+        tenant). Rent keeps being paid out as scheduled.
+      </p>
       {confirming ? (
         <div className="mt-3 flex flex-wrap gap-3">
           <ActionButton

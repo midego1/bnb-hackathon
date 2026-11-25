@@ -5,6 +5,7 @@ import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/d
 import { useDeployment } from "@/lib/hooks/useDeployment";
 
 const roles: DevRole[] = ["landlord", "tenant", "arbiter"];
+const roleLabel: Record<DevRole, string> = { landlord: "Landlord", tenant: "Tenant", arbiter: "Dispute desk" };
 
 /**
  * Local-only helper bar: act as the anvil landlord / tenant / arbiter without a browser wallet.
@@ -36,8 +37,8 @@ function Switcher() {
   return (
     <div className="border-b border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
-        <span className="font-semibold">Anvil dev accounts</span>
-        <span className="hidden opacity-70 sm:inline">local chain only · act as</span>
+        <span className="font-semibold">Demo accounts</span>
+        <span className="hidden opacity-70 sm:inline">local anvil only · act as</span>
         <div className="flex gap-1" role="group" aria-label="Act as">
           {roles.map((r) => (
             <button
@@ -45,15 +46,15 @@ function Switcher() {
               data-testid={`dev-role-${r}`}
               aria-pressed={active === r}
               onClick={() => pick(r)}
-              className={`rounded-md px-2.5 py-1 font-medium capitalize ring-1 ring-inset ring-amber-300 transition dark:ring-amber-800 ${
+              className={`rounded-md px-2.5 py-1 font-medium ring-1 ring-inset ring-amber-300 transition dark:ring-amber-800 ${
                 active === r ? "bg-amber-900 text-amber-50 dark:bg-amber-200 dark:text-amber-950" : "hover:bg-amber-100 dark:hover:bg-amber-900"
               }`}
             >
-              {r}
+              {roleLabel[r]}
             </button>
           ))}
         </div>
-        {!active && <span className="opacity-70">not connected as a dev account</span>}
+        {!active && <span className="opacity-70">Pick a role to start</span>}
       </div>
     </div>
   );

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { Hex } from "viem";
 import { FilePicker } from "@/components/FilePicker";
-import { ActionButton, Card, Notice } from "@/components/ui";
+import { ActionButton, Card, CopyButton, Notice } from "@/components/ui";
+import { documentUrl, photosForHash, type EvidenceView } from "@/lib/demoEvidence";
 import { EvidenceKind, LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { evidenceUrl, uploadEvidence } from "@/lib/evidence";
 import { ZERO_HASH } from "@/lib/hash";
@@ -21,18 +22,30 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
   const moveOutStage = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
 
   return (
-    <Card title="Documents & photos">
-      <div className="space-y-4 text-sm">
+    <Card title="Documents & photos" aside={<span className="text-xs text-slate-500">Files off-chain · fingerprints (SHA-256) on-chain</span>}>
+      <div className="space-y-5 text-sm">
         <div>
           <p className="text-xs text-slate-500">Lease contract</p>
-          {lease.terms.leaseHash === ZERO_HASH ? <p>No document attached.</p> : <HashLink hash={lease.terms.leaseHash} label="lease.pdf" />}
+          {lease.terms.leaseHash === ZERO_HASH ? (
+            <p className="text-slate-500">No lease document attached.</p>
+          ) : (
+            <HashLink hash={lease.terms.leaseHash} label="lease.pdf" href={documentUrl(lease.terms.leaseHash)} />
+          )}
         </div>
-        <PhotoRow title="Check-in photos" hashes={checkIn} />
-        <PhotoRow title="Check-out photos" hashes={checkOut} />
+        <PhotoRow title="Check-in photos" hashes={checkIn} empty="None yet. The landlord or tenant can add them below; the AI inspection needs at least one." />
+        <PhotoRow
+          title="Check-out photos"
+          hashes={checkOut}
+          empty={moveOutStage ? "None yet. Add them at move-out so the AI inspection can compare." : "Added at move-out, once the lease is active."}
+        />
         {isParty && open && (
           <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 dark:border-slate-800">
             <AnchorPhotos lease={lease} kind="CheckIn" />
-            {moveOutStage && <AnchorPhotos lease={lease} kind="CheckOut" />}
+            {moveOutStage ? (
+              <AnchorPhotos lease={lease} kind="CheckOut" />
+            ) : (
+              <p className="self-center text-xs text-slate-500">Check-out photos can be added once the tenant has funded the lease.</p>
+            )}
           </div>
         )}
       </div>
@@ -40,50 +53,63 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
   );
 }
 
-function PhotoRow({ title, hashes }: { title: string; hashes: Hex[] }) {
+function PhotoRow({ title, hashes, empty }: { title: string; hashes: Hex[]; empty: string }) {
+  const photos = hashes.flatMap(photosForHash);
   return (
     <div>
       <p className="text-xs text-slate-500">
-        {title} ({hashes.length})
+        {title} ({photos.length})
       </p>
-      {hashes.length === 0 ? (
-        <p className="text-slate-500">None yet.</p>
+      {photos.length === 0 ? (
+        <p className="text-slate-500">{empty}</p>
       ) : (
-        <div className="mt-1 flex flex-wrap gap-2">
-          {hashes.map((h) => (
-            <EvidenceThumb key={h} hash={h} />
+        <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid={`${title.toLowerCase().replace(/\W+/g, "-")}`}>
+          {photos.map((p) => (
+            <EvidenceThumb key={p.hash} photo={p} />
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
 }
 
-/** Thumbnail of a stored photo; falls back to a hash tile when the file is not in evidence storage. */
-function EvidenceThumb({ hash }: { hash: Hex }) {
+/** Photo thumbnail with its on-chain hash on hover and a copy button; a hash tile when the file can't be loaded. */
+function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const [failed, setFailed] = useState(false);
-  const tile = "h-16 w-16 rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800";
+  const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
   return (
-    <a href={evidenceUrl(hash)} target="_blank" rel="noreferrer" title={hash} className="block">
-      {failed ? (
-        <span className={`${tile} flex flex-col items-center justify-center p-1 text-center font-mono text-[10px] text-slate-500`}>
-          <span aria-hidden>#</span>
-          {hash.slice(2, 8)}
+    <li className="group min-w-0" data-testid="evidence-thumb">
+      <a href={photo.src} target="_blank" rel="noreferrer" title={`SHA-256 ${photo.hash}`} className="relative block aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+        {failed ? (
+          <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-slate-500">
+            <span>File not in storage</span>
+            <span className="font-mono">{photo.hash.slice(2, 10)}</span>
+          </span>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- content-addressed evidence (API) or bundled demo file
+          <img src={photo.src} alt={photo.label ? `${photo.label} photo` : `Photo ${short}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+        )}
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-slate-950/70 px-2 py-1 font-mono text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+          {photo.hash}
         </span>
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- content-addressed evidence served by our API
-        <img src={evidenceUrl(hash)} alt={`Evidence ${hash.slice(0, 10)}`} onError={() => setFailed(true)} className={`${tile} object-cover`} />
-      )}
-    </a>
+      </a>
+      <p className="mt-1 flex items-center justify-between gap-2 text-xs">
+        <span className="truncate capitalize text-slate-600 dark:text-slate-300">{photo.label ?? <span className="font-mono normal-case">{short}</span>}</span>
+        <CopyButton value={photo.hash} label="Copy photo hash" />
+      </p>
+    </li>
   );
 }
 
-export function HashLink({ hash, label }: { hash: Hex; label?: string }) {
+export function HashLink({ hash, label, href }: { hash: Hex; label?: string; href?: string }) {
   return (
-    <a href={evidenceUrl(hash)} target="_blank" rel="noreferrer" className="break-all font-mono text-xs underline decoration-dotted underline-offset-2">
-      {label ? `${label} · ` : ""}
-      {hash.slice(0, 18)}…{hash.slice(-6)}
-    </a>
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <a href={href ?? evidenceUrl(hash)} target="_blank" rel="noreferrer" title={`SHA-256 ${hash}`} className="break-all font-mono text-xs underline decoration-dotted underline-offset-2">
+        {label ? `${label} · ` : ""}
+        {hash.slice(0, 18)}…{hash.slice(-6)}
+      </a>
+      <CopyButton value={hash} label="Copy hash" />
+    </span>
   );
 }
 
@@ -114,10 +140,18 @@ function AnchorPhotos({ lease, kind }: { lease: LeaseData; kind: "CheckIn" | "Ch
 
   return (
     <div className="flex flex-col gap-2">
-      <FilePicker label={`Add ${label} photos`} accept="image/jpeg,image/png,image/webp" multiple files={files} onChange={setFiles} testId={`${label}-photos`} />
+      <FilePicker
+        label={`Add ${label} photos`}
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        files={files}
+        onChange={setFiles}
+        hint="JPEG, PNG or WebP, up to 10 MB each. Tap to choose."
+        testId={`${label}-photos`}
+      />
       {warning && <Notice kind="warn">{warning}</Notice>}
-      <ActionButton variant="secondary" busy={!!busy} disabledReason={files.length === 0 ? "Choose one or more photos." : null} onClick={go} data-testid={`anchor-${label}`}>
-        {busy ?? `Upload & anchor ${files.length || ""} photo${files.length === 1 ? "" : "s"}`}
+      <ActionButton variant="secondary" busy={!!busy} disabledReason={files.length === 0 ? `Choose one or more ${label} photos first.` : null} onClick={go} data-testid={`anchor-${label}`}>
+        {busy ?? `Upload & record ${files.length || ""} photo${files.length === 1 ? "" : "s"} on-chain`}
       </ActionButton>
     </div>
   );

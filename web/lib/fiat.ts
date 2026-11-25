@@ -34,9 +34,9 @@ export function toFiat(
   return toTokenNumber(amount, decimals) * rate;
 }
 
-/** Format a fiat value: "฿16,500" / "$500.00". THB is shown without satang for amounts >= 100. */
+/** Format a fiat value: "฿16,500" / "$500.00". THB is shown without satang for amounts >= 100 and for zero. */
 export function formatFiat(value: number, fiat: Fiat): string {
-  const digits = fiat === "THB" && Math.abs(value) >= 100 ? 0 : 2;
+  const digits = fiat === "THB" && (Math.abs(value) >= 100 || value === 0) ? 0 : 2;
   return new Intl.NumberFormat(LOCALE[fiat], {
     style: "currency",
     currency: fiat,

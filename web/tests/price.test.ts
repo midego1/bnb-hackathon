@@ -127,6 +127,7 @@ describe("fiat formatting", () => {
   it("formats THB and USD", () => {
     expect(formatFiat(16500, "THB")).toBe("฿16,500");
     expect(formatFiat(12.5, "THB")).toBe("฿12.50");
+    expect(formatFiat(0, "THB")).toBe("฿0");
     expect(formatFiat(500, "USD")).toBe("$500.00");
     expect(formatTokenInFiat(BigInt(500_000_000), "USDT", prices)).toBe("฿16,500 · $500.00");
     expect(formatTokenInFiat(BigInt(1), "USDT", null)).toBe("");

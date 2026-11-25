@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { DevAccountSwitcher } from "./DevAccountSwitcher";
+import { LogoMark } from "./LogoMark";
+import { PriceSourceBadge } from "./ui";
 
 const nav = [
   { href: "/landlord", label: "Landlord" },
@@ -18,18 +20,24 @@ export function Header() {
       <DevAccountSwitcher />
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-amber-400 text-sm text-slate-950">
-            ⌂
-          </span>
+          <LogoMark />
           KeyEscrow
         </Link>
         <nav className="hidden gap-1 text-sm sm:flex">
           <NavLinks />
         </nav>
-        <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
+        <div className="flex items-center gap-2">
+          <span className="hidden md:block">
+            <PriceSourceBadge />
+          </span>
+          <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
+        </div>
       </div>
-      <nav className="flex gap-1 overflow-x-auto px-4 pb-2 text-sm sm:hidden">
+      <nav className="flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm sm:hidden">
         <NavLinks />
+        <span className="ml-auto shrink-0">
+          <PriceSourceBadge />
+        </span>
       </nav>
     </header>
   );

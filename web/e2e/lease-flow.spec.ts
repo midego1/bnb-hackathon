@@ -29,12 +29,20 @@ async function waitForTx(page: Page, title: string) {
 const badge = (page: Page) => page.getByTestId("status-badge").first();
 
 test("landlord creates, tenant funds, rent is released, AI proposal accepted", async ({ page }) => {
+  // No page may log a console error or hit a 4xx/5xx (e.g. a missing favicon or evidence file).
+  const problems: string[] = [];
+  page.on("console", (m) => m.type() === "error" && problems.push(`console: ${m.text()}`));
+  page.on("response", (r) => r.status() >= 400 && problems.push(`${r.status()} ${r.url()}`));
+
   // --- Landlord creates a lease -------------------------------------------------------------------
   await page.goto("/landlord");
   await actAs(page, "landlord");
   const form = page.getByTestId("create-lease-form");
   await expect(form).toBeVisible();
   await expect(page.getByTestId("fee-note")).toContainText("one-time 10%");
+  // Amounts are THB first, and the rate source is labelled (no keys in this run -> demo rates).
+  await expect(page.getByTestId("price-source").first()).toHaveAttribute("data-source", "mock");
+  await expect(page.getByTestId("price-source").first()).toHaveText(/Demo rates/);
   await form.getByRole("button", { name: /Use anvil tenant/ }).click();
   await form.locator('input[name="rent"]').fill("500");
   await form.locator('input[name="deposit"]').fill("1000");
@@ -114,6 +122,11 @@ test("landlord creates, tenant funds, rent is released, AI proposal accepted", a
   await shot(page, "06-dispute-desk");
   await disputed.click();
   await expect(page.getByRole("heading", { name: "Rule on this dispute" })).toBeVisible();
+  // The seeded check-in manifest expands into its three bundled demo photos, each actually loaded.
+  const thumbs = page.getByTestId("evidence-thumb").locator("img");
+  await expect(thumbs).toHaveCount(3);
+  for (const img of await thumbs.all()) await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.getByTestId("amount-thb").first()).toContainText("฿");
   await shot(page, "07-arbiter-resolve");
 
   // Mobile layout of the lease page.
@@ -121,4 +134,7 @@ test("landlord creates, tenant funds, rent is released, AI proposal accepted", a
   await page.goto(leaseUrl);
   await expect(badge(page)).toHaveText("Settled");
   await shot(page, "08-lease-mobile");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
+  expect(problems).toEqual([]);
 });

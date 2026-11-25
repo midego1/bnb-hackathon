@@ -12,13 +12,16 @@ export default function LandlordPage() {
   const { data } = useLeaseList("landlord", address);
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
-      <PageTitle title="Landlord">Offer a lease, then follow deposit and rent for every property. Rent comes to you straight from escrow.</PageTitle>
+      <PageTitle title="Landlord">
+        Offer a lease to your tenant&apos;s wallet. Once they fund it, the deposit stays locked in that lease&apos;s escrow and rent is paid
+        out to you every month.
+      </PageTitle>
       <WalletGate what="create and manage leases">
         <div className="space-y-8">
           <CreateLeaseForm />
           <div>
             <h2 className="mb-3 text-lg font-semibold">My leases</h2>
-            <LeaseGrid addresses={data} empty="No leases yet. Create your first one above." />
+            <LeaseGrid addresses={data} empty="No leases yet. Fill in the form above to offer your first one; it shows up here as soon as it is created." />
           </div>
         </div>
       </WalletGate>

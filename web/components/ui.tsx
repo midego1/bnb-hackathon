@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { LeaseStatus } from "@/lib/contracts";
 import { explorerLink } from "@/lib/chains";
 import { formatDuration, formatUsdt, shortAddress } from "@/lib/format";
+import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
 import { usePrices } from "@/lib/usePrices";
 import { Spinner } from "./Toasts";
 
@@ -38,17 +39,17 @@ export const statusMeta: Record<LeaseStatus, { label: string; hint: string; clas
   },
   [LeaseStatus.Active]: {
     label: "Active",
-    hint: "Deposit is locked in escrow; rent is released month by month.",
+    hint: "The deposit is locked in escrow; rent is paid out to the landlord month by month.",
     className: "bg-emerald-100 text-emerald-900 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900",
   },
   [LeaseStatus.MoveOut]: {
     label: "Move-out proposal",
-    hint: "A deposit split is on the table and waits for the other party.",
+    hint: "A deposit split is on the table and waits for the other side to answer.",
     className: "bg-sky-100 text-sky-900 ring-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-900",
   },
   [LeaseStatus.Disputed]: {
     label: "In dispute",
-    hint: "The arbiter decides how the deposit is split.",
+    hint: "The dispute desk decides how the deposit is split.",
     className: "bg-rose-100 text-rose-900 ring-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:ring-rose-900",
   },
   [LeaseStatus.Settled]: {
@@ -120,19 +121,83 @@ export function Field({ label, hint, children, error }: { label: string; hint?: 
 export const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-slate-300";
 
-/** USDT amount with THB and USD equivalents (rates from /api/price). */
-export function Amount({ value, className = "", size = "md" }: { value: bigint; className?: string; size?: "md" | "lg" }) {
-  const { format, isMock } = usePrices();
-  const fiat = format(value, "USDT");
+const SOURCE_LABEL: Record<PriceResponse["source"], { text: string; hint: string; className: string }> = {
+  mock: {
+    text: "Demo rates",
+    hint: "Fixed demo exchange rates (no CoinMarketCap key or Atlas feed configured). Not live market data.",
+    className: "bg-amber-50 text-amber-900 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-900",
+  },
+  cmc: {
+    text: "Live CoinMarketCap",
+    hint: "USDT and THB rates from the CoinMarketCap Pro API, fetched server-side and cached for about a minute.",
+    className: "bg-emerald-50 text-emerald-900 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900",
+  },
+  atlas: {
+    text: "Atlas feed",
+    hint: "USDT price from the Atlas on-chain price feed, read server-side and cached for about a minute.",
+    className: "bg-sky-50 text-sky-900 ring-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-900",
+  },
+};
+
+/** Where the THB / USD figures come from, as reported by GET /api/price. */
+export function PriceSourceBadge({ className = "" }: { className?: string }) {
+  const { prices } = usePrices();
+  if (!prices) return null;
+  const m = SOURCE_LABEL[prices.source];
+  const updated = new Date(prices.updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   return (
-    <span className={`inline-flex flex-col ${className}`}>
-      <span className={`font-semibold tabular-nums ${size === "lg" ? "text-xl" : ""}`}>{formatUsdt(value)} USDT</span>
-      {fiat && (
-        <span className="text-xs text-slate-500 tabular-nums dark:text-slate-400" title={isMock ? "Demo rates, not live market data" : "Live rate"}>
-          ≈ {fiat}
-          {isMock && " (demo rates)"}
-        </span>
-      )}
+    <span
+      data-testid="price-source"
+      data-source={prices.source}
+      title={`${m.hint}${prices.warning ? ` Note: ${prices.warning}` : ""} Updated ${updated}.`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${m.className} ${className}`}
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      {m.text}
+      {prices.warning && " · stale"}
+    </span>
+  );
+}
+
+/** Plain-text money for sentences and timelines: "฿14,559 ($441.18)", or "441.18 USDT" until rates load. */
+export function useMoney() {
+  const { prices } = usePrices();
+  return useCallback(
+    (value: bigint) => {
+      const thb = toFiat(value, "USDT", "THB", prices);
+      const usd = toFiat(value, "USDT", "USD", prices);
+      if (thb === null || usd === null) return `${formatUsdt(value)} USDT`;
+      return `${formatFiat(thb, "THB")} (${formatFiat(usd, "USD")})`;
+    },
+    [prices],
+  );
+}
+
+/**
+ * An on-chain USDT amount shown THB first, then USD, with the exact token amount underneath.
+ * Falls back to the USDT figure alone until /api/price answers.
+ */
+export function Amount({ value, className = "", size = "md" }: { value: bigint; className?: string; size?: "md" | "lg" }) {
+  const { prices } = usePrices();
+  const thb = toFiat(value, "USDT", "THB", prices);
+  const usd = toFiat(value, "USDT", "USD", prices);
+  const big = size === "lg" ? "text-2xl" : "";
+  if (thb === null || usd === null) {
+    return (
+      <span className={`inline-flex flex-col ${className}`}>
+        <span className={`font-semibold tabular-nums ${big}`}>{formatUsdt(value)} USDT</span>
+      </span>
+    );
+  }
+  const source = prices ? SOURCE_LABEL[prices.source].text.toLowerCase() : "";
+  return (
+    <span className={`inline-flex flex-col ${className}`} title={`${formatUsdt(value)} USDT on-chain · converted at ${source}`}>
+      <span className={`font-semibold tabular-nums ${big}`} data-testid="amount-thb">
+        {formatFiat(thb, "THB")}
+      </span>
+      <span className="text-xs text-slate-500 tabular-nums dark:text-slate-400">
+        {formatFiat(usd, "USD")} · {formatUsdt(value)} USDT
+      </span>
     </span>
   );
 }
@@ -159,7 +224,7 @@ export function AddressTag({ address, chainId, label }: { address: string; chain
   );
 }
 
-function CopyButton({ value }: { value: string }) {
+export function CopyButton({ value, label }: { value: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button
@@ -171,7 +236,7 @@ function CopyButton({ value }: { value: string }) {
           setTimeout(() => setDone(false), 1200);
         });
       }}
-      aria-label="Copy address"
+      aria-label={label ?? "Copy address"}
     >
       {done ? "copied" : "copy"}
     </button>

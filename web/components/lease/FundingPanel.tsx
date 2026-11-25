@@ -1,7 +1,7 @@
 "use client";
 
 import { useAccount } from "wagmi";
-import { ActionButton, Amount, Card } from "@/components/ui";
+import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
 import { mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
@@ -22,21 +22,21 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
   const faucetAmount = short > FAUCET_LIMIT ? FAUCET_LIMIT : short;
 
   return (
-    <Card title="Fund the escrow" aside={<span className="text-xs text-slate-500">Step 1 of 1 to move in</span>}>
+    <Card title="Fund the escrow" aside={<PriceSourceBadge />}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label="Deposit (locked)"><Amount value={lease.terms.depositAmount} /></Stat>
+        <Stat label="Deposit (stays locked)"><Amount value={lease.terms.depositAmount} /></Stat>
         <Stat label="First month's rent"><Amount value={lease.terms.rentAmount} /></Stat>
         <Stat label="Total to fund"><Amount value={need} /></Stat>
       </div>
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-        Your wallet: {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. The landlord can never withdraw the deposit alone; it only
-        leaves the escrow when you both agree or the arbiter rules.
+        Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
+        The landlord can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <ActionButton
           variant="secondary"
           busy={pending === "Get test USDT"}
-          disabledReason={balance === undefined ? "Loading balance…" : short === BigInt(0) ? "You have enough USDT." : null}
+          disabledReason={balance === undefined ? "Loading your balance…" : short === BigInt(0) ? "You already have enough test USDT." : null}
           onClick={() => send("Get test USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "faucet", args: [address!, faucetAmount] })}
           data-testid="faucet"
         >
@@ -45,7 +45,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
         <ActionButton
           variant="secondary"
           busy={pending === "Approve USDT"}
-          disabledReason={allowance === undefined ? "Loading…" : allowance >= need ? "Already approved." : null}
+          disabledReason={allowance === undefined ? "Loading your wallet…" : allowance >= need ? "Already approved. Now fund." : null}
           onClick={() => send("Approve USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease.address, need] })}
           data-testid="approve"
         >
@@ -55,11 +55,11 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
           busy={pending === "Fund escrow"}
           disabledReason={
             balance === undefined || allowance === undefined
-              ? "Loading…"
+              ? "Loading your wallet…"
               : balance < need
-                ? "Not enough USDT in your wallet yet."
+                ? "Not enough USDT in your wallet yet. Get test USDT first."
                 : allowance < need
-                  ? "Approve USDT first."
+                  ? "Approve the USDT first (middle button)."
                   : null
           }
           onClick={() => send("Fund escrow", { address: lease.address, abi: rentalEscrowAbi, functionName: "fund" })}

@@ -5,11 +5,11 @@ import { useState, type FormEvent } from "react";
 import { getAddress, isAddress, parseEventLogs, zeroAddress, type Address, type Hex } from "viem";
 import { useAccount } from "wagmi";
 import { FilePicker } from "@/components/FilePicker";
-import { ActionButton, Amount, Card, Field, inputClass, Notice } from "@/components/ui";
+import { ActionButton, Card, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi } from "@/lib/contracts";
 import { devAccounts } from "@/lib/devAccounts";
 import { uploadEvidence } from "@/lib/evidence";
-import { formatUsdt, parseUsdt, shortAddress } from "@/lib/format";
+import { parseUsdt, shortAddress } from "@/lib/format";
 import { ZERO_HASH } from "@/lib/hash";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useFactorySettings } from "@/lib/hooks/useFactory";
@@ -35,6 +35,7 @@ export function CreateLeaseForm() {
   const [warning, setWarning] = useState<string | null>(null);
 
   const { data: settings } = useFactorySettings();
+  const money = useMoney();
   const feeBps = settings?.feeBps;
   // The factory's defaultArbiter is the KeyEscrow dispute desk; passing address(0) selects it on-chain.
   const desk = settings ? settings.defaultArbiter : deployment?.disputeDesk;
@@ -54,7 +55,7 @@ export function CreateLeaseForm() {
     arbiterWindow: !Number.isInteger(arbDays) || arbDays < 1 || arbDays > 90 ? "1 to 90 days." : undefined,
     arbiter: useDesk
       ? !desk
-        ? "No dispute desk configured on this network; enter an arbiter."
+        ? "No KeyEscrow dispute desk on this network; enter your own reviewer's wallet."
         : undefined
       : !arbiter
         ? undefined
@@ -68,11 +69,11 @@ export function CreateLeaseForm() {
       : new Set([arbiterAddr.toLowerCase(), me.toLowerCase(), tenant.toLowerCase()]).size === 3;
 
   const blocker =
-    !deployment ? "KeyEscrow is not deployed on this network." :
+    !deployment ? "KeyEscrow is not deployed on this network. Switch your wallet's network." :
     !tenant ? "Enter the tenant's wallet address." :
     errors.tenant || errors.rent || errors.deposit || errors.term || errors.window || errors.arbiterWindow || errors.arbiter ||
-    (!arbiterAddr ? "Enter an arbiter address." : undefined) ||
-    (!distinct ? "Landlord, tenant and arbiter must be three different wallets." : undefined);
+    (!arbiterAddr ? "Enter the dispute desk's wallet address." : undefined) ||
+    (!distinct ? "Landlord, tenant and dispute desk must be three different wallets." : undefined);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -128,7 +129,7 @@ export function CreateLeaseForm() {
   const showDevTenant = process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337;
 
   return (
-    <Card title="New lease">
+    <Card title="New lease" aside={<PriceSourceBadge />}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" data-testid="create-lease-form">
         <div className="sm:col-span-2">
           <Field
@@ -147,40 +148,47 @@ export function CreateLeaseForm() {
             <input name="tenant" className={inputClass} placeholder="0x…" value={tenant} onChange={(e) => setTenant(e.target.value.trim())} />
           </Field>
         </div>
-        <Field label="Monthly rent (USDT)" error={errors.rent} hint={rentAmount ? <Amount value={rentAmount} /> : undefined}>
+        <Field label="Monthly rent (USDT)" error={errors.rent} hint={rentAmount ? <>≈ {money(rentAmount)}</> : "Paid in USDT; shown in baht and dollars."}>
           <input name="rent" inputMode="decimal" className={inputClass} value={rent} onChange={(e) => setRent(e.target.value)} />
         </Field>
-        <Field label="Deposit (USDT)" error={errors.deposit} hint={depositAmount ? <Amount value={depositAmount} /> : undefined}>
+        <Field
+          label="Deposit (USDT)"
+          error={errors.deposit}
+          hint={depositAmount ? <>≈ {money(depositAmount)}{rentAmount ? ` · ${(Number(depositAmount) / Number(rentAmount)).toFixed(1).replace(/\.0$/, "")} months of rent` : ""}</> : undefined}
+        >
           <input name="deposit" inputMode="decimal" className={inputClass} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </Field>
         <Field label="Term (months)" error={errors.term}>
           <input name="term" type="number" min={1} max={60} className={inputClass} value={term} onChange={(e) => setTerm(e.target.value)} />
         </Field>
-        <Field label="Response window (days)" error={errors.window} hint="How long you have to answer a tenant's move-out proposal. If you stay silent, the full deposit goes back to the tenant.">
+        <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the tenant's move-out proposal. If you stay silent, the full deposit goes back to the tenant.">
           <input name="window" type="number" min={1} max={60} className={inputClass} value={windowDays} onChange={(e) => setWindowDays(e.target.value)} />
         </Field>
         <div className="flex flex-col gap-2 sm:col-span-2">
-          <span className="text-sm font-medium">Arbiter</span>
+          <span className="text-sm font-medium">Dispute desk</span>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={useDesk} onChange={(e) => setUseDesk(e.target.checked)} />
             <span>
-              KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-slate-500">({shortAddress(desk)})</span>}
-              <span className="block text-xs text-slate-500">Only steps in if you and the tenant disagree on the deposit.</span>
+              Use the KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-slate-500">({shortAddress(desk)})</span>}
+              <span className="block text-xs text-slate-500">
+                A neutral reviewer that only steps in if you and the tenant disagree on the deposit. Untick to name your own; the tenant sees
+                it before funding.
+              </span>
             </span>
           </label>
-          <Field label="Arbiter deadline (days)" error={errors.arbiterWindow} hint="If the arbiter has not ruled on a dispute within this time, anyone can return the full deposit to the tenant.">
+          <Field label="Dispute desk deadline (days)" error={errors.arbiterWindow} hint="If the dispute desk has not ruled within this time, the full deposit can go back to the tenant.">
             <input name="arbiterWindow" type="number" min={1} max={90} className={inputClass} value={arbiterDays} onChange={(e) => setArbiterDays(e.target.value)} />
           </Field>
-          {!useDesk && <input name="arbiter" className={inputClass} placeholder="Arbiter wallet 0x…" value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
+          {!useDesk && <input name="arbiter" className={inputClass} placeholder="Your reviewer's wallet 0x…" aria-label="Dispute desk wallet" value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
           {errors.arbiter && <span className="text-xs text-rose-600">{errors.arbiter}</span>}
         </div>
-        <FilePicker label="Lease contract (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional. Its SHA-256 hash is stored on-chain." testId="lease-pdf" />
-        <FilePicker label="Check-in photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Optional. Used later by the AI move-out inspection." testId="checkin-photos" />
+        <FilePicker label="Lease contract (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain." testId="lease-pdf" />
+        <FilePicker label="Check-in photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Optional, can be added later. The AI move-out inspection compares against these." testId="checkin-photos" />
         <div className="flex flex-col gap-3 sm:col-span-2">
           {feeBps !== undefined && (
             <p className="text-xs text-slate-500" data-testid="fee-note">
               KeyEscrow fee: one-time {(Number(feeBps) / 100).toFixed(0)}% of one month&apos;s rent
-              {rentAmount ? ` (${formatUsdt((rentAmount * BigInt(feeBps)) / BigInt(10_000))} USDT)` : ""}, taken from your first rent payout.
+              {rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : ""}, taken from your first rent payout.
               The tenant never pays it and the deposit is never charged.
             </p>
           )}
