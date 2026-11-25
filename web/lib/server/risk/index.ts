@@ -1,4 +1,6 @@
 import type { Env } from "../env";
+import { onCloudflare } from "../platform";
+import { cacheGet, cachePut, getSharedState, type SharedState } from "../state";
 import { bufferedDeposit, computeBuffer, type CournotView, type RiskAsset, type RiskResponse } from "@/lib/risk";
 import { cmcApiKey, cmcQuotes } from "../sponsors/cmc";
 import { cournotConfig, depositClaim, storedResults } from "../sponsors/cournot";
@@ -20,6 +22,11 @@ export class RiskService {
     private readonly env: Env = process.env,
     private readonly fetchImpl: FetchLike = fetch,
     private readonly now: () => Date = () => new Date(),
+    /**
+     * Cloudflare Workers: `shared` is the cross-isolate cache (the KeyEscrowState Durable Object) and `dedupe` is off,
+     * since a promise one request's I/O resolves must not be awaited by another request there.
+     */
+    private readonly opts: { shared?: () => SharedState | null; dedupe?: boolean } = {},
   ) {
     const ttl = Number(env.RISK_CACHE_TTL_SECONDS);
     this.ttlMs = (Number.isFinite(ttl) && ttl > 0 ? ttl : 120) * 1000;
@@ -28,7 +35,15 @@ export class RiskService {
   private async quotes(key: string): Promise<{ quotes: Quotes; fetchedAt: string; cached: boolean }> {
     const t = this.now().getTime();
     if (this.cache && t < this.cache.expiresAt) return { ...this.cache, cached: true };
-    this.inflight ??= (async () => {
+    const state = this.opts.shared?.() ?? null;
+    if (state) {
+      const hit = await cacheGet<NonNullable<RiskService["cache"]>>(state, SHARED_KEY).catch(() => undefined);
+      if (hit && t < hit.expiresAt) {
+        this.cache = hit;
+        return { ...hit, cached: true };
+      }
+    }
+    const load = async () => {
       const [usd, thb] = await Promise.all([cmcQuotes(key, "USD", this.fetchImpl), cmcQuotes(key, "THB", this.fetchImpl)]);
       const one = (a: RiskAsset) => ({
         usd: usd[a].price,
@@ -41,8 +56,11 @@ export class RiskService {
       const fetchedAt = this.now().toISOString();
       const quotes = { USDT: one("USDT"), BNB: one("BNB") };
       this.cache = { quotes, fetchedAt, expiresAt: this.now().getTime() + this.ttlMs };
+      if (state) await cachePut(state, SHARED_KEY, this.cache, this.ttlMs).catch((err) => console.warn("[risk] shared cache write failed", (err as Error).message));
       return { quotes, fetchedAt };
-    })().finally(() => {
+    };
+    if (this.opts.dedupe === false) return { ...(await load()), cached: false };
+    this.inflight ??= load().finally(() => {
       this.inflight = null;
     });
     return { ...(await this.inflight), cached: false };
@@ -90,8 +108,10 @@ export class RiskService {
   }
 }
 
+const SHARED_KEY = "risk:cmc-quotes";
+
 let shared: RiskService | null = null;
 export function getRiskService() {
-  shared ??= new RiskService();
+  shared ??= onCloudflare() ? new RiskService(process.env, fetch, () => new Date(), { shared: getSharedState, dedupe: false }) : new RiskService();
   return shared;
 }

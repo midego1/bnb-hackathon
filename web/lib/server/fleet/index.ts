@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { getAddress, isAddress, type Address } from "viem";
 import { z } from "zod";
 import type { Env } from "../env";
+import { onCloudflare } from "../platform";
+import { getSharedState, update, type SharedState } from "../state";
 import type { Booking, FleetAction, FleetData, Scooter } from "@/lib/fleet";
 
 /**
@@ -178,8 +180,33 @@ export function applyAction(data: FleetData, a: FleetAction, now: string) {
   }
 }
 
+/**
+ * The same store on Cloudflare Workers (no disk, memory per isolate): one record per chain in the KeyEscrowState
+ * Durable Object, changed with an atomic read-modify-write instead of the file + process queue.
+ */
+export class SharedFleetStore {
+  constructor(private readonly state: () => SharedState = getSharedState) {}
+
+  private key(chainId: number) {
+    return `fleet:${chainId}`;
+  }
+
+  async read(chainId: number): Promise<FleetData> {
+    return (await this.state().get<FleetData>(this.key(chainId)))?.value ?? demoFleet(chainId);
+  }
+
+  apply(chainId: number, action: FleetAction): Promise<FleetData> {
+    return update<FleetData, FleetData>(this.state(), this.key(chainId), (cur) => {
+      const data = cur ?? demoFleet(chainId);
+      applyAction(data, action, new Date().toISOString());
+      return { value: data, result: data };
+    });
+  }
+}
+
 let cached: FleetStore | null = null;
-export function getFleetStore() {
+export function getFleetStore(): Pick<FleetStore, "read" | "apply"> {
+  if (onCloudflare()) return new SharedFleetStore();
   cached ??= new FleetStore();
   return cached;
 }

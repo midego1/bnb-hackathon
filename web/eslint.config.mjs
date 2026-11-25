@@ -11,6 +11,10 @@ const eslintConfig = defineConfig([
     ".next/**",
     ".next-e2e/**",
     ".next-*/**",
+    // Cloudflare Workers build output and wrangler state (scripts/cf.mjs); cloudflare/ has its own tsconfig.
+    ".open-next/**",
+    ".wrangler/**",
+    "cloudflare/worker-configuration.d.ts",
     "test-results/**",
     "playwright-report/**",
     "out/**",

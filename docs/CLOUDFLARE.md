@@ -61,10 +61,16 @@ Wallet RPC: the browser talks to BSC testnet through `NEXT_PUBLIC_BSC_TESTNET_RP
 | `GET /api/price` | Same sources (Atlas, CoinMarketCap with `CMC_API_KEY`, else mock). The quote is cached in memory per isolate and, across isolates, in the KeyEscrowState Durable Object for `PRICE_CACHE_TTL_SECONDS` (300 in `wrangler.jsonc`). Mock answers are never shared. |
 | `POST /api/settlement` | Same code. Mock without `ANTHROPIC_API_KEY`; signed as agent #2921 with `INSPECTOR_PRIVATE_KEY`. |
 | `POST /api/evidence`, `GET /api/evidence/<hash>` | No disk on Workers. With the `EVIDENCE` R2 bucket bound: stored there as `evidence/<sha256>` (private). Without it: uploads answer **503 "evidence uploads are disabled on this deployment"**, the browser hashes the files itself (the hashes still go on-chain), and lookups 404. The demo's own lease PDF and photos are static files under `/demo/`, so the demo does not need the bucket. |
+| `GET /api/risk` | CoinMarketCap quotes cached per isolate and in the Durable Object (`RISK_CACHE_TTL_SECONDS`); latest Cournot answer from the store below. |
+| `GET/POST /api/cournot` | Committed answers (`web/data/cournot-results.json`) are bundled into the Worker; new live answers go to the Durable Object (newest 100). |
+| `GET /api/integrations` | Sponsor call log: a bounded list per sponsor in the Durable Object instead of `web/.sponsor-logs/*.jsonl`. |
+| `GET/POST /api/fleet` | Scooter listings and booking requests: one record per chain in the Durable Object (atomic update) instead of `web/.fleet/<chainId>.json`. |
+| `POST /api/settlement` (memory) | Per-scooter inspection memory: Living Brain when its secrets are set, else the stand-in in the Durable Object instead of `inspections.jsonl`. |
 | `/api/demo-testnet/*` | The live testnet demo runner. Keys from secrets (`DEMO_TESTNET_KEYS`, ...), lock and rate limit in the Durable Object (`SharedRunStore`). 404 until `DEMO_TESTNET_KEYS` is set. |
 
-Local development is unchanged: `next dev` / `next start` / `pnpm testnet:web` still use the local disk (or
-Greenfield), the in-memory price cache and the in-memory run store.
+Local development is unchanged: `next dev` / `next start` / `pnpm testnet:web` still use the local disk (evidence,
+fleet, sponsor logs, Cournot answers, inspection memory; or Greenfield), the in-memory caches and the in-memory run
+store.
 
 ### Shared state (the Durable Object)
 
@@ -103,7 +109,10 @@ without them the app runs in mock / read-only mode. **Never** put them in `wrang
 | `NEXT_PUBLIC_CHAIN_ID`, `KEYESCROW_PLATFORM`, `VISION_LLM_PROVIDER`, `PRICE_CACHE_TTL_SECONDS`, `DEMO_TESTNET_RUNNER` | vars (in `wrangler.jsonc`) | `97`, `cloudflare`, `anthropic`, `300`, `1` |
 | `ANTHROPIC_API_KEY` | secret | Live AI inspection (mock without it) |
 | `INSPECTOR_PRIVATE_KEY` | secret | Signs settlement reports as agent #2921 (must be the registered `reportSigner`) |
-| `CMC_API_KEY` | secret | CoinMarketCap prices (`ATLAS_RPC_URL`, `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB` too, if used) |
+| `CMC_API_KEY` | secret | CoinMarketCap: `/api/price` and the `/api/risk` deposit buffer |
+| `ATLAS_RPC_URL` | secret | Atlas on-chain price feeds; with the vars `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB`, `ATLAS_MAX_AGE_SECONDS` |
+| `COURNOT_API_KEY` | secret | Cournot oracle prepaid key; live calls also need the var `COURNOT_LIVE=1` (`COURNOT_MAX_LIVE_CALLS` optional) |
+| `LIVING_BRAIN_API_KEY` | secret | Living Brain inspection memory, with `LIVING_BRAIN_SUBJECT_ID` and `LIVING_BRAIN_BRAIN_ID` (secrets or vars) |
 | `DEMO_TESTNET_KEYS` | secret | JSON `{"landlord":"0x…","tenant":"0x…","arbiter":"0x…"}`: the three demo wallets' private keys |
 | `DEMO_TESTNET_RPC_URL` | secret | BSC testnet RPC the runner signs against (a secret because a provider URL may embed an API key) |
 | `DEMO_TESTNET_FUNDER_KEY` | secret | A **small dedicated** wallet that tops up demo wallets (never the deployer). Without it a low wallet refuses the run |
@@ -131,11 +140,12 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 12.1 MiB | **2.41 MiB** | fits Free (3 MiB) |
+| `keyescrow-web` | 12.6 MiB | **2.50 MiB** | fits Free (3 MiB) |
 | `keyescrow-agent` | 3.6 MiB | **0.62 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.6 MiB.
+time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.5 MiB. The sponsor and role-view
+merges added 0.09 MiB; if a later merge pushes it over 3 MiB the Worker needs Workers Paid ($5/month).
 
 ## One-time setup (Michiel)
 
@@ -176,11 +186,16 @@ After the agent is live, its ERC-8004 registration still lists the GitHub URL as
 
 - `pnpm cf:preview`: home, landlord, tenant, dispute desk, `/demo` (live testnet gate) and a real chain 97 lease
   (`/lease/0x115bb93282F8928D64d7d29e3278D0B19dCAd57a`, settled, full timeline from PublicNode) render with no page
-  errors. `/api/price` (mock), `/api/settlement` (mock), `/api/evidence` (503 disabled / 404) answer as above.
+  errors. `/api/price` (mock), `/api/settlement` (mock), `/api/evidence` (503 disabled / 404), `/api/risk`,
+  `/api/cournot`, `/api/integrations` and `/api/fleet` (a listing written and read back) answer as above. The back
+  office loads its events straight from the browser and PublicNode answers part of that burst (44 `eth_getLogs`)
+  with 403, so its table stayed empty in the preview; that is client code talking to the public RPC, the same on any
+  host.
 - Live demo runner with throwaway, unfunded keys in `web/.dev.vars`: status reads chain 97, a start is refused with
   "out of test BNB" (no funder, so nothing can be sent), the lock is freed, and the next start gets 429 from the rate
   limit, also after restarting the Worker (state lives in the Durable Object).
 - `pnpm cf:agent:preview`: `/health`, `/.well-known/agent-card.json`, `/.well-known/agent-registration.json`,
   `POST /inspect`, A2A `message/send` and MCP `initialize` / `tools/list` all answer in mock mode.
 - Unit tests: `web/tests/cloudflare.test.ts` (shared state on both backends, locks, rate limits, R2 / disabled
-  evidence, shared price cache, `SharedRunStore` against `MemoryRunStore`), `agent/test/worker.test.ts`.
+  evidence, shared price cache, `SharedRunStore` against `MemoryRunStore`, fleet / sponsor log / Cournot / memory
+  stores on the Durable Object), `agent/test/worker.test.ts`.

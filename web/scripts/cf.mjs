@@ -30,7 +30,10 @@ const LIMITS = { free: 3 * MiB, paid: 10 * MiB };
 export const WEB_SECRETS = [
   ["ANTHROPIC_API_KEY", "optional", "live AI inspection in POST /api/settlement (mock without it)"],
   ["INSPECTOR_PRIVATE_KEY", "optional", "signs settlement reports as ERC-8004 agent #2921 (unsigned without it)"],
-  ["CMC_API_KEY", "optional", "CoinMarketCap prices for GET /api/price (static mock without it)"],
+  ["CMC_API_KEY", "optional", "CoinMarketCap: /api/price, /api/risk deposit buffer (mock / 'not configured' without it)"],
+  ["COURNOT_API_KEY", "optional", "Cournot oracle prepaid key (live calls also need the var COURNOT_LIVE=1)"],
+  ["LIVING_BRAIN_API_KEY", "optional", "Living Brain inspection memory, with LIVING_BRAIN_SUBJECT_ID + LIVING_BRAIN_BRAIN_ID"],
+  ["ATLAS_RPC_URL", "optional", "Atlas on-chain price feeds RPC (with the ATLAS_FEED_* vars)"],
   ["DEMO_TESTNET_KEYS", "optional", 'live testnet /demo: JSON {"landlord","tenant","arbiter"} private keys of the demo wallets'],
   ["DEMO_TESTNET_RPC_URL", "optional", "live testnet /demo: BSC testnet RPC the runner signs against (may embed an API key)"],
   ["DEMO_TESTNET_FUNDER_KEY", "optional", "live testnet /demo: small dedicated gas top-up wallet, never the deployer"],
@@ -169,6 +172,9 @@ function build() {
   if (status !== 0) fail(`opennextjs-cloudflare build failed (exit ${status})`);
   scrubEnvFiles();
   assertNoDevAccounts();
+  // Copy the prerendered pages into the static assets (the read-only incremental cache, open-next.config.ts), as
+  // `opennextjs-cloudflare deploy` does again before uploading, so the local preview serves exactly what deploys.
+  if (run("pnpm", ["exec", "opennextjs-cloudflare", "populateCache", "local"], { env }) !== 0) fail("populating the static-assets cache failed");
   const marker = {
     target: "cloudflare",
     worker: "keyescrow-web",
@@ -265,7 +271,10 @@ function credentials() {
       const m = /^\s*(?:export\s+)?(CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID)\s*=\s*(.*?)\s*$/.exec(line);
       if (!m) continue;
       const v = m[2].replace(/^(['"])(.*)\1$/, "$2");
-      if (m[1] === "CLOUDFLARE_API_TOKEN" && !out.token && v) (out.token = v), (out.source = "repo .env");
+      if (m[1] === "CLOUDFLARE_API_TOKEN" && !out.token && v) {
+        out.token = v;
+        out.source = "repo .env";
+      }
       if (m[1] === "CLOUDFLARE_ACCOUNT_ID" && !out.account && v) out.account = v;
     }
   }

@@ -277,3 +277,49 @@ describe("demo-testnet run store: SharedRunStore behaves like MemoryRunStore", (
     expect((await store.peek(now + 6_000 + cfg.idleMs + 1)).busy).toBe(false);
   });
 });
+
+describe("sponsor and fleet data on Workers live in the Durable Object, not on disk", () => {
+  const onWorkers = () => {
+    const { ns, storage } = fakeNamespace();
+    g[CONTEXT] = { env: { KEYESCROW_STATE: ns } };
+    return storage;
+  };
+
+  it("fleet listings: atomic per-chain record, demo fleet when empty", async () => {
+    const { SharedFleetStore, getFleetStore, fleetActionSchema } = await import("@/lib/server/fleet");
+    const storage = onWorkers();
+    expect(getFleetStore()).toBeInstanceOf(SharedFleetStore);
+    const store = getFleetStore();
+    expect((await store.read(97)).scooters).toEqual([]);
+    const owner = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+    const data = await store.apply(97, fleetActionSchema.parse({ action: "addScooter", owner, name: "Honda Click", location: "Chiang Mai", rentThb: 3000, depositThb: 6000, vault: false }));
+    expect(data.scooters[0].id).toBe("honda-click-chiang-mai");
+    expect((await getFleetStore().read(97)).scooters).toHaveLength(1); // a new store (another isolate) sees it
+    expect([...storage.keys()]).toContain("fleet:97");
+    await expect(store.apply(97, { action: "book", scooterId: "nope", renter: owner })).rejects.toThrow(/unknown scooter/);
+  });
+
+  it("sponsor call log, Cournot answers and the inspection-memory stand-in", async () => {
+    const { logSponsorCall, recentSponsorCalls } = await import("@/lib/server/sponsors/log");
+    const { saveResult, storedResults } = await import("@/lib/server/sponsors/cournot");
+    const { inspectionMemoryFromEnv, SharedInspectionMemory } = await import("@/lib/server/sponsors/livingbrain");
+    const storage = onWorkers();
+
+    const call = { sponsor: "cmc" as const, endpoint: "GET /v2/x", at: new Date().toISOString(), status: 200, ok: true, ms: 5 };
+    await logSponsorCall(call, {});
+    expect(await recentSponsorCalls("cmc", 5, {})).toEqual([call]);
+    expect(storage.has("sponsor-log:cmc")).toBe(true);
+
+    const committed = (await storedResults()).length; // bundled web/data/cournot-results.json
+    const r = { claim: "Will BNB fall below $500 at any time before 2027-01-01 00:00 UTC?", marketId: null, marketTitle: null, probability: 0.1, result: null, basis: null, billing: null, at: "2099-01-01T00:00:00.000Z", requestId: "t", source: "live" as const };
+    await saveResult(r);
+    const all = await storedResults();
+    expect(all).toHaveLength(committed + 1);
+    expect(all[0]).toMatchObject({ requestId: "t" });
+
+    const memory = inspectionMemoryFromEnv({});
+    expect(memory).toBeInstanceOf(SharedInspectionMemory);
+    await memory.remember({ scooterId: "click-01", at: "2026-11-25T00:00:00.000Z", findings: ["left mirror scratched"], newDamage: true });
+    expect((await inspectionMemoryFromEnv({}).recall("CLICK-01"))[0].text).toMatch(/left mirror scratched/);
+  });
+});
