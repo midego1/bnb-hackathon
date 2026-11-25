@@ -93,6 +93,20 @@ export function isEnvSet(text: string, name: string): boolean {
   return set;
 }
 
+/** The value of NAME (last NAME= line wins, quotes stripped), for server-side key tests only. Never sent anywhere. */
+export function envValue(text: string, name: string): string | undefined {
+  const re = lineRe(name);
+  let value: string | undefined;
+  for (const raw of text.split(/\r?\n/)) {
+    const m = re.exec(raw);
+    if (!m) continue;
+    let v = m[2].trim();
+    if (/^".*"$|^'.*'$/.test(v)) v = v.slice(1, -1);
+    value = v || undefined;
+  }
+  return value;
+}
+
 export async function readEnvText(file: string): Promise<string> {
   try {
     return await readFile(file, "utf8");

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import http from "node:http";
 import path from "node:path";
 import { E2E_SECRETS } from "./env";
 
@@ -130,4 +131,99 @@ test("secrets API: locked without a session, refuses cross-site posts and unknow
   const unknown = await request.post("/api/settings/secrets", { data: { name: "NEXT_PUBLIC_CHAIN_ID", value: "97" }, headers: { origin: baseURL! } });
   expect([400, 401]).toContain(unknown.status()); // 401 first: no session
   expect(readFileSync(E2E_SECRETS.web, "utf8")).toBe(WEB_TEXT);
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// Key tests: every outside API goes to a local stub (SETTINGS_SECRETS_TEST_ORIGIN), so nothing leaves the machine.
+// ---------------------------------------------------------------------------------------------------------
+
+const GOOD_KEY = `sk-ant-api03-${"g".repeat(36)}good`;
+const BAD_KEY = `sk-ant-api03-${"b".repeat(36)}baad`;
+
+/** Stub of api.anthropic.com (/v1/models: 3 models for the good key, 401 otherwise) and a chain 97 RPC at /rpc. */
+function startStub(): Promise<{ server: http.Server; hits: string[] }> {
+  const hits: string[] = [];
+  const server = http.createServer((req, res) => {
+    hits.push(req.url ?? "");
+    res.setHeader("content-type", "application/json");
+    if (req.url?.startsWith("/api.anthropic.com/v1/models")) {
+      const ok = req.headers["x-api-key"] === GOOD_KEY && req.headers["anthropic-version"];
+      res.statusCode = ok ? 200 : 401;
+      res.end(JSON.stringify(ok ? { data: [{ id: "a" }, { id: "b" }, { id: "c" }] } : { type: "error", error: { type: "authentication_error" } }));
+      return;
+    }
+    if (req.url === "/rpc" && req.method === "POST") {
+      res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x61" }));
+      return;
+    }
+    res.statusCode = 404;
+    res.end("{}");
+  });
+  return new Promise((resolve) => server.listen(E2E_SECRETS.stubPort, "127.0.0.1", () => resolve({ server, hits })));
+}
+
+test("key tests: Test checks the stored value, Test before saving checks the typed one without saving", async ({ page }) => {
+  seed();
+  const stub = await startStub();
+  try {
+    const bodies = recordBodies(page);
+    await page.setViewportSize({ width: 1470, height: 900 });
+    await unlock(page);
+    const row = page.getByTestId("secret-ANTHROPIC_API_KEY");
+    await expect(row.getByTestId("secret-test")).toBeDisabled(); // nothing stored yet
+
+    // Test before saving: a wrong key is Invalid and nothing is written.
+    await row.getByTestId("secret-input").fill(BAD_KEY);
+    await row.getByTestId("secret-test-typed").click();
+    const result = row.getByTestId("secret-test-result");
+    await expect(result).toHaveAttribute("data-status", "invalid");
+    await expect(result).toContainText("401 unauthorized");
+    await expect(result).toContainText("typed value, not saved");
+    expect(readFileSync(E2E_SECRETS.web, "utf8")).toBe(WEB_TEXT);
+
+    // Save the good key, then Test checks the stored value.
+    await row.getByTestId("secret-input").fill(GOOD_KEY);
+    await row.getByTestId("secret-save").click();
+    await expect(row.getByTestId("secret-status")).toHaveText("SET");
+    await row.getByTestId("secret-test").click();
+    await expect(result).toHaveAttribute("data-status", "valid");
+    await expect(result).toContainText("3 models listed");
+    await expect(result).toContainText("stored value");
+
+    // An RPC URL typed in the field: chainId 97 from the stub.
+    const rpcRow = page.getByTestId("secret-BSC_TESTNET_RPC_URL");
+    await rpcRow.getByTestId("secret-input").fill(`http://127.0.0.1:${E2E_SECRETS.stubPort}/rpc`);
+    await rpcRow.getByTestId("secret-test-typed").click();
+    await expect(rpcRow.getByTestId("secret-test-result")).toHaveAttribute("data-status", "valid");
+    await expect(rpcRow.getByTestId("secret-test-result")).toContainText("chainId 97");
+    expect(readFileSync(E2E_SECRETS.root, "utf8")).toBe(ROOT_TEXT);
+
+    // No free test for Cournot: Can't test, and the stub is never asked.
+    const cournot = page.getByTestId("secret-COURNOT_API_KEY");
+    await cournot.getByTestId("secret-input").fill("ck_live_abcdefgh1234");
+    await cournot.getByTestId("secret-test-typed").click();
+    await expect(cournot.getByTestId("secret-test-result")).toHaveAttribute("data-status", "untestable");
+    await expect(cournot.getByTestId("secret-test-result")).toContainText("without spending credits");
+
+    expect(stub.hits.filter((h) => h.includes("anthropic")).length).toBe(2);
+    expect(stub.hits.some((h) => h.includes("cournot"))).toBe(false);
+    for (const b of bodies) for (const v of [GOOD_KEY, BAD_KEY, "ck_live_abcdefgh1234"]) expect(b).not.toContain(v);
+    const audit = readFileSync(path.join(E2E_SECRETS.state, "reports", "secrets-audit.log"), "utf8");
+    expect(audit).toContain("\tANTHROPIC_API_KEY\ttested\ttyped:invalid\t");
+    expect(audit).toContain("\tANTHROPIC_API_KEY\ttested\tstored:valid\t");
+    expect(audit).not.toContain(GOOD_KEY);
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((t) => localStorage.setItem("keyescrow-theme", t), theme);
+      await page.reload();
+      await row.getByTestId("secret-test").click();
+      await expect(result).toHaveAttribute("data-status", "valid");
+      await page.getByTestId("secret-INSPECTOR_PRIVATE_KEY").scrollIntoViewIfNeeded();
+      await row.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(SHOTS, `key-test-${theme}.png`) });
+    }
+    await page.evaluate(() => localStorage.removeItem("keyescrow-theme"));
+  } finally {
+    await new Promise((r) => stub.server.close(r));
+  }
 });

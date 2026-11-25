@@ -25,6 +25,30 @@ secrets page at **`/settings/secrets`** puts them there from the browser.
    **Services** card restarts `keyescrow-web` (:3000) or `keyescrow-web-testnet` (:3001) with
    `systemctl --user --no-block restart` and waits until it is back. No other unit can be restarted from the page.
 
+## Test a key
+
+Each name has **Test** (checks the stored value on the server) and **Test before saving** (checks the value typed in
+the field without writing it). The result is **Valid**, **Invalid** or **Can't test**, with a short reason and the time,
+e.g. "Valid: 3 models listed", "Invalid: 401 unauthorized", "Valid: chainId 97". The value is never in the result, a
+log, an error or the audit line (`<time> NAME tested stored:valid <ip>`).
+
+Only free, read-only calls, server-side, 10 s timeout, at most 10 tests per 5 minutes:
+
+| Name | Check |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | `GET api.anthropic.com/v1/models` (lists models, no tokens used) |
+| `CMC_API_KEY` | `GET pro-api.coinmarketcap.com/v1/key/info`: no API credit cost per CMC's API reference (it only counts towards the per-minute rate limit); shows the credits left this month |
+| `BSCSCAN_API_KEY` | Etherscan V2 `chainid=97&module=proxy&action=eth_blockNumber`; if the free plan does not cover chain 97, the key is checked with the same call on chain 1 |
+| `CLOUDFLARE_API_TOKEN` | `GET /client/v4/user/tokens/verify` |
+| `CLOUDFLARE_ACCOUNT_ID` | `GET /client/v4/accounts/<id>` with the stored token (save the token first) |
+| `PINATA_JWT` | `GET api.pinata.cloud/data/testAuthentication` |
+| `BSC_TESTNET_RPC_URL`, `ATLAS_RPC_URL` | `eth_chainId` (97 expected for the BSC one) |
+| `GREENFIELD_RPC_URL`, `GREENFIELD_CHAIN_ID` | the node's Tendermint `/status` network (`greenfield_5600-1`) |
+| `INSPECTOR_PRIVATE_KEY`, `GREENFIELD_PRIVATE_KEY` | no network: the address is derived locally and shown (the inspector key is compared with `INSPECTOR_SIGNER_ADDRESS` and `agent/deployments/97.json` `reportSigner`) |
+| `COURNOT_API_KEY`, `LIVING_BRAIN_*`, `GREENFIELD_BUCKET`, `GREENFIELD_SP_ENDPOINT` | Can't test: no free check without spending credits (Cournot's free calls are limited, so it is never called) |
+
+![Key test](screenshots/settings-secrets-key-test-light.png)
+
 ## Which file
 
 | File | Read by | Names |
@@ -59,6 +83,8 @@ The page and its API answer **404** unless the server runs with `SETTINGS_SECRET
 | `SECRETS_WEB_ENV_FILE` | `web/.env.local` next to `SECRETS_ENV_FILE` |
 | `SETTINGS_SECRETS_STATE_DIR` | `.orca` next to `SECRETS_ENV_FILE` (passcode, backups, audit log) |
 | `SETTINGS_SECRETS_RESTART` | on; `0` hides the restart buttons and never calls `systemctl` |
+| `SETTINGS_SECRETS_AGENT_DEPLOYMENT` | `agent/deployments/97.json` next to `SECRETS_ENV_FILE` (registered report signer) |
+| `SETTINGS_SECRETS_TEST_ORIGIN` | unset; e2e only: `http://127.0.0.1:<port>` stub that stands in for every key-test API |
 | `SETTINGS_SECRETS_HOSTS` | extra allowed Host names, comma-separated (localhost, tailnet IPs and `*.ts.net` are always allowed) |
 
 ## Guards

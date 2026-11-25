@@ -105,7 +105,7 @@ export class RateLimiter {
   }
 }
 
-type Limiters = { passcode: RateLimiter; passcodeAll: RateLimiter; write: RateLimiter; read: RateLimiter };
+type Limiters = { passcode: RateLimiter; passcodeAll: RateLimiter; write: RateLimiter; read: RateLimiter; test: RateLimiter };
 const g = globalThis as typeof globalThis & { __keyescrowSecretsLimiters?: Limiters };
 
 export function limiters(): Limiters {
@@ -114,5 +114,6 @@ export function limiters(): Limiters {
     passcodeAll: new RateLimiter(20, 5 * 60_000), // all clients together
     write: new RateLimiter(30, 5 * 60_000),
     read: new RateLimiter(120, 60_000),
+    test: new RateLimiter(10, 5 * 60_000), // key tests reach outside APIs: 10 per 5 minutes per IP
   });
 }

@@ -1,7 +1,8 @@
 import { execFile, spawn } from "node:child_process";
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { isEnvSet, readEnvText, setEnvValue, validateSecretValue, writeEnvFileAtomic, formatHint } from "./envFile";
+import { isTestable, testSecret, type TestResult } from "./testers";
+import { envValue, isEnvSet, readEnvText, setEnvValue, validateSecretValue, writeEnvFileAtomic, formatHint } from "./envFile";
 import { GROUP_LABEL, restartUnits, secretSpec, SECRETS, UNIT_NAMES, UNITS, type SecretTarget, type UnitName } from "./registry";
 
 type Env = Record<string, string | undefined>;
@@ -15,6 +16,10 @@ export type SecretsConfig = {
   stateDir: string;
   /** SETTINGS_SECRETS_RESTART=0 hides the restart buttons and skips systemctl entirely (used by the e2e run). */
   restart: boolean;
+  /** agent/deployments/97.json of the main checkout: the registered report signer the inspector key is compared with. */
+  agentDeployment: string;
+  /** e2e only (SETTINGS_SECRETS_TEST_ORIGIN, http://127.0.0.1:<port> only): stub that stands in for the key-test APIs. */
+  testOrigin?: string;
 };
 
 // Runtime paths only: turbopackIgnore keeps the build from tracing the whole checkout because of them.
@@ -25,6 +30,8 @@ export function secretsConfig(env: Env): SecretsConfig {
     files: { root, web: path.resolve(/* turbopackIgnore: true */ env.SECRETS_WEB_ENV_FILE || path.join(/* turbopackIgnore: true */ repo, "web", ".env.local")) },
     stateDir: path.resolve(/* turbopackIgnore: true */ env.SETTINGS_SECRETS_STATE_DIR || path.join(/* turbopackIgnore: true */ repo, ".orca")),
     restart: env.SETTINGS_SECRETS_RESTART !== "0",
+    agentDeployment: path.resolve(/* turbopackIgnore: true */ env.SETTINGS_SECRETS_AGENT_DEPLOYMENT || path.join(/* turbopackIgnore: true */ repo, "agent", "deployments", "97.json")),
+    testOrigin: /^http:\/\/127\.0\.0\.1:\d{2,5}$/.test(env.SETTINGS_SECRETS_TEST_ORIGIN ?? "") ? env.SETTINGS_SECRETS_TEST_ORIGIN : undefined,
   };
 }
 
@@ -47,6 +54,8 @@ export type SecretStatus = {
   files: { target: SecretTarget; label: string; set: boolean }[];
   set: boolean;
   restart: { unit: UnitName; label: string }[];
+  /** Whether a free, read-only key test exists for this name. */
+  testable: boolean;
 };
 
 /** All allowlisted names with SET / NOT SET per file. Values are read only to test for emptiness. */
@@ -65,6 +74,7 @@ export async function listSecrets(cfg: SecretsConfig): Promise<SecretStatus[]> {
       files,
       set: files.every((f) => f.set),
       restart: restartUnits(s).map((u) => ({ unit: u, label: UNITS[u].label })),
+      testable: isTestable(s.name),
     };
   });
 }
@@ -101,12 +111,64 @@ export async function writeSecret(cfg: SecretsConfig, name: unknown, value: unkn
   return { name: spec.name, set: clean !== null, savedAt: now.toISOString(), restart: restartUnits(spec) };
 }
 
-/** time, name, set/cleared, files, client IP. Never the value. */
-export async function audit(cfg: SecretsConfig, e: { time: Date; name: string; action: string; targets: SecretTarget[]; ip: string | null }) {
+/** time, name, set/cleared/tested/restart, files (or the test result), client IP. Never the value. */
+export async function audit(cfg: SecretsConfig, e: { time: Date; name: string; action: string; targets: SecretTarget[]; ip: string | null; detail?: string }) {
   const file = auditFile(cfg);
   await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
   const ip = (e.ip ?? "unknown").replace(/[^0-9a-fA-F:.]/g, "").slice(0, 64) || "unknown";
-  await appendFile(file, `${e.time.toISOString()}\t${e.name}\t${e.action}\t${e.targets.join(",")}\t${ip}\n`, { mode: 0o600 });
+  const col = e.detail ?? e.targets.join(",");
+  await appendFile(file, `${e.time.toISOString()}\t${e.name}\t${e.action}\t${col}\t${ip}\n`, { mode: 0o600 });
+}
+
+/** The stored value of `name` (web/.env.local first, then the root .env). Server-side only, for key tests. */
+async function storedValue(cfg: SecretsConfig, name: string): Promise<string | undefined> {
+  for (const t of ["web", "root"] as const) {
+    const v = envValue(await readEnvText(cfg.files[t]), name);
+    if (v) return v;
+  }
+  return undefined;
+}
+
+async function agentReportSigner(cfg: SecretsConfig): Promise<string | undefined> {
+  try {
+    const signer = JSON.parse(await readFile(cfg.agentDeployment, "utf8")).reportSigner;
+    return typeof signer === "string" ? signer : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Tests the stored value (value undefined) or a typed value (validated first, never written). The audit line has the
+ * name, "tested", stored/typed and the result status; the answer has status, reason and time. Never the value.
+ */
+export async function testStoredOrTyped(
+  cfg: SecretsConfig,
+  name: unknown,
+  typed: unknown,
+  ip: string | null,
+  fetchImpl: typeof fetch = fetch,
+  now = new Date(),
+): Promise<TestResult & { name: string; source: "stored" | "typed"; testedAt: string }> {
+  const spec = secretSpec(name);
+  if (!spec) throw new SecretNameError();
+  const source = typed === undefined || typed === null || typed === "" ? "stored" : "typed";
+  let result: TestResult;
+  const value = source === "typed" ? validateSecretValue(spec, typed) : await storedValue(cfg, spec.name);
+  if (!value) result = { status: "untestable", reason: "Not set: nothing stored to test" };
+  else {
+    const cache = new Map<string, string | undefined>();
+    const stored = (n: string) => cache.get(n);
+    for (const n of ["CLOUDFLARE_API_TOKEN", "GREENFIELD_RPC_URL", "INSPECTOR_SIGNER_ADDRESS"]) cache.set(n, await storedValue(cfg, n));
+    result = await testSecret(spec.name, value, {
+      fetch: fetchImpl,
+      stored,
+      agentReportSigner: spec.name === "INSPECTOR_PRIVATE_KEY" ? await agentReportSigner(cfg) : undefined,
+      apiOrigin: cfg.testOrigin,
+    });
+  }
+  await audit(cfg, { time: now, name: spec.name, action: "tested", targets: [], detail: `${source}:${result.status}`, ip }).catch(() => {});
+  return { name: spec.name, source, status: result.status, reason: result.reason, testedAt: now.toISOString() };
 }
 
 // ---------------------------------------------------------------------------------------------------------
