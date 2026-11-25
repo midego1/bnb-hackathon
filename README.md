@@ -232,7 +232,7 @@ contracts/           Foundry project
   src/RentalEscrow.sol     per-rental escrow: deposit, rent schedule, evidence hashes, settlement
   src/mocks/MockUSDT.sol   testnet-only 6-decimal stablecoin with a capped faucet
   test/                    Foundry tests
-web/                 Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
+web/                 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + wagmi/viem + RainbowKit
   app/                     pages: / /landlord (owner) /tenant (renter) /arbiter /lease/[address] (one rental)
   app/api/                 server routes: AI settlement, price (CMC/Atlas), evidence upload (Greenfield)
   components/              UI: role pages, rental detail panels (rent, return, evidence, ruling, timeline)
