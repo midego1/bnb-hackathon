@@ -1,4 +1,5 @@
 import { getAddress, isAddress, type Address } from "viem";
+import { targetChainId } from "../chains";
 import deployments from "./deployments.generated.json";
 
 export { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi } from "./abis.generated";
@@ -22,9 +23,24 @@ function envAddress(v: string | undefined): Address | undefined {
   return v && isAddress(v) ? getAddress(v) : undefined;
 }
 
+/**
+ * Optional overrides for the target chain (NEXT_PUBLIC_CHAIN_ID), e.g. right after a testnet deploy before
+ * `pnpm sync:contracts` has picked up contracts/deployments/97.json.
+ */
+function envOverride(chainId: number) {
+  if (chainId !== targetChainId) return undefined;
+  const escrowFactory = envAddress(process.env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS);
+  const mockUsdt = envAddress(process.env.NEXT_PUBLIC_MOCK_USDT_ADDRESS);
+  return escrowFactory && mockUsdt ? { escrowFactory, mockUsdt } : undefined;
+}
+
 export function getDeployment(chainId: number | undefined): Deployment | undefined {
   if (chainId === undefined) return undefined;
-  const raw = table[String(chainId)];
+  const override = envOverride(chainId);
+  const file = table[String(chainId)];
+  const raw = override
+    ? { ...override, disputeDesk: undefined, fromBlock: 0, ...(file && file.escrowFactory.toLowerCase() === override.escrowFactory.toLowerCase() ? file : {}) }
+    : file;
   if (!raw) return undefined;
   return {
     escrowFactory: getAddress(raw.escrowFactory),

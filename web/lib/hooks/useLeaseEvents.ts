@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
 import { escrowFactoryAbi, rentalEscrowAbi } from "../contracts";
+import { inBlockWindows } from "../logs";
 import { useDeployment } from "./useDeployment";
 
 export type TimelineEvent = {
@@ -27,14 +28,10 @@ export function useLeaseEvents(address: Address | undefined) {
       const c = client!;
       const fromBlock = deployment!.fromBlock;
       const [created, own] = await Promise.all([
-        c.getContractEvents({
-          address: deployment!.escrowFactory,
-          abi: escrowFactoryAbi,
-          eventName: "LeaseCreated",
-          args: { escrow: address! },
-          fromBlock,
-        }),
-        c.getContractEvents({ address: address!, abi: rentalEscrowAbi, fromBlock }),
+        inBlockWindows(c, fromBlock, (range) =>
+          c.getContractEvents({ address: deployment!.escrowFactory, abi: escrowFactoryAbi, eventName: "LeaseCreated", args: { escrow: address! }, ...range }),
+        ),
+        inBlockWindows(c, fromBlock, (range) => c.getContractEvents({ address: address!, abi: rentalEscrowAbi, ...range })),
       ]);
       // `Initialized` is OpenZeppelin proxy plumbing, not part of the lease story.
       const logs = [...created, ...own].filter((l) => l.eventName !== "Initialized" && l.blockNumber !== null && l.transactionHash !== null);

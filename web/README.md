@@ -25,7 +25,9 @@ pnpm -C web sync:contracts   # contracts/out → lib/contracts/abis.generated.ts
 
 | Var | Default | Use |
 | --- | --- | --- |
-| `NEXT_PUBLIC_RPC_URL` | `http://127.0.0.1:8545` | anvil RPC the browser talks to |
+| `NEXT_PUBLIC_CHAIN_ID` | `31337` | target chain: `31337` (anvil) or `97` (BSC testnet; anvil is then not listed). Addresses come from `contracts/deployments/<id>.json` via `sync:contracts` |
+| `NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS`, `NEXT_PUBLIC_MOCK_USDT_ADDRESS` | unset | optional address override for the target chain (both required) |
+| `NEXT_PUBLIC_RPC_URL` (alias `NEXT_PUBLIC_ANVIL_RPC_URL`) | `http://127.0.0.1:8545` | anvil RPC the browser talks to |
 | `NEXT_PUBLIC_BSC_TESTNET_RPC_URL` | viem default | BSC testnet (97) RPC |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | unset | enables RainbowKit's full wallet list; otherwise injected wallets only |
 | `NEXT_PUBLIC_DEV_ACCOUNTS` | `0` | `1` = anvil account switcher (landlord / tenant / arbiter = anvil accounts #1–#3). Only shown on chain 31337, signs via anvil's unlocked accounts (no keys in the browser), and is compiled out of builds without the flag |

@@ -50,10 +50,12 @@ function describe(e: TimelineEvent, lease: LeaseData): { title: string; body?: R
   }
 }
 
-export function Timeline({ lease, events, chainId }: { lease: LeaseData; events: TimelineEvent[] | undefined; chainId: number }) {
+export function Timeline({ lease, events, chainId, unavailable }: { lease: LeaseData; events: TimelineEvent[] | undefined; chainId: number; unavailable?: boolean }) {
   return (
     <Card title="Timeline">
-      {!events ? (
+      {unavailable ? (
+        <p className="text-sm text-slate-500">History is unavailable: this RPC refused the event query. Balances and actions above are live.</p>
+      ) : !events ? (
         <Skeleton className="h-24" />
       ) : (
         <ol className="relative space-y-4 border-l border-slate-200 pl-5 dark:border-slate-800" data-testid="timeline">

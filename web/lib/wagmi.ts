@@ -10,7 +10,7 @@ const appName = "KeyEscrow";
 // A WalletConnect project id is a public identifier (not a secret), so NEXT_PUBLIC_ is fine here.
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
-const transports = {
+const transports: Record<number, ReturnType<typeof http>> = {
   [anvil.id]: http(anvilRpcUrl),
   [bscTestnet.id]: http(process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL),
   [opBNBTestnet.id]: http(process.env.NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL),

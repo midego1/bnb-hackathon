@@ -23,7 +23,7 @@ export function LeaseDetail({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
   const { data: lease, error, isLoading } = useLease(deployment ? address : undefined);
-  const { data: events } = useLeaseEvents(deployment ? address : undefined);
+  const { data: events, error: eventsError } = useLeaseEvents(deployment ? address : undefined);
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch to the network this lease lives on.</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
@@ -71,7 +71,7 @@ export function LeaseDetail({ address }: { address: Address }) {
           {live && <RentPanel lease={lease} viewer={viewer} />}
           <MoveOutPanel lease={lease} viewer={viewer} events={events} />
           <EvidencePanel lease={lease} viewer={viewer} events={events} />
-          <Timeline lease={lease} events={events} chainId={chainId} />
+          <Timeline lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
         </div>
         <aside className="space-y-6">
           <Terms lease={lease} chainId={chainId} viewer={viewer} />

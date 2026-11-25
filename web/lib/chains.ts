@@ -13,10 +13,22 @@ export const anvil = defineChain({
 });
 
 /**
- * Supported chains. Testnets and a local anvil node only: KeyEscrow is never deployed to mainnet
- * as part of the hackathon.
+ * The chain this build targets: NEXT_PUBLIC_CHAIN_ID = 31337 (local anvil, default) or 97 (BSC testnet).
+ * Addresses come from contracts/deployments/<chainId>.json (see lib/contracts).
  */
-export const supportedChains = [anvil, bscTestnet, opBNBTestnet] as const;
+export const targetChainId: number = Number(process.env.NEXT_PUBLIC_CHAIN_ID || anvil.id);
+
+/**
+ * Supported chains, target first (wagmi's default when no wallet is connected). Testnets and a local anvil
+ * node only: KeyEscrow is never deployed to mainnet as part of the hackathon. A testnet build does not list
+ * anvil at all.
+ */
+export const supportedChains =
+  targetChainId === anvil.id
+    ? ([anvil, bscTestnet, opBNBTestnet] as const)
+    : targetChainId === opBNBTestnet.id
+      ? ([opBNBTestnet, bscTestnet] as const)
+      : ([bscTestnet, opBNBTestnet] as const);
 
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 
