@@ -35,6 +35,8 @@ type Base<S extends z.ZodObject> = {
   roles: Role[];
   /** Lease status it needs (prepare_* with a `lease` input; checked before simulating). */
   statuses?: StatusName[];
+  /** Refused up front once the renter's reply window has closed (KE-02): only prepare_claim_timeout still works. */
+  needsOpenResponseWindow?: true;
   input: S;
   /** A valid input, used in the docs' curl examples and checked by the tests. */
   example: z.input<S>;
@@ -420,6 +422,7 @@ export const prepareProposeSettlement = prepare({
     "one. If the renter proposes and the owner stays silent past the reply window, the full deposit goes back to the renter.",
   roles: ["owner", "renter"],
   statuses: ["Active", "MoveOut"],
+  needsOpenResponseWindow: true,
   input: z
     .object({
       lease: leaseField(),
@@ -458,6 +461,7 @@ export const prepareAccept = prepare({
     "NOT make the proposal can accept. Pass `nonce` (from get_lease) to make sure you accept exactly the proposal you reviewed.",
   roles: ["owner", "renter"],
   statuses: ["MoveOut"],
+  needsOpenResponseWindow: true,
   input: z
     .object({
       lease: leaseField(),
@@ -488,6 +492,7 @@ export const prepareDispute = prepare({
     "not rule within its deadline, the full deposit can go back to the renter.",
   roles: ["owner", "renter"],
   statuses: ["Active", "MoveOut"],
+  needsOpenResponseWindow: true,
   input: z.object({ lease: leaseField(), from: fromField("the owner or the renter"), chainId: chainId() }).strict(),
   example: { lease: EX.lease, from: EX.renter },
   build: async ({ lease }, { lease: l }) => ({

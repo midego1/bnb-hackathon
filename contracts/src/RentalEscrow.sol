@@ -36,7 +36,8 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /// Timeouts (both put the burden of proof on the landlord, who holds no funds and must actively claim):
 ///   - Landlord-response timeout: a tenant proposal left unanswered (no accept, counter-proposal or
 ///     dispute) for `responseWindow` seconds returns the FULL deposit to the tenant, regardless of the
-///     split the tenant proposed. A silent landlord has not substantiated any claim.
+///     split the tenant proposed. A silent landlord has not substantiated any claim. The deadline is hard:
+///     from that moment propose/accept/dispute revert, so a late landlord cannot race {claimTimeout}.
 ///   - Arbiter-deadline fallback: a dispute the arbiter has not resolved within `arbiterWindow` seconds
 ///     can be closed by anyone, returning the FULL deposit to the tenant. From that moment the arbiter can
 ///     no longer rule, so the outcome is deterministic and cannot be raced.
@@ -163,6 +164,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     error NothingToRelease();
     error TermFullyFunded();
     error TransferShortfall(uint256 expected, uint256 received);
+    error ResponseWindowClosed(uint64 deadline);
 
     // ---------------------------------------------------------------------------------------------
     // Modifiers
@@ -272,6 +274,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     function propose(uint256 tenantRefund, bytes32 reportHash) external onlyParty {
         Status s = status;
         if (s != Status.Active && s != Status.MoveOut) revert InvalidStatus(s);
+        _requireResponseWindowOpen();
         if (tenantRefund > _terms.depositAmount) revert InvalidAmount();
 
         status = Status.MoveOut;
@@ -296,6 +299,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         Proposal memory p = _proposal;
         if (nonce != p.nonce) revert InvalidNonce(p.nonce, nonce);
         if (msg.sender == p.proposer) revert ProposerCannotAccept();
+        _requireResponseWindowOpen();
 
         _settle(p.tenantRefund, p.landlordClaim, p.reportHash);
     }
@@ -318,6 +322,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     function dispute() external onlyParty {
         Status s = status;
         if (s != Status.Active && s != Status.MoveOut) revert InvalidStatus(s);
+        _requireResponseWindowOpen();
         status = Status.Disputed;
         // forge-lint: disable-next-line(unsafe-typecast) -- uint64 seconds overflow in ~5e11 years
         disputedAt = uint64(block.timestamp);
@@ -383,8 +388,9 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         return startTime + uint64(month) * uint64(RENT_PERIOD);
     }
 
-    /// @notice Timestamp at which {claimTimeout} becomes callable, or 0 if not applicable.
-    function timeoutAt() external view returns (uint64) {
+    /// @notice Timestamp at which {claimTimeout} becomes callable, or 0 if not applicable. From that moment the
+    /// landlord-response window is closed: {propose}, {accept} and {dispute} revert and only {claimTimeout} remains.
+    function timeoutAt() public view returns (uint64) {
         if (status != Status.MoveOut || _proposal.proposer != _terms.tenant) return 0;
         return _proposal.proposedAt + _terms.responseWindow;
     }
@@ -399,6 +405,13 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     // ---------------------------------------------------------------------------------------------
     // Internals
     // ---------------------------------------------------------------------------------------------
+
+    /// @dev Once a tenant proposal's response window has closed, nobody can race {claimTimeout} with a late
+    /// counter-proposal, accept or dispute (same rule as the arbiter deadline).
+    function _requireResponseWindowOpen() internal view {
+        uint64 deadline = timeoutAt();
+        if (deadline != 0 && block.timestamp >= deadline) revert ResponseWindowClosed(deadline);
+    }
 
     function _releasableUpTo() internal view returns (uint32) {
         uint32 due = monthsDue();

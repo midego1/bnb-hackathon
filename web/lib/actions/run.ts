@@ -4,6 +4,7 @@ import { ActionError, actionContext, type ActionHost } from "./context";
 import { findAction, type Action } from "./definitions";
 import { readLease, roleOf, ROLE_LABEL, type LeaseSnapshot } from "./lease";
 import { prepareCalls } from "./simulate";
+import { responseWindow } from "../windows";
 
 export function issues(err: z.ZodError) {
   return err.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
@@ -32,6 +33,12 @@ export async function executeAction(action: Action, input: Record<string, unknow
       throw new ActionError(409, "precondition_failed", `${action.name} needs the rental to be ${action.statuses.join(" or ")}; it is ${lease.status}.`, {
         status: lease.status,
       });
+    }
+    const window = action.needsOpenResponseWindow
+      ? responseWindow({ ...lease, responseWindowSeconds: lease.terms.responseWindow })
+      : undefined;
+    if (window?.closed) {
+      throw new ActionError(409, "precondition_failed", `${window.reason} Use prepare_claim_timeout.`, { closedAt: lease.timeoutAt.toString() });
     }
     if (!action.roles.includes("anyone")) {
       const role = roleOf(lease, from);

@@ -37,3 +37,9 @@ export function restoreChainAfterEachTest() {
     snapshot = undefined;
   });
 }
+
+/** Moves the anvil block clock forward (and mines a block so the next read sees it). Pair with restoreChainAfterEachTest(). */
+export async function increaseTime(seconds: number) {
+  await rpc("evm_increaseTime", [seconds]);
+  await rpc("evm_mine");
+}

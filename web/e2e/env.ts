@@ -106,6 +106,10 @@ export const E2E_WEB_ENV: Record<string, string> = {
   KEYESCROW_CHAIN_ID: "",
   KEYESCROW_RPC_URL_31337: "",
   KEYESCROW_RPC_URL_97: "",
+  // Server-side chain index (GET /api/chain/index): defaults (anvil: full rescan, no cache TTL).
+  CHAIN_INDEX_BLOCK_RANGE: "",
+  CHAIN_INDEX_CONCURRENCY: "",
+  CHAIN_INDEX_TTL_MS: "",
   // Write-only secrets page (/settings/secrets): on, but only against temp files under test-results (never a real
   // .env), and with the restart buttons off so the run can never touch a systemd unit.
   SETTINGS_SECRETS_ENABLED: "1",

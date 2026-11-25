@@ -13,6 +13,14 @@
 /* Taller than a projector (1280x720 minus the browser chrome): room for the roomier type of the /demo stage. */
 @custom-variant tall (@media (min-height: 761px));
 
+/*
+ * /demo and /how-it-works pin to one screen only when that screen is big enough: desktop width AND at least the
+ * 1280x720 projector height the stage is laid out (and e2e-checked) for. Shorter desktop windows (laptop with toolbars,
+ * browser zoom, docked devtools, unmaximised) get the same three columns but the page scrolls as usual. Keep the
+ * numbers in step with the body:has([data-demo-stage]) block below.
+ */
+@custom-variant stage (@media (min-width: 1024px) and (min-height: 720px));
+
 /* Desktop sidebar collapsed to an icon rail: <html data-sidebar="collapsed"> (lib/sidebar.ts). Below lg it is a drawer. */
 @custom-variant rail {
   @media (min-width: 1024px) {
@@ -334,12 +342,13 @@ body {
 }
 
 /*
- * /demo and /how-it-works are one-screen stages on desktop: the shell is pinned to the viewport and the page column
- * is a flex column (demo-accounts strip, then <main>), so the stage gets exactly the height that is left, whatever the
- * strip above it measures. The stage's own panels (timeline, live rental page) scroll inside. The site footer is
- * dropped there. Below lg it scrolls as usual.
+ * /demo and /how-it-works are one-screen stages on a desktop that is tall enough (the `stage` variant above): the shell
+ * is pinned to the viewport and the page column is a flex column (demo-accounts strip, then <main>), so the stage gets
+ * exactly the height that is left, whatever the strip above it measures. The stage's own panels (actors, current step,
+ * live rental page, timeline, summary) scroll inside and are keyboard-focusable. The site footer is dropped there.
+ * Below lg, or on a desktop window shorter than 720px, nothing is pinned and the page scrolls as usual.
  */
-@media (min-width: 1024px) {
+@media (min-width: 1024px) and (min-height: 720px) {
   body:has([data-demo-stage]) {
     height: 100dvh;
     overflow: hidden;
@@ -540,8 +549,10 @@ body {
 }
 
 /*
- * Desktop: the open panel is a column on the right and the page reflows beside it. On the one-screen /demo stage
- * (laid out for the full width, controls top right) it floats bottom right instead and the stage keeps its width.
+ * Desktop: the open panel is a column on the right and the page reflows beside it. On a pinned one-screen stage
+ * (/demo, /how-it-works at the `stage` size: laid out for the full width, controls top right) it floats bottom right
+ * instead and the stage keeps its width. A stage that is not pinned (a shorter window, a tablet) scrolls like any page,
+ * so it reflows beside the column too and the panel never sits on its last rows.
  */
 @media (min-width: 768px) {
   html[data-assistant-open] body:not(:has([data-demo-stage])) {
@@ -554,5 +565,17 @@ body {
   /* The page dims while a change waits; the panel does not. */
   html[data-assistant-open] body:not(:has([data-demo-stage])) [data-assistant-dim] {
     right: var(--assistant-width);
+  }
+}
+/* A stage that is not pinned: md and up, minus the `stage` size (min-width 1024px and min-height 720px). */
+@media (min-width: 768px) and (max-width: 1023.98px), (min-width: 1024px) and (max-height: 719.98px) {
+  html[data-assistant-open] body:has([data-demo-stage]) {
+    padding-right: var(--assistant-width);
+  }
+  html[data-assistant-open] body:has([data-demo-stage]) [data-assistant-dim] {
+    right: var(--assistant-width);
+  }
+  html[data-assistant-open] body:has([data-demo-stage]) [data-sonner-toaster][data-x-position="right"] {
+    right: calc(var(--assistant-width) + var(--offset-right));
   }
 }

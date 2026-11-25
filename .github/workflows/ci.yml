@@ -73,6 +73,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-          cache-dependency-path: agent/pnpm-lock.yaml
+          cache-dependency-path: |
+            agent/pnpm-lock.yaml
+            web/pnpm-lock.yaml
+      # The agent imports web/lib/server/* (evidence store, Living Brain, settlement), whose packages resolve from
+      # web/node_modules: install both.
       - run: pnpm -C agent install --frozen-lockfile
+      - run: pnpm -C web install --frozen-lockfile
+      # test/actions.test.ts spawns a local anvil.
+      - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+          cache: true
       - run: pnpm agent:test

@@ -18,7 +18,7 @@ import { actorCards, actorLabel, guidedCopy, panels } from "./copy";
 export type BeatNav = { canBack: boolean; onBack: () => void; onNext: () => void; reviewing: boolean };
 
 const card =
-  "shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg lg:min-h-0 lg:shrink lg:overflow-y-auto xl:tall:px-6 xl:tall:py-5";
+  "shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg stage:min-h-0 stage:shrink stage:overflow-y-auto xl:tall:px-6 xl:tall:py-5";
 const STEP_BEATS: Exclude<Beat, "intro">[] = ["now", "run", "changed"];
 
 export function GuidedIntro({ path, pacer, nav }: { path: DemoPath; pacer: Pacer | null; nav: BeatNav }) {

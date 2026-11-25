@@ -54,16 +54,24 @@ export function StepTimeline({
   }, [current, txCount]);
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:min-h-0 lg:flex-1">
+    <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:min-h-0 stage:flex-1">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">
-        <h2 className="text-base font-semibold">{panels.story}</h2>
+        <h2 id="demo-story" className="text-base font-semibold">
+          {panels.story}
+        </h2>
         {lease && (
           <Link href={`/lease/${lease}`} target="_blank" className="font-mono text-sm underline">
             {shortAddress(lease)}
           </Link>
         )}
       </div>
-      <ol ref={list} className="relative space-y-0.5 p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" data-testid="demo-rail">
+      <ol
+        ref={list}
+        className="relative space-y-0.5 p-2 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        aria-labelledby="demo-story"
+        tabIndex={0}
+        data-testid="demo-rail"
+      >
         {steps.map((s, i) => {
           const st = statuses[i] ?? "pending";
           const isCurrent = i === current;

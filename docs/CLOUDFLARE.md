@@ -1,7 +1,8 @@
 # KeyEscrow on Cloudflare Workers
 
-Two Workers give the hackathon judges a public URL. Both are prepared and tested locally (wrangler dev / workerd).
-**Nothing has been deployed yet:** deploying needs a Cloudflare account and an API token (one-time steps below).
+Two Workers give the hackathon judges a public URL. Both are deployed on the `mdgooijer` workers.dev subdomain:
+<https://keyescrow-web.mdgooijer.workers.dev> and <https://keyescrow-agent.mdgooijer.workers.dev>. Redeploying needs a
+Cloudflare account and an API token (one-time steps below).
 
 | Worker | What it serves | Source | Public URL after deploy |
 | --- | --- | --- | --- |
@@ -12,7 +13,8 @@ Two Workers give the hackathon judges a public URL. Both are prepared and tested
 used: no custom domain, no zone. Both Workers fit the **Workers Free plan** (see [Size](#size)); nothing here needs
 a paid plan.
 
-**Status:** on this branch, tested in local preview only. Not deployed.
+**Status:** both Workers are live (checked 25 Nov 2026), with the live testnet `/demo` runner switched on. No R2
+bucket is bound yet, so evidence uploads on the web Worker are off and the browser hashes files locally.
 
 ## Commands
 
@@ -57,7 +59,9 @@ which deploy repeats), so the preview serves what deploys. That step prints a wr
 `cloudflare/worker.ts`, and is harmless (the preview and deploy load the class).
 
 Wallet RPC: the browser talks to BSC testnet through `NEXT_PUBLIC_BSC_TESTNET_RPC_URL`, default
-`https://bsc-testnet-rpc.publicnode.com` (answers `eth_getLogs` for the lease lists and timelines).
+`https://bsc-testnet-rpc.publicnode.com` (contract reads, batched into Multicall3). Event reads for the lease lists and
+timelines run on the Worker (`GET /api/chain/index`, `KEYESCROW_RPC_URL_97`, cached in the `KEYESCROW_STATE` Durable
+Object), so the browser sends no `eth_getLogs`.
 
 ## Server routes on Workers
 
@@ -151,11 +155,12 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 14.05 MiB | **2.84 MiB** | fits Free (3 MiB), 0.16 MiB headroom |
+| `keyescrow-web` | 13.90 MiB | **2.81 MiB** | fits Free (3 MiB), 0.19 MiB headroom |
 | `keyescrow-agent` | 4.3 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.16 MiB. The merges since the first build added
+time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.19 MiB (after the server-side chain
+index, `GET /api/chain/index`, which moved log scanning out of the browser). The merges since the first build added
 0.43 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
 `pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
 ($5/month, 10 MiB limit), or a trim of the server bundle.
@@ -202,11 +207,11 @@ After the agent is live, its ERC-8004 registration still lists the GitHub URL as
 
 - `pnpm cf:preview`: home, landlord, tenant, dispute desk, `/demo` (live testnet gate) and a real chain 97 lease
   (`/lease/0x2cB9a2610e279510Dc3d14008e5487A7c312519b` on the redeployed factory, timeline from PublicNode) render with no page
-  errors. `/api/price` (mock), `/api/settlement` (mock), `/api/evidence` (503 disabled / 404), `/api/risk`,
+  errors. `/api/chain/index?chainId=97` reads the real testnet factory (cold 0.51 s, then 7 ms from the Durable
+  Object). `/api/price` (mock), `/api/settlement` (mock), `/api/evidence` (503 disabled / 404), `/api/risk`,
   `/api/cournot`, `/api/integrations` and `/api/fleet` (a listing written and read back) answer as above. The back
-  office loads its events straight from the browser and PublicNode answers part of that burst (44 `eth_getLogs`)
-  with 403, so its table stayed empty in the preview; that is client code talking to the public RPC, the same on any
-  host.
+  office used to load its events straight from the browser, and PublicNode answered part of that burst (44
+  `eth_getLogs`) with 403; it now makes one `/api/chain/index` request and no `eth_getLogs` (kb/reads-perf).
 - Live demo runner with throwaway, unfunded keys in `web/.dev.vars`: status reads chain 97, a start is refused with
   "out of test BNB" (no funder, so nothing can be sent), the lock is freed, and the next start gets 429 from the rate
   limit, also after restarting the Worker (state lives in the Durable Object).

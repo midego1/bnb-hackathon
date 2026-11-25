@@ -72,7 +72,12 @@ export function ActorBoard({
   const active = actor ? actorCard[actor] : undefined;
   const gets = (k: string) => k !== active && (receiving.includes(k) || (d[k as WalletKey] ?? ZERO) > ZERO);
   return (
-    <aside className="relative grid grid-cols-2 gap-2 lg:flex lg:min-h-0 lg:flex-col lg:overflow-y-auto" aria-label="Who holds the money" data-testid="demo-actors">
+    <aside
+      className="relative grid grid-cols-2 gap-2 rounded-xl lg:flex lg:flex-col stage:min-h-0 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+      aria-label="Who holds the money"
+      tabIndex={0}
+      data-testid="demo-actors"
+    >
       {ORDER.map((k) => (
         <MoneyCard key={k} id={k} value={wallets?.[k]} delta={d[k]} active={active === k} receiving={gets(k)} />
       ))}

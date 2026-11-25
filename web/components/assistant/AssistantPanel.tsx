@@ -63,8 +63,10 @@ export function AssistantPanel({
     const m = MODEL_CHOICES.find((x) => x.id === id)!;
     setNote(run.mock ? `${m.label} picked for this chat. This server has no Anthropic key, so the demo model answers.` : `${m.label} answers in this chat.`);
   };
-  // The one-screen stages (/demo, /how-it-works: `data-demo-stage`) keep their full width: there the panel floats
-  // bottom right instead of taking a column (app/globals.css does not pad the page there).
+  // The one-screen stages (/demo, /how-it-works: `data-demo-stage`) keep their full width while they are pinned to the
+  // window (the `stage` variant: desktop, at least 720px tall): there the panel floats bottom right instead of taking a
+  // column, and app/globals.css does not pad the page. On a shorter window, or a tablet, the stage scrolls like any
+  // page, so the panel takes its column and the page reflows beside it (a float would sit on the last rows for good).
   const floating = path === "/demo" || path === "/how-it-works";
   const [draft, setDraft] = useState("");
   const [cmdIndex, setCmdIndex] = useState(0);
@@ -123,13 +125,17 @@ export function AssistantPanel({
         data-testid="assistant-panel"
         data-assistant-state={run.state}
         data-floating={floating || undefined}
-        className={`fixed inset-x-0 bottom-0 z-[65] flex h-[78dvh] flex-col rounded-t-2xl border border-border bg-background text-foreground shadow-2xl md:inset-x-auto ${
+        className={`fixed inset-x-0 bottom-0 z-[65] flex h-[78dvh] flex-col rounded-t-2xl border border-border bg-background text-foreground shadow-2xl md:inset-x-auto md:top-0 md:right-0 md:h-auto md:w-[var(--assistant-width)] md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none ${
           floating
-            ? "md:right-4 md:bottom-4 md:h-[min(58dvh,560px)] md:w-[min(var(--assistant-width),420px)] md:rounded-2xl"
-            : "md:top-0 md:right-0 md:h-auto md:w-[var(--assistant-width)] md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none"
+            ? "stage:top-auto stage:right-4 stage:bottom-4 stage:h-[min(58dvh,560px)] stage:w-[min(var(--assistant-width),420px)] stage:rounded-2xl stage:border-y stage:border-r stage:shadow-2xl"
+            : ""
         }`}
       >
-        {!floating && <div onPointerDown={startResize} className="absolute inset-y-0 left-0 hidden w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-border-strong md:block" aria-hidden />}
+        <div
+          onPointerDown={startResize}
+          className={`absolute inset-y-0 left-0 hidden w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-border-strong md:block ${floating ? "stage:hidden" : ""}`}
+          aria-hidden
+        />
         <header className="flex min-w-0 items-center gap-1.5 border-b border-border py-2 pr-2 pl-3">
           <Sparkles aria-hidden className="size-4 text-(--assistant-waiting)" />
           <h2 className="shrink-0 text-sm font-semibold whitespace-nowrap">Ask AI</h2>

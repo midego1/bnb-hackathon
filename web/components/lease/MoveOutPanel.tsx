@@ -7,6 +7,7 @@ import { photosForHash } from "@/lib/demoEvidence";
 import { prepareProposeSettlement } from "@/lib/actions/definitions";
 import { fieldError } from "@/lib/actions/fields";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
+import { responseWindow } from "@/lib/windows";
 import { formatDate, formatUsdt, parseUsdt } from "@/lib/format";
 import { hashText } from "@/lib/hash";
 import type { LeaseData } from "@/lib/hooks/useLease";
@@ -24,24 +25,31 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
   const hasProposal = lease.status === LeaseStatus.MoveOut;
 
   if (!hasProposal && !canPropose) return null;
+  // KE-02: once the reply window has closed (chain time), propose / accept / dispute all revert; only the timeout claim works.
+  const window = responseWindow({ ...lease, responseWindowSeconds: lease.terms.responseWindow });
 
   return (
     <Card title="Return & deposit" aside={<PriceSourceBadge />}>
       <div className="space-y-6">
-        {hasProposal && <CurrentProposal lease={lease} viewer={viewer} />}
-        {canPropose && <ProposeForms lease={lease} events={events} />}
-        {canPropose && <DisputeButton lease={lease} />}
+        {window.closed && (
+          <div data-testid="response-window-closed">
+            <Notice kind="warn">{window.reason}</Notice>
+          </div>
+        )}
+        {hasProposal && <CurrentProposal lease={lease} viewer={viewer} windowClosed={window.closed} windowReason={window.reason} />}
+        {canPropose && !window.closed && <ProposeForms lease={lease} events={events} />}
+        {canPropose && !window.closed && <DisputeButton lease={lease} />}
       </div>
     </Card>
   );
 }
 
-function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }) {
+function CurrentProposal({ lease, viewer, windowClosed, windowReason }: { lease: LeaseData; viewer: Viewer; windowClosed: boolean; windowReason: string | null }) {
   const { send, pending } = useTx();
   const p = lease.proposal;
   const proposer = viewerRole(lease, p.proposer);
   const isCounterparty = (viewer === "landlord" || viewer === "tenant") && viewer !== proposer;
-  const timeoutReached = lease.timeoutAt > BigInt(0) && lease.chainNow >= lease.timeoutAt;
+  const timeoutReached = windowClosed;
 
   return (
     <div className="rounded-xl border border-info-border bg-info-soft p-4" data-testid="current-proposal">
@@ -75,9 +83,16 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <ActionButton
+          variant={timeoutReached ? "secondary" : "primary"}
           busy={pending === "Accept proposal"}
           disabledReason={
-            isCounterparty ? null : proposer === viewer ? "You made this proposal, so the other side has to accept it." : "Only the owner or the renter can accept a proposal."
+            windowClosed
+              ? windowReason
+              : isCounterparty
+                ? null
+                : proposer === viewer
+                  ? "You made this proposal, so the other side has to accept it."
+                  : "Only the owner or the renter can accept a proposal."
           }
           onClick={() => send("Accept proposal", { address: lease.address, abi: rentalEscrowAbi, functionName: "accept", args: [p.nonce] })}
           data-testid="accept-proposal"
@@ -86,13 +101,14 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
         </ActionButton>
         {lease.timeoutAt > BigInt(0) && (
           <ActionButton
-            variant="secondary"
+            variant={timeoutReached ? "primary" : "secondary"}
+            className={timeoutReached ? "sm:order-first" : ""}
             busy={pending === "Claim owner timeout"}
             disabledReason={timeoutReached ? null : `Available after ${formatDate(lease.timeoutAt)}, if the owner has not answered.`}
             onClick={() => send("Claim owner timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
             data-testid="claim-timeout"
           >
-            Return full deposit to renter
+            {timeoutReached ? "Claim deposit" : "Return full deposit to renter"}
           </ActionButton>
         )}
       </div>
