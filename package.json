@@ -11,6 +11,10 @@
     "chain:anvil": "anvil --host 127.0.0.1 --port ${ANVIL_PORT:-8545}",
     "chain:deploy": "cd contracts && forge script script/Deploy.s.sol --rpc-url ${RPC_URL:-http://127.0.0.1:8545} --broadcast",
     "chain:seed": "cd contracts && forge script script/Seed.s.sol --rpc-url ${RPC_URL:-http://127.0.0.1:8545} --broadcast",
+    "deploy:testnet:check": "bash contracts/script/testnet.sh check",
+    "deploy:testnet": "bash contracts/script/testnet.sh deploy",
+    "deploy:testnet:verify": "bash contracts/script/testnet.sh verify",
+    "deploy:testnet:rehearse": "bash contracts/script/testnet.sh rehearse",
     "e2e:chain": "node web/scripts/e2e-chain.mts"
   },
   "packageManager": "pnpm@12.23.0"

@@ -46,9 +46,21 @@ lease at creation (`EscrowFactory.createLease`, 0 = default; response 1-60 days,
 
 | Script | Purpose |
 | --- | --- |
-| `script/Deploy.s.sol` | Deploys MockUSDT (unless `TOKEN_ADDRESS`) + EscrowFactory, writes `deployments/<chainId>.json`. Chain guard: 31337 only unless `ALLOW_NON_LOCAL_BROADCAST=true`; mainnets always refused. |
+| `script/Deploy.s.sol` | Deploys MockUSDT (unless `TOKEN_ADDRESS`) + EscrowFactory, writes `deployments/<chainId>.json` (`<chainId>.dry-run.json` when only simulated). Chain guard: 31337 always; 97 / 5611 only with `ALLOW_NON_LOCAL_BROADCAST=true`; mainnets and any other chain refused. Off anvil the role addresses (`FACTORY_OWNER`, `FEE_RECIPIENT`, `DEFAULT_ARBITER`) are required and anvil dev accounts are refused. |
 | `script/Seed.s.sol` | Anvil only. Mints demo balances and creates + funds one demo lease, writes `deployments/31337.demo.json`. |
+| `script/testnet.sh` | BSC testnet (97) wrapper: `check` (preflight, never sends a tx), `deploy` (the one broadcast), `verify` (BscScan), `rehearse` (`testnet-rehearsal.sh`: full path against a local anvil with `--chain-id 97`). See [docs/DEPLOY.md](../docs/DEPLOY.md). |
 
 The end-to-end runner (`pnpm e2e:chain`, source in `web/scripts/e2e-chain.mts`) uses both against a throwaway anvil.
+
+### BSC testnet
+
+```bash
+pnpm deploy:testnet:rehearse                          # local only: anvil --chain-id 97 / 56, every refusal + a deploy
+pnpm deploy:testnet:check                             # preflight against BSC_TESTNET_RPC_URL; sends nothing
+ALLOW_NON_LOCAL_BROADCAST=true pnpm deploy:testnet    # ONLY AFTER OK: broadcast, post-check, verify
+pnpm deploy:testnet:verify                            # re-run verification from deployments/97.json
+```
+
+Step by step (faucet, keystore, env, web config, opBNB): [docs/DEPLOY.md](../docs/DEPLOY.md).
 
 Dependencies are git submodules under `lib/` (`git submodule update --init --recursive`).
