@@ -1,4 +1,10 @@
 {
+  "97": {
+    "escrowFactory": "0xdf3d62d64407ca5684425E17E78Cde26d3890eca",
+    "mockUsdt": "0x7f3F2fE665B8ef85532A1Fa91DAB27fB41201F7B",
+    "disputeDesk": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
+    "fromBlock": 144783615
+  },
   "31337": {
     "escrowFactory": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     "mockUsdt": "0x5FbDB2315678afecb367f032d93F642f64180aa3",

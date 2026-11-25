@@ -1,0 +1,14 @@
+{
+  "chainId": 97,
+  "defaultArbiter": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
+  "deployer": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
+  "escrowFactory": "0xdf3d62d64407ca5684425E17E78Cde26d3890eca",
+  "factoryOwner": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
+  "feeBps": 1000,
+  "feeRecipient": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
+  "rentalEscrowImplementation": "0x3144c6C05018F376E545a60C1E8F3B6962D04C41",
+  "startBlock": 144783615,
+  "token": "0x7f3F2fE665B8ef85532A1Fa91DAB27fB41201F7B",
+  "tokenDecimals": 6,
+  "tokenSymbol": "mUSDT"
+}
