@@ -8,16 +8,16 @@ export const MCP_PROTOCOL_VERSION = "2025-06-18";
 
 export const INSPECT_SKILL: AgentSkill = {
   id: SKILL_ID,
-  name: "Move-out inspection",
+  name: "Scooter return inspection",
   description:
-    "Compare check-in vs check-out photos of a rental and propose the deposit split. Send one A2A data part with " +
+    "Compare pickup vs return photos of a scooter rental and propose the deposit split. Send one A2A data part with " +
     '{"deposit": "<base units>", "decimals": 6, "currency": "USDT", "checkIn": [{"hash"|"url", "label"?}], ' +
     '"checkOut": [...], "notes"?: "..."} (an optional "skill": "inspect_move_out" key is ignored). Returns ' +
     "{tenantRefund, landlordClaim, reasons[], confidence, reportHash, inspector, inspectorSignature, ...}; " +
     "tenantRefund + landlordClaim always equals the deposit. Pass reportHash to RentalEscrow.propose().",
-  tags: ["keyescrow", "rental", "deposit", "inspection", "escrow", "bnb-chain", "erc-8004"],
+  tags: ["keyescrow", "rental", "scooter", "deposit", "inspection", "escrow", "bnb-chain", "erc-8004"],
   examples: [
-    '{"deposit":"500000000","checkIn":[{"hash":"0xd36a…4f2f","label":"Living room"}],"checkOut":[{"hash":"0x34be…3c72","label":"Living room"}]}',
+    '{"deposit":"200000000","checkIn":[{"hash":"0x0ed1…59ce","label":"Left side"}],"checkOut":[{"hash":"0xdaa4…3b85","label":"Left side"}]}',
   ],
   inputModes: ["application/json"],
   outputModes: ["application/json"],

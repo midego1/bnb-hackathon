@@ -4,36 +4,36 @@ import { REPO_URL, docsUrl } from "@/lib/links";
 
 const steps = [
   {
-    title: "Landlord offers the lease",
-    body: "Set rent, deposit and term. The lease PDF and check-in photos are stored off-chain; only their fingerprints (hashes) go on-chain.",
+    title: "Shop offers the scooter",
+    body: "Set rent, deposit and rental period in THB. The rental agreement and guided pickup photos of the scooter are stored off-chain; only their fingerprints (hashes) go on-chain.",
   },
   {
-    title: "Tenant funds the escrow",
-    body: "Deposit plus the first month's rent go into this lease's own contract on BNB Chain. Rent is paid out to the landlord month by month.",
+    title: "Renter funds the escrow",
+    body: "Deposit plus the first month's rent go into this rental's own contract on BNB Chain. Rent is paid out to the owner month by month.",
   },
   {
-    title: "Move out, settle in minutes",
-    body: "An AI inspection compares check-in and check-out photos and proposes the deposit split. One side proposes, the other accepts, and the money moves at once.",
+    title: "Return the scooter, settle in minutes",
+    body: "An AI inspection compares pickup and return photos and proposes the deposit split. One side proposes, the other accepts, and the money moves at once.",
   },
 ];
 
 const roles = [
   {
     href: "/landlord",
-    title: "Landlord",
-    body: "Create a lease and get rent paid out monthly, straight from escrow.",
-    cta: "Create a lease",
+    title: "Owner",
+    body: "Offer a scooter to a renter and get rent paid out monthly, straight from escrow.",
+    cta: "Offer a scooter",
   },
   {
     href: "/tenant",
-    title: "Tenant",
-    body: "Fund your deposit and first month. The landlord can never take the deposit alone.",
-    cta: "See my leases",
+    title: "Renter",
+    body: "Fund your deposit and first month instead of leaving your passport. The shop can never take the deposit alone.",
+    cta: "See my rentals",
   },
   {
     href: "/arbiter",
     title: "Dispute desk",
-    body: "Neutral reviewer for move-outs the two sides can't agree on. Rules with the photos and AI report at hand.",
+    body: "Neutral reviewer for scooter returns the two sides can't agree on. Rules with the photos and AI report at hand.",
     cta: "Open the desk",
   },
 ];
@@ -42,24 +42,28 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:py-14">
       <section>
-        <p className="text-sm font-medium text-warning">Rental escrow on BNB Chain · built in Bangkok</p>
+        <p className="text-sm font-medium text-warning">Scooter rental escrow on BNB Chain · built in Bangkok</p>
         <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
-          Rental deposits that neither side can run off with.
+          Rent a scooter in Thailand without leaving your passport.
         </h1>
         <p className="mt-4 max-w-2xl text-base text-muted sm:text-lg">
-          In Bangkok, getting a two-month deposit back is a gamble. KeyEscrow keeps the deposit and rent in a smart contract made
-          for each lease, so it only moves when landlord and tenant agree, or a neutral dispute desk rules.
+          Rental shops often hold your passport as the deposit, and bogus damage claims at return are common. KeyEscrow keeps the
+          deposit and rent in a smart contract made for each scooter rental, so it only moves when the shop owner and the renter
+          agree, or a neutral dispute desk rules.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/landlord" className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover">
-            I&apos;m a landlord
+            I rent out scooters
           </Link>
           <Link href="/tenant" className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium hover:border-border-hover">
-            I&apos;m a tenant
+            I&apos;m renting a scooter
           </Link>
           <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline">
             How the demo works →
           </a>
+          <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline" data-testid="integrations-link">
+            Risk engine &amp; integrations →
+          </Link>
         </div>
         <PlayDemoCta />
       </section>
@@ -76,15 +80,15 @@ export default function Home() {
           ))}
         </ol>
         <p className="mt-4 text-sm text-muted">
-          If the landlord ignores a move-out proposal (7 days by default), or the dispute desk misses its deadline (14 days by
-          default), the full deposit goes back to the tenant. Neither party can move the money alone.
+          If the owner ignores a return proposal (7 days by default), or the dispute desk misses its deadline (14 days by
+          default), the full deposit goes back to the renter. Neither party can move the money alone.
         </p>
       </section>
 
       <section className="mt-8 rounded-2xl border border-warning-border bg-warning-soft p-5 text-sm text-warning-fg" data-testid="fee-pitch">
         <p>
-          <span className="font-semibold">KeyEscrow fee: 10% of one month&apos;s rent, once per lease</span>, paid by the landlord from
-          the first rent payout. A 15,000 THB condo pays ฿1,500 once; a Bangkok agent usually charges a full month. The deposit is never
+          <span className="font-semibold">KeyEscrow fee: 10% of one month&apos;s rent, once per rental</span>, paid by the owner from
+          the first rent payout. A scooter at 3,400 THB a month pays ฿340 once. The deposit is never
           charged and there is no token.
         </p>
       </section>

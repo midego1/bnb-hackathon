@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0f2fe"/><stop offset="1" stop-color="#f8fafc"/></linearGradient></defs>
+  <rect width="640" height="480" fill="url(#sky)"/>
+  <rect y="380" width="640" height="100" fill="#cbd5e1"/>
+  <line x1="0" y1="380" x2="640" y2="380" stroke="#94a3b8" stroke-width="2"/>
+  <g>
+    <rect x="290" y="300" width="60" height="85" rx="22" fill="#1f2937"/>
+    <path d="M240 300 Q260 180 320 170 Q380 180 400 300 Z" fill="#dc2626"/>
+    <path d="M270 200 Q320 170 370 200 L360 230 Q320 215 280 230 Z" fill="#fde68a"/>
+    <rect x="300" y="245" width="40" height="30" rx="4" fill="#111827"/>
+    <path d="M200 150 L440 150" stroke="#111827" stroke-width="12" stroke-linecap="round"/>
+    <path d="M230 150 L205 95" stroke="#6b7280" stroke-width="5"/><path d="M410 150 L435 95" stroke="#6b7280" stroke-width="5"/>
+    <ellipse cx="200" cy="88" rx="26" ry="16" fill="#9ca3af"/>
+    <ellipse cx="440" cy="88" rx="26" ry="16" fill="#9ca3af"/>
+    <rect x="236" y="258" width="22" height="12" rx="3" fill="#f97316"/><rect x="382" y="258" width="22" height="12" rx="3" fill="#f97316"/>
+  </g>
+
+  <rect x="0" y="0" width="640" height="44" fill="#0f172a" opacity="0.78"/>
+  <text x="16" y="29" font-family="sans-serif" font-size="18" fill="#f8fafc" font-weight="bold">Front</text>
+  <text x="624" y="29" font-family="monospace" font-size="13" fill="#cbd5e1" text-anchor="end">PICKUP 2026-11-01 09:13 · Chiang Mai</text>
+</svg>

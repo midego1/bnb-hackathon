@@ -12,7 +12,7 @@ export const BSCSCAN = "https://testnet.bscscan.com";
 export const bscscanTx = (hash: string) => `${BSCSCAN}/tx/${hash}`;
 export const bscscanAddress = (address: string) => `${BSCSCAN}/address/${address}`;
 
-/** Paths that can run on a real chain: "landlord ignores it" needs 7 days of real time. */
+/** Paths that can run on a real chain: "owner ignores it" needs 7 days of real time. */
 export const testnetPaths: readonly DemoPath[] = ["happy", "dispute"];
 
 export type TestnetInfo = {

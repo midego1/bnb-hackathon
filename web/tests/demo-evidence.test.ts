@@ -13,7 +13,7 @@ describe("demo evidence registry", () => {
     expect(sha(demo("checkin-manifest.json"))).toBe(DEMO_CHECKIN_MANIFEST_HASH);
   });
 
-  it("expands the check-in manifest into its photos, each with the right hash", () => {
+  it("expands the pickup (check-in) manifest into its photos, each with the right hash", () => {
     const photos = photosForHash(DEMO_CHECKIN_MANIFEST_HASH);
     expect(photos).toHaveLength(3);
     for (const p of photos) expect(sha(demo(path.basename(p.src)))).toBe(p.hash);

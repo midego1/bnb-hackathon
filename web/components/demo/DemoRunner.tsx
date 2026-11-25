@@ -58,7 +58,7 @@ async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
  * switching the anvil demo accounts as it goes.
  *
  * On desktop it is a one-screen stage (the page never scrolls; app/globals.css pins it to the viewport): controls
- * on top, the actors with their live balances on the left, the current step and the real lease page in the middle,
+ * on top, the actors with their live balances on the left, the current step and the real rental page in the middle,
  * the timeline of every step on the right, and the end summary over the middle. Below `lg` it stacks and scrolls.
  */
 export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
@@ -705,7 +705,7 @@ function Narration({
   );
 }
 
-/** The real lease page (the same component landlord and tenant use), scrolling inside its own panel. */
+/** The real rental page (the same component owner and renter use), scrolling inside its own panel. */
 function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; children?: ReactNode }) {
   if (idle && !lease) return null;
   return (

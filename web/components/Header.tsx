@@ -10,8 +10,8 @@ import { ThemeCycleButton, ThemeSwitch } from "./ThemeSwitch";
 import { PriceSourceBadge } from "./ui";
 
 const nav = [
-  { href: "/landlord", label: "Landlord" },
-  { href: "/tenant", label: "Tenant" },
+  { href: "/landlord", label: "Owner" },
+  { href: "/tenant", label: "Renter" },
   { href: "/arbiter", label: "Dispute desk" },
 ];
 

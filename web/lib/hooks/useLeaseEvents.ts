@@ -33,7 +33,7 @@ export function useLeaseEvents(address: Address | undefined) {
         ),
         inBlockWindows(c, fromBlock, (range) => c.getContractEvents({ address: address!, abi: rentalEscrowAbi, ...range })),
       ]);
-      // `Initialized` is OpenZeppelin proxy plumbing, not part of the lease story.
+      // `Initialized` is OpenZeppelin proxy plumbing, not part of the rental story.
       const logs = [...created, ...own].filter((l) => l.eventName !== "Initialized" && l.blockNumber !== null && l.transactionHash !== null);
       const blocks = [...new Set(logs.map((l) => l.blockNumber!))];
       const times = new Map<bigint, bigint>();

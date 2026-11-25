@@ -4,10 +4,10 @@ import { deskRuling, ledger, newContext, PROPERTIES, stepsFor } from "@/lib/demo
 const U = BigInt(1_000_000);
 
 describe("guided demo script", () => {
-  it("prices a fresh Bangkok lease in baht: two months' deposit, cycling through the properties", () => {
+  it("prices a fresh scooter rental in baht: two months' deposit, cycling through the scooters", () => {
     const c = newContext("happy", 0, 33);
     expect(c.property).toBe(PROPERTIES[0]);
-    expect(c.rent).toBe(BigInt(545_450_000)); // ฿18,000 / 33 = 545.45 mUSDT
+    expect(c.rent).toBe(BigInt(103_030_000)); // ฿3,400 / 33 = 103.03 mUSDT
     expect(c.deposit).toBe(c.rent * BigInt(2));
     expect(newContext("happy", 1, 33).property).toBe(PROPERTIES[1]);
     expect(newContext("happy", 3, undefined).property).toBe(PROPERTIES[0]); // falls back to 33 THB/USDT
@@ -25,8 +25,8 @@ describe("guided demo script", () => {
 
   it("the dispute desk rules half again the AI estimate in whole mUSDT, never more than the deposit", () => {
     const c = newContext("dispute", 0, 33);
-    c.inspection = { landlordClaim: (BigInt(174) * U).toString() } as never;
-    expect(deskRuling(c)).toEqual({ landlordClaim: BigInt(261) * U, tenantRefund: c.deposit - BigInt(261) * U });
+    c.inspection = { landlordClaim: (BigInt(37) * U).toString() } as never;
+    expect(deskRuling(c)).toEqual({ landlordClaim: BigInt(55) * U, tenantRefund: c.deposit - BigInt(55) * U });
     c.inspection = { landlordClaim: c.deposit.toString() } as never;
     expect(deskRuling(c).landlordClaim).toBe(c.deposit);
   });
@@ -34,9 +34,9 @@ describe("guided demo script", () => {
   it("the ledger balances only when everything paid in went somewhere and the escrow is empty", () => {
     const c = newContext("happy", 0, 33);
     const paidIn = c.deposit + c.rent;
-    c.before = { tenant: BigInt(10_000) * U, landlord: BigInt(0), treasury: BigInt(0), escrow: BigInt(0) };
-    c.after = { tenant: c.before.tenant - paidIn + BigInt(900) * U, landlord: paidIn - BigInt(950) * U, treasury: BigInt(50) * U, escrow: BigInt(0) };
-    expect(ledger(c)).toMatchObject({ paidIn, tenantBack: BigInt(900) * U, treasury: BigInt(50) * U, balanced: true });
+    c.before = { tenant: BigInt(1_000) * U, landlord: BigInt(0), treasury: BigInt(0), escrow: BigInt(0) };
+    c.after = { tenant: c.before.tenant - paidIn + BigInt(170) * U, landlord: paidIn - BigInt(180) * U, treasury: BigInt(10) * U, escrow: BigInt(0) };
+    expect(ledger(c)).toMatchObject({ paidIn, tenantBack: BigInt(170) * U, treasury: BigInt(10) * U, balanced: true });
     c.after = { ...c.after, escrow: BigInt(1) };
     expect(ledger(c)?.balanced).toBe(false);
   });

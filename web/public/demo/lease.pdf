@@ -9,14 +9,14 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
 endobj
 4 0 obj
-<< /Length 388 >>
+<< /Length 437 >>
 stream
 BT /F1 12 Tf 56 780 Td 16 TL
-(DEMO LEASE AGREEMENT - PLACEHOLDER \(not a real contract\)) '
-(Unit: 2-bedroom condo, Sukhumvit Soi 24, Bangkok \(fictional\)) '
-(Rent: 15,000 THB / month, paid as 441.18 MockUSDT) '
-(Deposit: 2 months \(882.36 MockUSDT\), held in a KeyEscrow RentalEscrow) '
-(Term: 12 months. Arbiter: KeyEscrow demo arbiter.) '
+(DEMO SCOOTER RENTAL AGREEMENT - PLACEHOLDER \(not a real contract\)) '
+(Scooter: Honda Click 125i, red, Chiang Mai plate \(fictional\)) '
+(Rent: 3,400 THB / month, paid as 100.00 MockUSDT) '
+(Deposit: 2 months \(200.00 MockUSDT\) in a KeyEscrow RentalEscrow, no passport held) '
+(Rental period: 3 months. Helmet included. Dispute desk: KeyEscrow demo arbiter.) '
 (Generated for local development only.) '
 ET
 endstream
@@ -31,9 +31,9 @@ xref
 0000000058 00000 n 
 0000000115 00000 n 
 0000000241 00000 n 
-0000000679 00000 n 
+0000000729 00000 n 
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-749
+799
 %%EOF

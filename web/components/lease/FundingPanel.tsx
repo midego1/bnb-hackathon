@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount } from "wagmi";
+import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
 import { mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import { formatUsdt } from "@/lib/format";
@@ -10,7 +11,7 @@ import { useTx } from "@/lib/hooks/useTx";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
 
-/** Tenant: get test USDT, approve, fund deposit + first month. */
+/** Renter: get test USDT, approve, fund deposit + first month. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {
   const { address } = useAccount();
   const { data: token } = useTokenState(address, lease.address);
@@ -28,9 +29,10 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
         <Stat label="First month's rent"><Amount value={lease.terms.rentAmount} /></Stat>
         <Stat label="Total to fund"><Amount value={need} /></Stat>
       </div>
+      <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={Number(lease.terms.termMonths) * 30} /></div>
       <p className="mb-4 text-sm text-muted">
         Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
-        The landlord can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
+        The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <ActionButton

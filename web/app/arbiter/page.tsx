@@ -17,19 +17,19 @@ export default function ArbiterPage() {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
       <PageTitle title="Dispute desk">
-        Leases where this wallet is the neutral reviewer. When landlord and tenant can&apos;t agree on the deposit, you decide the
-        split and write down why. If you miss the deadline, the full deposit goes back to the tenant.
+        Rentals where this wallet is the neutral reviewer. When owner and renter can&apos;t agree on the deposit, you decide the
+        split and write down why. If you miss the deadline, the full deposit goes back to the renter.
       </PageTitle>
-      <WalletGate what="see the leases you arbitrate">
-        {isDesk && <div className="mb-4"><Notice>You are connected as the KeyEscrow dispute desk, the default reviewer for every new lease.</Notice></div>}
+      <WalletGate what="see the rentals you arbitrate">
+        {isDesk && <div className="mb-4"><Notice>You are connected as the KeyEscrow dispute desk, the default reviewer for every new rental.</Notice></div>}
         {!data ? (
           <Skeleton className="h-36" />
         ) : data.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle">No leases name this wallet as their dispute desk. Landlords pick the reviewer when they create a lease; the KeyEscrow dispute desk is the default.</p>
+          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle">No rentals name this wallet as their dispute desk. Owners pick the reviewer when they create a rental; the KeyEscrow dispute desk is the default.</p>
         ) : (
           <div className="space-y-8">
-            <Section title="Needs a ruling" addresses={data} want="disputed" empty="Nothing to rule on. Disputed leases show up here." />
-            <Section title="Other leases" addresses={data} want="other" empty="No other leases." />
+            <Section title="Needs a ruling" addresses={data} want="disputed" empty="Nothing to rule on. Disputed rentals show up here." />
+            <Section title="Other rentals" addresses={data} want="other" empty="No other rentals." />
           </div>
         )}
       </WalletGate>

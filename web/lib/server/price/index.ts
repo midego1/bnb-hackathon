@@ -1,4 +1,6 @@
 import { createPublicClient, http, isAddress, parseAbi, type Address } from "viem";
+import { cmcQuotes } from "../sponsors/cmc";
+import { logSponsorCall } from "../sponsors/log";
 
 export type Fiat = "USD" | "THB";
 export type Asset = "USDT" | "BNB";
@@ -35,6 +37,7 @@ export interface PriceEnv {
   ATLAS_FEED_USDT_USD?: string;
   ATLAS_FEED_BNB_USD?: string;
   ATLAS_FEED_USD_THB?: string;
+  ATLAS_MAX_AGE_SECONDS?: string;
   PRICE_CACHE_TTL_SECONDS?: string;
 }
 
@@ -51,24 +54,45 @@ export function atlasConfigured(env: PriceEnv): boolean {
   return Boolean(env.ATLAS_RPC_URL && env.ATLAS_FEED_USDT_USD && env.ATLAS_FEED_BNB_USD);
 }
 
-async function readFeed(client: ReturnType<typeof createPublicClient>, address: string) {
+/** Max age of an Atlas answer before it is rejected (Atlas docs: "always check staleness"). Default 1 h. */
+export function atlasMaxAgeSeconds(env: PriceEnv): number {
+  const v = Number(env.ATLAS_MAX_AGE_SECONDS);
+  return Number.isFinite(v) && v > 0 ? v : 3600;
+}
+
+export class StalePriceError extends Error {}
+
+/** latestRoundData() with the Atlas staleness check: never-updated, non-positive and stale answers are rejected. */
+export async function readFeed(client: Pick<ReturnType<typeof createPublicClient>, "readContract">, address: string, maxAgeSeconds = 3600, nowSeconds = Math.floor(Date.now() / 1000)) {
   if (!isAddress(address)) throw new Error(`invalid feed address ${address}`);
-  const [decimals, round] = await Promise.all([
-    client.readContract({ address: address as Address, abi: AGGREGATOR_ABI, functionName: "decimals" }),
-    client.readContract({ address: address as Address, abi: AGGREGATOR_ABI, functionName: "latestRoundData" }),
-  ]);
-  const answer = round[1];
-  if (answer <= BigInt(0)) throw new Error(`feed ${address} returned a non-positive answer`);
-  return { value: Number(answer) / 10 ** decimals, updatedAt: Number(round[3]) };
+  const started = Date.now();
+  try {
+    const [decimals, round] = await Promise.all([
+      client.readContract({ address: address as Address, abi: AGGREGATOR_ABI, functionName: "decimals" }),
+      client.readContract({ address: address as Address, abi: AGGREGATOR_ABI, functionName: "latestRoundData" }),
+    ]);
+    const answer = round[1];
+    const updatedAt = Number(round[3]);
+    if (answer === BigInt(0) || updatedAt === 0) throw new StalePriceError(`feed ${address} was never updated`);
+    if (answer < BigInt(0)) throw new Error(`feed ${address} returned a non-positive answer`);
+    const age = nowSeconds - updatedAt;
+    if (age > maxAgeSeconds) throw new StalePriceError(`feed ${address} is stale: updated ${age}s ago (max ${maxAgeSeconds}s)`);
+    await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: 200, ok: true, ms: Date.now() - started, note: `age=${age}s` });
+    return { value: Number(answer) / 10 ** decimals, updatedAt };
+  } catch (err) {
+    await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: null, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
+    throw err;
+  }
 }
 
 /** Reads USD prices from Atlas feeds. THB comes from an Atlas USD/THB feed or, failing that, `thbPerUsd`. */
 export async function fetchAtlas(env: PriceEnv, thbPerUsd: () => Promise<number>): Promise<Omit<PriceQuote, "fetchedAt">> {
   const client = createPublicClient({ transport: http(env.ATLAS_RPC_URL, { timeout: 8_000 }) });
+  const maxAge = atlasMaxAgeSeconds(env);
   const [usdt, bnb, thb] = await Promise.all([
-    readFeed(client, env.ATLAS_FEED_USDT_USD!),
-    readFeed(client, env.ATLAS_FEED_BNB_USD!),
-    env.ATLAS_FEED_USD_THB ? readFeed(client, env.ATLAS_FEED_USD_THB) : null,
+    readFeed(client, env.ATLAS_FEED_USDT_USD!, maxAge),
+    readFeed(client, env.ATLAS_FEED_BNB_USD!, maxAge),
+    env.ATLAS_FEED_USD_THB ? readFeed(client, env.ATLAS_FEED_USD_THB, maxAge) : null,
   ]);
   const fx = thb?.value ?? (await thbPerUsd());
   const updated = Math.min(usdt.updatedAt, bnb.updatedAt, thb?.updatedAt ?? Infinity);
@@ -87,40 +111,8 @@ export async function fetchAtlas(env: PriceEnv, thbPerUsd: () => Promise<number>
 // CoinMarketCap Pro API (server-side key only)
 // ---------------------------------------------------------------------------------------------
 
-const CMC_QUOTES_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest";
-
 export function cmcKey(env: PriceEnv): string | undefined {
   return env.CMC_API_KEY || env.CMC_PRO_API_KEY || undefined;
-}
-
-interface CmcQuote {
-  price: number;
-  last_updated: string;
-}
-interface CmcResponse {
-  status?: { error_code?: number; error_message?: string | null };
-  data?: Record<string, Array<{ symbol: string; quote: Record<string, CmcQuote> }> | { symbol: string; quote: Record<string, CmcQuote> }>;
-}
-
-async function cmcQuotes(key: string, convert: Fiat, fetchImpl: FetchLike) {
-  const url = `${CMC_QUOTES_URL}?symbol=USDT,BNB&convert=${convert}`;
-  const res = await fetchImpl(url, {
-    headers: { "X-CMC_PRO_API_KEY": key, Accept: "application/json" },
-    signal: AbortSignal.timeout(8_000),
-    cache: "no-store",
-  });
-  const body = (await res.json().catch(() => ({}))) as CmcResponse;
-  if (!res.ok || (body.status?.error_code ?? 0) !== 0) {
-    throw new Error(`CoinMarketCap ${res.status}: ${body.status?.error_message ?? "request failed"}`);
-  }
-  const pick = (symbol: Asset): CmcQuote => {
-    const entry = body.data?.[symbol];
-    const first = Array.isArray(entry) ? entry[0] : entry;
-    const q = first?.quote?.[convert];
-    if (!q || typeof q.price !== "number" || !(q.price > 0)) throw new Error(`CoinMarketCap: no ${symbol}/${convert} quote`);
-    return q;
-  };
-  return { USDT: pick("USDT"), BNB: pick("BNB") };
 }
 
 /**

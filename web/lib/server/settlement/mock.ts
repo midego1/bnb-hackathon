@@ -3,14 +3,14 @@ import { formatUnits } from "viem";
 import type { PhotoRef, SettlementRequest } from "./schema";
 
 const FINDINGS = [
-  "scuff marks on the wall not visible at check-in (est. repaint).",
-  "stain on the floor covering (est. professional cleaning).",
-  "cabinet door hinge loose; door does not close fully (est. repair).",
-  "grout or sealant discoloured beyond normal wear (est. re-seal).",
-  "small chip in a countertop or tile edge (est. filler repair).",
-  "window blind slat bent (est. replacement slat).",
-  "light bulb missing from a fixture (est. replacement).",
-  "appliance not cleaned; grease build-up visible (est. cleaning).",
+  "deep scratches on the side panel not visible at pickup (est. panel respray).",
+  "mirror glass cracked (est. replacement mirror).",
+  "front fairing cracked near the headlight (est. fairing repair).",
+  "brake lever bent (est. replacement lever).",
+  "indicator lens broken (est. replacement lens).",
+  "seat cover torn (est. seat re-cover).",
+  "helmet missing at return (est. replacement helmet).",
+  "exhaust heat shield dented (est. replacement shield).",
 ] as const;
 
 function photoKey(p: PhotoRef): string {
@@ -20,7 +20,7 @@ function photoKey(p: PhotoRef): string {
 /**
  * Deterministic stand-in for the vision model, used whenever no LLM key is configured.
  * Same input -> same proposal. Photos whose hash/url appears in both sets are treated as
- * "unchanged"; each check-out photo without a check-in twin is treated as a finding.
+ * "unchanged"; each return photo without a pickup twin is treated as a finding.
  * Returns the raw (human-unit) shape a model would, so it goes through the same repair path.
  */
 export function mockAssessment(req: SettlementRequest) {
@@ -39,7 +39,7 @@ export function mockAssessment(req: SettlementRequest) {
     return {
       tenantRefund: fmt(deposit),
       landlordClaim: "0",
-      reasons: ["Check-out photos match the check-in set; no damage beyond normal wear."],
+      reasons: ["Return photos match the pickup set; no damage beyond normal wear."],
       confidence: 0.9,
     };
   }
@@ -53,7 +53,7 @@ export function mockAssessment(req: SettlementRequest) {
     .slice(0, 5)
     .map((p, i) => {
       const finding = FINDINGS[(seed + i) % FINDINGS.length];
-      return `${p.label ?? `Check-out photo ${req.checkOut.indexOf(p) + 1}`}: ${finding}`;
+      return `${p.label ?? `Return photo ${req.checkOut.indexOf(p) + 1}`}: ${finding}`;
     });
 
   return {

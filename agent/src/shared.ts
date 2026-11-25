@@ -1,5 +1,5 @@
 /**
- * The one seam between the agent and the web app: the move-out inspection is the exact code behind
+ * The one seam between the agent and the web app: the return inspection is the exact code behind
  * POST /api/settlement (web/lib/server/settlement), imported from source rather than copied, so the agent and the
  * product can never disagree about a proposal or its reportHash.
  *

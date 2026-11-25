@@ -39,7 +39,7 @@ function Cta() {
   return (
     <CtaCard
       title="See the whole story in one click"
-      body="A fresh Bangkok lease, funded, paid out, inspected by AI and settled, with real transactions on the local chain. About a minute."
+      body="A fresh scooter rental, funded, paid out, inspected by AI and settled, with real transactions on the local chain. About a minute."
     />
   );
 }

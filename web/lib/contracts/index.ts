@@ -11,7 +11,7 @@ export { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi } from "./abis.generated
 export type Deployment = {
   escrowFactory: Address;
   mockUsdt: Address;
-  /** KeyEscrow dispute desk: the default arbiter suggested for new leases. */
+  /** KeyEscrow dispute desk: the default arbiter suggested for new rentals. */
   disputeDesk?: Address;
   /** First block worth scanning for events (factory deployment). */
   fromBlock: bigint;

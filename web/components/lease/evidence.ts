@@ -2,7 +2,7 @@ import type { Hex } from "viem";
 import { EvidenceKind } from "@/lib/contracts";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 
-/** All evidence hashes anchored on-chain for a lease, grouped by kind (from EvidenceAdded events). */
+/** All evidence hashes anchored on-chain for a rental, grouped by kind (from EvidenceAdded events). */
 export function evidenceFromEvents(events: TimelineEvent[] | undefined) {
   const checkIn: Hex[] = [];
   const checkOut: Hex[] = [];

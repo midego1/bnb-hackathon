@@ -10,7 +10,7 @@ import {
 import { jsonError } from "@/lib/server/http";
 
 /**
- * POST /api/evidence — multipart/form-data with one or more `file` fields (lease PDF, photos).
+ * POST /api/evidence — multipart/form-data with one or more `file` fields (rental agreement PDF, photos).
  * Each file is type-sniffed, size-limited and sha256-hashed; the hash is the bytes32 to store
  * on-chain and the key to fetch it back from GET /api/evidence/<hash>.
  */

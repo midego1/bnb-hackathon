@@ -1,9 +1,9 @@
 # KeyEscrow Inspector: the AI inspection as a BNB Chain agent
 
-KeyEscrow Inspector is the move-out inspection from `POST /api/settlement`, run as an agent that other software can
+KeyEscrow Inspector is the return inspection from `POST /api/settlement`, run as an agent that other software can
 find and call. It has an on-chain identity on BNB Chain (ERC-8004), it exposes one skill over A2A and MCP, and it
-signs every report it produces. The on-chain proposal therefore names the agent that made it: the tenant or
-landlord passes `reportHash` to `RentalEscrow.propose()`, and that hash covers the inspector's ERC-8004 agent id.
+signs every report it produces. The on-chain proposal therefore names the agent that made it: the renter or
+owner (`landlord`) passes `reportHash` to `RentalEscrow.propose()`, and that hash covers the inspector's ERC-8004 agent id.
 The UI shows this as "Signed by KeyEscrow Inspector, ERC-8004 agent #N".
 
 It is built on the [BNB Agent SDK](https://github.com/bnb-chain/bnbagent-sdk) (`@bnbagent/sdk`, MIT), the same SDK
@@ -39,7 +39,7 @@ flowchart LR
   end
   WEB["web/ POST /api/settlement"] --> CORE
   S --> CORE["web/lib/server/settlement<br/>proposeSettlement() + signer"]
-  CORE -->|"report incl. inspector {agentId, registry, address}<br/>reportHash + inspectorSignature"| P["tenant / landlord"]
+  CORE -->|"report incl. inspector {agentId, registry, address}<br/>reportHash + inspectorSignature"| P["renter / owner"]
   P -->|"propose(tenantRefund, reportHash)"| E["RentalEscrow"]
   REG["ERC-8004 Identity Registry (BSC)<br/>agent #N: tokenURI = registration file,<br/>metadata reportSigner = signer address"]
   V["anyone"] -->|"recompute hash, recover signer,<br/>compare with reportSigner"| REG
@@ -121,7 +121,7 @@ Agent env (all server-side; names are also in `.env.example`):
 | `EVIDENCE_DIR` | Evidence store for photos given by hash in live mode (default `web/.evidence`, shared with the web app) |
 
 The web app signs too: set the same `INSPECTOR_PRIVATE_KEY`, `INSPECTOR_AGENT_ID` and `INSPECTOR_AGENT_REGISTRY`
-in `web/.env.local`, and `POST /api/settlement` returns signed reports. The move-out panel then shows "Signed by
+in `web/.env.local`, and `POST /api/settlement` returns signed reports. The return panel then shows "Signed by
 KeyEscrow Inspector, ERC-8004 agent #N" under the inspector's suggestion.
 
 ## The skill
@@ -251,18 +251,18 @@ bytes and the SDK's `getMetadata` (UTF-8 decode) reads it back as garbage. We re
 
 Not built. This is how payments would plug in without changing the identity or the escrow:
 
-- **ERC-8183 (escrowed job), for landlords and property managers.** The landlord (or tenant) creates a job for
+- **ERC-8183 (escrowed job), for rental shops and fleet operators.** The owner (or renter) creates a job for
   KeyEscrow Inspector's agent id and funds a fixed price, for example 2 USDT, into the ERC-8183 escrow. The agent
   checks the funded job, runs `inspect_move_out`, and submits the signed report as the deliverable. The job settles
   after the dispute window. The `negotiate` + `notify_funded` skills from a Studio-generated seller wrap our skill
   unchanged. A rejected job (for example, a report that ignores the photos) refunds the payer, which gives the
   agent an on-chain track record that ERC-8004 reputation can build on.
 - **x402 (pay per HTTP request), for integrations.** `POST /inspect` returns `402 Payment Required` with a quote. A
-  client such as a property-management system pays per call over x402 and retries. This suits high-volume
+  client such as a scooter-fleet management system pays per call over x402 and retries. This suits high-volume
   partners that do not need escrow.
-- **Who pays.** By default the fee is folded into the KeyEscrow lease fee ([BUSINESS.md](BUSINESS.md)), so tenants
-  and landlords never pay the agent directly. Pay-per-inspection is for third parties that use the inspector
-  outside KeyEscrow leases.
+- **Who pays.** By default the fee is folded into the KeyEscrow rental fee ([BUSINESS.md](BUSINESS.md)), so renters
+  and owners never pay the agent directly. Pay-per-inspection is for third parties that use the inspector
+  outside KeyEscrow rentals.
 - **Prerequisites.** The agent must be hosted at its registered public endpoint. Pricing must stay in fixed code,
   never chosen by the model. Mainnet needs a funded payout wallet. None of this is part of the hackathon build: no
   live payments, no Pieverse, no managed trial.

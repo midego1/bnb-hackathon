@@ -15,7 +15,7 @@ import { evidenceFromEvents } from "./evidence";
 import { HashLink } from "./EvidencePanel";
 import { roleName, viewerRole, type Viewer } from "./model";
 
-/** Move-out: current proposal, accept / timeout, AI inspection, manual proposal, dispute. */
+/** Return: current proposal, accept / timeout, AI inspection, manual proposal, dispute. */
 export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined }) {
   const isParty = viewer === "landlord" || viewer === "tenant";
   const canPropose = isParty && (lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut);
@@ -24,7 +24,7 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
   if (!hasProposal && !canPropose) return null;
 
   return (
-    <Card title="Move-out & deposit" aside={<PriceSourceBadge />}>
+    <Card title="Return & deposit" aside={<PriceSourceBadge />}>
       <div className="space-y-6">
         {hasProposal && <CurrentProposal lease={lease} viewer={viewer} />}
         {canPropose && <ProposeForms lease={lease} events={events} />}
@@ -48,11 +48,11 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-xs text-subtle">Back to tenant</p>
+          <p className="text-xs text-subtle">Back to renter</p>
           <Amount value={p.tenantRefund} />
         </div>
         <div>
-          <p className="text-xs text-subtle">Landlord keeps (damages)</p>
+          <p className="text-xs text-subtle">Owner keeps (damages)</p>
           <Amount value={p.landlordClaim} />
         </div>
       </div>
@@ -62,11 +62,11 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
       {lease.timeoutAt > BigInt(0) && (
         <p className="mt-2 text-sm">
           {timeoutReached ? (
-            <>The landlord did not answer in time. Anyone can now close the lease and return the full deposit to the tenant.</>
+            <>The owner did not answer in time. Anyone can now close the rental and return the full deposit to the renter.</>
           ) : (
             <>
-              The landlord has until {formatDate(lease.timeoutAt)} (<Countdown target={lease.timeoutAt} clock={lease} />) to accept, counter
-              or open a dispute. After that, the full deposit goes back to the tenant.
+              The owner has until {formatDate(lease.timeoutAt)} (<Countdown target={lease.timeoutAt} clock={lease} />) to accept, counter
+              or open a dispute. After that, the full deposit goes back to the renter.
             </>
           )}
         </p>
@@ -75,7 +75,7 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
         <ActionButton
           busy={pending === "Accept proposal"}
           disabledReason={
-            isCounterparty ? null : proposer === viewer ? "You made this proposal, so the other side has to accept it." : "Only the landlord or the tenant can accept a proposal."
+            isCounterparty ? null : proposer === viewer ? "You made this proposal, so the other side has to accept it." : "Only the owner or the renter can accept a proposal."
           }
           onClick={() => send("Accept proposal", { address: lease.address, abi: rentalEscrowAbi, functionName: "accept", args: [p.nonce] })}
           data-testid="accept-proposal"
@@ -85,12 +85,12 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
         {lease.timeoutAt > BigInt(0) && (
           <ActionButton
             variant="secondary"
-            busy={pending === "Claim landlord timeout"}
-            disabledReason={timeoutReached ? null : `Available after ${formatDate(lease.timeoutAt)}, if the landlord has not answered.`}
-            onClick={() => send("Claim landlord timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
+            busy={pending === "Claim owner timeout"}
+            disabledReason={timeoutReached ? null : `Available after ${formatDate(lease.timeoutAt)}, if the owner has not answered.`}
+            onClick={() => send("Claim owner timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
             data-testid="claim-timeout"
           >
-            Return full deposit to tenant
+            Return full deposit to renter
           </ActionButton>
         )}
       </div>
@@ -107,6 +107,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const [report, setReport] = useState<InspectionResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [scooterId, setScooterId] = useState("");
   const [refund, setRefund] = useState(formatUsdt(lease.terms.depositAmount).replace(/,/g, ""));
   const [reason, setReason] = useState("");
   const deposit = lease.terms.depositAmount;
@@ -117,7 +118,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
     setInspecting(true);
     setAiError(null);
     try {
-      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined }));
+      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined, scooterId: scooterId.trim() || lease.address }));
     } catch (e) {
       setAiError((e as Error).message);
     } finally {
@@ -131,23 +132,26 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold">AI move-out inspection</h3>
+        <h3 className="text-sm font-semibold">AI return inspection</h3>
         <p className="mt-1 text-sm text-muted">
-          Compares the {photoCount(checkIn)} check-in and {photoCount(checkOut)} check-out photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
-          lease and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
+          Compares the {photoCount(checkIn)} pickup and {photoCount(checkOut)} return photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
+          rental and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
         </p>
         <div className="mt-3 grid gap-3">
           <Field label="Notes for the inspector (optional)">
-            <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. hinge was already loose at check-in" />
+            <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. left mirror was already scratched at pickup" />
+          </Field>
+          <Field label="Scooter plate or id (optional)" hint="Keys the inspector's memory of this scooter across rentals. Defaults to this rental's address.">
+            <input className={inputClass} value={scooterId} onChange={(e) => setScooterId(e.target.value)} placeholder="e.g. 1กข 1234 Bangkok" data-testid="scooter-id" />
           </Field>
           <ActionButton
             variant="secondary"
             busy={inspecting}
             disabledReason={
               checkIn.length === 0
-                ? "Needs at least one check-in photo. Add one under Documents & photos."
+                ? "Needs at least one pickup photo. Add one under Documents & photos."
                 : checkOut.length === 0
-                  ? "Needs at least one check-out photo. Add them under Documents & photos."
+                  ? "Needs at least one return photo. Add them under Documents & photos."
                   : null
             }
             onClick={inspect}
@@ -167,11 +171,11 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-subtle">Back to tenant</p>
+                <p className="text-xs text-subtle">Back to renter</p>
                 <Amount value={BigInt(report.tenantRefund)} />
               </div>
               <div>
-                <p className="text-xs text-subtle">Landlord keeps</p>
+                <p className="text-xs text-subtle">Owner keeps</p>
                 <Amount value={BigInt(report.landlordClaim)} />
               </div>
             </div>
@@ -182,6 +186,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
                 ))}
               </ul>
             )}
+            {report.memory && <MemoryNote memory={report.memory} stored={report.memoryStored} />}
             {report.inspector && (
               <p className="mt-3 text-xs text-subtle" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
                 Signed by {report.inspector.name}
@@ -205,11 +210,11 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
       <div className="border-t border-border pt-5">
         <h3 className="text-sm font-semibold">Propose a split yourself</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Deposit back to tenant (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Tenant gets {money(refundAmount)}, landlord keeps {money(deposit - refundAmount)}</> : undefined}>
+          <Field label="Deposit back to renter (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Renter gets {money(refundAmount)}, owner keeps {money(deposit - refundAmount)}</> : undefined}>
             <input name="tenantRefund" inputMode="decimal" className={inputClass} value={refund} onChange={(e) => setRefund(e.target.value)} />
           </Field>
           <Field label="Reason (its fingerprint is stored on-chain)">
-            <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. full refund, flat in good order" />
+            <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. full refund, scooter returned in good order" />
           </Field>
         </div>
         <ActionButton
@@ -237,7 +242,7 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
       <h3 className="text-sm font-semibold">Can&apos;t agree?</h3>
       <p className="mt-1 text-sm text-muted">
         Hand the deposit decision to the dispute desk ({lease.terms.arbiterWindow / 86400} days to rule, or the full deposit goes back to the
-        tenant). Rent keeps being paid out as scheduled.
+        renter). Rent keeps being paid out as scheduled.
       </p>
       {confirming ? (
         <div className="mt-3 flex flex-wrap gap-3">
@@ -258,6 +263,31 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
           Open a dispute
         </ActionButton>
       )}
+    </div>
+  );
+}
+
+/** What the inspector remembered about this scooter before judging (Living Brain or local stand-in). */
+function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["memory"]>; stored?: boolean }) {
+  return (
+    <div className="mt-3 rounded-lg bg-surface-muted p-3 text-xs" data-testid="inspection-memory">
+      <p className="font-semibold">
+        Scooter memory · {memory.provider === "living-brain" ? "Living Brain" : "local (Living Brain not configured)"}
+      </p>
+      {memory.recalled.length ? (
+        <>
+          <p className="mt-1 text-muted">Earlier inspections of {memory.scooterId}. Damage listed here is pre-existing and is not charged again:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
+            {memory.recalled.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-1 text-muted">No earlier inspections of {memory.scooterId} on record.</p>
+      )}
+      {memory.error && <p className="mt-1 text-danger">Memory lookup failed: {memory.error}</p>}
+      <p className="mt-1 text-subtle">{stored ? "This inspection was saved to the scooter's memory." : "This inspection was not saved to memory."}</p>
     </div>
   );
 }
