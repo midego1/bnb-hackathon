@@ -109,7 +109,7 @@ export function PitchStage({ scene, t, reduced }: { scene: PitchScene; t: number
       {on("suggest") && (
         <Enter p={c("suggest")} x={14} y={8} reduced={reduced} testId="pitch-suggest">
           <Bubble w={250} h={108} tx={226} ty={120}>
-            <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted)">
+            <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted-foreground)">
               {say("pitch.bubbles.suggest")}
             </text>
             <text x={18} y={62} fontSize={21} fontWeight={800} className="fill-teal-700 dark:fill-teal-300">
@@ -171,7 +171,7 @@ export function PitchStage({ scene, t, reduced }: { scene: PitchScene; t: number
         )}
       </g>
       {problem ? (
-        <g textAnchor="middle" fontSize={19} fontWeight={600} fill="var(--muted)">
+        <g textAnchor="middle" fontSize={19} fontWeight={600} fill="var(--muted-foreground)">
           <text x={SHOP_X} y={FLOOR + 30}>{say("pitch.names.shop")}</text>
           <text x={JUDGE_X} y={FLOOR + 30}>{say("pitch.names.tourist")}</text>
         </g>
