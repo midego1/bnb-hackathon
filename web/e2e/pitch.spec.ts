@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { hydrated } from "./hydrated";
 
 /**
  * /pitch: the animated storyboard of our 3-minute live pitch. Pure front-end, unlisted.
@@ -31,6 +32,7 @@ test("plays to the end at test speed, on one screen at 1470x830, with no page sc
     new MutationObserver(check).observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
     check();
   });
+  await hydrated(page.getByTestId("pitch-play"));
   await page.getByTestId("pitch-play").click();
   await expect(root(page)).toHaveAttribute("data-done", "true", { timeout: 30_000 });
   await expect(root(page)).toHaveAttribute("data-scene", "end");
@@ -46,8 +48,11 @@ test("controls: space, back / next, dots; the key props show in their scenes", a
   await page.setViewportSize({ width: 1470, height: 830 });
   await page.goto("/pitch");
   await expect(root(page)).toHaveAttribute("data-playing", "true");
-  await page.keyboard.press("Space");
-  await expect(root(page)).toHaveAttribute("data-playing", "false");
+  // Space, again until it lands: the key listener only exists once the page has hydrated.
+  await expect(async () => {
+    if ((await root(page).getAttribute("data-playing")) === "true") await page.keyboard.press("Space");
+    await expect(root(page)).toHaveAttribute("data-playing", "false", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   await page.keyboard.press("ArrowRight");
   await expect(root(page)).toHaveAttribute("data-scene", "oneliner");
   await page.getByTestId("pitch-next").click();
