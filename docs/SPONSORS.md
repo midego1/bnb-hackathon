@@ -3,6 +3,13 @@
 What each prize we enter requires. Product scope is in [PRODUCT.md](PRODUCT.md); the definition
 of done is in [ACCEPTANCE.md](ACCEPTANCE.md).
 
+## Accounts and registration
+
+Register every sponsor account with **hackathon@vanpeltventures.org**: CoinMarketCap (API key), Atlas (feed onboarding /
+whitelisting), Cournot (prepaid key or wallet account, if ever needed), ChatAndBuild / Living Brain (API key),
+AWS (Activate) and HackQuest (project submission). One shared address keeps keys, quotas and sponsor emails in
+one inbox. Keys go only in untracked env files (`web/.env.local`), never in the repo.
+
 ## Tracks we enter
 
 | Track | Prize | Entering |
@@ -139,6 +146,20 @@ Docs: <https://coinmarketcap.com/api/documentation/>
 
 ## To verify with sponsors at the venue
 
-- Which Atlas feeds exist on BSC testnet, and whether our contract needs whitelisting.
+- Which Atlas feeds exist on BSC testnet, and whether our contract needs whitelisting (onboarding contact:
+  hackathon@vanpeltventures.org).
 - Whether CMC provides a hackathon API key (some endpoints may exceed the free tier).
 - Cournot wallet/payment setup if we exceed 3 free calls.
+
+## Account setup steps
+
+Every account below is created with **hackathon@vanpeltventures.org**.
+
+| Sponsor | Account to create | Then set (web/.env.local) |
+|---|---|---|
+| CoinMarketCap | Pro API key (free Basic plan): <https://pro.coinmarketcap.com/signup> | `CMC_API_KEY` |
+| Atlas | Feed onboarding with Atlas (at the venue): BSC testnet feed addresses, whitelisting if a contract reads them | `ATLAS_RPC_URL`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD` |
+| Cournot | None for the 3 free calls per IP. Only if more are needed: a prepaid key / x402-b402 wallet | `COURNOT_LIVE=1`, optional `COURNOT_API_KEY` |
+| ChatAndBuild / Living Brain | API key from the Living Brain dashboard (<https://docs.livingbrain.com>) | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` |
+| AWS | AWS Activate application (needs business registration) | none |
+| HackQuest | Team/project account for the submission | none |
