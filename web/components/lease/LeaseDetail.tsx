@@ -39,7 +39,7 @@ export function LeaseDetail({ address }: { address: Address }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-subtle">
-            <Link href={viewer ? `/${viewer}` : "/"} className="hover:underline">
+            <Link href={viewer ? `/${viewer}` : "/app"} className="hover:underline">
               ← {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
             </Link>
           </p>
