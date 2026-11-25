@@ -17,7 +17,7 @@ async function Inner({ params }: { params: Promise<{ slug: string }> }) {
   return <LiveScreen listing={listing} chainId={cfg?.chainId ?? 31337} enabled={!!cfg} />;
 }
 
-/** The live judge demo: the big screen, and (rewritten here, next.config.ts) the judge's phone /r/<slug> and the listing /app/listings/<slug>. */
+/** The live judge demo: the big screen, and (rewritten here, next.config.ts) the judge's phone /r/<slug>. */
 export default function StagePage(props: PageProps<"/stage/[slug]">) {
   return (
     <Suspense>

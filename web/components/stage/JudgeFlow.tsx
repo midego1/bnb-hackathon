@@ -70,14 +70,14 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
         <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold">{listing.name}</h1>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {formatFiat(listing.rentThb, "THB")} / day · {formatFiat(listing.depositThb, "THB")} deposit
           </p>
         </div>
       </header>
 
       {offline && <Notice kind="warn">Connection is shaky. Your rental is safe on-chain; this screen catches up when the network is back.</Notice>}
-      {!status && !offline && <p className="text-muted">Loading…</p>}
+      {!status && !offline && <p className="text-muted-foreground">Loading…</p>}
       {!status && pollError && offline && <Notice kind="error">{pollError}</Notice>}
 
       {status && step && (
@@ -165,7 +165,7 @@ function Step(p: StepProps) {
     case "money":
       return (
         <Big title="Get test money">
-          <p className="text-muted">
+          <p className="text-muted-foreground">
             We send this wallet a little test BNB for gas and {thb(status.price.rent + status.price.deposit)} in test dollars (mUSDT) for the rent and the
             deposit. Testnet only, no real money.
           </p>
@@ -190,12 +190,12 @@ function Step(p: StepProps) {
       return (
         <Big title={`Rent it for ${thb(status.price.rent)}`}>
           <dl className="grid grid-cols-2 gap-y-1 text-lg">
-            <dt className="text-muted">Rent (1 day)</dt>
+            <dt className="text-muted-foreground">Rent (1 day)</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.rentAmount : status.price.rent)}</dd>
-            <dt className="text-muted">Deposit (comes back)</dt>
+            <dt className="text-muted-foreground">Deposit (comes back)</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.depositAmount : status.price.deposit)}</dd>
           </dl>
-          <p className="text-sm text-muted">The money goes into this rental&apos;s own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.</p>
+          <p className="text-sm text-muted-foreground">The money goes into this rental&apos;s own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.</p>
           <ActionButton
             className={bigButton}
             busy={busy === "rent"}
@@ -218,7 +218,7 @@ function Step(p: StepProps) {
     case "busy":
       return (
         <Big title="Someone else is renting it right now">
-          <p className="text-muted">Only one rental at a time. Ask the presenter to reset the stage, then reload this page.</p>
+          <p className="text-muted-foreground">Only one rental at a time. Ask the presenter to reset the stage, then reload this page.</p>
         </Big>
       );
 
@@ -232,7 +232,7 @@ function Step(p: StepProps) {
     case "waiting":
       return (
         <Big title="Waiting for the owner">
-          <p className="text-muted">
+          <p className="text-muted-foreground">
             You proposed: {thb(lease!.proposal.tenantRefund)} back to you, {thb(lease!.proposal.landlordClaim)} to the owner. The owner accepts on the
             big screen.
           </p>
@@ -246,7 +246,7 @@ function Step(p: StepProps) {
       const href = settled && tx(settled.txHash);
       return (
         <Big title={<span data-testid="judge-settled">Your {thb(back)} are back</span>}>
-          <p className="text-muted">The escrow paid out and closed. Thanks for renting the {status.listing.name}!</p>
+          <p className="text-muted-foreground">The escrow paid out and closed. Thanks for renting the {status.listing.name}!</p>
           {href && (
             <a href={href} target="_blank" rel="noreferrer" className="text-lg font-medium underline">
               See it on BscScan
@@ -272,7 +272,7 @@ function WalletStep({ onGuest }: { onGuest: () => void }) {
       <ActionButton className={bigButton} onClick={onGuest} data-testid="judge-guest">
         Use a guest wallet
       </ActionButton>
-      <p className="-mt-2 text-sm text-muted">Testnet guest wallet, no real money. A fresh key is made on this phone and never leaves it.</p>
+      <p className="-mt-2 text-sm text-muted-foreground">Testnet guest wallet, no real money. A fresh key is made on this phone and never leaves it.</p>
       {hasWallet && (
         <ActionButton
           variant="secondary"
@@ -312,7 +312,7 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
   const anchored = p.status.events.filter((e) => e.name === "EvidenceAdded").map((e) => String(e.args.contentHash).toLowerCase());
   return (
     <Big title={p.kind === "pickup" ? "Take pickup photos" : "Hand it back, then take return photos"}>
-      <p className="text-muted">
+      <p className="text-muted-foreground">
         {p.kind === "pickup"
           ? "Photograph the box as you get it (1 to 3 photos). Their fingerprints go on-chain, so nobody can swap them later."
           : "Give the box back to the presenter and photograph it again (1 to 3 photos). The AI inspector compares them with the pickup photos."}
@@ -369,7 +369,7 @@ function InspectStep(p: StepProps) {
     <Big title="AI inspection">
       {!result ? (
         <>
-          <p className="text-muted">The AI inspector compares the pickup and return photos and proposes how to split the deposit.</p>
+          <p className="text-muted-foreground">The AI inspector compares the pickup and return photos and proposes how to split the deposit.</p>
           <ActionButton
             className={bigButton}
             busy={p.busy === "inspect"}
@@ -395,12 +395,12 @@ function InspectStep(p: StepProps) {
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-y-1 text-lg" data-testid="judge-split">
-            <dt className="text-muted">Back to you</dt>
+            <dt className="text-muted-foreground">Back to you</dt>
             <dd className="text-right font-semibold tabular-nums">{p.thb(BigInt(result.tenantRefund))}</dd>
-            <dt className="text-muted">To the owner</dt>
+            <dt className="text-muted-foreground">To the owner</dt>
             <dd className="text-right font-semibold tabular-nums">{p.thb(BigInt(result.landlordClaim))}</dd>
           </dl>
-          <ul className="list-disc pl-5 text-sm text-muted">
+          <ul className="list-disc pl-5 text-sm text-muted-foreground">
             {result.reasons.map((r) => (
               <li key={r}>{r}</li>
             ))}

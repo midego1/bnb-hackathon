@@ -91,7 +91,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
         {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
         <img src={listing.photos[0]} alt={listing.name} className="aspect-[4/3] w-full max-w-sm rounded-2xl object-cover" />
         <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">{listing.name}</h1>
-        <p className="text-2xl text-muted">
+        <p className="text-2xl text-muted-foreground">
           {formatFiat(listing.rentThb, "THB")} / day · {formatFiat(listing.depositThb, "THB")} deposit
         </p>
         <div className="aspect-square w-full max-w-[20rem] rounded-2xl bg-white p-3">{url && <Qr text={url} label={`QR code: ${url}`} />}</div>
@@ -158,7 +158,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
 function Money({ label, value, sub, href, strong }: { label: string; value: string; sub?: ReactNode; href?: string; strong?: boolean }) {
   return (
     <div className={`rounded-2xl border p-4 ${strong ? "border-info-border bg-info-soft" : "border-border bg-surface"}`}>
-      <div className="text-lg text-muted">{label}</div>
+      <div className="text-lg text-muted-foreground">{label}</div>
       <div className="text-4xl font-bold tabular-nums">{value}</div>
       {sub && (href ? <a href={href} target="_blank" rel="noreferrer" className="font-mono text-sm text-subtle underline">{sub}</a> : <div className="font-mono text-sm text-subtle">{sub}</div>)}
     </div>
@@ -169,11 +169,11 @@ function Photos({ title, hashes }: { title: string; hashes: string[] }) {
   if (!hashes.length) return null;
   return (
     <figure>
-      <figcaption className="mb-1 text-lg text-muted">{title}</figcaption>
+      <figcaption className="mb-1 text-lg text-muted-foreground">{title}</figcaption>
       <div className="flex gap-2">
         {hashes.map((h) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={h} src={evidenceUrl(h)} alt={`${title} photo`} className="h-28 w-28 rounded-lg bg-surface-muted object-cover" />
+          <img key={h} src={evidenceUrl(h)} alt={`${title} photo`} className="h-28 w-28 rounded-lg bg-muted object-cover" />
         ))}
       </div>
     </figure>

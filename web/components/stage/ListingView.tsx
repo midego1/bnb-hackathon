@@ -10,7 +10,7 @@ import { useStageStatus } from "./client";
 export function ListingView({ listing, enabled }: { listing: Listing; enabled: boolean }) {
   const { status } = useStageStatus(listing.slug, undefined, 3_600_000);
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
+    <section className="mx-auto w-full max-w-5xl px-4 py-8">
       <PageTitle title={listing.name}>{listing.description}</PageTitle>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
@@ -21,22 +21,22 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
         </div>
         <Card title="Rent this item">
           <dl className="grid grid-cols-2 gap-y-2 text-sm" data-testid="listing-terms">
-            <dt className="text-muted">Rent</dt>
+            <dt className="text-muted-foreground">Rent</dt>
             <dd className="text-right font-semibold">{formatFiat(listing.rentThb, "THB")} / day</dd>
-            <dt className="text-muted">Deposit</dt>
+            <dt className="text-muted-foreground">Deposit</dt>
             <dd className="text-right font-semibold">{formatFiat(listing.depositThb, "THB")}</dd>
-            <dt className="text-muted">Where</dt>
+            <dt className="text-muted-foreground">Where</dt>
             <dd className="text-right">{listing.location}</dd>
-            <dt className="text-muted">Owner</dt>
+            <dt className="text-muted-foreground">Owner</dt>
             <dd className="text-right font-mono">{status ? shortAddress(status.owner) : "KeyEscrow demo owner"}</dd>
           </dl>
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-4 text-sm text-muted-foreground">
             Rent and deposit go into this rental&apos;s own escrow on BNB Chain. The AI inspector compares pickup and return photos; both sides agree on the
             split.
           </p>
           {enabled ? (
             <div className="mt-4 flex flex-wrap gap-3">
-              <a href={`/r/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover" data-testid="listing-rent">
+              <a href={`/r/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover" data-testid="listing-rent">
                 Rent this
               </a>
               <a href={`/stage/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg border border-border-strong px-4 py-2 text-sm font-medium">
@@ -48,6 +48,6 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
           )}
         </Card>
       </div>
-    </main>
+    </section>
   );
 }
