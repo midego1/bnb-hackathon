@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { Notice, PageTitle } from "@/components/ui";
 import { targetChainId } from "@/lib/chains";
 import { useDeployment } from "@/lib/hooks/useDeployment";
-import { pageIntro, pageTitle } from "./copy";
+import { useT } from "@/lib/i18n/client";
+import { demoCopy } from "./copy";
 import { DemoRunner } from "./DemoRunner";
 
 /** The guided demo only runs on the local anvil chain (31337) with the dev account switcher compiled in. */
@@ -23,6 +24,7 @@ export function DemoGate() {
 }
 
 function Blocked({ children }: { children: ReactNode }) {
+  const { pageIntro, pageTitle } = useT().of(demoCopy);
   return (
     <div>
       <PageTitle title={pageTitle}>{pageIntro}</PageTitle>

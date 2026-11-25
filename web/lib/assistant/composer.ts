@@ -2,6 +2,7 @@
  * The panel's composer helpers (client-safe, pure): suggestions that fit the page in view, slash commands, and the
  * follow-along guard. Suggestions come from the path only.
  */
+import type { Lang } from "../i18n/locales";
 import { leaseInView } from "./paths";
 
 /** A prompt the empty chat offers. `fill` = put it in the field (it ends open) instead of sending it. */
@@ -49,6 +50,31 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "/new", description: "Start a new chat" },
   { name: "/model", description: "Pick the model: /model sonnet or /model haiku" },
 ];
+
+/**
+ * Chinese for the suggestion labels and the command descriptions, keyed by the English. The prompts stay English:
+ * they are what the assistant reads and what the mock engine matches. Phase 2 of i18n wires these into the panel.
+ */
+export const ZH_LABELS: Record<string, string> = {
+  "Explain KeyEscrow simply": "用简单的话解释 KeyEscrow",
+  "Find my rental": "找到我的租赁",
+  "Go to the dispute desk": "前往争议处理台",
+  "Where is my deposit?": "我的押金在哪里？",
+  "What happens next?": "接下来会发生什么？",
+  "Explain this rental": "解释这笔租赁",
+  "Propose the AI split": "提出 AI 的分配方案",
+  "Create a rental": "创建租赁",
+  "Find my rentals": "找到我的租赁",
+  "What needs my decision?": "哪些事需要我决定？",
+  "Where is the deposit of this rental?": "这笔租赁的押金在哪里？",
+  "Explain this rental in plain words": "用通俗的话解释这笔租赁",
+  "What happens next, and who must act?": "接下来会发生什么，该谁操作？",
+  "Start a new chat": "开始新对话",
+  "Pick the model: /model sonnet or /model haiku": "选择模型：/model sonnet 或 /model haiku",
+};
+
+/** A suggestion label or command description in a language (English when there is no Chinese). */
+export const composerLabel = (english: string, lang: Lang) => (lang === "zh" ? (ZH_LABELS[english] ?? english) : english);
 
 /** Commands matching what is typed so far ("/" at the start of the field). */
 export function matchCommands(text: string): SlashCommand[] {

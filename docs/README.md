@@ -17,6 +17,7 @@
 | [DESIGN.md](DESIGN.md) | Design notes for the app and the marketing page at `/`; [marketing/](marketing/) holds the hero artwork's source and pipeline. |
 | [AGENT.md](AGENT.md) | KeyEscrow Inspector: the AI inspection as an ERC-8004 agent (BNB Agent SDK, A2A + MCP), signed reports, testnet registration. |
 | [SECURITY.md](SECURITY.md) | Pre-audit security review of the contracts: findings KE-01..13, fixes, invariants, Slither triage, what needs a redeploy. |
+| [i18n-glossary.md](i18n-glossary.md) | English / 简体中文: the fixed Chinese terms, what is never translated, and how the EN / 中文 / EN+中文 switch works. |
 | [ASSISTANT.md](ASSISTANT.md) | Ask AI, the in-app assistant: what it does, the safety model (never signs, approval of exact steps, untrusted data, limits), demo model vs Claude, env names. |
 
 Each document has **Status** lines that separate what is on `main` from what is on the roadmap.

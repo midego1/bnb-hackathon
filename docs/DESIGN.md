@@ -9,8 +9,9 @@ state only. Left sidebar shell (`web/components/shell`). Geist for text, Geist M
 
 ## The marketing page (`/`)
 
-`web/app/(marketing)`, `web/components/marketing`. A static server component outside the app shell: no wallet
-providers, and its only client code is the theme button and Next's links.
+`web/app/(marketing)`, `web/components/marketing`. A server component outside the app shell: no wallet
+providers, and its only client code is the theme button, the language switch and Next's links. It renders per request
+because its words follow the language cookie (`web/lib/i18n`).
 
 - **Idea.** The page is the street the product lives on: the first screen is an LED signboard picture of a Thai soi at
   night with a scooter rental shop, and the promise is written over it like a shop sign.

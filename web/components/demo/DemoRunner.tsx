@@ -12,18 +12,20 @@ import { escrowFactoryAbi, getDeployment, LeaseStatus, mockUsdtAbi } from "@/lib
 import { fastForward } from "@/lib/demo/anvil";
 import { explainFor, type Cast } from "@/lib/demo/explain";
 import { GUIDED, parseTimeScale, readingMs, type Speed } from "@/lib/demo/pacing";
-import { ledger, newContext, PATHS, stepsFor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
+import { ledger, newContext, paths, propertyName, stepsFor, stepText, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
 import { bscscanAddress, bscscanTx, testnetPaths, TestnetSession, type TestnetInfo, type WaitInfo } from "@/lib/demo/testnet";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { noteMinedBlock } from "@/lib/chainIndex";
 import { friendlyError } from "@/lib/errors";
+import { errorsIn } from "@/lib/errors.zh";
+import { useT } from "@/lib/i18n/client";
 import { uploadEvidence } from "@/lib/evidence";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useTx } from "@/lib/hooks/useTx";
 import { runInspection } from "@/lib/settlement";
 import { usePrices } from "@/lib/usePrices";
 import { ActorBoard, FlowStrip, type Wallets } from "./ActorBoard";
-import { actorCards, actorLabel, controls, errorCopy, guidedCopy, inspectionCopy, intro, pageIntro, pageTitle, panels, summaryCopy, testnetCopy } from "./copy";
+import { demoCopy } from "./copy";
 import { GuidedIntro, GuidedStep, type BeatNav } from "./GuidedBeat";
 import { StepTimeline, type StepStatus } from "./StepTimeline";
 import { useDemoKeys, useGuided } from "./useGuided";
@@ -58,9 +60,6 @@ async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
   }
 }
 
-/** The two sides as they are named on the actor cards, for the Guided narration. */
-const CAST: Cast = { landlord: actorCards.landlord.name.toLowerCase(), tenant: actorCards.tenant.name.toLowerCase() };
-
 /**
  * One-click guided demo: plays the whole KeyEscrow story against the real contracts on the local anvil chain,
  * switching the anvil demo accounts as it goes.
@@ -87,6 +86,11 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   const { prices } = usePrices();
   const money = useMoney();
   const { setCompact, clearSettled } = useToasts();
+  const i18n = useT();
+  const { actorCards, actorLabel, controls, errorCopy, guidedCopy, pageTitle, panels, testnetCopy } = i18n.of(demoCopy);
+  const PATHS = i18n.of(paths);
+  /** The two sides as they are named on the actor cards, for the Guided narration. */
+  const CAST: Cast = { landlord: actorCards.landlord.name.toLowerCase(), tenant: actorCards.tenant.name.toLowerCase() };
 
   // The stage reports every transaction itself (timeline, balances, money moved): no toasts over it.
   useEffect(() => {
@@ -99,7 +103,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   const [stepMode, setStepMode] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [pauseAsked, setPauseAsked] = useState(false);
-  const [steps, setSteps] = useState<DemoStep[]>(() => stepsFor("happy"));
+  const [steps, setSteps] = useState<DemoStep[]>(() => stepsFor("happy", i18n.lang));
   const [statuses, setStatuses] = useState<StepStatus[]>([]);
   const [current, setCurrent] = useState(-1);
   const [error, setError] = useState<string | null>(null);
@@ -344,8 +348,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   }
 
   /** Guided narration of step i, from the live context (lib/demo/explain.ts). */
-  const nowText = (i: number) => explainFor(stepsRef.current[i].id).now(ctxRef.current!, moneyRef.current, CAST);
-  const changedText = (i: number) => explainFor(stepsRef.current[i].id).changed(ctxRef.current!, moneyRef.current, CAST);
+  const nowText = (i: number) => explainFor(stepsRef.current[i].id, i18n.lang).now(ctxRef.current!, moneyRef.current, CAST);
+  const changedText = (i: number) => explainFor(stepsRef.current[i].id, i18n.lang).changed(ctxRef.current!, moneyRef.current, CAST);
 
   async function loop(from: number, token: number) {
     const all = stepsRef.current;
@@ -376,7 +380,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       } catch (err) {
         if (tokenRef.current !== token) return;
         mark(i, "error");
-        setError(friendlyError(err));
+        setError(friendlyError(err, errorsIn(i18n.lang)));
         void sessionRef.current?.ping(`step ${all[i].id}: ${friendlyError(err)}`); // live testnet: log what the viewer saw
         setPhase("error");
         publish();
@@ -409,7 +413,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
     nextRef.current?.();
     pausedRef.current = false;
     setPauseAsked(false);
-    const list = stepsFor(p);
+    const list = stepsFor(p, i18n.lang);
     stepsRef.current = list;
     introDoneRef.current = false;
     guided.bind(token, true);
@@ -468,7 +472,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       setSpeed(speedRef.current);
       setStepMode(stepModeRef.current);
       setPath(initial);
-      setSteps(stepsFor(initial));
+      setSteps(stepsFor(initial, i18n.lang));
       if (q.get("autoplay") === "1") start(initial);
     }, 0);
     return () => clearTimeout(t);
@@ -517,7 +521,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             })}
             onChange={(p) => {
               setPath(p);
-              if (phase === "idle") setSteps(stepsFor(p));
+              if (phase === "idle") setSteps(stepsFor(p, i18n.lang));
             }}
           />
           <Segmented
@@ -587,7 +591,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             wallets={wallets}
             base={onStage ? base : null}
             actor={onStage ? step?.actor : undefined}
-            receiving={onStage && step ? explainFor(step.id).to : undefined}
+            receiving={onStage && step ? explainFor(step.id, i18n.lang).to : undefined}
           />
         </div>
 
@@ -610,8 +614,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
               total={steps.length}
               beat={caption.beat}
               actorTone={actorTone[captionStep.actor]}
-              now={explainFor(captionStep.id).now(view, money, CAST)}
-              changed={explainFor(captionStep.id).changed(view, money, CAST)}
+              now={explainFor(captionStep.id, i18n.lang).now(view, money, CAST)}
+              changed={explainFor(captionStep.id, i18n.lang).changed(view, money, CAST)}
               activities={guided.shown ? [] : guided.activities}
               flow={<FlowStrip base={caption.base} wallets={caption.wallets} />}
               pacer={guided.pacer}
@@ -731,6 +735,7 @@ function Segmented<T extends string>({
 
 /** "● Live on BSC Testnet": this run sends real, public transactions. */
 function LiveBadge() {
+  const { testnetCopy } = useT().of(demoCopy);
   return (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-success-border bg-success-soft px-2.5 py-0.5 text-sm font-semibold text-success-fg"
@@ -746,10 +751,13 @@ function LiveBadge() {
 }
 
 function Intro({ path, testnet }: { path: DemoPath; testnet: boolean }) {
+  const t = useT();
+  const { intro, pageIntro, testnetCopy } = t.of(demoCopy);
+  const PATHS = t.of(paths);
   return (
     <section className="shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg xl:px-6 xl:py-5">
       <p className="text-base leading-relaxed xl:text-lg">{testnet ? testnetCopy.pageIntro : pageIntro}</p>
-      <h2 className="mt-3 text-lg font-semibold">{intro.title}</h2>
+      <h2 className="mt-3 text-lg font-semibold">{t.head(demoCopy, (c) => c.intro.title)}</h2>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-base">
         {(testnet ? testnetCopy.bullets : intro.bullets).map((b) => (
           <li key={b}>{b}</li>
@@ -779,6 +787,8 @@ function Narration({
   caption: string;
   children?: ReactNode;
 }) {
+  const t = useT();
+  const { actorLabel, panels } = t.of(demoCopy);
   return (
     <section
       className="shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg xl:tall:px-6 xl:tall:py-5"
@@ -795,7 +805,7 @@ function Narration({
           </span>
         )}
       </div>
-      <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{step.title}</h2>
+      <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{t.head(stepText, (x) => x[step.id].title)}</h2>
       <p className="mt-1.5 text-lg leading-relaxed xl:tall:text-xl xl:tall:leading-relaxed">{caption}</p>
       {children && <div className="mt-3 border-t border-warning-border pt-2.5">{children}</div>}
     </section>
@@ -804,6 +814,7 @@ function Narration({
 
 /** The real rental page (the same component owner and renter use), scrolling inside its own panel. */
 function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; children?: ReactNode }) {
+  const { panels } = useT().of(demoCopy);
   if (idle && !lease) return null;
   return (
     <section
@@ -830,6 +841,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
 }
 
 function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
+  const { inspectionCopy, testnetCopy } = useT().of(demoCopy);
   const r = ctx.inspection!;
   return (
     <section className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900 dark:bg-cyan-950/40" data-testid="demo-inspection">
@@ -875,6 +887,9 @@ function Summary({
   onPath: (p: DemoPath) => void;
   onHide: () => void;
 }) {
+  const t = useT();
+  const { summaryCopy, testnetCopy } = t.of(demoCopy);
+  const PATHS = t.of(paths);
   const money = useMoney();
   const settled = ctx.finalStatus === LeaseStatus.Settled;
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path && (!testnet || testnetPaths.includes(p)));
@@ -887,7 +902,7 @@ function Summary({
       data-balanced={books?.balanced ? "true" : "false"}
     >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-xl font-semibold tracking-tight tall:text-2xl xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
+        <h2 className="text-xl font-semibold tracking-tight tall:text-2xl xl:tall:text-3xl">{t.head(demoCopy, (c) => c.summaryCopy.outcome[ctx.path])}</h2>
         <button
           type="button"
           onClick={onHide}
@@ -903,7 +918,7 @@ function Summary({
             <StatusBadge status={ctx.finalStatus as LeaseStatus} />
           </span>
         )}
-        {summaryCopy.terms(ctx.property.name, money(ctx.rent), money(ctx.deposit))}
+        {summaryCopy.terms(propertyName(ctx.property.name, t.lang), money(ctx.rent), money(ctx.deposit))}
       </p>
       {books && (
         <>

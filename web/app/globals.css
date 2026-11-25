@@ -372,3 +372,15 @@ body {
     right: var(--assistant-width);
   }
 }
+
+/* EN+中文 mode (lib/i18n/t.tsx bi): the Chinese line under a headline, smaller and muted, same rhythm. */
+.i18n-zh {
+  display: block;
+  margin-top: 0.15em;
+  font-size: 0.62em;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.72;
+}

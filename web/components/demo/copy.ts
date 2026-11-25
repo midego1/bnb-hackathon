@@ -1,15 +1,18 @@
 import type { DemoActor, DemoPath } from "@/lib/demo/script";
+import { localized } from "@/lib/i18n/locales";
+import { zh } from "./copy.zh";
 
 /**
  * Every user-facing string of the /demo stage UI in one place (the step narration itself lives with the steps in
- * lib/demo/script.ts). Layout components import from here and hold no copy of their own.
+ * lib/demo/script.ts). Layout components read it through `demoCopy` (English, or Chinese from copy.zh.ts) and hold
+ * no copy of their own.
  */
 
-export const pageTitle = "Play the demo";
-export const pageIntro =
+const pageTitle = "Play the demo";
+const pageIntro =
   "One click plays the whole KeyEscrow story on the local chain: real contracts, real transactions, and the real rental page updating live underneath. The demo accounts switch by themselves.";
 
-export const actorLabel: Record<DemoActor, string> = {
+const actorLabel: Record<DemoActor, string> = {
   landlord: "Owner",
   tenant: "Renter",
   arbiter: "Dispute desk",
@@ -19,7 +22,7 @@ export const actorLabel: Record<DemoActor, string> = {
 };
 
 /** The actor cards on the left of the stage. */
-export const actorCards = {
+const actorCards = {
   landlord: { name: "Owner", note: "Offers the rental, gets the rent" },
   tenant: { name: "Renter", note: "Pays deposit + rent into escrow" },
   escrow: { name: "Escrow contract", note: "This rental only: holds the deposit", empty: "Created in step 1" },
@@ -29,7 +32,7 @@ export const actorCards = {
   faucet: "MockUSDT faucet",
 } as const;
 
-export const controls = {
+const controls = {
   story: "Story",
   speed: "Speed",
   mode: "Mode",
@@ -49,7 +52,7 @@ export const controls = {
   showSummary: "Show the summary",
 };
 
-export const intro = {
+const intro = {
   title: "What you are about to see",
   bullets: [
     "A fresh scooter rental, created, funded and settled with real transactions on this local anvil chain.",
@@ -60,7 +63,7 @@ export const intro = {
   presenting: "Presenting live? Pick Step by step: each step waits for your click. Pause works any time.",
 };
 
-export const panels = {
+const panels = {
   story: "The story",
   stage: "Current step",
   live: "The real rental page, live",
@@ -74,13 +77,13 @@ export const panels = {
   txTitle: (hash: string) => `Transaction ${hash}: see it on the rental timeline`,
 };
 
-export const errorCopy = {
+const errorCopy = {
   title: (n: number, title?: string) => `Step ${n} (${title}) did not work`,
   retry: "Retry this step",
   startOver: "Start over with a fresh rental",
 };
 
-export const inspectionCopy = {
+const inspectionCopy = {
   title: "AI return inspection",
   back: "Back to renter",
   keeps: "Owner keeps (repairs)",
@@ -92,7 +95,7 @@ export const inspectionCopy = {
     `Confidence ${(confidence * 100).toFixed(0)}% · ${mock ? "demo inspector (no AI key configured)" : `vision model: ${provider}`} · report`,
 };
 
-export const summaryCopy = {
+const summaryCopy = {
   tryLabel: {
     happy: "Try the happy path",
     dispute: "Try the dispute path",
@@ -125,7 +128,7 @@ export const summaryCopy = {
 };
 
 /** The live BSC testnet (chain 97) variant of the stage: same story, real public transactions signed by the server. */
-export const testnetCopy = {
+const testnetCopy = {
   badge: "Live on BSC Testnet",
   badgeShort: "BSC Testnet",
   badgeTitle: "Every step is a real BSC testnet (chain 97) transaction, signed by KeyEscrow's demo wallets on the server. Click any hash to open it on BscScan.",
@@ -156,7 +159,7 @@ export const testnetCopy = {
 };
 
 /** Guided speed: the intro card, the three beats of every step, the transaction lines and the presenter keys. */
-export const guidedCopy = {
+const guidedCopy = {
   speed: "Guided",
   speedTitle: "Slow, explained: each step says what happens, runs it, then shows what changed",
   normalTitle: "One short caption per step",
@@ -191,3 +194,8 @@ export const guidedCopy = {
     beats: "Every step has three parts: what happens now, the transaction itself, and what just changed.",
   },
 };
+
+const en = { pageTitle, pageIntro, actorLabel, actorCards, controls, intro, panels, errorCopy, inspectionCopy, summaryCopy, testnetCopy, guidedCopy };
+export type DemoCopy = typeof en;
+/** The /demo copy in a language: `useT().of(demoCopy)`. */
+export const demoCopy = localized(en, zh);

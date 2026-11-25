@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchTestnetInfo } from "@/lib/demo/testnet";
 import { useDeployment } from "@/lib/hooks/useDeployment";
-import { testnetCopy } from "./copy";
+import { useT } from "@/lib/i18n/client";
+import { demoCopy } from "./copy";
 
 /**
  * Landing-page entry to the guided demo: local anvil builds with the dev account switcher, and BSC testnet builds
@@ -18,6 +19,7 @@ export function PlayDemoCta() {
 }
 
 function TestnetCta() {
+  const { testnetCopy } = useT().of(demoCopy);
   const [on, setOn] = useState(false);
   useEffect(() => {
     let alive = true;

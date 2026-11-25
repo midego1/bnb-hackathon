@@ -4,7 +4,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Notice, PageTitle } from "@/components/ui";
 import { fetchTestnetInfo, type TestnetInfo } from "@/lib/demo/testnet";
 import { friendlyError } from "@/lib/errors";
-import { pageTitle, testnetCopy } from "./copy";
+import { errorsIn } from "@/lib/errors.zh";
+import { useT } from "@/lib/i18n/client";
+import { demoCopy } from "./copy";
 import { DemoRunner } from "./DemoRunner";
 
 /**
@@ -13,17 +15,19 @@ import { DemoRunner } from "./DemoRunner";
  * server has the runner switched off (no DEMO_TESTNET_RUNNER=1) the route answers 404 and this shows a notice.
  */
 export function TestnetDemoGate() {
+  const t = useT();
+  const { testnetCopy } = t.of(demoCopy);
   const [state, setState] = useState<{ info?: TestnetInfo | null; error?: string }>({});
   useEffect(() => {
     let alive = true;
     fetchTestnetInfo().then(
       (info) => alive && setState({ info }),
-      (e) => alive && setState({ error: friendlyError(e) }),
+      (e) => alive && setState({ error: friendlyError(e, errorsIn(t.lang)) }),
     );
     return () => {
       alive = false;
     };
-  }, []);
+  }, [t.lang]);
   if (state.error) return <Blocked>{state.error}</Blocked>;
   if (state.info === undefined) return <p className="text-sm text-subtle">{testnetCopy.loading}</p>;
   if (state.info === null) return <Blocked>{testnetCopy.off}</Blocked>;
@@ -31,6 +35,7 @@ export function TestnetDemoGate() {
 }
 
 function Blocked({ children }: { children: ReactNode }) {
+  const { pageTitle, testnetCopy } = useT().of(demoCopy);
   return (
     <div>
       <PageTitle title={pageTitle}>{testnetCopy.pageIntro}</PageTitle>

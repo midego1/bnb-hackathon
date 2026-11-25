@@ -9,6 +9,8 @@ import { useToasts } from "@/components/Toasts";
 import { noteMinedBlock } from "../chainIndex";
 import { explorerLink } from "../chains";
 import { friendlyError } from "../errors";
+import { errorsIn } from "../errors.zh";
+import { useT } from "../i18n/client";
 
 type Call = {
   address: `0x${string}`;
@@ -29,6 +31,7 @@ export function useTx() {
   const toasts = useToasts();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
+  const { lang } = useT();
 
   const send = useCallback(
     async (label: string, call: Call, opts: { throwOnError?: boolean } = {}): Promise<TransactionReceipt | undefined> => {
@@ -51,7 +54,7 @@ export function useTx() {
         await queryClient.invalidateQueries();
         return receipt;
       } catch (err) {
-        const message = friendlyError(err);
+        const message = friendlyError(err, errorsIn(lang));
         toasts.update(id, { kind: "error", body: message });
         if (opts.throwOnError) throw new Error(message);
         return undefined;
@@ -59,7 +62,7 @@ export function useTx() {
         setPending(null);
       }
     },
-    [account, chainId, config, queryClient, toasts],
+    [account, chainId, config, queryClient, toasts, lang],
   );
 
   return { send, pending };

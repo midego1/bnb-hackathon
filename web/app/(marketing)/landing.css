@@ -379,3 +379,8 @@ html:has(.mk) {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
+
+/* Chinese (中文 mode) needs more room between display lines than Kanit's tight Latin leading. */
+html:lang(zh-CN) .mk-display {
+  line-height: 1.15;
+}

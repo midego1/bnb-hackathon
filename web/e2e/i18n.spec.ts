@@ -1,0 +1,137 @@
+import { expect, test, type Page } from "@playwright/test";
+import path from "node:path";
+import { restoreChainAfterEachTest } from "./chain";
+
+/**
+ * The language switch (lib/i18n): EN / 中文 / EN+中文, kept in the ke_lang cookie.
+ * Screenshots go to I18N_SHOTS (default test-results/screenshots/i18n).
+ */
+
+restoreChainAfterEachTest();
+
+const SHOTS = process.env.I18N_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/i18n");
+const shot = (page: Page, name: string, fullPage = false) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
+const LAPTOP = { width: 1470, height: 830 };
+/** The switch in the landing header (the footer has a second one). */
+const lang = (page: Page, mode: "en" | "zh" | "both") => page.getByRole("banner").getByTestId(`lang-${mode}`);
+
+/** Record the worst page overflow (both directions) from now on. */
+async function watchOverflow(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __of: { x: number; y: number } };
+    w.__of = { x: 0, y: 0 };
+    const check = () => {
+      const s = document.scrollingElement!;
+      w.__of = { x: Math.max(w.__of.x, s.scrollWidth - window.innerWidth), y: Math.max(w.__of.y, s.scrollHeight - window.innerHeight) };
+    };
+    new MutationObserver(check).observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+    check();
+  });
+}
+const worst = (page: Page) => page.evaluate(() => (window as unknown as { __of: { x: number; y: number } }).__of);
+
+test("switch to 中文 on the landing page: /, /how-it-works and /demo change and it survives a reload", async ({ page }) => {
+  await page.goto("/");
+  const h1 = page.getByRole("heading", { level: 1 });
+  await expect(h1).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByTestId("ai-translated")).toHaveCount(0);
+
+  await lang(page, "zh").click();
+  await expect(h1).toContainText("护照留下");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(lang(page, "zh")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("ai-translated")).toContainText("AI 翻译");
+  await shot(page, "zh-landing");
+
+  await page.reload();
+  await expect(h1).toContainText("护照留下");
+  await expect(page.getByRole("heading", { level: 2, name: "每个争议都有期限。" })).toBeVisible();
+  await expect(page).toHaveTitle(/不用押护照/);
+
+  await page.goto("/how-it-works?autoplay=0&scene=6");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("KeyEscrow，简单讲给你听");
+  await expect(page.getByTestId("eli5-narration")).toContainText("机器人对比照片");
+  await expect(page.getByTestId("eli5-ending-happy")).toContainText("双方同意");
+  await shot(page, "zh-how-it-works");
+
+  await page.goto("/demo");
+  await expect(page.getByTestId("demo-play")).toContainText("播放演示");
+  await expect(page.getByTestId("demo-play")).toBeEnabled();
+  await expect(page.getByTestId("demo-path-dispute")).toContainText("争议流程");
+  await shot(page, "zh-demo");
+  // The steps run in Chinese too: the first beat's title and narration.
+  await page.getByTestId("demo-mode-step").click();
+  await page.getByTestId("demo-play").click();
+  await page.getByTestId("demo-beat-next").click();
+  await expect(page.getByTestId("demo-narration").locator("h2")).toHaveText("车主发布租赁", { timeout: 60_000 });
+  await expect(page.getByTestId("demo-now")).toContainText("托管合约");
+  await shot(page, "zh-demo-step");
+
+  // And back to English.
+  await page.goto("/");
+  await lang(page, "en").click();
+  await expect(h1).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+});
+
+test("EN+中文 from ?bilingual=1: Chinese under the headlines only, the landing page never scrolls sideways", async ({ page }) => {
+  await page.setViewportSize(LAPTOP);
+  await page.goto("/?bilingual=1");
+  const h1 = page.getByRole("heading", { level: 1 });
+  await expect(h1.locator(".i18n-zh")).toHaveText("摩托车租走，护照留下。");
+  await expect(h1).toContainText("Keep your passport.");
+  await expect(lang(page, "both")).toHaveAttribute("aria-pressed", "true");
+  // Body text stays English.
+  await expect(page.getByTestId("fee-pitch")).toContainText("Never taken from the deposit");
+  await expect(page.getByTestId("fee-pitch").locator("h2 .i18n-zh")).toContainText("只收一次");
+  const m = await page.evaluate(() => ({ sw: document.scrollingElement!.scrollWidth, iw: window.innerWidth }));
+  expect(m.sw).toBeLessThanOrEqual(m.iw);
+  await shot(page, "both-landing-1470x830");
+  await shot(page, "both-landing-full", true);
+
+  // An explicit choice wins over the parameter.
+  await lang(page, "en").click();
+  await expect(h1.locator(".i18n-zh")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/bilingual/);
+});
+
+test("EN+中文 on /how-it-works at 1470x830: every scene of every ending fits one screen", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize(LAPTOP);
+  await page.goto("/how-it-works?bilingual=1&autoplay=0&scene=6&t=6000");
+  const narration = page.getByTestId("eli5-narration");
+  await expect(narration.locator(".i18n-zh")).toContainText("机器人");
+  await shot(page, "both-how-it-works-1470x830");
+  for (const ending of ["happy", "disagree", "silent"]) {
+    await page.goto(`/how-it-works?ending=${ending}&speed=50`);
+    await watchOverflow(page);
+    await expect(page.getByTestId("eli5")).toHaveAttribute("data-done", "true", { timeout: 60_000 });
+    expect(await worst(page), `overflow in the ${ending} ending`).toEqual({ x: 0, y: 0 });
+  }
+});
+
+test("EN+中文 on /demo at 1470x830: guided beats and the summary fit one screen", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.setViewportSize(LAPTOP);
+  await page.goto("/demo?bilingual=1&timescale=0.03");
+  await expect(page.getByTestId("demo-play")).toBeEnabled();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await watchOverflow(page);
+  await shot(page, "both-demo-start-1470x830");
+  await page.getByTestId("demo-mode-step").click();
+  await page.getByTestId("demo-play").click();
+  const narration = page.getByTestId("demo-narration");
+  await page.getByTestId("demo-beat-next").click();
+  await expect(narration.locator("h2 .i18n-zh")).toHaveText("车主发布租赁", { timeout: 60_000 });
+  await expect(narration.locator("h2")).toContainText("Owner offers the rental");
+  await shot(page, "both-demo-step-1470x830");
+  await page.getByTestId("demo-mode-auto").click();
+  await page.getByTestId("demo-beat-next").click();
+  const summary = page.getByTestId("demo-summary");
+  await expect(summary).toBeVisible({ timeout: 240_000 });
+  await expect(summary.locator("h2 .i18n-zh")).toBeVisible();
+  await expect(page.getByTestId("demo-run-again")).toBeInViewport({ ratio: 1 });
+  await shot(page, "both-demo-summary-1470x830");
+  expect(await worst(page)).toEqual({ x: 0, y: 0 });
+});

@@ -174,6 +174,16 @@ or a log. Other builds compile the demo out, and `/demo` answers 404.
 
 **Status:** live. The Ask AI panel is roadmap.
 
+### Languages (EN / 中文 / EN+中文)
+
+`web/lib/i18n`: the mode is the `ke_lang` cookie (`en` default, `zh`, `both`), read once per request in the root
+layout, which sets `<html lang>` and hands the client provider only the active dictionary (plus the Chinese headlines
+in `both`). Server components call `getDictionary()`, client components `useT()`; both give `t(key)`, `t.h(key)` for
+headlines (EN+中文 puts the Chinese line under the English, body text stays English), `t.of(module)` and
+`t.head(module, pick)` for the localized data modules (`*.zh.ts` next to the English: demo copy and script, the
+guided narration, the ELI5 cartoon, the landing copy, `lib/errors.zh.ts`). A missing Chinese key falls back to English;
+`web/tests/i18n.test.ts` lists any. `?bilingual=1` switches to `both`. Fixed terms: [i18n-glossary.md](i18n-glossary.md).
+
 ## 4. Actions: REST, OpenAPI, MCP, A2A
 
 Every rental action is **one definition** in `web/lib/actions/definitions.ts`: a zod input schema with titles and

@@ -49,9 +49,9 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
 - OpenNext copies `web/.env*` files into the Worker. `cf:build` empties that module
   (`.open-next/cloudflare/next-env.mjs`) and prints the names it dropped: the deployed Worker reads only its wrangler
   vars and secrets.
-- Two Next settings differ from the Node build: `cacheComponents` / `partialPrefetching` are off (with them every page
-  render hangs under workerd; nothing uses `"use cache"`), and the BNB Greenfield SDK is replaced by a stub (it adds
-  ~5 MiB and evidence goes to R2 on Workers).
+- `cacheComponents` / `partialPrefetching` are off (with them every page render hangs under workerd; the Node build has
+  them off too because every page reads the language cookie in the root layout; nothing uses `"use cache"`), and the
+  BNB Greenfield SDK is replaced by a stub (it adds ~5 MiB and evidence goes to R2 on Workers).
 
 `cf:build` ends by copying the prerendered pages into the static assets (`opennextjs-cloudflare populateCache local`,
 which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the

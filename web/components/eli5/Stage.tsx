@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Bubble, Calendar, Coin, COLORS, Jar, Key, Padlock, Paper, Person, Photo, RefereeDesk, RentalArt, Robot, Safe, Stamp, type Mood } from "./Drawings";
-import { baht, copy, dollars, MONEY, RENTAL, recapLines, type Ending, type Scene } from "./script";
+import { useT } from "@/lib/i18n/client";
+import { baht, dollars, eli5Copy, MONEY, RENTAL, recapLines, type Ending, type Scene } from "./script";
 import { clamp01, coinsAt, cue, easeInOut, easeOutBack, has, holdingsAt, pageAt } from "./timeline";
 
 /**
@@ -62,6 +63,7 @@ function Say({ x, y, w, text, tx, ty, think, p, reduced, testId }: { x: number; 
 }
 
 function SplitBubble({ x, y, title, split, p, reduced, tx, ty, testId }: { x: number; y: number; title: string; split: [bigint, bigint]; p: number; reduced: boolean; tx: number; ty: number; testId: string }) {
+  const copy = useT().of(eli5Copy);
   return (
     <Enter p={p} x={x} y={y} reduced={reduced} testId={testId}>
       <Bubble w={250} h={112} tx={tx} ty={ty}>
@@ -80,6 +82,7 @@ function SplitBubble({ x, y, title, split, p, reduced, tx, ty, testId }: { x: nu
 }
 
 export function Stage({ scene, t, reduced, ending }: { scene: Scene; t: number; reduced: boolean; ending: Ending }) {
+  const copy = useT().of(eli5Copy);
   const held = holdingsAt(scene, t);
   const c = (name: Parameters<typeof cue>[1], span?: number) => cue(scene, name, t, span);
   const safeShown = c("safe", 600);
@@ -265,7 +268,9 @@ export function Stage({ scene, t, reduced, ending }: { scene: Scene; t: number; 
 }
 
 function RecapCard({ ending }: { ending: Ending }) {
-  const rows = recapLines(ending);
+  const i18n = useT();
+  const copy = i18n.of(eli5Copy);
+  const rows = recapLines(ending, i18n.lang);
   return (
     <g>
       <rect x={-300} y={-108} width={600} height={216} rx={22} fill="var(--surface-muted)" stroke="var(--border-strong)" strokeWidth={3} />
