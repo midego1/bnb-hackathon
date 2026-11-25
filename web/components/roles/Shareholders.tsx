@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
@@ -21,15 +22,21 @@ const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
 export function Shareholders() {
   const { chainId, deployment } = useDeployment();
   const { address } = useAccount();
-  const { data: vault, isLoading } = useVault(address);
-  const { data: index } = useRentals();
+  const { data: vault, isLoading, error: vaultError, refetch: refetchVault, isFetching: vaultFetching } = useVault(address);
+  const { data: index, error: indexError, refetch, isFetching } = useRentals();
   const money = useMoney();
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}.</Notice>;
   if (!deployment.fleetVault) {
     return <Notice kind="warn">This deployment has no Fleet Vault yet. Redeploy with `pnpm deploy:testnet` (it now deploys the vault too).</Notice>;
   }
-  if (isLoading || !vault) return <Skeleton className="h-64" />;
+  if (!vault) {
+    return vaultError && !isLoading ? (
+      <ChainReadNotice error={vaultError} hasData={false} onRetry={() => refetchVault()} retrying={vaultFetching} what="the Fleet Vault" />
+    ) : (
+      <Skeleton className="h-64" />
+    );
+  }
 
   const { earned, yieldPct } = vaultIncome(vault);
   const vaultRentals = (index?.rentals ?? []).filter((r) => r.payee.toLowerCase() === vault.address.toLowerCase());
@@ -37,6 +44,7 @@ export function Shareholders() {
 
   return (
     <div className="space-y-6">
+      <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="the vault's history" />
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
         <span className="font-semibold text-foreground">{vault.name}</span>
         <AddressTag address={vault.address} chainId={chainId} label={vault.symbol} />

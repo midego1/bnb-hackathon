@@ -10,8 +10,16 @@ import { nextStep, viewerRole } from "./model";
 
 export function LeaseCard({ address }: { address: Address }) {
   const { address: me } = useAccount();
-  const { data: lease, error } = useLease(address);
-  if (error) return <div className="rounded-2xl border border-danger-border p-4 text-sm text-danger">Could not load rental {shortAddress(address)}. Check that your wallet is on the right network.</div>;
+  const { data: lease, error, refetch, isFetching } = useLease(address);
+  if (error && !lease)
+    return (
+      <div className="rounded-2xl border border-danger-border p-4 text-sm text-danger" data-testid="lease-card-error">
+        Could not load rental {shortAddress(address)}. Check that your wallet is on the right network, or retry if the RPC was busy.{" "}
+        <button type="button" onClick={() => refetch()} disabled={isFetching} data-testid="chain-retry" className="underline">
+          {isFetching ? "Retrying…" : "Retry"}
+        </button>
+      </div>
+    );
   if (!lease) return <Skeleton className="h-36" />;
   const viewer = viewerRole(lease, me);
   const other =

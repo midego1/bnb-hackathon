@@ -6,6 +6,7 @@ import { useAccount, useConfig } from "wagmi";
 import { simulateContract, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import type { Abi, TransactionReceipt } from "viem";
 import { useToasts } from "@/components/Toasts";
+import { noteMinedBlock } from "../chainIndex";
 import { explorerLink } from "../chains";
 import { friendlyError } from "../errors";
 
@@ -45,6 +46,8 @@ export function useTx() {
         const receipt = await waitForTransactionReceipt(config, { hash, chainId });
         if (receipt.status !== "success") throw new Error("The transaction was reverted on-chain.");
         toasts.update(id, { kind: "success", body: "Confirmed." });
+        // The server-side chain index refreshes past its cache until it has this block.
+        if (chainId) noteMinedBlock(chainId, receipt.blockNumber);
         await queryClient.invalidateQueries();
         return receipt;
       } catch (err) {

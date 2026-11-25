@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { EvidenceThumb } from "@/components/lease/EvidencePanel";
+import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Notice, StatusBadge } from "@/components/ui";
 import { LeaseStatus } from "@/lib/contracts";
 import { photosForHash } from "@/lib/demoEvidence";
@@ -22,7 +23,7 @@ export function Renter() {
   const { address } = useAccount();
   const { chainId } = useDeployment();
   const { data: fleet } = useFleet();
-  const { data: index } = useRentals();
+  const { data: index, error: indexError, refetch, isFetching } = useRentals();
   const rentalMap = useMemo(() => new Map((index?.rentals ?? []).map((r) => [r.address.toLowerCase(), r])), [index]);
   const me = address?.toLowerCase();
   const myBookings = (fleet?.bookings ?? []).filter((b) => b.renter.toLowerCase() === me && b.status !== "declined");
@@ -36,6 +37,7 @@ export function Renter() {
 
   return (
     <div className="space-y-8">
+      <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
       <section>
         <h2 className="mb-3 text-lg font-semibold">Find a scooter</h2>
         {scooters.length === 0 ? (
