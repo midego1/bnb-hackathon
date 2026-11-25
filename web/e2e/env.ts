@@ -17,13 +17,14 @@ export const E2E_RPC_URL = `http://127.0.0.1:${E2E_RPC_PORT}`;
 
 const example = JSON.parse(
   readFileSync(path.resolve(__dirname, "../../contracts/deployments/31337.example.json"), "utf8"),
-) as { escrowFactory: string; token: string; defaultArbiter: string };
+) as { escrowFactory: string; token: string; defaultArbiter: string; fleetVault: string };
 
 /** Addresses the e2e app is built with; global setup asserts the fresh deploy lands on exactly these. */
 export const E2E_DEPLOYMENT = {
   escrowFactory: example.escrowFactory,
   token: example.token,
   defaultArbiter: example.defaultArbiter,
+  fleetVault: example.fleetVault,
 } as const;
 
 export const E2E_WEB_ENV: Record<string, string> = {
@@ -37,6 +38,7 @@ export const E2E_WEB_ENV: Record<string, string> = {
   NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS: E2E_DEPLOYMENT.escrowFactory,
   NEXT_PUBLIC_MOCK_USDT_ADDRESS: E2E_DEPLOYMENT.token,
   NEXT_PUBLIC_DISPUTE_DESK_ADDRESS: E2E_DEPLOYMENT.defaultArbiter,
+  NEXT_PUBLIC_FLEET_VAULT_ADDRESS: E2E_DEPLOYMENT.fleetVault,
   NEXT_PUBLIC_DEV_ACCOUNTS: "1",
   NEXT_PUBLIC_DEMO_TESTNET: "0",
   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: "",

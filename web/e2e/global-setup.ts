@@ -75,6 +75,7 @@ export default async function globalSetup() {
       ["escrowFactory", E2E_WEB_ENV.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS, baked.escrowFactory],
       ["token", E2E_WEB_ENV.NEXT_PUBLIC_MOCK_USDT_ADDRESS, baked.mockUsdt],
       ["defaultArbiter", E2E_WEB_ENV.NEXT_PUBLIC_DISPUTE_DESK_ADDRESS, baked.disputeDesk],
+      ["fleetVault", E2E_WEB_ENV.NEXT_PUBLIC_FLEET_VAULT_ADDRESS, baked.fleetVault],
     ];
     for (const [k, passed, inBundle] of checks) {
       const actual = getAddress(deployed[k]);

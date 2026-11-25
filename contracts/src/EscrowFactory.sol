@@ -132,6 +132,7 @@ contract EscrowFactory is Ownable2Step {
             t.arbiterWindow,
             t.leaseHash
         );
+        // forge-lint: disable-next-line(reentrancy-events)
         if (payee != t.landlord) emit PayeeSet(escrow, payee);
     }
 

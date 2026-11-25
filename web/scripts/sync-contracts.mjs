@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const web = join(dirname(fileURLToPath(import.meta.url)), "..");
 const contracts = join(web, "..", "contracts");
 const outDir = join(web, "lib", "contracts");
-const NAMES = { EscrowFactory: "escrowFactoryAbi", RentalEscrow: "rentalEscrowAbi", MockUSDT: "mockUsdtAbi" };
+const NAMES = { EscrowFactory: "escrowFactoryAbi", RentalEscrow: "rentalEscrowAbi", MockUSDT: "mockUsdtAbi", FleetVault: "fleetVaultAbi" };
 // Deploy output directory relative to contracts/ (the Playwright run uses its own, e.g. deployments/.e2e-web).
 const DEPLOYMENTS_DIR = process.env.DEPLOYMENTS_DIR ?? "deployments";
 
@@ -53,6 +53,7 @@ function normalise(raw) {
     escrowFactory: pick(flat, [/^escrowfactory$/i, /^factory$/i]),
     mockUsdt: pick(flat, [/^mockusdt$/i, /^usdt$/i, /^token$/i, /^stablecoin$/i]),
     disputeDesk: pick(flat, [/^defaultarbiter$/i, /^disputedesk$/i]),
+    fleetVault: pick(flat, [/^fleetvault$/i]),
     fromBlock: pickNumber(flat, [/^startblock$/i, /^fromblock$/i, /^deployblock$/i, /^blocknumber$/i, /^block$/i]) ?? 0,
   };
   if (!entry.escrowFactory || !entry.mockUsdt) return undefined;

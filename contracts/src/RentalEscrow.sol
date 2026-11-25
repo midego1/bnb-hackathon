@@ -193,6 +193,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
 
     /// @notice Called once by the factory right after cloning. Validation lives in the factory.
     /// @param payee_ Receives the owner's payouts; the factory passes the owner itself unless a payee was chosen.
+    // forge-lint: disable-next-line(missing-zero-check) -- the factory always passes the owner or a checked payee
     function initialize(Terms calldata terms_, address payee_) external initializer {
         _terms = terms_;
         payee = payee_;

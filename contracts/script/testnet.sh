@@ -22,6 +22,8 @@
 #   BSCSCAN_API_KEY            needed for verify (an Etherscan API V2 key; forge sends it as ETHERSCAN_API_KEY)
 #   VERIFIER_URL               optional verifier API override (default: forge's Etherscan V2 endpoint for chain 97)
 #   ALLOW_NON_LOCAL_BROADCAST  must be `true` for `deploy`
+#   FLEET_OPERATOR             optional: Fleet Vault operator (maintenance fee); defaults to FEE_RECIPIENT
+#   FLEET_OPERATOR_FEE_BPS     optional: operator fee in bps of vault income (default 1000, max 3000)
 #   FORCE_REDEPLOY             `true` to overwrite an existing deployments/97.json
 #   DEPLOYMENTS_DIR            relative to contracts/ (default `deployments`)
 set -euo pipefail
@@ -224,7 +226,7 @@ post_check() {
   echo "${B}Post-deploy check of $f${N}"
   local k a
   [[ "$(jq -r .chainId "$f")" == "$CHAIN_ID" ]] && ok "chainId $CHAIN_ID" || bad "chainId in $f is not $CHAIN_ID"
-  for k in token escrowFactory rentalEscrowImplementation; do
+  for k in token escrowFactory rentalEscrowImplementation fleetVault; do
     a="$(jq -r ".$k" "$f")"
     if [[ "$(cast code "$a" --rpc-url "$BSC_TESTNET_RPC_URL")" != 0x ]]; then ok "$k $a has code"; else bad "$k $a has no code"; fi
   done
@@ -237,6 +239,7 @@ post_check() {
   check_eq "factory.feeRecipient()" "$(cast call "$factory" 'feeRecipient()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .feeRecipient "$f")"
   check_eq "factory.defaultArbiter()" "$(cast call "$factory" 'defaultArbiter()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .defaultArbiter "$f")"
   check_eq "factory.token()" "$(cast call "$factory" 'token()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .token "$f")"
+  check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .token "$f")"
   check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$BSC_TESTNET_RPC_URL" | tr -d '"')" "mUSDT"
   ((FAILS == 0)) || die "post-deploy check failed ($FAILS problem(s))" 1
 }
@@ -249,6 +252,7 @@ ${B}For web/.env.local (public identifiers only):${N}
 NEXT_PUBLIC_CHAIN_ID=$CHAIN_ID
 NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS=$(jq -r .escrowFactory "$f")
 NEXT_PUBLIC_MOCK_USDT_ADDRESS=$(jq -r .token "$f")
+NEXT_PUBLIC_FLEET_VAULT_ADDRESS=$(jq -r .fleetVault "$f")
 EOF
 }
 
@@ -266,10 +270,15 @@ cmd_verify() {
   ctor="$(cast abi-encode 'constructor(address,address,uint16,address,address)' \
     "$(jq -r .token "$f")" "$(jq -r .factoryOwner "$f")" "$(jq -r .feeBps "$f")" \
     "$(jq -r .feeRecipient "$f")" "$(jq -r .defaultArbiter "$f")")"
+  local vctor
+  vctor="$(cast abi-encode 'constructor(address,string,string,address,uint16)' \
+    "$(jq -r .token "$f")" "${FLEET_NAME:-KeyEscrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
+    "$(jq -r .fleetOperator "$f")" "$(jq -r .fleetOperatorFeeBps "$f")")"
   local -a targets=(
     "$(jq -r .token "$f")|src/mocks/MockUSDT.sol:MockUSDT|"
     "$(jq -r .escrowFactory "$f")|src/EscrowFactory.sol:EscrowFactory|$ctor"
     "$(jq -r .rentalEscrowImplementation "$f")|src/RentalEscrow.sol:RentalEscrow|"
+    "$(jq -r .fleetVault "$f")|src/FleetVault.sol:FleetVault|$vctor"
   )
   local extra=()
   [[ -n "${VERIFIER_URL:-}" ]] && extra=(--verifier-url "$VERIFIER_URL")
