@@ -26,6 +26,9 @@ export const E2E_SECRETS = {
   root: path.join(SECRETS_DIR, "root.env"),
   web: path.join(SECRETS_DIR, "web.env.local"),
   state: path.join(SECRETS_DIR, "orca"),
+  agentDeployment: path.join(SECRETS_DIR, "agent-97.json"),
+  /** Local stub (started by e2e/settings-secrets.spec.ts) that stands in for every key-test API: no real network. */
+  stubPort: Number(process.env.E2E_SECRETS_STUB_PORT ?? E2E_RPC_PORT + 100),
 } as const;
 
 /** Addresses the e2e app is built with; global setup asserts the fresh deploy lands on exactly these. */
@@ -107,4 +110,6 @@ export const E2E_WEB_ENV: Record<string, string> = {
   SETTINGS_SECRETS_STATE_DIR: E2E_SECRETS.state,
   SETTINGS_SECRETS_RESTART: "0",
   SETTINGS_SECRETS_HOSTS: "",
+  SETTINGS_SECRETS_AGENT_DEPLOYMENT: E2E_SECRETS.agentDeployment,
+  SETTINGS_SECRETS_TEST_ORIGIN: `http://127.0.0.1:${E2E_SECRETS.stubPort}`,
 };

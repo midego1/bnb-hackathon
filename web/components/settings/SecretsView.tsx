@@ -20,7 +20,9 @@ type Secret = {
   files: FileStatus[];
   set: boolean;
   restart: { unit: string; label: string }[];
+  testable: boolean;
 };
+type TestOutcome = { status: "valid" | "invalid" | "untestable"; reason: string; testedAt: string; source: "stored" | "typed" };
 type Unit = { unit: string; label: string; loaded: boolean; active: string; since: string };
 type Listing = { secrets: Secret[]; units: Unit[]; restartEnabled: boolean };
 
@@ -181,9 +183,33 @@ function StatusChip({ set, label }: { set: boolean; label?: string }) {
 
 function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => void }) {
   const ref = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<"save" | "clear" | null>(null);
+  const [busy, setBusy] = useState<"save" | "clear" | "test" | "testTyped" | null>(null);
   const [savedAt, setSavedAt] = useState<{ at: string; cleared: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tested, setTested] = useState<TestOutcome | null>(null);
+
+  /** Test the stored value, or (typed) the value in the field without saving it. Only the verdict is kept. */
+  const test = async (typed: boolean) => {
+    const value = typed ? ref.current?.value : undefined;
+    if (typed && !value) {
+      setError("Type a value to test first.");
+      return;
+    }
+    setBusy(typed ? "testTyped" : "test");
+    setError(null);
+    try {
+      const { res, data } = await api(`${API}/test`, { method: "POST", body: JSON.stringify(typed ? { name: s.name, value } : { name: s.name }) });
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not run the test.");
+        return;
+      }
+      setTested({ status: data.status as TestOutcome["status"], reason: String(data.reason), testedAt: String(data.testedAt), source: data.source as TestOutcome["source"] });
+    } catch {
+      setError("The server did not answer.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const send = async (payload: Record<string, unknown>, kind: "save" | "clear") => {
     setBusy(kind);
@@ -273,6 +299,29 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
           </ActionButton>
         </div>
       </form>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => void test(false)}
+          disabled={busy !== null || !s.files.some((f) => f.set)}
+          className="rounded-lg border border-border-strong px-3 py-1.5 font-medium transition hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-45"
+          title={s.testable ? "Check the stored value with a free, read-only call" : "No free test for this name"}
+          data-testid="secret-test"
+        >
+          {busy === "test" ? "Testing..." : "Test"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void test(true)}
+          disabled={busy !== null}
+          className="rounded-lg border border-border-strong px-3 py-1.5 font-medium transition hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-45"
+          title="Check the value in the field without saving it"
+          data-testid="secret-test-typed"
+        >
+          {busy === "testTyped" ? "Testing..." : "Test before saving"}
+        </button>
+        {tested && <TestBadge outcome={tested} />}
+      </div>
       {error && <p className="text-sm text-danger" role="alert" data-testid="secret-error">{error}</p>}
       {savedAt && !error && (
         <p className="text-sm text-success-fg" data-testid="secret-saved">
@@ -281,6 +330,27 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
         </p>
       )}
     </li>
+  );
+}
+
+const TEST_STYLE: Record<TestOutcome["status"], { label: string; className: string }> = {
+  valid: { label: "Valid", className: "bg-success-soft text-success-fg ring-success-border" },
+  invalid: { label: "Invalid", className: "bg-danger-soft text-danger-fg ring-danger-border" },
+  untestable: { label: "Can't test", className: "bg-surface-muted text-subtle ring-border" },
+};
+
+function TestBadge({ outcome: o }: { outcome: TestOutcome }) {
+  const st = TEST_STYLE[o.status] ?? TEST_STYLE.untestable;
+  // The reason starts with the verdict ("Valid: models listed"); show the part after it next to the chip.
+  const detail = o.reason.replace(/^(Valid|Invalid|Can't test)(:\s*|\s+|$)/, "");
+  return (
+    <span className="flex flex-wrap items-center gap-1.5" data-testid="secret-test-result" data-status={o.status} aria-live="polite">
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${st.className}`}>{st.label}</span>
+      {detail && <span className="text-muted">{detail}</span>}
+      <span className="text-xs text-subtle">
+        · {o.source === "typed" ? "typed value, not saved" : "stored value"} · {new Date(o.testedAt).toLocaleTimeString()}
+      </span>
+    </span>
   );
 }
 
