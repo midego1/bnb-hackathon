@@ -6,7 +6,7 @@ Two Workers give the hackathon judges a public URL. Both are prepared and tested
 | Worker | What it serves | Source | Public URL after deploy |
 | --- | --- | --- | --- |
 | `keyescrow-web` | The Next.js app (all pages, `/api/*`) on BSC testnet (97), via the OpenNext adapter | `web/` (`web/wrangler.jsonc`, `web/open-next.config.ts`, `web/cloudflare/`) | `https://keyescrow-web.<subdomain>.workers.dev` |
-| `keyescrow-agent` | KeyEscrow Inspector, ERC-8004 agent #2921: agent card, A2A, MCP, REST | `agent/` (`agent/wrangler.jsonc`, `agent/src/worker.ts`) | `https://keyescrow-agent.<subdomain>.workers.dev` |
+| `keyescrow-agent` | KeyEscrow Inspector, ERC-8004 agent #2921: agent card, A2A, MCP (inspection + rental-action tools), REST | `agent/` (`agent/wrangler.jsonc`, `agent/src/worker.ts`) | `https://keyescrow-agent.<subdomain>.workers.dev` |
 
 `<subdomain>` is the account's workers.dev subdomain, picked when the account is created. Only workers.dev routes are
 used: no custom domain, no zone. Both Workers fit the **Workers Free plan** (see [Size](#size)); nothing here needs
@@ -71,6 +71,7 @@ Wallet RPC: the browser talks to BSC testnet through `NEXT_PUBLIC_BSC_TESTNET_RP
 | `GET /api/integrations` | Sponsor call log: a bounded list per sponsor in the Durable Object instead of `web/.sponsor-logs/*.jsonl`. |
 | `GET/POST /api/fleet` | Scooter listings and booking requests: one record per chain in the Durable Object (atomic update) instead of `web/.fleet/<chainId>.json`. |
 | `POST /api/settlement` (memory) | Per-scooter inspection memory: Living Brain when its secrets are set, else the stand-in in the Durable Object instead of `inspections.jsonl`. |
+| `GET/POST /api/v1/<action>`, `GET /api/v1/openapi.json` | Rental actions (reads, unsigned `prepare_*` transactions) over fetch-based RPC per call: Worker-safe as is. Default chain 97; RPC `KEYESCROW_RPC_URL_97` or PublicNode. Chain 31337 (anvil) is unreachable from Cloudflare and answers `rpc_unavailable`. |
 | `/api/demo-testnet/*` | The live testnet demo runner. Keys from secrets (`DEMO_TESTNET_KEYS`, ...), lock and rate limit in the Durable Object (`SharedRunStore`). 404 until `DEMO_TESTNET_KEYS` is set. |
 
 Local development is unchanged: `next dev` / `next start` / `pnpm testnet:web` still use the local disk (evidence,
@@ -130,7 +131,8 @@ The demo limits (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`, `DEMO_T
 
 | Name | Kind | Purpose |
 | --- | --- | --- |
-| `INSPECTOR_CHAIN_ID`, `VISION_LLM_PROVIDER` | vars | `97` (reads the committed `agent/deployments/97.json`), `anthropic` |
+| `INSPECTOR_CHAIN_ID`, `KEYESCROW_CHAIN_ID`, `VISION_LLM_PROVIDER`, `KEYESCROW_PLATFORM` | vars | `97` (reads the committed `agent/deployments/97.json`), `97` (default chain of the rental-action tools), `anthropic`, `cloudflare` |
+| `KEYESCROW_RPC_URL_97` | var or secret, optional | RPC of the rental-action tools (default PublicNode) |
 | `AGENT_PUBLIC_URL` | var, optional | Base URL in the agent card / registration file; defaults to the URL the request came in on |
 | `INSPECTOR_PRIVATE_KEY` | secret | Report signer; must match `reportSigner` of agent #2921 or the Worker answers 500 "agent misconfigured" |
 | `ANTHROPIC_API_KEY` | secret | Live vision model (mock without it) |
@@ -145,12 +147,14 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 12.7 MiB | **2.53 MiB** | fits Free (3 MiB) |
-| `keyescrow-agent` | 3.6 MiB | **0.62 MiB** | fits Free |
+| `keyescrow-web` | 13.7 MiB | **2.76 MiB** | fits Free (3 MiB), 0.24 MiB headroom |
+| `keyescrow-agent` | 4.3 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.47 MiB. The sponsor, role-view, guided-demo
-and how-it-works merges added 0.12 MiB; if a later merge pushes it over 3 MiB the Worker needs Workers Paid ($5/month).
+time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.24 MiB. The merges since the first build added
+0.35 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
+`pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
+($5/month, 10 MiB limit), or a trim of the server bundle.
 
 ## One-time setup (Michiel)
 
@@ -200,7 +204,8 @@ After the agent is live, its ERC-8004 registration still lists the GitHub URL as
   "out of test BNB" (no funder, so nothing can be sent), the lock is freed, and the next start gets 429 from the rate
   limit, also after restarting the Worker (state lives in the Durable Object).
 - `pnpm cf:agent:preview`: `/health`, `/.well-known/agent-card.json`, `/.well-known/agent-registration.json`,
-  `POST /inspect`, A2A `message/send` and MCP `initialize` / `tools/list` all answer in mock mode.
+  `POST /inspect`, A2A `message/send` and MCP `initialize` / `tools/list` answer in mock mode; MCP `get_lease` reads
+  a real chain 97 rental. On the web Worker `/developers`, `/api/v1/openapi.json` and `/api/v1/get_lease` do too.
 - Unit tests: `web/tests/cloudflare.test.ts` (shared state on both backends, locks, rate limits, R2 / disabled
   evidence, shared price cache, `SharedRunStore` against `MemoryRunStore`, fleet / sponsor log / Cournot / memory
   stores on the Durable Object), `agent/test/worker.test.ts`.
