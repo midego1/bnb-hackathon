@@ -58,6 +58,10 @@ owner does not respond in time, the deposit goes back to the renter. **Neither p
 - **Fair fee.** The protocol fee is 10 % of one month's rent, charged once per rental and taken from the
   owner's first rent release, never from the deposit.
 - **No token.** KeyEscrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
+- **Ask AI.** An assistant panel (Ctrl+J / Cmd+J) that answers "where is my deposit?" and prepares changes
+  through the same rental actions as the API. It never holds a key: each change is an approval card your own
+  wallet signs. Works offline with a scripted demo model; Claude with `ANTHROPIC_API_KEY`
+  ([docs/ASSISTANT.md](docs/ASSISTANT.md)).
 
 > **Status:** everything above is on `main`: contracts with 80 Foundry tests, the AI / price / evidence
 > routes, the full UI for owner, renter and dispute desk, local deploy + seed scripts, a scripted chain
@@ -250,6 +254,8 @@ docs/                Architecture, business model, CMC x Atlas write-up, API, de
 - [Deploy](docs/DEPLOY.md): the BSC testnet path: preflight, guarded broadcast, verification, rehearsal.
 - [Demo script](docs/DEMO.md): the 3-minute local demo with the seeded accounts and rentals.
 - [Screenshots](docs/screenshots/README.md)
+- [Ask AI](docs/ASSISTANT.md): the in-app assistant, its safety model (approval of exact steps, never signs),
+  demo model vs Claude, limits and env names.
 - [KeyEscrow Inspector agent](docs/AGENT.md): the AI inspection as an ERC-8004 agent on BNB Chain (BNB Agent
   SDK), with A2A and MCP faces and signed reports.
 - [Contracts README](contracts/README.md)

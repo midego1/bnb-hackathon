@@ -1,6 +1,8 @@
 // Force mock mode regardless of the developer's shell: no real LLM, price or storage calls in tests.
 for (const k of [
   "ANTHROPIC_API_KEY",
+  "ASSISTANT_MODEL",
+  "ASSISTANT_DAILY_TOKENS",
   "VISION_LLM_PROVIDER",
   "VISION_LLM_MODEL",
   "CMC_API_KEY",

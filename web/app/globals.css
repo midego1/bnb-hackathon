@@ -188,3 +188,166 @@ body {
     animation: none;
   }
 }
+
+/*
+ * Ask AI (components/assistant): panel width, window-edge light and status bar. Tune every colour and timing here.
+ * State lives in data-assistant-state: reading (blue, travelling), changing (amber, faster), waiting (violet,
+ * steady, page dimmed a little), idle (fades out). prefers-reduced-motion: nothing moves, the colours stay.
+ */
+@property --assistant-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --assistant-width: 400px;
+  --assistant-reading: #2563eb;
+  --assistant-changing: #d97706;
+  --assistant-waiting: #7c3aed;
+  --assistant-waiting-soft: #f5f3ff;
+  --assistant-dim: rgb(15 23 42 / 6%);
+  --assistant-edge-line: 3px;
+  --assistant-edge-glow: 28px;
+  --assistant-edge-floor: 22%;
+  --assistant-orbit-reading: 6s;
+  --assistant-orbit-changing: 3.2s;
+  --assistant-bar-reading: 2.4s;
+  --assistant-bar-changing: 1.4s;
+  --assistant-fade-in: 450ms;
+  --assistant-fade-out: 700ms;
+}
+
+:root.dark {
+  --assistant-reading: #60a5fa;
+  --assistant-changing: #fbbf24;
+  --assistant-waiting: #a78bfa;
+  --assistant-waiting-soft: #1e1533;
+  --assistant-dim: rgb(0 0 0 / 28%);
+  --assistant-edge-floor: 30%;
+}
+
+[data-assistant-state] {
+  --assistant-tone: transparent;
+  --assistant-orbit: var(--assistant-orbit-reading);
+  --assistant-bar: var(--assistant-bar-reading);
+}
+[data-assistant-state="reading"] {
+  --assistant-tone: var(--assistant-reading);
+}
+[data-assistant-state="changing"] {
+  --assistant-tone: var(--assistant-changing);
+  --assistant-orbit: var(--assistant-orbit-changing);
+  --assistant-bar: var(--assistant-bar-changing);
+}
+[data-assistant-state="waiting"] {
+  --assistant-tone: var(--assistant-waiting);
+}
+
+[data-assistant-edge] {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--assistant-fade-out) ease-in-out 200ms;
+}
+[data-assistant-edge]:not([data-assistant-state="idle"]) {
+  opacity: 1;
+  transition: opacity var(--assistant-fade-in) ease-out;
+}
+[data-assistant-dim] {
+  position: absolute;
+  inset: 0;
+  background: var(--assistant-dim);
+  opacity: 0;
+  transition: opacity var(--assistant-fade-in) ease-in-out;
+}
+[data-assistant-state="waiting"] [data-assistant-dim] {
+  opacity: 1;
+}
+/* A ring as wide as the line: a dim floor of the tone all around plus a bright band that travels around the window. */
+[data-assistant-ring] {
+  position: absolute;
+  inset: 0;
+  padding: var(--assistant-edge-line);
+  background:
+    conic-gradient(from var(--assistant-angle), transparent 0deg, var(--assistant-tone) 50deg, transparent 110deg, transparent 180deg, var(--assistant-tone) 230deg, transparent 290deg),
+    color-mix(in oklab, var(--assistant-tone) var(--assistant-edge-floor), transparent);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: assistant-orbit var(--assistant-orbit) linear infinite;
+}
+[data-assistant-ring]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 var(--assistant-edge-glow) calc(var(--assistant-edge-glow) / -4) var(--assistant-tone);
+  opacity: 0.55;
+}
+[data-assistant-state="waiting"] [data-assistant-ring] {
+  background: var(--assistant-tone);
+  animation: none;
+}
+@keyframes assistant-orbit {
+  to {
+    --assistant-angle: 360deg;
+  }
+}
+
+/* Status line bar at the top of the panel. */
+[data-assistant-bar] {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--assistant-tone), transparent) 0 0 / 40% 100% no-repeat, color-mix(in oklab, var(--assistant-tone) 25%, transparent);
+  animation: assistant-bar var(--assistant-bar) ease-in-out infinite;
+}
+[data-assistant-state="waiting"] [data-assistant-bar] {
+  background: var(--assistant-tone);
+  animation: none;
+}
+@keyframes assistant-bar {
+  from {
+    background-position: -40% 0, 0 0;
+  }
+  to {
+    background-position: 140% 0, 0 0;
+  }
+}
+@keyframes assistant-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+[data-assistant-pulse] {
+  animation: assistant-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-assistant-ring],
+  [data-assistant-bar],
+  [data-assistant-pulse] {
+    animation: none;
+  }
+  [data-assistant-edge],
+  [data-assistant-dim] {
+    transition: none;
+  }
+}
+
+/*
+ * Desktop: the open panel is a column on the right and the page reflows beside it. On the one-screen /demo stage
+ * (laid out for the full width, controls top right) it floats bottom right instead and the stage keeps its width.
+ */
+@media (min-width: 768px) {
+  html[data-assistant-open] body:not(:has([data-demo-stage])) {
+    padding-right: var(--assistant-width);
+  }
+  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-toasts] {
+    right: var(--assistant-width);
+  }
+  /* The page dims while a change waits; the panel does not. */
+  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-assistant-dim] {
+    right: var(--assistant-width);
+  }
+}
