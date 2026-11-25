@@ -4,6 +4,7 @@ import { PageTitle } from "@/components/ui";
 import { ACTIONS, toolDescription, type Action } from "@/lib/actions/definitions";
 import { inputJsonSchema } from "@/lib/actions/openapi";
 import { API_BASE, methodOf } from "@/lib/actions/rest";
+import { TOKEN } from "@/lib/contracts";
 
 export const metadata: Metadata = { title: "Developers · KeyEscrow" };
 
@@ -20,7 +21,7 @@ export default function DevelopersPage() {
       <div className="mb-8 space-y-3 text-sm text-muted-foreground">
         <p>
           OpenAPI 3.1: <a className="underline" href={`${API_BASE}/openapi.json`}>{API_BASE}/openapi.json</a>. MCP: the same actions are tools
-          on the KeyEscrow Inspector agent (<code>POST /mcp</code>, see docs/AGENT.md for the Claude config). Amounts: mUSDT has 6 decimals;
+          on the KeyEscrow Inspector agent (<code>POST /mcp</code>, see docs/AGENT.md for the Claude config). Amounts: {TOKEN.symbol} has {TOKEN.decimals} decimals;
           inputs take human amounts like <code>&quot;441.18&quot;</code>, outputs give <code>units</code> (base units) and <code>display</code>.
         </p>
         <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>

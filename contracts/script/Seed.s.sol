@@ -28,19 +28,20 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 /// `checkin-manifest.json`, which in turn lists the SHA-256 of every pickup photo of the scooter.
 contract Seed is ScriptBase {
     uint256 internal constant RENT_THB = 3_400;
-    /// @dev 3,400 THB / ~34 THB per USDT, rounded to cents (6-decimal token units).
-    uint256 internal constant RENT = 100_000_000;
-    uint256 internal constant DEPOSIT = 2 * RENT;
     uint32 internal constant TERM_MONTHS = 3;
-
-    uint256 internal constant TENANT_MINT = 10_000e6;
-    uint256 internal constant LANDLORD_MINT = 1_000e6;
-    uint256 internal constant ARBITER_MINT = 100e6;
-    uint256 internal constant DISPUTED_CLAIM = 50e6; // owner claims 50 mUSDT (~1,700 THB) for a scratched side panel
     uint32 internal constant DISPUTED_ARBITER_WINDOW = 60 days;
     /// @dev Anvil default account #4 (public dev key, not a secret): the demo shareholder.
-    uint256 internal constant ANVIL_KEY_4 = 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a;
-    uint256 internal constant INVESTOR_DEPOSIT = 3_000e6;
+    uint256 internal constant ANVIL_KEY_4 =
+        0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a;
+
+    // Token amounts, set in {run} from the token's own decimals().
+    uint256 internal rent; // 3,400 THB / ~34 THB per USDT = 100 tokens
+    uint256 internal deposit;
+    uint256 internal tenantMint;
+    uint256 internal landlordMint;
+    uint256 internal arbiterMint;
+    uint256 internal disputedClaim; // owner claims 50 tokens (~1,700 THB) for a scratched side panel
+    uint256 internal investorDeposit;
 
     string internal constant DEMO_DIR = "../web/public/demo/";
 
@@ -52,6 +53,14 @@ contract Seed is ScriptBase {
         string memory deployment = vm.readFile(_deploymentPath());
         MockUSDT usdt = MockUSDT(vm.parseJsonAddress(deployment, ".token"));
         EscrowFactory factory = EscrowFactory(vm.parseJsonAddress(deployment, ".escrowFactory"));
+        uint256 unit = 10 ** usdt.decimals();
+        rent = 100 * unit;
+        deposit = 2 * rent;
+        tenantMint = 10_000 * unit;
+        landlordMint = 1_000 * unit;
+        arbiterMint = 100 * unit;
+        disputedClaim = 50 * unit;
+        investorDeposit = 3_000 * unit;
 
         address landlord = vm.addr(ANVIL_KEY_1);
         address tenant = vm.addr(ANVIL_KEY_2);
@@ -62,9 +71,9 @@ contract Seed is ScriptBase {
 
         // Faucet is permissionless; the deployer (account 0) tops everyone up.
         vm.startBroadcast(ANVIL_KEY_0);
-        usdt.faucet(tenant, TENANT_MINT);
-        usdt.faucet(landlord, LANDLORD_MINT);
-        usdt.faucet(arbiter, ARBITER_MINT);
+        usdt.faucet(tenant, tenantMint);
+        usdt.faucet(landlord, landlordMint);
+        usdt.faucet(arbiter, arbiterMint);
         vm.stopBroadcast();
 
         vm.startBroadcast(ANVIL_KEY_1);
@@ -72,8 +81,8 @@ contract Seed is ScriptBase {
             EscrowFactory.LeaseParams({
                 tenant: tenant,
                 arbiter: address(0), // KeyEscrow dispute desk (factory default)
-                rentAmount: RENT,
-                depositAmount: DEPOSIT,
+                rentAmount: rent,
+                depositAmount: deposit,
                 termMonths: TERM_MONTHS,
                 responseWindow: 0, // factory default: 7 days
                 arbiterWindow: 0, // factory default: 14 days
@@ -84,7 +93,7 @@ contract Seed is ScriptBase {
         vm.stopBroadcast();
 
         vm.startBroadcast(ANVIL_KEY_2);
-        usdt.approve(escrow, DEPOSIT + RENT);
+        usdt.approve(escrow, deposit + rent);
         RentalEscrow(escrow).fund();
         vm.stopBroadcast();
 
@@ -97,7 +106,7 @@ contract Seed is ScriptBase {
         }
     }
 
-    /// @dev Second demo rental: funded, owner (landlord) proposes keeping DISPUTED_CLAIM, renter (tenant) disputes.
+    /// @dev Second demo rental: funded, owner (landlord) proposes keeping disputedClaim, renter (tenant) disputes.
     function _seedDisputedLease(EscrowFactory factory, MockUSDT usdt, bytes32 leaseHash, bytes32 checkInHash)
         internal
         returns (address disputed)
@@ -107,8 +116,8 @@ contract Seed is ScriptBase {
             EscrowFactory.LeaseParams({
                 tenant: vm.addr(ANVIL_KEY_2),
                 arbiter: address(0),
-                rentAmount: RENT,
-                depositAmount: DEPOSIT,
+                rentAmount: rent,
+                depositAmount: deposit,
                 termMonths: TERM_MONTHS,
                 responseWindow: 0,
                 arbiterWindow: DISPUTED_ARBITER_WINDOW,
@@ -119,13 +128,12 @@ contract Seed is ScriptBase {
         vm.stopBroadcast();
 
         vm.startBroadcast(ANVIL_KEY_2);
-        usdt.approve(disputed, DEPOSIT + RENT);
+        usdt.approve(disputed, deposit + rent);
         RentalEscrow(disputed).fund();
         vm.stopBroadcast();
 
         vm.broadcast(ANVIL_KEY_1);
-        RentalEscrow(disputed)
-            .propose(DEPOSIT - DISPUTED_CLAIM, keccak256("keyescrow.demo.landlord-proposal"));
+        RentalEscrow(disputed).propose(deposit - disputedClaim, keccak256("keyescrow.demo.landlord-proposal"));
         vm.broadcast(ANVIL_KEY_2);
         RentalEscrow(disputed).dispute();
     }
@@ -145,10 +153,10 @@ contract Seed is ScriptBase {
         address investor = vm.addr(ANVIL_KEY_4);
 
         vm.broadcast(ANVIL_KEY_0);
-        usdt.faucet(investor, TENANT_MINT);
+        usdt.faucet(investor, tenantMint);
         vm.startBroadcast(ANVIL_KEY_4);
-        usdt.approve(address(vault), INVESTOR_DEPOSIT);
-        vault.deposit(INVESTOR_DEPOSIT);
+        usdt.approve(address(vault), investorDeposit);
+        vault.deposit(investorDeposit);
         vm.stopBroadcast();
 
         vm.startBroadcast(ANVIL_KEY_1);
@@ -156,8 +164,8 @@ contract Seed is ScriptBase {
             EscrowFactory.LeaseParams({
                 tenant: vm.addr(ANVIL_KEY_2),
                 arbiter: address(0),
-                rentAmount: RENT,
-                depositAmount: DEPOSIT,
+                rentAmount: rent,
+                depositAmount: deposit,
                 termMonths: TERM_MONTHS,
                 responseWindow: 0,
                 arbiterWindow: 0,
@@ -169,7 +177,7 @@ contract Seed is ScriptBase {
         vm.stopBroadcast();
 
         vm.startBroadcast(ANVIL_KEY_2);
-        usdt.approve(fleetLease, DEPOSIT + RENT);
+        usdt.approve(fleetLease, deposit + rent);
         RentalEscrow(fleetLease).fund();
         RentalEscrow(fleetLease).releaseRent();
         vm.stopBroadcast();
@@ -192,8 +200,8 @@ contract Seed is ScriptBase {
         vm.serializeAddress(k, "tenant", tenant);
         vm.serializeAddress(k, "arbiter", arbiter);
         vm.serializeUint(k, "rentThb", RENT_THB);
-        vm.serializeUint(k, "rentAmount", RENT);
-        vm.serializeUint(k, "depositAmount", DEPOSIT);
+        vm.serializeUint(k, "rentAmount", rent);
+        vm.serializeUint(k, "depositAmount", deposit);
         vm.serializeUint(k, "termMonths", TERM_MONTHS);
         vm.serializeBytes32(k, "leaseHash", leaseHash);
         vm.serializeString(k, "leaseFile", "/demo/lease.pdf");

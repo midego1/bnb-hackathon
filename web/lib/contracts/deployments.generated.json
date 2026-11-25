@@ -5,7 +5,9 @@
     "disputeDesk": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
     "fleetVault": "0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB",
     "rentalEscrowImplementation": "0x63f174fE3E80442c95b82a811a7D0d13f34D2314",
-    "fromBlock": 144828181
+    "fromBlock": 144828181,
+    "tokenDecimals": 6,
+    "tokenSymbol": "mUSDT"
   },
   "31337": {
     "escrowFactory": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -13,6 +15,8 @@
     "disputeDesk": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
     "fleetVault": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
     "rentalEscrowImplementation": "0xCafac3dD18aC6c6e92c921884f9E4176737C052c",
-    "fromBlock": 0
+    "fromBlock": 0,
+    "tokenDecimals": 6,
+    "tokenSymbol": "mUSDT"
   }
 }

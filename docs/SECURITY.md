@@ -136,8 +136,10 @@ Slither 0.11.6, 102 detectors, `lib/`, `test/` and `script/` filtered: 15 result
 ## 6. Known limitations
 
 - **Testnet token.** MockUSDT has an open faucet (10,000 per call, unlimited calls): anyone can mint, so
-  testnet balances mean nothing. Never deploy it to mainnet. Mainnet USDT on BNB Chain has 18 decimals, not
-  6; the contracts are decimal-agnostic but the deployment JSON and UI must use the real decimals.
+  testnet balances mean nothing. Never deploy it to mainnet. Mainnet USDT on BNB Chain (BSC-USD) has 18 decimals,
+  not 6. The contracts are decimal-agnostic (every escrow test also runs with an 18-decimal token,
+  `RentalEscrow18DecimalsTest`); `Deploy.s.sol` reads `decimals()` and `symbol()` from the token into the deployment
+  JSON, and the web app and agent parse and format every amount with those (`TOKEN` in `web/lib/contracts`).
 - **Admin keys.** On BSC testnet one EOA is factory owner, fee recipient, default arbiter (dispute desk) and
   fleet operator. The owner can only change the fee (capped) and default arbiter for future rentals; it has
   no power over existing escrows or the vault. The fleet operator is immutable per vault.

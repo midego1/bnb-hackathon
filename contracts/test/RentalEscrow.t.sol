@@ -58,7 +58,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 
-        fot.mint(tenant, 10_000e6);
+        fot.mint(tenant, 10_000 * UNIT);
         vm.startPrank(tenant);
         fot.approve(address(escrow), type(uint256).max);
         uint256 amount = DEPOSIT + RENT;
@@ -226,7 +226,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(stranger);
         escrow.releaseRent();
         assertTrue(escrow.feeCharged());
-        assertEq(FEE, 50e6); // 10% of one 500 mUSDT month
+        assertEq(FEE, 50 * UNIT); // 10% of one 500-token month
         assertEq(usdt.balanceOf(landlord), RENT - FEE);
         assertEq(usdt.balanceOf(treasury), FEE);
 
@@ -361,14 +361,14 @@ contract RentalEscrowTest is BaseTest {
     function test_propose_storesProposal() public {
         RentalEscrow escrow = _createAndFund();
         vm.expectEmit(true, false, false, true, address(escrow));
-        emit RentalEscrow.SettlementProposed(landlord, 1, 800e6, 200e6, REPORT_HASH);
+        emit RentalEscrow.SettlementProposed(landlord, 1, 800 * UNIT, 200 * UNIT, REPORT_HASH);
         vm.prank(landlord);
-        escrow.propose(800e6, REPORT_HASH);
+        escrow.propose(800 * UNIT, REPORT_HASH);
 
         RentalEscrow.Proposal memory p = escrow.proposal();
         assertEq(uint8(escrow.status()), uint8(MOVE_OUT));
-        assertEq(p.tenantRefund, 800e6);
-        assertEq(p.landlordClaim, 200e6);
+        assertEq(p.tenantRefund, 800 * UNIT);
+        assertEq(p.landlordClaim, 200 * UNIT);
         assertEq(p.reportHash, REPORT_HASH);
         assertEq(p.proposer, landlord);
         assertEq(p.nonce, 1);
@@ -396,15 +396,15 @@ contract RentalEscrowTest is BaseTest {
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         vm.prank(tenant);
-        escrow.propose(700e6, REPORT_HASH);
+        escrow.propose(700 * UNIT, REPORT_HASH);
         vm.prank(landlord);
         escrow.accept(1);
 
         assertEq(uint8(escrow.status()), uint8(SETTLED));
         // Month 0 rent was due -> landlord (minus fee), plus the 300 claim.
-        assertEq(usdt.balanceOf(landlord), RENT - FEE + 300e6);
+        assertEq(usdt.balanceOf(landlord), RENT - FEE + 300 * UNIT);
         assertEq(usdt.balanceOf(treasury), FEE);
-        assertEq(usdt.balanceOf(tenant), tenantBefore + 700e6);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + 700 * UNIT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -471,7 +471,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(tenant);
         escrow.propose(DEPOSIT, REPORT_HASH); // nonce 1
         vm.prank(landlord);
-        escrow.propose(500e6, REPORT_HASH); // counter, nonce 2
+        escrow.propose(500 * UNIT, REPORT_HASH); // counter, nonce 2
 
         // Landlord can no longer accept the tenant's old offer it just replaced, and tenant can't accept nonce 1.
         vm.prank(tenant);
@@ -531,7 +531,7 @@ contract RentalEscrowTest is BaseTest {
 
         // Tenant generously offers the landlord 300; the landlord never answers.
         vm.prank(tenant);
-        escrow.propose(700e6, REPORT_HASH);
+        escrow.propose(700 * UNIT, REPORT_HASH);
         uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
         assertEq(escrow.timeoutAt(), deadline);
 
@@ -616,7 +616,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.propose(0, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + 1 days);
         vm.prank(tenant);
-        escrow.propose(900e6, REPORT_HASH);
+        escrow.propose(900 * UNIT, REPORT_HASH);
         uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
         assertEq(escrow.timeoutAt(), deadline);
 
@@ -645,7 +645,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.propose(DEPOSIT, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + WINDOW - 1 hours);
         vm.prank(landlord);
-        escrow.propose(600e6, REPORT_HASH);
+        escrow.propose(600 * UNIT, REPORT_HASH);
 
         vm.warp(vm.getBlockTimestamp() + WINDOW);
         vm.expectRevert(RentalEscrow.TimeoutNotApplicable.selector);
@@ -678,11 +678,11 @@ contract RentalEscrowTest is BaseTest {
         assertEq(uint8(escrow.status()), uint8(DISPUTED));
 
         vm.prank(arbiter);
-        escrow.resolve(400e6, keccak256("ruling"));
+        escrow.resolve(400 * UNIT, keccak256("ruling"));
 
         assertEq(uint8(escrow.status()), uint8(SETTLED));
-        assertEq(usdt.balanceOf(tenant), tenantBefore + 400e6);
-        assertEq(usdt.balanceOf(landlord), RENT - FEE + 600e6);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + 400 * UNIT);
+        assertEq(usdt.balanceOf(landlord), RENT - FEE + 600 * UNIT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -920,7 +920,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 
-        re.mint(tenant, 10_000e6);
+        re.mint(tenant, 10_000 * UNIT);
         vm.startPrank(tenant);
         re.approve(address(escrow), type(uint256).max);
         escrow.fund();

@@ -4,7 +4,7 @@
  * Workers: no fs, no process-global state, fetch-based RPC. Nothing here ever holds a private key.
  */
 import { createPublicClient, http, type Address, type PublicClient, type Transport } from "viem";
-import { getDeployment } from "../contracts";
+import { getDeployment, TOKEN } from "../contracts";
 import type { PriceQuote } from "../server/price";
 import { SUPPORTED_CHAIN_IDS, type SupportedChainId } from "./fields";
 
@@ -69,6 +69,10 @@ export function actionContext(host: ActionHost, chainId?: number): ActionContext
   const cid = id as SupportedChainId;
   const d = getDeployment(cid);
   if (!d) throw new ActionError(400, "unsupported_chain", `KeyEscrow is not deployed on chain ${cid}.`);
+  // Every amount is parsed and formatted with the target chain's token; refuse a chain whose token differs.
+  if (d.tokenDecimals !== TOKEN.decimals) {
+    throw new ActionError(400, "unsupported_chain", `Chain ${cid}'s token has ${d.tokenDecimals} decimals; this server works in ${TOKEN.decimals}-decimal ${TOKEN.symbol}.`);
+  }
   // JSON-RPC batch: readLease's ~17 reads go out as one HTTP request (Workers Free allows 50 subrequests per request).
   const transport = host.transport?.(cid) ?? http(rpcUrl(cid, host.env), { batch: true, timeout: 15_000, retryCount: 1 });
   return {

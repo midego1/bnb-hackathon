@@ -8,7 +8,7 @@ import { parseEventLogs, parseUnits, zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
-import { escrowFactoryAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, TOKEN } from "@/lib/contracts";
 import { incomeOf, postFleet, scooterState, scooterStateLabel, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { hashText } from "@/lib/hash";
@@ -45,7 +45,7 @@ export function ScooterStateBadge({ state }: { state: ScooterState }) {
  */
 export function thbToUsdt(thb: number, thbPerUsdt: number | undefined) {
   const rate = thbPerUsdt && thbPerUsdt > 0 ? thbPerUsdt : 33;
-  return parseUnits((thb / rate).toFixed(2), 6);
+  return parseUnits((thb / rate).toFixed(2), TOKEN.decimals);
 }
 
 /** Fleet owner dashboard: scooters with live status, income, booking requests, rentals and disputes. */

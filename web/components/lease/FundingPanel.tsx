@@ -3,13 +3,13 @@
 import { useAccount } from "wagmi";
 import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
-import { mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 
-const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
+const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
 /** Renter: get test USDT, approve, fund deposit + first month. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {

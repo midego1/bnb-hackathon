@@ -1,7 +1,7 @@
 import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
 import { AgentEndpoint, AgentURIGenerator } from "@bnbagent/sdk/erc8004";
 import { AGENT_DESCRIPTION, AGENT_NAME, AGENT_VERSION, REPO_URL } from "./identity.ts";
-import { ACTIONS, toolDescription, type InspectorIdentity } from "./shared.ts";
+import { ACTIONS, TOKEN, toolDescription, type InspectorIdentity } from "./shared.ts";
 
 export const SKILL_ID = "inspect_move_out";
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -11,7 +11,7 @@ export const INSPECT_SKILL: AgentSkill = {
   name: "Scooter return inspection",
   description:
     "Compare pickup vs return photos of a scooter rental and propose the deposit split. Send one A2A data part with " +
-    '{"deposit": "<base units>", "decimals": 6, "currency": "USDT", "checkIn": [{"hash"|"url", "label"?}], ' +
+    `{"deposit": "<base units>", "decimals": ${TOKEN.decimals}, "currency": "USDT", "checkIn": [{"hash"|"url", "label"?}], ` +
     '"checkOut": [...], "notes"?: "..."} (an optional "skill": "inspect_move_out" key is ignored). Returns ' +
     "{tenantRefund, landlordClaim, reasons[], confidence, reportHash, inspector, inspectorSignature, ...}; " +
     "tenantRefund + landlordClaim always equals the deposit. Pass reportHash to RentalEscrow.propose().",

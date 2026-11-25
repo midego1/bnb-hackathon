@@ -9,7 +9,7 @@ import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Card, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { prepareCreateLease } from "@/lib/actions/definitions";
 import { fieldError } from "@/lib/actions/fields";
-import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { devAccounts } from "@/lib/devAccounts";
 import { uploadEvidence } from "@/lib/evidence";
 import { parseUsdt, shortAddress } from "@/lib/format";
@@ -51,7 +51,7 @@ export function CreateLeaseForm() {
 
   // Same field schemas as the prepare_create_lease API / MCP tool (lib/actions), so the rules and messages match.
   const S = prepareCreateLease.input;
-  const decimals = (units: bigint | undefined) => (units === undefined ? "At most 6 decimals for a USDT amount." : undefined);
+  const decimals = (units: bigint | undefined) => (units === undefined ? `At most ${TOKEN.decimals} decimals for a ${TOKEN.symbol} amount.` : undefined);
   const errors = {
     tenant: !tenant
       ? undefined

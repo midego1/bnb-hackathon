@@ -56,8 +56,11 @@ function normalise(raw) {
     fleetVault: pick(flat, [/^fleetvault$/i]),
     rentalEscrowImplementation: pick(flat, [/^rentalescrowimplementation$/i]),
     fromBlock: pickNumber(flat, [/^startblock$/i, /^fromblock$/i, /^deployblock$/i, /^blocknumber$/i, /^block$/i]) ?? 0,
+    // Read from the token itself by Deploy.s.sol (decimals() / symbol()); the app never assumes 6.
+    tokenDecimals: pickNumber(flat, [/^tokendecimals$/i]),
+    tokenSymbol: pick(flat, [/^tokensymbol$/i]),
   };
-  if (!entry.escrowFactory || !entry.mockUsdt) return undefined;
+  if (!entry.escrowFactory || !entry.mockUsdt || entry.tokenDecimals === undefined) return undefined;
   return entry;
 }
 
@@ -72,7 +75,7 @@ if (existsSync(depDir)) {
     const f = files.includes(`${chainId}.json`) ? `${chainId}.json` : `${chainId}.example.json`;
     const entry = normalise(JSON.parse(readFileSync(join(depDir, f), "utf8")));
     if (entry) next[chainId] = entry;
-    else console.warn(`${DEPLOYMENTS_DIR}/${f}: no factory/token address found, skipped`);
+    else console.warn(`${DEPLOYMENTS_DIR}/${f}: no factory/token address or tokenDecimals found, skipped`);
   }
   writeFileSync(target, JSON.stringify(next, null, 2) + "\n");
   console.log(`deployments: ${Object.keys(next).join(", ")} -> lib/contracts/deployments.generated.json`);

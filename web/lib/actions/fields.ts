@@ -3,13 +3,14 @@
  * label, unit and an LLM-friendly description attached as metadata, so the same field shows up identically in the
  * REST API's OpenAPI document, the MCP tool schemas and the web forms' validation messages.
  *
- * Client-safe: zod + viem utils only.
+ * Client-safe: zod + viem utils + the deployment table only.
  */
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { z } from "zod";
+import { TOKEN } from "../contracts";
 
-/** MockUSDT on anvil and BSC testnet: 6 decimals, symbol mUSDT. */
-export const TOKEN = { symbol: "mUSDT", decimals: 6 } as const;
+/** The target chain's stablecoin (decimals and symbol from its deployment file): MockUSDT (6) on testnets, BSC-USD (18) on 56. */
+export { TOKEN };
 
 /** Chains with a KeyEscrow deployment (contracts/deployments/*.json). Never a mainnet. */
 export const SUPPORTED_CHAIN_IDS = [31337, 97, 5611] as const;
@@ -49,7 +50,7 @@ export const field = {
       .transform((s) => getAddress(s) as Address)
       .meta(meta),
 
-  /** Token amount typed by a person ("441.18" or 441.18), in mUSDT; output is bigint base units. */
+  /** Token amount typed by a person ("441.18" or 441.18), in the stablecoin; output is bigint base units. */
   tokenAmount: (meta: Meta, opts: { positive?: boolean } = {}) =>
     z
       .union([z.string(), z.number()])

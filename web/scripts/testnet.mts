@@ -94,6 +94,9 @@ const deployment = JSON.parse(readFileSync(path.join(CONTRACTS, "deployments", `
   feeRecipient: Address;
   defaultArbiter: Address;
   feeBps: number;
+  /** Read from the token by Deploy.s.sol. */
+  tokenDecimals: number;
+  tokenSymbol: string;
 };
 if (deployment.chainId !== CHAIN_ID) throw new Error("contracts/deployments/97.json is not a chain 97 deployment");
 
@@ -181,8 +184,8 @@ async function read<T>(address: Address, abi: Abi, functionName: string, args: r
 // Assertions
 // ---------------------------------------------------------------------------------------------------------
 
-const USDT = (v: string) => parseUnits(v, 6);
-const fmt = (v: bigint) => `${formatUnits(v, 6)} mUSDT`;
+const USDT = (v: string) => parseUnits(v, deployment.tokenDecimals);
+const fmt = (v: bigint) => `${formatUnits(v, deployment.tokenDecimals)} ${deployment.tokenSymbol}`;
 let checks = 0;
 function assert(cond: unknown, msg: string): asserts cond {
   checks++;
@@ -456,7 +459,7 @@ async function cmdFund(target: string | undefined) {
   await sendValue(`deployer -> ${to} ${formatEther(FUND_BNB)} tBNB`, deployer, to, FUND_BNB);
   await send(`faucet ${fmt(FUND_USDT)} -> ${to}`, deployer, deployment.token, tokenAbi, "faucet", [to, FUND_USDT]);
   const [bnb, usdt] = await Promise.all([pub.getBalance({ address: to, blockNumber: lastBlock }), tokenBalance(to)]);
-  console.log(`${to} now holds ${formatEther(bnb)} tBNB and ${fmt(usdt)}. Add the token in the wallet: ${deployment.token} (6 decimals).`);
+  console.log(`${to} now holds ${formatEther(bnb)} tBNB and ${fmt(usdt)}. Add the token in the wallet: ${deployment.token} (${deployment.tokenDecimals} decimals).`);
   console.log(`Deployer left: ${formatEther(await pub.getBalance({ address: deployer.address, blockNumber: lastBlock }))} tBNB`);
 }
 

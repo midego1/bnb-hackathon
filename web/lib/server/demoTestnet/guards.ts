@@ -1,5 +1,5 @@
 import { decodeFunctionData, getAddress, isAddress, isHex, parseEther, zeroAddress, type Address, type Hex } from "viem";
-import { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import type { Env } from "../env";
 
 /**
@@ -265,8 +265,8 @@ export type DemoAddresses = { factory: Address; token: Address; accounts: Record
 type DemoAbi = typeof escrowFactoryAbi | typeof mockUsdtAbi | typeof rentalEscrowAbi;
 export type SignedCall = { role: DemoRole; address: Address; abi: DemoAbi; functionName: string; args: readonly unknown[] };
 
-const MUSDT = BigInt(1_000_000);
-/** Per-call ceilings in mUSDT base units: a demo lease is a few hundred dollars a month. */
+const MUSDT = BigInt(10) ** BigInt(TOKEN.decimals);
+/** Per-call ceilings in token base units: a demo lease is a few hundred dollars a month. */
 const MAX_RENT = BigInt(5_000) * MUSDT;
 const MAX_DEPOSIT = BigInt(15_000) * MUSDT;
 const MAX_MINT = BigInt(10_000) * MUSDT; // MockUSDT.FAUCET_LIMIT

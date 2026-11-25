@@ -65,14 +65,16 @@ const ANVIL_KEYS = [
 const [deployer, landlord, tenant, desk, keeper] = ANVIL_KEYS.map((k) => privateKeyToAccount(k));
 const treasury = deployer;
 
-const USDT = (v: string) => parseUnits(v, 6);
-const fmt = (v: bigint) => `${formatUnits(v, 6)} mUSDT`;
+// Amounts follow the deployed token's decimals() (read in main): 6 for MockUSDT.
+let DECIMALS = 0;
+const USDT = (v: string) => parseUnits(v, DECIMALS);
+const fmt = (v: bigint) => `${formatUnits(v, DECIMALS)} mUSDT`;
 
 // Demo scooter rental numbers (must match contracts/script/Seed.s.sol): 3,400 THB/month at ~34 THB per USDT.
-const RENT = 100_000_000n;
-const DEPOSIT = 2n * RENT;
+let RENT = 0n;
+let DEPOSIT = 0n;
 const FEE_BPS = 1_000n;
-const FEE = (RENT * FEE_BPS) / 10_000n; // 10% of ONE month, once per lease
+let FEE = 0n; // 10% of ONE month, once per lease
 const DAY = 86_400n;
 const RENT_PERIOD = 30n * DAY;
 
@@ -471,6 +473,11 @@ async function main() {
       factoryAbi: artifactAbi("EscrowFactory.sol", "EscrowFactory"),
       escrowAbi: artifactAbi("RentalEscrow.sol", "RentalEscrow"),
     };
+    DECIMALS = await read<number>(ctx.token, ctx.tokenAbi, "decimals");
+    eq(deployment.tokenDecimals, DECIMALS, "deployment file tokenDecimals = token.decimals()");
+    RENT = USDT("100");
+    DEPOSIT = 2n * RENT;
+    FEE = (RENT * FEE_BPS) / 10_000n;
     eq(await read<Address>(ctx.factory, ctx.factoryAbi, "defaultArbiter"), desk.address, "dispute desk");
     eq(await read<Address>(ctx.factory, ctx.factoryAbi, "feeRecipient"), treasury.address, "treasury");
     console.log(`deployed  MockUSDT ${ctx.token}  EscrowFactory ${ctx.factory}`);

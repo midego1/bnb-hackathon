@@ -6,7 +6,8 @@
  * Client-safe types + pure builders (no server imports).
  */
 import type { Explanation } from "../actions/explain";
-import { formatToken, type StatusName } from "../actions/fields";
+import { formatUnits } from "viem";
+import { formatToken, TOKEN, type StatusName } from "../actions/fields";
 import type { LeaseSnapshot } from "../actions/lease";
 import { explorerLink, explorerName } from "../chains";
 import { formatFiat } from "../fiat";
@@ -92,7 +93,7 @@ export const STATUS_LABEL: Record<StatusName, string> = {
 const OPEN: StatusName[] = ["Created", "Active", "MoveOut", "Disputed"];
 
 export function money(units: bigint, rates: Rates | undefined): Money {
-  const n = Number(units) / 1e6;
+  const n = Number(formatUnits(units, TOKEN.decimals));
   return {
     thb: rates ? formatFiat(n * rates.THB, "THB") : null,
     usd: rates ? formatFiat(n * rates.USD, "USD") : null,

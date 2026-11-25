@@ -1,7 +1,9 @@
+import { parseUnits } from "viem";
+import { TOKEN } from "../src/shared.ts";
 /** Demo request: the seeded scooter rental's pickup photos (web/public/demo) vs a return where the left side changed. */
 export const SAMPLE_REQUEST = {
-  deposit: "200000000", // 200 MockUSDT (6 decimals), about 6,800 THB
-  decimals: 6,
+  deposit: parseUnits("200", TOKEN.decimals).toString(), // 200 tokens, about 6,800 THB
+  decimals: TOKEN.decimals,
   currency: "USDT",
   checkIn: [
     { hash: "0x1f06423c9595d4c1551d74f98bf1cf8aa31194d1890ee52372a42547b7cfc04d", label: "Front" },

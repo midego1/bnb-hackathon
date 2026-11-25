@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {EscrowFactory} from "../src/EscrowFactory.sol";
 import {FleetVault} from "../src/FleetVault.sol";
 import {MockUSDT} from "../src/mocks/MockUSDT.sol";
@@ -49,6 +50,8 @@ contract Deploy is ScriptBase {
         address fleetVault;
         address fleetOperator;
         uint16 fleetOperatorFeeBps;
+        uint8 tokenDecimals; // read from the token: 6 for MockUSDT, 18 for BSC-USD
+        string tokenSymbol;
     }
 
     function run() external returns (Deployment memory d) {
@@ -94,6 +97,8 @@ contract Deploy is ScriptBase {
 
         d.factory = address(factory);
         d.implementation = factory.implementation();
+        d.tokenDecimals = IERC20Metadata(d.token).decimals();
+        d.tokenSymbol = IERC20Metadata(d.token).symbol();
         _write(d);
     }
 
@@ -101,8 +106,8 @@ contract Deploy is ScriptBase {
         string memory k = "deployment";
         vm.serializeUint(k, "chainId", block.chainid);
         vm.serializeAddress(k, "token", d.token);
-        vm.serializeString(k, "tokenSymbol", "mUSDT");
-        vm.serializeUint(k, "tokenDecimals", 6);
+        vm.serializeString(k, "tokenSymbol", d.tokenSymbol);
+        vm.serializeUint(k, "tokenDecimals", d.tokenDecimals);
         vm.serializeAddress(k, "escrowFactory", d.factory);
         vm.serializeAddress(k, "rentalEscrowImplementation", d.implementation);
         vm.serializeAddress(k, "deployer", d.deployer);

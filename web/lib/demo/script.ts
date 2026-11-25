@@ -1,5 +1,5 @@
 import { parseEventLogs, parseUnits, zeroAddress, type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
-import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, type Deployment } from "../contracts";
+import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, TOKEN, type Deployment } from "../contracts";
 import type { DevRole } from "../devAccounts";
 import type { UploadedFile } from "../evidence";
 import { hashText } from "../hash";
@@ -34,7 +34,7 @@ const TERM_MONTHS = 3;
 const RESPONSE_WINDOW = 7 * 86_400;
 const ARBITER_WINDOW = 14 * 86_400;
 const DEPOSIT_MONTHS = BigInt(2);
-const UNIT = BigInt(1_000_000); // 1 mUSDT (6 decimals)
+const UNIT = BigInt(10) ** BigInt(TOKEN.decimals); // 1 token
 
 const CHECK_IN = [
   { file: "checkin-left-side.png", label: "Left side" },
@@ -115,7 +115,7 @@ export type DemoStep = {
 export function newContext(path: DemoPath, run: number, thbPerUsdt: number | undefined): DemoCtx {
   const property = PROPERTIES[run % PROPERTIES.length];
   const rate = thbPerUsdt && thbPerUsdt > 0 ? thbPerUsdt : 33;
-  const rent = parseUnits((property.rentThb / rate).toFixed(2), 6);
+  const rent = parseUnits((property.rentThb / rate).toFixed(2), TOKEN.decimals);
   return { path, property, rent, deposit: rent * DEPOSIT_MONTHS, termMonths: TERM_MONTHS, checkInAnchored: 0, checkOutAnchored: 0 };
 }
 
@@ -364,7 +364,7 @@ const dispute: DemoStep = {
   },
 };
 
-/** The desk's ruling for the scripted dispute: half again the AI's repair estimate, in whole mUSDT. */
+/** The desk's ruling for the scripted dispute: half again the AI's repair estimate, in whole tokens. */
 export function deskRuling(ctx: DemoCtx) {
   const ai = ctx.inspection ? BigInt(ctx.inspection.landlordClaim) : ctx.deposit / BigInt(5);
   let landlordClaim = ((ai * BigInt(3)) / BigInt(2) / UNIT) * UNIT;
