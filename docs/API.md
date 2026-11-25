@@ -9,6 +9,7 @@ vars only (see `.env.example`). None of them use the `NEXT_PUBLIC_` prefix.
 | `POST /api/settlement` | Vision LLM (Anthropic Claude, `ANTHROPIC_API_KEY`) | Deterministic mock proposal |
 | `GET /api/price` | Atlas on-chain feeds, then CoinMarketCap Pro (`CMC_API_KEY`) | Static demo rates |
 | `POST /api/evidence`, `GET /api/evidence/<hash>` | BNB Greenfield (`GREENFIELD_*`) | Local disk (`web/.evidence`, gitignored) |
+| `GET/POST /api/v1/<action>`, `GET /api/v1/openapi.json` | Chain RPC (read-only, `KEYESCROW_RPC_URL_<chainId>`) | Anvil / PublicNode defaults |
 
 Amounts are integer strings in token base units. MockUSDT has 6 decimals, so `"500000000"` = 500 USDT. This matches
 the `uint256` values the contracts take.
@@ -153,6 +154,45 @@ last calls (endpoint, time, status, duration, note). Never returns key values.
 `POST /api/settlement` also takes an optional `scooterId`: the inspector then reads that scooter's earlier inspections
 (Living Brain, or the local stand-in) before judging, returns them under `memory`, and stores the new inspection
 (`memoryStored`).
+
+## /api/v1: rental actions (unsigned transactions)
+
+One endpoint per rental action, generated from `web/lib/actions/definitions.ts` (the same definitions the agent serves
+as MCP tools, see [AGENT.md](AGENT.md#rental-actions-as-agent-tools)). Reads are `GET` with query parameters;
+`prepare_*` are `POST` with a JSON body and return **unsigned** transactions, simulated on the chain first. The
+server never holds a key and never sends a transaction. The full list, with field tables and a curl example per
+action, is on `/developers`; the machine-readable spec is `GET /api/v1/openapi.json` (OpenAPI 3.1).
+
+```bash
+curl -s "$BASE/api/v1/explain_status?lease=0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e&viewer=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+curl -s -X POST "$BASE/api/v1/prepare_create_lease" -H 'content-type: application/json' \
+  -d '{"from":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","renter":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","rent":"3500","currency":"THB","depositMonths":2,"termMonths":6}'
+```
+
+A `prepare_*` answer:
+
+```json
+{
+  "chainId": 31337,
+  "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "steps": [{ "to": "0xe7f1…0512", "data": "0x6fecdb8a…", "value": "0", "description": "Create the rental offer", "function": "createLease((address,address,uint256,uint256,uint32,uint32,uint32,bytes32))" }],
+  "summary": "Create a 6-month rental for renter 0x3C44…: rent 106.06 mUSDT a month (THB 3500 at 33.00 THB/USDT, demo rate), …",
+  "simulation": { "method": "eth_simulateV1", "ok": true },
+  "expected": { "lease": "0xA22D…70c3" },
+  "unsigned": true
+}
+```
+
+Errors are `{error, code, details?}` with a sentence in `error` that can be shown as is:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_input`, `unsupported_chain` | Schema validation (`details` lists the fields), or a chain other than 31337 / 97 |
+| 404 | `unknown_action`, `not_found` | No such action, or the address is not a KeyEscrow rental |
+| 405 | `method_not_allowed` | `GET` on a `prepare_*` or `POST` on a read |
+| 409 | `precondition_failed` | Wrong role for `from`, or the rental is in the wrong status |
+| 422 | `simulation_reverted` | A step would revert; `details` has the step, function and decoded custom error |
+| 502 | `rpc_unavailable` | The chain node (or price source) could not be reached |
 
 ## Tests
 

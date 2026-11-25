@@ -18,7 +18,8 @@
     "call:a2a": "tsx scripts/call-a2a.ts",
     "register": "tsx scripts/register.ts",
     "rehearse": "bash scripts/rehearse.sh",
-    "verify": "tsx scripts/verify.ts"
+    "verify": "tsx scripts/verify.ts",
+    "demo:tools": "tsx scripts/demo-tools.ts"
   },
   "packageManager": "pnpm@12.23.0",
   "dependencies": {

@@ -45,3 +45,8 @@ export function friendlyError(err: unknown): string {
   }
   return "Something went wrong.";
 }
+
+/** The plain sentence for a contract custom error (by name), shared with the agent tools in lib/actions. */
+export function contractErrorReason(errorName: string): string | undefined {
+  return plain[errorName];
+}

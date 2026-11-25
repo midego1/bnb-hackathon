@@ -7,6 +7,8 @@ import { useAccount } from "wagmi";
 import { FilePicker } from "@/components/FilePicker";
 import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Card, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
+import { prepareCreateLease } from "@/lib/actions/definitions";
+import { fieldError } from "@/lib/actions/fields";
 import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi } from "@/lib/contracts";
 import { devAccounts } from "@/lib/devAccounts";
 import { uploadEvidence } from "@/lib/evidence";
@@ -47,22 +49,25 @@ export function CreateLeaseForm() {
   const arbDays = Number(arbiterDays);
   const arbiterAddr = useDesk ? desk : isAddress(arbiter) ? getAddress(arbiter) : undefined;
 
+  // Same field schemas as the prepare_create_lease API / MCP tool (lib/actions), so the rules and messages match.
+  const S = prepareCreateLease.input;
+  const decimals = (units: bigint | undefined) => (units === undefined ? "At most 6 decimals for a USDT amount." : undefined);
   const errors = {
-    tenant: !tenant ? undefined : !isAddress(tenant) ? "Not a valid address." : me && tenant.toLowerCase() === me.toLowerCase() ? "You can't rent to yourself." : undefined,
-    rent: rentAmount === undefined || rentAmount === BigInt(0) ? "Enter the monthly rent." : undefined,
-    deposit: depositAmount === undefined || depositAmount === BigInt(0) ? "Enter the deposit." : undefined,
-    term: !Number.isInteger(termMonths) || termMonths < 1 || termMonths > 60 ? "1 to 60 months." : undefined,
-    window: !Number.isInteger(days) || days < 1 || days > 60 ? "1 to 60 days." : undefined,
-    arbiterWindow: !Number.isInteger(arbDays) || arbDays < 1 || arbDays > 90 ? "1 to 90 days." : undefined,
+    tenant: !tenant
+      ? undefined
+      : fieldError(S, "renter", tenant) ?? (me && tenant.toLowerCase() === me.toLowerCase() ? "You can't rent to yourself." : undefined),
+    rent: fieldError(S, "rent", rent) ?? decimals(rentAmount),
+    deposit: fieldError(S, "deposit", deposit) ?? decimals(depositAmount),
+    term: fieldError(S, "termMonths", term),
+    window: fieldError(S, "responseWindowDays", windowDays),
+    arbiterWindow: fieldError(S, "arbiterWindowDays", arbiterDays),
     arbiter: useDesk
       ? !desk
         ? "No KeyEscrow dispute desk on this network; enter your own reviewer's wallet."
         : undefined
       : !arbiter
         ? undefined
-        : !isAddress(arbiter)
-          ? "Not a valid address."
-          : undefined,
+        : fieldError(S, "arbiter", arbiter),
   };
   const distinct =
     !arbiterAddr || !me || !isAddress(tenant)

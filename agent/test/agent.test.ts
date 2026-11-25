@@ -13,7 +13,7 @@ import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } f
 import { loadConfig, type AgentDeployment } from "../src/config.ts";
 import { inspectMoveOut, InspectionInputError } from "../src/inspect.ts";
 import { buildApp } from "../src/server.ts";
-import { inspectorSignerFromKey, proposeSettlement, SettlementRequestSchema, verifyInspectorReport } from "../src/shared.ts";
+import { ACTIONS, inspectorSignerFromKey, proposeSettlement, SettlementRequestSchema, verifyInspectorReport } from "../src/shared.ts";
 import { decodeReportSigner } from "../scripts/registry.ts";
 import { SAMPLE_REQUEST } from "../scripts/sample.ts";
 import { listen } from "./helpers.ts";
@@ -26,10 +26,10 @@ const AGENT_REGISTRY = `eip155:97:${REGISTRY}`;
 const NOW = new Date("2026-11-25T09:00:00Z");
 
 describe("agent card and ERC-8004 registration file", () => {
-  it("advertises one A2A skill at /a2a", () => {
+  it("advertises the inspection plus one A2A skill per rental action at /a2a", () => {
     const card = buildAgentCard("http://localhost:8790", { name: "KeyEscrow Inspector", address: SIGNER, agentId: "4", agentRegistry: AGENT_REGISTRY });
     expect(card.url).toBe("http://localhost:8790/a2a");
-    expect(card.skills.map((s) => s.id)).toEqual([SKILL_ID]);
+    expect(card.skills.map((s) => s.id)).toEqual([SKILL_ID, ...ACTIONS.map((a) => a.name)]);
     expect(card.description).toContain("ERC-8004 agent #4");
   });
 
@@ -113,8 +113,9 @@ describe("inspect_move_out skill", () => {
   });
 
   it("extracts the request from A2A parts", () => {
-    expect(requestFromParts([{ kind: "data", data: { skill: SKILL_ID, deposit: "1" } }])).toEqual({ ok: true, body: { deposit: "1" } });
-    expect(requestFromParts([{ kind: "text", text: '{"deposit":"1"}' }])).toEqual({ ok: true, body: { deposit: "1" } });
+    expect(requestFromParts([{ kind: "data", data: { skill: SKILL_ID, deposit: "1" } }])).toEqual({ ok: true, skill: SKILL_ID, body: { deposit: "1" } });
+    expect(requestFromParts([{ kind: "text", text: '{"deposit":"1"}' }])).toEqual({ ok: true, skill: SKILL_ID, body: { deposit: "1" } });
+    expect(requestFromParts([{ kind: "data", data: { skill: "get_lease", lease: "0x1" } }])).toEqual({ ok: true, skill: "get_lease", body: { lease: "0x1" } });
     expect(requestFromParts([{ kind: "data", data: { skill: "negotiate" } }])).toMatchObject({ ok: false });
     expect(requestFromParts([{ kind: "text", text: "inspect my flat" }])).toMatchObject({ ok: false });
     expect(requestFromParts([])).toMatchObject({ ok: false });
@@ -150,7 +151,7 @@ describe("HTTP faces (A2A, MCP, REST) against a local server", () => {
     const client = new Client({ name: "test", version: "0" });
     await client.connect(new StreamableHTTPClientTransport(new URL(`${url}/mcp`)));
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["inspect_move_out", "inspector_identity", "verify_report"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["inspect_move_out", "inspector_identity", "verify_report", ...ACTIONS.map((a) => a.name)].sort());
     const res = await client.callTool({ name: "inspect_move_out", arguments: SAMPLE_REQUEST });
     expect(res.isError).toBeFalsy();
     expect(res.structuredContent).toEqual(expected);

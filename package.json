@@ -26,6 +26,7 @@
     "agent:card": "pnpm -C agent card",
     "agent:call:mcp": "pnpm -C agent call:mcp",
     "agent:call:a2a": "pnpm -C agent call:a2a",
+    "agent:demo:tools": "pnpm -C agent demo:tools",
     "agent:verify": "pnpm -C agent verify",
     "agent:register:check": "pnpm -C agent register check",
     "agent:register": "pnpm -C agent register register",

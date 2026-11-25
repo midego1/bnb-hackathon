@@ -86,4 +86,8 @@ export const E2E_WEB_ENV: Record<string, string> = {
   LIVING_BRAIN_BASE_URL: "",
   ATLAS_MAX_AGE_SECONDS: "",
   SPONSOR_LOG_DIR: "test-results/e2e-sponsor-logs",
+  // Rental-action tools (/api/v1): no RPC override, so they read the e2e anvil via NEXT_PUBLIC_RPC_URL.
+  KEYESCROW_CHAIN_ID: "",
+  KEYESCROW_RPC_URL_31337: "",
+  KEYESCROW_RPC_URL_97: "",
 };

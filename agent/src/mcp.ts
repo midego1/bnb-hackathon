@@ -3,7 +3,17 @@ import { z } from "zod";
 import { AGENT_NAME, AGENT_VERSION } from "./config.ts";
 import { SKILL_ID } from "./card.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
-import { inspectorLabel, verifyInspectorReport, type InspectorIdentity } from "./shared.ts";
+import {
+  ACTIONS,
+  errorBody,
+  executeAction,
+  inspectorLabel,
+  jsonSafe,
+  toolDescription,
+  verifyInspectorReport,
+  type ActionHost,
+  type InspectorIdentity,
+} from "./shared.ts";
 
 /** Loose wire shape for MCP clients; the web app's strict zod schema does the real validation in inspectMoveOut. */
 const photo = z.object({
@@ -29,8 +39,12 @@ function json(value: unknown, isError = false) {
   };
 }
 
-/** A fresh MCP server (the HTTP face is stateless: one server per request). */
-export function buildMcpServer(deps: InspectDeps, identity: InspectorIdentity | null): McpServer {
+/**
+ * A fresh MCP server (the HTTP face is stateless: one server per request): the inspection tools, plus one tool per
+ * rental action from web/lib/actions (reads, and prepare_* returning unsigned simulated transactions). Pass
+ * `actions: null` to serve the inspection tools only.
+ */
+export function buildMcpServer(deps: InspectDeps, identity: InspectorIdentity | null, actions: ActionHost | null = null): McpServer {
   const server = new McpServer({ name: "keyescrow-inspector", title: AGENT_NAME, version: AGENT_VERSION });
 
   server.registerTool(
@@ -79,5 +93,32 @@ export function buildMcpServer(deps: InspectDeps, identity: InspectorIdentity | 
       json(identity ? { ...identity, label: inspectorLabel(identity) } : { name: AGENT_NAME, signed: false }),
   );
 
+  if (actions) registerActionTools(server, actions);
   return server;
+}
+
+/**
+ * Every rental action as an MCP tool. Name, title, description and input schema all come from the action's
+ * definition; the SDK validates the input with that schema before the handler runs. None of them sends a
+ * transaction or changes state (prepare_* only returns unsigned transactions), hence readOnlyHint.
+ */
+export function registerActionTools(server: McpServer, host: ActionHost): void {
+  for (const action of ACTIONS) {
+    server.registerTool(
+      action.name,
+      {
+        title: action.title,
+        description: toolDescription(action),
+        inputSchema: action.input,
+        annotations: { title: action.title, readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+      },
+      async (args: Record<string, unknown>) => {
+        try {
+          return json(jsonSafe(await executeAction(action, args, host)));
+        } catch (err) {
+          return json(errorBody(err).body, true);
+        }
+      },
+    );
+  }
 }
