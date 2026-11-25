@@ -54,7 +54,8 @@ contract RentalEscrowTest is BaseTest {
 
     function test_fund_revertsOnFeeOnTransferToken() public {
         FeeOnTransferToken fot = new FeeOnTransferToken();
-        EscrowFactory f = new EscrowFactory(IERC20(address(fot)), owner, 0, address(0), address(0));
+        EscrowFactory f =
+            new EscrowFactory(IERC20(address(fot)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 
@@ -916,7 +917,8 @@ contract RentalEscrowTest is BaseTest {
 
     function test_reentrancy_blockedOnPayout() public {
         ReentrantToken re = new ReentrantToken();
-        EscrowFactory f = new EscrowFactory(IERC20(address(re)), owner, 0, address(0), address(0));
+        EscrowFactory f =
+            new EscrowFactory(IERC20(address(re)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 

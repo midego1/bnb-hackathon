@@ -169,8 +169,10 @@ contract RentalEscrowInvariantTest is Test {
     uint256 internal constant DEPOSIT = 1_000e6;
     uint32 internal constant TERM = 12;
     uint16 internal constant FEE_BPS = 1_000;
+    uint256 internal constant NO_CAP = type(uint256).max;
 
     MockUSDT internal usdt;
+    EscrowFactory internal factory;
     RentalEscrow internal escrow;
     EscrowHandler internal handler;
     address internal landlord = makeAddr("landlord");
@@ -187,8 +189,9 @@ contract RentalEscrowInvariantTest is Test {
     function setUp() public {
         vm.warp(1_790_000_000);
         usdt = new MockUSDT();
-        EscrowFactory factory =
-            new EscrowFactory(IERC20(address(usdt)), address(this), FEE_BPS, treasury, address(0));
+        factory = new EscrowFactory(
+            IERC20(address(usdt)), address(this), FEE_BPS, treasury, address(0), NO_CAP, NO_CAP, NO_CAP
+        );
         vm.prank(landlord);
         escrow = RentalEscrow(
             factory.createLease(
@@ -231,6 +234,7 @@ contract RentalEscrowInvariantTest is Test {
         } else {
             assertEq(bal, DEPOSIT + uint256(escrow.monthsFunded() - escrow.monthsReleased()) * RENT);
         }
+        assertEq(factory.activeValue(), bal); // the pilot-cap book matches what the escrow really holds
         assertLe(escrow.monthsReleased(), escrow.monthsFunded());
         assertLe(escrow.monthsFunded(), TERM);
     }

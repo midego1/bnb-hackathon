@@ -28,6 +28,21 @@ export const escrowFactoryAbi = [
         "name": "defaultArbiter_",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "maxDeposit_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRentPerPeriod_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxActiveValue_",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -155,6 +170,19 @@ export const escrowFactoryAbi = [
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "activeValue",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -450,6 +478,58 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "function",
+    "name": "lockValue",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "maxActiveValue",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxDeposit",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxRentPerPeriod",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -478,6 +558,29 @@ export const escrowFactoryAbi = [
     "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCaps",
+    "inputs": [
+      {
+        "name": "maxDeposit_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRentPerPeriod_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxActiveValue_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -537,6 +640,44 @@ export const escrowFactoryAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unlockValue",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "CapsUpdated",
+    "inputs": [
+      {
+        "name": "maxDeposit",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRentPerPeriod",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxActiveValue",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -696,6 +837,38 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "error",
+    "name": "ActiveValueAboveCap",
+    "inputs": [
+      {
+        "name": "activeValue",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DepositAboveCap",
+    "inputs": [
+      {
+        "name": "depositAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxDeposit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "FailedDeployment",
     "inputs": []
   },
@@ -766,6 +939,17 @@ export const escrowFactoryAbi = [
   },
   {
     "type": "error",
+    "name": "NotLease",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "OwnableInvalidOwner",
     "inputs": [
       {
@@ -783,6 +967,22 @@ export const escrowFactoryAbi = [
         "name": "account",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RentAboveCap",
+    "inputs": [
+      {
+        "name": "rentAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRentPerPeriod",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
@@ -982,6 +1182,19 @@ export const rentalEscrowAbi = [
         "name": "",
         "type": "uint64",
         "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IValueBook"
       }
     ],
     "stateMutability": "view"
@@ -1614,6 +1827,22 @@ export const rentalEscrowAbi = [
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ActiveValueAboveCap",
+    "inputs": [
+      {
+        "name": "activeValue",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",

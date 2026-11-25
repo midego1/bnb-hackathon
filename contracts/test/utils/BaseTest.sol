@@ -29,6 +29,7 @@ abstract contract BaseTest is Test {
     uint32 internal constant TERM = 12;
     uint32 internal constant WINDOW = 5 days; // landlord-response window (non-default on purpose)
     uint32 internal constant ARB_WINDOW = 10 days; // arbiter window (non-default on purpose)
+    uint256 internal constant NO_CAP = type(uint256).max; // pilot caps off
     uint16 internal constant FEE_BPS = 1_000; // 10% of one month's rent, once per lease
     bytes32 internal constant LEASE_HASH = keccak256("lease.pdf");
     bytes32 internal constant REPORT_HASH = keccak256("ai-report.json");
@@ -41,7 +42,9 @@ abstract contract BaseTest is Test {
         UNIT = 10 ** _decimals();
         (RENT, DEPOSIT) = (500 * UNIT, 1_000 * UNIT);
         FEE = (RENT * FEE_BPS) / 10_000;
-        factory = new EscrowFactory(IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk);
+        factory = new EscrowFactory(
+            IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk, NO_CAP, NO_CAP, NO_CAP
+        );
         usdt.faucet(tenant, 10_000 * UNIT);
     }
 

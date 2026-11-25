@@ -22,6 +22,9 @@ const plain: Record<string, string> = {
   ERC20InsufficientAllowance: "Approve the USDT amount first.",
   ERC20InsufficientBalance: "Not enough USDT in this wallet. Use the test faucet on anvil.",
   FaucetLimitExceeded: "The faucet gives at most 10,000 test USDT per request.",
+  DepositAboveCap: "Pilot limit: this deposit is above KeyEscrow's maximum per rental. Lower it.",
+  RentAboveCap: "Pilot limit: this rent is above KeyEscrow's maximum per rent period. Lower it.",
+  ActiveValueAboveCap: "Pilot limit: KeyEscrow already holds as much as the pilot allows. Try again once other rentals have settled.",
 };
 
 /** Turns any wallet/RPC/contract error into a sentence a renter or owner can act on. */

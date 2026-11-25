@@ -232,16 +232,18 @@ contract EscrowFactoryTest is BaseTest {
 
     function test_constructor_revertsOnBadConfig() public {
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
-        new EscrowFactory(IERC20(address(0)), owner, 0, address(0), address(0));
+        new EscrowFactory(IERC20(address(0)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
 
         vm.expectRevert(abi.encodeWithSelector(EscrowFactory.FeeTooHigh.selector, uint16(1001)));
-        new EscrowFactory(IERC20(address(usdt)), owner, 1001, treasury, address(0));
+        new EscrowFactory(IERC20(address(usdt)), owner, 1001, treasury, address(0), NO_CAP, NO_CAP, NO_CAP);
 
         vm.expectRevert(EscrowFactory.ZeroAddress.selector);
-        new EscrowFactory(IERC20(address(usdt)), owner, 10, address(0), address(0));
+        new EscrowFactory(IERC20(address(usdt)), owner, 10, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
 
         // Zero fee without a recipient is fine.
-        EscrowFactory f = new EscrowFactory(IERC20(address(usdt)), owner, 0, address(0), address(0));
+        EscrowFactory f = new EscrowFactory(
+            IERC20(address(usdt)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP
+        );
         assertEq(f.feeBps(), 0);
     }
 
@@ -332,5 +334,117 @@ contract EscrowFactoryTest is BaseTest {
             feeBps: 0,
             feeRecipient: address(0)
         });
+    }
+    // =============================================================================================
+    // Pilot caps (mainnet pilot): per-lease deposit / rent, total value held by all escrows
+    // =============================================================================================
+
+    function _fund(RentalEscrow escrow) internal {
+        vm.startPrank(tenant);
+        usdt.approve(address(escrow), type(uint256).max);
+        escrow.fund();
+        vm.stopPrank();
+    }
+
+    function test_caps_unlimitedByDefault_onlyOwnerSets_emits() public {
+        assertEq(factory.maxDeposit(), NO_CAP);
+        assertEq(factory.maxRentPerPeriod(), NO_CAP);
+        assertEq(factory.maxActiveValue(), NO_CAP);
+
+        vm.prank(stranger);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, stranger));
+        factory.setCaps(1, 1, 1);
+
+        vm.expectEmit(true, true, true, true, address(factory));
+        emit EscrowFactory.CapsUpdated(5, 2, 25);
+        vm.prank(owner);
+        factory.setCaps(5, 2, 25);
+        assertEq(factory.maxDeposit(), 5);
+        assertEq(factory.maxRentPerPeriod(), 2);
+        assertEq(factory.maxActiveValue(), 25);
+
+        vm.prank(owner);
+        factory.setCaps(50, 20, 250); // raising works the same way
+        assertEq(factory.maxActiveValue(), 250);
+    }
+
+    function test_caps_createLeaseRevertsAboveDepositOrRentCap() public {
+        vm.prank(owner);
+        factory.setCaps(DEPOSIT - 1, RENT - 1, NO_CAP);
+        vm.startPrank(landlord);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.DepositAboveCap.selector, DEPOSIT, DEPOSIT - 1));
+        factory.createLease(_params());
+        EscrowFactory.LeaseParams memory p = _params();
+        p.depositAmount = DEPOSIT - 1;
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.RentAboveCap.selector, RENT, RENT - 1));
+        factory.createLease(p);
+        p.rentAmount = RENT - 1; // exactly at both caps
+        factory.createLease(p);
+        vm.stopPrank();
+    }
+
+    function test_caps_fundAndPayRentRevertAboveActiveValueCap_payoutsFreeRoom() public {
+        vm.prank(owner);
+        factory.setCaps(NO_CAP, NO_CAP, DEPOSIT + 2 * RENT);
+        RentalEscrow a = _createLease();
+        RentalEscrow b = _createLease();
+
+        _fund(a);
+        assertEq(factory.activeValue(), DEPOSIT + RENT);
+        vm.startPrank(tenant);
+        usdt.approve(address(b), type(uint256).max);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RentalEscrow.ActiveValueAboveCap.selector, 2 * (DEPOSIT + RENT), DEPOSIT + 2 * RENT
+            )
+        );
+        b.fund();
+        a.payRent(1); // fits exactly
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RentalEscrow.ActiveValueAboveCap.selector, DEPOSIT + 3 * RENT, DEPOSIT + 2 * RENT
+            )
+        );
+        a.payRent(1);
+        vm.stopPrank();
+
+        a.releaseRent(); // month 0 paid out
+        assertEq(factory.activeValue(), DEPOSIT + RENT);
+        vm.prank(tenant);
+        a.propose(DEPOSIT, REPORT_HASH);
+        vm.prank(landlord);
+        a.accept(1);
+        assertEq(factory.activeValue(), 0);
+        _fund(b); // room again
+        assertEq(factory.activeValue(), DEPOSIT + RENT);
+    }
+
+    function test_caps_loweringBelowActiveValueNeverBlocksPayouts() public {
+        RentalEscrow a = _createAndFund();
+        vm.prank(tenant);
+        a.payRent(2);
+        vm.prank(owner);
+        factory.setCaps(0, 0, 0); // emergency stop: no new leases, no new funding
+
+        vm.prank(landlord);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.DepositAboveCap.selector, DEPOSIT, 0));
+        factory.createLease(_params());
+
+        a.releaseRent();
+        vm.prank(landlord);
+        a.dispute();
+        vm.warp(a.arbiterDeadline());
+        a.claimArbiterTimeout();
+        assertEq(factory.activeValue(), 0);
+        assertEq(usdt.balanceOf(address(a)), 0);
+    }
+
+    function test_valueBook_onlyLeases() public {
+        vm.startPrank(stranger);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.NotLease.selector, stranger));
+        factory.lockValue(1);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.NotLease.selector, stranger));
+        factory.unlockValue(1);
+        vm.stopPrank();
     }
 }

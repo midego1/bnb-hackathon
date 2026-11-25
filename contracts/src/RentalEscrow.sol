@@ -6,6 +6,12 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
+/// @notice The part of {EscrowFactory} an escrow calls: it books the value every escrow holds against the pilot cap.
+interface IValueBook {
+    function lockValue(uint256 amount) external;
+    function unlockValue(uint256 amount) external;
+}
+
 /// @title RentalEscrow
 /// @notice Escrow for a single lease: holds the security deposit and prepaid rent in a stablecoin.
 ///
@@ -109,6 +115,10 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     /// @notice `basis` of the {Settled} event when the arbiter-deadline fallback settled the lease.
     bytes32 public constant ARBITER_TIMEOUT_BASIS = keccak256("keyescrow.timeout.arbiter-deadline");
 
+    /// @notice The factory that deployed this implementation; every clone books its funds there (pilot caps).
+    /// @dev Immutable in the implementation's code, so every clone reads the same factory for free.
+    IValueBook public immutable factory;
+
     Terms internal _terms;
     Proposal internal _proposal;
 
@@ -169,6 +179,9 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     error TermFullyFunded();
     error TransferShortfall(uint256 expected, uint256 received);
     error ResponseWindowClosed(uint64 deadline);
+    /// @notice Raised by the factory (its pilot cap) and bubbled up through {fund} / {payRent}; declared here so
+    /// clients decode it with the escrow's ABI.
+    error ActiveValueAboveCap(uint256 activeValue, uint256 cap);
 
     // ---------------------------------------------------------------------------------------------
     // Modifiers
@@ -194,6 +207,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     // ---------------------------------------------------------------------------------------------
 
     constructor() {
+        factory = IValueBook(msg.sender);
         _disableInitializers();
     }
 
@@ -221,6 +235,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         _pull(amount);
 
         emit Funded(msg.sender, _terms.depositAmount, _terms.rentAmount, startTime);
+        factory.lockValue(amount); // reverts above the factory's pilot cap
     }
 
     /// @notice Tenant prepays `months` additional months of rent into escrow.
@@ -233,6 +248,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         _pull(amount);
 
         emit RentPaid(msg.sender, months, amount, monthsFunded);
+        factory.lockValue(amount);
     }
 
     /// @notice Release funded rent to the landlord.
@@ -247,8 +263,10 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         uint32 months = upTo - monthsReleased;
         monthsReleased = upTo;
 
-        (uint256 toLandlord, uint256 fee) = _payRent(uint256(months) * _terms.rentAmount);
+        uint256 gross = uint256(months) * _terms.rentAmount;
+        (uint256 toLandlord, uint256 fee) = _payRent(gross);
         emit RentReleased(msg.sender, months, toLandlord, fee);
+        factory.unlockValue(gross);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -476,5 +494,6 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         if (toTenant > 0) _terms.token.safeTransfer(_terms.tenant, toTenant);
 
         emit Settled(tenantRefund, landlordClaim, rentToLandlord, rentToTenant, fee, basis);
+        factory.unlockValue(_terms.depositAmount + rentToLandlord + rentToTenant); // everything this escrow held
     }
 }

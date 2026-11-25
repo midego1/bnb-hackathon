@@ -22,6 +22,7 @@ abstract contract ScriptBase is Script {
 
     uint256 internal constant BSC_TESTNET_CHAIN_ID = 97;
     uint256 internal constant OPBNB_TESTNET_CHAIN_ID = 5611;
+    uint256 internal constant BSC_MAINNET_CHAIN_ID = 56;
 
     error RefusingNonLocalChain(uint256 chainId);
     error RefusingMainnet(uint256 chainId);

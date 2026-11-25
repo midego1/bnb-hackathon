@@ -143,6 +143,14 @@ Slither 0.11.6, 102 detectors, `lib/`, `test/` and `script/` filtered: 15 result
 - **Admin keys.** On BSC testnet one EOA is factory owner, fee recipient, default arbiter (dispute desk) and
   fleet operator. The owner can only change the fee (capped) and default arbiter for future rentals; it has
   no power over existing escrows or the vault. The fleet operator is immutable per vault.
+- **Pilot caps.** For the capped mainnet pilot the factory owner sets `maxDeposit`, `maxRentPerPeriod` (checked
+  in `createLease`) and `maxActiveValue` (checked when an escrow takes funds in `fund` / `payRent`, against
+  `activeValue`, the deposits + unreleased rent all escrows hold, booked by the escrows through `lockValue` /
+  `unlockValue`). Payouts never check a cap and `unlockValue` cannot revert for a lease, so lowering a cap (even
+  to 0, the emergency stop for new funding) never locks money already in escrow. Anyone who funds escrows between
+  two of their own addresses can fill `maxActiveValue` with their own money and block other renters until they
+  settle; the owner can raise the cap. Unlimited (`type(uint256).max`) on anvil and testnet.
+  Tests: `test_caps_*`, `invariant_balanceMatchesBook` (`activeValue` == escrow balance).
 - **Arbiter trust.** The arbiter decides the whole deposit split of a disputed rental. Its only limits are
   the deadline and that funds go to owner or renter. The renter must trust the named arbiter (KE-07).
 - **Timeout policy.** Both timeouts return the full deposit to the renter (burden of proof on the owner). A

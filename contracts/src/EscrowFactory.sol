@@ -13,8 +13,13 @@ import {RentalEscrow} from "./RentalEscrow.sol";
 /// Business model: a one-time protocol fee per lease of `feeBps` of ONE month's rent (default 10%), deducted
 /// from the landlord's first rent payout. Platform role: KeyEscrow's dispute desk is the `defaultArbiter`,
 /// used whenever a landlord does not name an arbiter of their own.
-/// @dev The owner can only tune the fee and the default arbiter for *future* leases; existing escrows snapshot
-/// both at creation and are never upgradeable, so the owner has no power over funds already in escrow.
+///
+/// Pilot caps (mainnet pilot): the owner sets a maximum deposit and rent per period for new leases, and a maximum
+/// for the value all live escrows hold together ({activeValue}: deposits + unreleased rent). {createLease} checks the
+/// first two, {RentalEscrow.fund} / {RentalEscrow.payRent} the last; payouts are never blocked by a cap. Lowering
+/// `maxActiveValue` to 0 stops all new funding at once. `type(uint256).max` = unlimited (anvil, testnet).
+/// @dev The owner can only tune the fee, the default arbiter and the caps for *future* funding; existing escrows
+/// snapshot their terms at creation and are never upgradeable, so the owner has no power over funds already in escrow.
 contract EscrowFactory is Ownable2Step {
     /// @notice Input for {createLease}. The caller becomes the landlord.
     struct LeaseParams {
@@ -51,6 +56,13 @@ contract EscrowFactory is Ownable2Step {
     /// @notice KeyEscrow dispute desk; arbiter of every lease created without an explicit arbiter.
     address public defaultArbiter;
 
+    /// @notice Pilot caps, in token units (see the contract notes). `type(uint256).max` = unlimited.
+    uint256 public maxDeposit;
+    uint256 public maxRentPerPeriod;
+    uint256 public maxActiveValue;
+    /// @notice Deposits + unreleased rent held by all escrows of this factory right now.
+    uint256 public activeValue;
+
     address[] internal _leases;
     mapping(address => address[]) internal _leasesByLandlord;
     mapping(address => address[]) internal _leasesByTenant;
@@ -73,6 +85,7 @@ contract EscrowFactory is Ownable2Step {
     event PayeeSet(address indexed escrow, address indexed payee);
     event FeeUpdated(uint16 feeBps, address feeRecipient);
     event DefaultArbiterUpdated(address defaultArbiter);
+    event CapsUpdated(uint256 maxDeposit, uint256 maxRentPerPeriod, uint256 maxActiveValue);
 
     error ZeroAddress();
     error RolesNotDistinct();
@@ -81,14 +94,25 @@ contract EscrowFactory is Ownable2Step {
     error InvalidResponseWindow(uint32 responseWindow);
     error InvalidArbiterWindow(uint32 arbiterWindow);
     error FeeTooHigh(uint16 feeBps);
+    error DepositAboveCap(uint256 depositAmount, uint256 maxDeposit);
+    error RentAboveCap(uint256 rentAmount, uint256 maxRentPerPeriod);
+    error NotLease(address caller);
 
-    constructor(IERC20 token_, address owner_, uint16 feeBps_, address feeRecipient_, address defaultArbiter_)
-        Ownable(owner_)
-    {
+    constructor(
+        IERC20 token_,
+        address owner_,
+        uint16 feeBps_,
+        address feeRecipient_,
+        address defaultArbiter_,
+        uint256 maxDeposit_,
+        uint256 maxRentPerPeriod_,
+        uint256 maxActiveValue_
+    ) Ownable(owner_) {
         if (address(token_) == address(0)) revert ZeroAddress();
         token = token_;
         _setFee(feeBps_, feeRecipient_);
         _setDefaultArbiter(defaultArbiter_);
+        _setCaps(maxDeposit_, maxRentPerPeriod_, maxActiveValue_);
         implementation = address(new RentalEscrow());
     }
 
@@ -151,6 +175,8 @@ contract EscrowFactory is Ownable2Step {
             revert RolesNotDistinct();
         }
         if (p.rentAmount == 0 || p.depositAmount == 0) revert InvalidAmount();
+        if (p.depositAmount > maxDeposit) revert DepositAboveCap(p.depositAmount, maxDeposit);
+        if (p.rentAmount > maxRentPerPeriod) revert RentAboveCap(p.rentAmount, maxRentPerPeriod);
         if (p.termMonths < MIN_TERM_MONTHS || p.termMonths > MAX_TERM_MONTHS) {
             revert InvalidTerm(p.termMonths);
         }
@@ -189,6 +215,32 @@ contract EscrowFactory is Ownable2Step {
         _setDefaultArbiter(defaultArbiter_);
     }
 
+    /// @notice Set the pilot caps (raise or lower, any time). They apply to new leases and to new funding.
+    function setCaps(uint256 maxDeposit_, uint256 maxRentPerPeriod_, uint256 maxActiveValue_)
+        external
+        onlyOwner
+    {
+        _setCaps(maxDeposit_, maxRentPerPeriod_, maxActiveValue_);
+    }
+
+    // --- Value book (called by this factory's escrows) ---------------------------------------------
+
+    /// @notice An escrow takes in `amount` (fund / payRent); reverts above `maxActiveValue`.
+    function lockValue(uint256 amount) external {
+        if (!isLease[msg.sender]) revert NotLease(msg.sender);
+        uint256 v = activeValue + amount;
+        if (v > maxActiveValue) revert RentalEscrow.ActiveValueAboveCap(v, maxActiveValue);
+        activeValue = v;
+    }
+
+    /// @notice An escrow paid out `amount`. Never reverts for a lease, so a cap can never block a payout.
+    function unlockValue(uint256 amount) external {
+        if (!isLease[msg.sender]) revert NotLease(msg.sender);
+        uint256 v = activeValue;
+        // Each escrow unlocks exactly what it locked; saturating anyway, a payout must never fail on bookkeeping.
+        activeValue = v > amount ? v - amount : 0;
+    }
+
     // --- Views -----------------------------------------------------------------------------------
 
     function leaseCount() external view returns (uint256) {
@@ -220,6 +272,13 @@ contract EscrowFactory is Ownable2Step {
         feeBps = feeBps_;
         feeRecipient = feeRecipient_;
         emit FeeUpdated(feeBps_, feeRecipient_);
+    }
+
+    function _setCaps(uint256 maxDeposit_, uint256 maxRentPerPeriod_, uint256 maxActiveValue_) internal {
+        maxDeposit = maxDeposit_;
+        maxRentPerPeriod = maxRentPerPeriod_;
+        maxActiveValue = maxActiveValue_;
+        emit CapsUpdated(maxDeposit_, maxRentPerPeriod_, maxActiveValue_);
     }
 
     function _setDefaultArbiter(address defaultArbiter_) internal {

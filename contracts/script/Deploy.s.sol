@@ -33,6 +33,11 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///                               fleet owner, on anvil; FEE_RECIPIENT elsewhere)
 ///   FLEET_OPERATOR_FEE_BPS      operator fee in bps of vault income (default 1000 = 10%, max 3000)
 ///   FLEET_NAME / FLEET_SYMBOL   share token metadata (default "KeyEscrow Bangkok Fleet 1" / "BKK-FLEET-1")
+///   MAX_DEPOSIT                 pilot cap: max deposit per lease, in WHOLE tokens (default: 5 on BSC mainnet (56),
+///                               unlimited elsewhere)
+///   MAX_RENT_PER_PERIOD         pilot cap: max rent per period per lease, whole tokens (default 2 on 56, else unlimited)
+///   MAX_ACTIVE_VALUE            pilot cap: max deposits + unreleased rent held by all escrows together, whole tokens
+///                               (default 25 on 56, else unlimited). The factory owner can change all three later.
 /// Off anvil the deployer and every role address must not be one of anvil's public default accounts.
 contract Deploy is ScriptBase {
     error FeeBpsOutOfRange(uint256 feeBps);
@@ -52,6 +57,9 @@ contract Deploy is ScriptBase {
         uint16 fleetOperatorFeeBps;
         uint8 tokenDecimals; // read from the token: 6 for MockUSDT, 18 for BSC-USD
         string tokenSymbol;
+        uint256 maxDeposit; // pilot caps, in token base units (type(uint256).max = unlimited)
+        uint256 maxRentPerPeriod;
+        uint256 maxActiveValue;
     }
 
     function run() external returns (Deployment memory d) {
@@ -81,8 +89,21 @@ contract Deploy is ScriptBase {
         if (key != 0) vm.startBroadcast(key);
         else vm.startBroadcast(d.deployer);
         if (d.token == address(0)) d.token = address(new MockUSDT());
-        EscrowFactory factory =
-            new EscrowFactory(IERC20(d.token), d.owner, d.feeBps, d.feeRecipient, d.defaultArbiter);
+        d.tokenDecimals = IERC20Metadata(d.token).decimals();
+        d.tokenSymbol = IERC20Metadata(d.token).symbol();
+        d.maxDeposit = _cap("MAX_DEPOSIT", 5, d.tokenDecimals);
+        d.maxRentPerPeriod = _cap("MAX_RENT_PER_PERIOD", 2, d.tokenDecimals);
+        d.maxActiveValue = _cap("MAX_ACTIVE_VALUE", 25, d.tokenDecimals);
+        EscrowFactory factory = new EscrowFactory(
+            IERC20(d.token),
+            d.owner,
+            d.feeBps,
+            d.feeRecipient,
+            d.defaultArbiter,
+            d.maxDeposit,
+            d.maxRentPerPeriod,
+            d.maxActiveValue
+        );
         // Deployed last so the token and factory keep their addresses (deployer nonces 0 and 1 on a fresh anvil).
         d.fleetVault = address(
             new FleetVault(
@@ -97,9 +118,18 @@ contract Deploy is ScriptBase {
 
         d.factory = address(factory);
         d.implementation = factory.implementation();
-        d.tokenDecimals = IERC20Metadata(d.token).decimals();
-        d.tokenSymbol = IERC20Metadata(d.token).symbol();
         _write(d);
+    }
+
+    /// @dev Pilot cap from env in whole tokens -> base units. Unset: `mainnetDefault` on BSC mainnet, unlimited elsewhere.
+    function _cap(string memory envName, uint256 mainnetDefault, uint8 decimals)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 unlimited = type(uint256).max;
+        uint256 tokens = vm.envOr(envName, block.chainid == BSC_MAINNET_CHAIN_ID ? mainnetDefault : unlimited);
+        return tokens == unlimited ? unlimited : tokens * 10 ** decimals;
     }
 
     function _write(Deployment memory d) internal {
@@ -118,6 +148,10 @@ contract Deploy is ScriptBase {
         vm.serializeAddress(k, "fleetVault", d.fleetVault);
         vm.serializeAddress(k, "fleetOperator", d.fleetOperator);
         vm.serializeUint(k, "fleetOperatorFeeBps", d.fleetOperatorFeeBps);
+        // Strings: jq reads JSON numbers as doubles, and the verify step re-encodes these as constructor args.
+        vm.serializeString(k, "maxDeposit", vm.toString(d.maxDeposit));
+        vm.serializeString(k, "maxRentPerPeriod", vm.toString(d.maxRentPerPeriod));
+        vm.serializeString(k, "maxActiveValue", vm.toString(d.maxActiveValue));
         string memory json = vm.serializeUint(k, "startBlock", d.startBlock);
 
         string memory path = _deploymentPath();

@@ -255,6 +255,10 @@ post_check() {
   check_eq "factory.feeRecipient()" "$(cast call "$factory" 'feeRecipient()(address)' --rpc-url "$RPC")" "$(jq -r .feeRecipient "$f")"
   check_eq "factory.defaultArbiter()" "$(cast call "$factory" 'defaultArbiter()(address)' --rpc-url "$RPC")" "$(jq -r .defaultArbiter "$f")"
   check_eq "factory.token()" "$(cast call "$factory" 'token()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
+  local cap
+  for cap in maxDeposit maxRentPerPeriod maxActiveValue; do
+    check_eq "factory.$cap()" "$(cast call "$factory" "$cap()(uint256)" --rpc-url "$RPC" | cut -d' ' -f1)" "$(jq -r ".$cap" "$f")"
+  done
   check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
   check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$RPC" | tr -d '"')" "mUSDT"
   ((FAILS == 0)) || die "post-deploy check failed ($FAILS problem(s))" 1
@@ -283,9 +287,10 @@ cmd_verify() {
   if [[ "$dry" != 1 && -z "${BSCSCAN_API_KEY:-}" ]]; then die "BSCSCAN_API_KEY is not set" 2; fi
 
   local ctor
-  ctor="$(cast abi-encode 'constructor(address,address,uint16,address,address)' \
+  ctor="$(cast abi-encode 'constructor(address,address,uint16,address,address,uint256,uint256,uint256)' \
     "$(jq -r .token "$f")" "$(jq -r .factoryOwner "$f")" "$(jq -r .feeBps "$f")" \
-    "$(jq -r .feeRecipient "$f")" "$(jq -r .defaultArbiter "$f")")"
+    "$(jq -r .feeRecipient "$f")" "$(jq -r .defaultArbiter "$f")" \
+    "$(jq -r .maxDeposit "$f")" "$(jq -r .maxRentPerPeriod "$f")" "$(jq -r .maxActiveValue "$f")")"
   local vctor
   vctor="$(cast abi-encode 'constructor(address,string,string,address,uint16)' \
     "$(jq -r .token "$f")" "${FLEET_NAME:-KeyEscrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
