@@ -9,6 +9,7 @@ import { z } from "zod";
 import { expireApproval, peekApproval, resetChat } from "./approvals";
 import { runAssistant, type EngineDeps, type RunRequest } from "./engine";
 import { eventStream } from "./events";
+import { clientIp } from "../server/http";
 import { allowRequest, LIMITS } from "./limits";
 import { leaseInView, safeAppPath } from "./paths";
 
@@ -51,12 +52,6 @@ export const RunBodySchema = z.union([
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
-/** Who is asking, for the rate limit: the wallet if one is connected, else the client IP. */
-function callerKey(req: Request, wallet?: string | null): string {
-  if (wallet) return `w:${wallet.toLowerCase()}`;
-  const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? "local";
-  return `ip:${ip}`;
-}
 
 export async function handleRun(req: Request, deps: EngineDeps): Promise<Response> {
   let raw: unknown;
@@ -68,7 +63,7 @@ export async function handleRun(req: Request, deps: EngineDeps): Promise<Respons
   const parsed = RunBodySchema.safeParse(raw);
   if (!parsed.success) return json(400, { error: "Invalid Ask AI request.", code: "invalid_input" });
   const body = parsed.data;
-  if (!(await allowRequest(deps.store, callerKey(req, body.context.address), deps.now?.()))) {
+  if (!(await allowRequest(deps.store, `ip:${clientIp(req)}`, deps.now?.()))) {
     return json(429, { error: "Too many requests. Wait a minute and try again.", code: "rate_limited" });
   }
 

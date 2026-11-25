@@ -69,7 +69,7 @@ Object), so the browser sends no `eth_getLogs`.
 | Route | On Workers |
 | --- | --- |
 | `GET /api/price` | Same sources (Atlas, CoinMarketCap with `CMC_API_KEY`, else mock). The quote is cached in memory per isolate and, across isolates, in the KeyEscrowState Durable Object for `PRICE_CACHE_TTL_SECONDS` (300 in `wrangler.jsonc`). Mock answers are never shared. |
-| `POST /api/settlement` | Same code. Mock without `ANTHROPIC_API_KEY`; signed as agent #2921 with `INSPECTOR_PRIVATE_KEY`. |
+| `POST /api/settlement` | Same code. Mock without `ANTHROPIC_API_KEY`; signed as agent #2921 with `INSPECTOR_PRIVATE_KEY`. With a live model: 10 inspections per hour per caller IP (Durable Object rate limit). |
 | `POST /api/evidence`, `GET /api/evidence/<hash>` | No disk on Workers. With the `EVIDENCE` R2 bucket bound: stored there as `evidence/<sha256>` (private). Without it: uploads answer **503 "evidence uploads are disabled on this deployment"**, the browser hashes the files itself (the hashes still go on-chain), and lookups 404. The demo's own lease PDF and photos are static files under `/demo/`, so the demo does not need the bucket. |
 | `GET /api/risk` | CoinMarketCap quotes cached per isolate and in the Durable Object (`RISK_CACHE_TTL_SECONDS`); latest Cournot answer from the store below. |
 | `GET/POST /api/cournot` | Committed answers (`web/data/cournot-results.json`) are bundled into the Worker; new live answers go to the Durable Object (newest 100). |

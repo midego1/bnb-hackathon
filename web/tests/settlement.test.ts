@@ -7,6 +7,7 @@ import { POST } from "@/app/api/settlement/route";
 import { LocalEvidenceStore, storeEvidence } from "@/lib/server/evidence";
 import { canonicalJson, sha256Hex } from "@/lib/server/hash";
 import { proposeSettlement, SettlementRequestSchema, visionProviderFromEnv, type VisionProvider } from "@/lib/server/settlement";
+import { getSharedState, hitRateLimit } from "@/lib/server/state";
 import type { VisionAssessmentInput } from "@/lib/server/settlement/vision";
 
 const h = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;
@@ -149,5 +150,17 @@ describe("POST /api/settlement", () => {
     const res = await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(1) }], extra: true });
     expect(res.status).toBe(400);
     expect((await res.json()).details).toBeInstanceOf(Array);
+  });
+
+  it("limits live (paid) inspections per caller IP, before calling the model", async () => {
+    for (let i = 0; i < 10; i++) await hitRateLimit(getSharedState(), "settlement:local", { limit: 10, windowMs: 3_600_000 });
+    process.env.ANTHROPIC_API_KEY = "test";
+    try {
+      expect((await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(2) }] })).status).toBe(429);
+    } finally {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+    // The mock costs nothing and stays unlimited.
+    expect((await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(2) }] })).status).toBe(200);
   });
 });

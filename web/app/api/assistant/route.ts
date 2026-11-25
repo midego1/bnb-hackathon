@@ -7,7 +7,7 @@ import { assistantDeps } from "@/lib/server/assistant";
 /** Ask AI: POST runs one message (or an approve/decline answer) and streams events; GET says which model answers. */
 export async function POST(req: Request) {
   await connection();
-  return handleRun(req, assistantDeps(new URL(req.url).origin));
+  return handleRun(req, assistantDeps(req));
 }
 
 export async function GET() {
