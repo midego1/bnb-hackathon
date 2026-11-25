@@ -22,7 +22,10 @@ export type VaultState = {
   totalOperatorFees: bigint;
   totalClaimed: bigint;
   /** The connected wallet's position (zeros without a wallet). */
-  me?: { shares: bigint; claimable: bigint; usdt: bigint; allowance: bigint };
+  me?: { shares: bigint; claimable: bigint; usdt: bigint; allowance: bigint; lockedUntil: bigint };
+  /** Latest block timestamp and when it was read (the lock is judged on chain time, not the browser clock). */
+  chainNow: bigint;
+  fetchedAt: number;
 };
 
 export const vaultQueryKey = (chainId: number) => ["vault", chainId];
@@ -38,6 +41,7 @@ export function useVault(who?: Address) {
     refetchInterval: 8_000,
     queryFn: async (): Promise<VaultState> => {
       const c = client!;
+      const block = await c.getBlock();
       const r = <T,>(functionName: string, args: unknown[] = []) =>
         c.readContract({ address: vault!, abi: fleetVaultAbi, functionName: functionName as never, args: args as never }) as Promise<T>;
       const [name, symbol, operator, operatorFeeBps, totalAssets, totalSupply, totalPrincipal, reservedIncome, unsyncedIncome, totalDistributed, totalOperatorFees, totalClaimed] =
@@ -57,13 +61,14 @@ export function useVault(who?: Address) {
         ]);
       let me: VaultState["me"];
       if (who) {
-        const [shares, claimable, usdt, allowance] = await Promise.all([
+        const [shares, claimable, usdt, allowance, lockedUntil] = await Promise.all([
           r<bigint>("balanceOf", [who]),
           r<bigint>("claimable", [who]),
           c.readContract({ address: deployment!.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] }),
           c.readContract({ address: deployment!.mockUsdt, abi: mockUsdtAbi, functionName: "allowance", args: [who, vault!] }),
+          r<bigint>("lockedUntil", [who]),
         ]);
-        me = { shares, claimable, usdt, allowance };
+        me = { shares, claimable, usdt, allowance, lockedUntil };
       }
       return {
         address: vault!,
@@ -80,6 +85,8 @@ export function useVault(who?: Address) {
         totalOperatorFees,
         totalClaimed,
         me,
+        chainNow: block.timestamp,
+        fetchedAt: Date.now(),
       };
     },
   });
