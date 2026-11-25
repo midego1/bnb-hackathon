@@ -1,7 +1,8 @@
 # KeyEscrow on Cloudflare Workers
 
-Two Workers give the hackathon judges a public URL. Both are prepared and tested locally (wrangler dev / workerd).
-**Nothing has been deployed yet:** deploying needs a Cloudflare account and an API token (one-time steps below).
+Two Workers give the hackathon judges a public URL. Both are deployed on the `mdgooijer` workers.dev subdomain:
+<https://keyescrow-web.mdgooijer.workers.dev> and <https://keyescrow-agent.mdgooijer.workers.dev>. Redeploying needs a
+Cloudflare account and an API token (one-time steps below).
 
 | Worker | What it serves | Source | Public URL after deploy |
 | --- | --- | --- | --- |
@@ -12,7 +13,8 @@ Two Workers give the hackathon judges a public URL. Both are prepared and tested
 used: no custom domain, no zone. Both Workers fit the **Workers Free plan** (see [Size](#size)); nothing here needs
 a paid plan.
 
-**Status:** on this branch, tested in local preview only. Not deployed.
+**Status:** both Workers are live (checked 25 Nov 2026), with the live testnet `/demo` runner switched on. No R2
+bucket is bound yet, so evidence uploads on the web Worker are off and the browser hashes files locally.
 
 ## Commands
 
