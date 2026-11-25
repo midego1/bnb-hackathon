@@ -61,6 +61,9 @@ export default function Home() {
           <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline">
             How the demo works →
           </a>
+          <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline" data-testid="integrations-link">
+            Risk engine &amp; integrations →
+          </Link>
         </div>
         <PlayDemoCta />
       </section>

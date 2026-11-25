@@ -199,7 +199,7 @@ describe("inspection memory (Living Brain)", () => {
     await mem.remember({ scooterId: "BKK-123", at: "2026-11-01T00:00:00Z", findings: ["left mirror scratched (minor)"], newDamage: true });
     const assess = vi.fn(async () => ({ tenantRefund: 100, landlordClaim: 0, reasons: ["Mirror scratch is pre-existing (memory)."], confidence: 0.9 }));
     const photo = { hash: `0x${"a".repeat(64)}` };
-    const store = { name: "local" as const, put: vi.fn(), get: vi.fn(async () => ({ bytes: new Uint8Array([1]), contentType: "image/png" as const })) };
+    const store = { name: "local" as const, put: vi.fn(), get: vi.fn(async () => ({ hash: photo.hash as `0x${string}`, bytes: new Uint8Array([1]), contentType: "image/png" as const })) };
     const r = await proposeSettlement(
       { deposit: "100000000", decimals: 6, currency: "USDT", checkIn: [photo], checkOut: [photo], scooterId: "BKK-123" },
       { provider: { name: "test", model: "m", assess }, store, memory: mem },

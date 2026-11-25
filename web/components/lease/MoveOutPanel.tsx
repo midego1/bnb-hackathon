@@ -107,6 +107,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const [report, setReport] = useState<InspectionResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [scooterId, setScooterId] = useState("");
   const [refund, setRefund] = useState(formatUsdt(lease.terms.depositAmount).replace(/,/g, ""));
   const [reason, setReason] = useState("");
   const deposit = lease.terms.depositAmount;
@@ -117,7 +118,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
     setInspecting(true);
     setAiError(null);
     try {
-      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined }));
+      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined, scooterId: scooterId.trim() || lease.address }));
     } catch (e) {
       setAiError((e as Error).message);
     } finally {
@@ -139,6 +140,9 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
         <div className="mt-3 grid gap-3">
           <Field label="Notes for the inspector (optional)">
             <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. left mirror was already scratched at pickup" />
+          </Field>
+          <Field label="Scooter plate or id (optional)" hint="Keys the inspector's memory of this scooter across rentals. Defaults to this rental's address.">
+            <input className={inputClass} value={scooterId} onChange={(e) => setScooterId(e.target.value)} placeholder="e.g. 1กข 1234 Bangkok" data-testid="scooter-id" />
           </Field>
           <ActionButton
             variant="secondary"
@@ -182,6 +186,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
                 ))}
               </ul>
             )}
+            {report.memory && <MemoryNote memory={report.memory} stored={report.memoryStored} />}
             {report.inspector && (
               <p className="mt-3 text-xs text-subtle" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
                 Signed by {report.inspector.name}
@@ -258,6 +263,31 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
           Open a dispute
         </ActionButton>
       )}
+    </div>
+  );
+}
+
+/** What the inspector remembered about this scooter before judging (Living Brain or local stand-in). */
+function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["memory"]>; stored?: boolean }) {
+  return (
+    <div className="mt-3 rounded-lg bg-surface-muted p-3 text-xs" data-testid="inspection-memory">
+      <p className="font-semibold">
+        Scooter memory · {memory.provider === "living-brain" ? "Living Brain" : "local (Living Brain not configured)"}
+      </p>
+      {memory.recalled.length ? (
+        <>
+          <p className="mt-1 text-muted">Earlier inspections of {memory.scooterId}. Damage listed here is pre-existing and is not charged again:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
+            {memory.recalled.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-1 text-muted">No earlier inspections of {memory.scooterId} on record.</p>
+      )}
+      {memory.error && <p className="mt-1 text-danger">Memory lookup failed: {memory.error}</p>}
+      <p className="mt-1 text-subtle">{stored ? "This inspection was saved to the scooter's memory." : "This inspection was not saved to memory."}</p>
     </div>
   );
 }

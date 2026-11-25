@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { getAddress, isAddress, parseEventLogs, zeroAddress, type Address, type Hex } from "viem";
 import { useAccount } from "wagmi";
 import { FilePicker } from "@/components/FilePicker";
+import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Card, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { escrowFactoryAbi, EvidenceKind, rentalEscrowAbi } from "@/lib/contracts";
 import { devAccounts } from "@/lib/devAccounts";
@@ -161,6 +162,7 @@ export function CreateLeaseForm() {
         <Field label="Rental period (months)" error={errors.term}>
           <input name="term" type="number" min={1} max={60} className={inputClass} value={term} onChange={(e) => setTerm(e.target.value)} />
         </Field>
+        <div className="sm:col-span-2"><DepositRiskForUsdt deposit={depositAmount} rentalDays={termMonths * 30} /></div>
         <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the renter's return proposal. If you stay silent, the full deposit goes back to the renter.">
           <input name="window" type="number" min={1} max={60} className={inputClass} value={windowDays} onChange={(e) => setWindowDays(e.target.value)} />
         </Field>

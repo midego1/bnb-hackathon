@@ -14,6 +14,9 @@ export type InspectionResult = {
   /** ERC-8004 identity of the KeyEscrow Inspector agent that signed reportHash (docs/AGENT.md). */
   inspector?: { name: string; address: Hex; agentId?: string; agentRegistry?: string };
   inspectorSignature?: Hex;
+  /** Per-scooter inspection memory the inspector read first (Living Brain, or the local stand-in). */
+  memory?: { provider: "living-brain" | "local"; configured: boolean; reason?: string; scooterId: string; recalled: string[]; error?: string };
+  memoryStored?: boolean;
 };
 
 /** A photo by its content hash, optionally with a room label the inspector can cite in its reasons. */
@@ -26,6 +29,8 @@ export async function runInspection(input: {
   checkIn: InspectionPhoto[];
   checkOut: InspectionPhoto[];
   notes?: string;
+  /** Scooter plate or listing id: keys the inspector's memory. */
+  scooterId?: string;
 }): Promise<InspectionResult> {
   const res = await fetch("/api/settlement", {
     method: "POST",
@@ -37,6 +42,7 @@ export async function runInspection(input: {
       checkIn: input.checkIn.map(photoRef),
       checkOut: input.checkOut.map(photoRef),
       ...(input.notes ? { notes: input.notes } : {}),
+      ...(input.scooterId ? { scooterId: input.scooterId } : {}),
     }),
   });
   const body = await res.json().catch(() => ({}));
