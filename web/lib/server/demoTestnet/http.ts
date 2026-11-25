@@ -1,19 +1,25 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { friendlyError } from "@/lib/errors";
+import type { Env } from "../env";
 import { onCloudflare } from "../platform";
 import { getSharedState } from "../state";
 import { getDemoTestnetRunner, type DemoTestnetRunner } from "./runner";
 import { DemoError } from "./guards";
 import { SharedRunStore } from "./store";
 
+/** The live demo runner, or undefined when it is off. Also used by the PromptPay demo on-ramp (lib/server/onramp.ts). */
+export function demoRunner(env: Env = process.env): DemoTestnetRunner | undefined {
+  // On Cloudflare Workers the lock and rate limit live in the KeyEscrowState Durable Object, not in isolate memory.
+  return onCloudflare() ? getDemoTestnetRunner(env, { store: (cfg) => new SharedRunStore(cfg, getSharedState) }) : getDemoTestnetRunner(env);
+}
+
 /**
  * Shared plumbing of the /api/demo-testnet/* routes. They exist only when the live testnet demo is switched on
  * (DEMO_TESTNET_RUNNER=1 on a chain 97 build with a secrets dir): otherwise every route answers a bare 404.
  */
 export async function handle(req: Request | undefined, fn: (runner: DemoTestnetRunner, body: unknown) => Promise<unknown>) {
-  // On Cloudflare Workers the lock and rate limit live in the KeyEscrowState Durable Object, not in isolate memory.
-  const runner = onCloudflare() ? getDemoTestnetRunner(process.env, { store: (cfg) => new SharedRunStore(cfg, getSharedState) }) : getDemoTestnetRunner();
+  const runner = demoRunner();
   if (!runner) return new NextResponse("Not Found", { status: 404 });
   let body: unknown = undefined;
   if (req) {

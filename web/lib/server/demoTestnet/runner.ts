@@ -1,6 +1,6 @@
 import { formatEther, formatGwei, getAddress, parseEventLogs, type Address, type Hash, type Hex, type TransactionReceipt } from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
-import { escrowFactoryAbi, getDeployment, rentalEscrowAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import { createChain97, gasPriceFrom, TxStalledError, txUrl, type Chain97 } from "../chain97.mts";
 import type { Env } from "../env";
 import {
@@ -256,6 +256,22 @@ export class DemoTestnetRunner {
         await new Promise((ok) => setTimeout(ok, 1_000));
       }
     }
+  }
+
+  /**
+   * PromptPay demo on-ramp (lib/server/onramp.ts, which vets `to` and caps `amount`): MockUSDT.faucet(to, amount),
+   * sent by the demo tenant wallet. The faucet is public; the wallet only pays the gas.
+   */
+  async faucet(to: Address, amount: bigint): Promise<Hash> {
+    const l = await this.load();
+    return this.serial(async () => {
+      const call = { address: l.addresses.token, abi: mockUsdtAbi, functionName: "faucet", args: [to, amount] } as const;
+      const { hash } = await l.c97.sendCall(l.wallets.tenant, call, { maxGas: BigInt(150_000) });
+      const r = await l.c97.wait(hash);
+      if (r.status !== "success") throw new DemoError(502, "chain-error", "The test mUSDT mint was reverted.");
+      console.log(`[demo-testnet] PromptPay demo minted ${amount} mUSDT units: ${txUrl(hash)}`);
+      return hash;
+    });
   }
 
   /** Heartbeat from the browser while a run plays; `error` = the step error the viewer sees (logged for diagnosis). */
