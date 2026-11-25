@@ -21,6 +21,12 @@ remappings = [
 [profile.default.fuzz]
 runs = 256
 
+# Handler-based invariants (test/invariant). Sized for a small CI box; raise runs/depth for a deeper soak.
+[profile.default.invariant]
+runs = 64
+depth = 64
+fail_on_revert = false
+
 [fmt]
 line_length = 110
 
