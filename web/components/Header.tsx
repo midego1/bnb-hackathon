@@ -4,7 +4,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useConnect } from "wagmi";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { DevAccountSwitcher } from "./DevAccountSwitcher";
 import { DEV_CONNECTOR_ID, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
@@ -24,7 +24,8 @@ const nav: { href: string; label: string; role?: DevRole }[] = [
   { href: "/arbiter", label: "Dispute desk", role: "arbiter" },
 ];
 
-export function Header() {
+/** `settings`: the local-only secrets gear (a server component from the layout; null when the page is off). */
+export function Header({ settings }: { settings?: ReactNode }) {
   return (
     <header className="border-b border-border bg-surface">
       <DevAccountSwitcher />
@@ -49,6 +50,7 @@ export function Header() {
             <PriceSourceBadge />
           </span>
           <ThemeSwitch className="hidden md:inline-flex" />
+          {settings}
           <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
         </div>
       </div>

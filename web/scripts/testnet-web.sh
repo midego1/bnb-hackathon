@@ -15,6 +15,9 @@
 # BSC_TESTNET_RPC_URL and the deployer keystore settings, used for gas top-ups). The server signs each demo step
 # (lib/server/demoTestnet). DEMO_TESTNET_RUNNER=0 pnpm testnet:web serves the app with the live demo switched off.
 #
+# Secrets page (/settings/secrets, docs/SETUP.md): the unit gets SETTINGS_SECRETS_ENABLED=1 plus the paths it writes
+# (the main checkout's .env and web/.env.local, state under .orca/). SETTINGS_SECRETS=0 pnpm testnet:web leaves it off.
+#
 # Env: TESTNET_WEB_HOST (default 127.0.0.1), TESTNET_WEB_PORT (default 3001), TESTNET_WEB_UNIT
 # (default keyescrow-web-testnet), NEXT_PUBLIC_BSC_TESTNET_RPC_URL (default: the app's PublicNode default),
 # DEMO_TESTNET_RUNNER (default 1), DEMO_TESTNET_SECRETS_DIR (default <main checkout>/.orca/secrets),
@@ -46,6 +49,13 @@ ENV_VARS=(
 )
 # Server-only (runtime) settings of the live demo runner: a flag and two paths.
 RUNTIME_VARS=(DEMO_TESTNET_RUNNER="$DEMO_RUNNER" DEMO_TESTNET_SECRETS_DIR="$DEMO_SECRETS" DEMO_TESTNET_ENV_FILE="$DEMO_ENV_FILE")
+# Write-only secrets page: a flag and three paths, never a value.
+RUNTIME_VARS+=(
+  SETTINGS_SECRETS_ENABLED="${SETTINGS_SECRETS:-1}"
+  SECRETS_ENV_FILE="$MAIN/.env"
+  SECRETS_WEB_ENV_FILE="$MAIN/web/.env.local"
+  SETTINGS_SECRETS_STATE_DIR="$MAIN/.orca"
+)
 [[ -n "${NEXT_PUBLIC_BSC_TESTNET_RPC_URL:-}" ]] && ENV_VARS+=(NEXT_PUBLIC_BSC_TESTNET_RPC_URL="$NEXT_PUBLIC_BSC_TESTNET_RPC_URL")
 
 build() {

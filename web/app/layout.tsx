@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Header } from "@/components/Header";
+import { SettingsGear } from "@/components/SettingsGear";
 import { docsUrl, REPO_URL } from "@/lib/links";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { Providers } from "./providers";
@@ -25,13 +27,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <Providers>
-          <Header />
+          <Header
+            settings={
+              <Suspense fallback={null}>
+                <SettingsGear />
+              </Suspense>
+            }
+          />
           <main className="flex flex-1 flex-col">{children}</main>
           <footer className="border-t border-border text-xs text-subtle">
             <div className="mx-auto flex max-w-5xl flex-wrap gap-x-4 gap-y-1 px-4 py-4">
               <span>KeyEscrow · open source (MIT) · testnet demo, no token</span>
               <a href={REPO_URL} className="underline-offset-2 hover:underline">GitHub</a>
               <a href={docsUrl("README.md")} className="underline-offset-2 hover:underline">Docs</a>
+              <Suspense fallback={null}>
+                <SettingsGear variant="footer" />
+              </Suspense>
             </div>
           </footer>
         </Providers>
