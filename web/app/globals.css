@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Taller than a projector (1280x720 minus the browser chrome): room for the roomier type of the /demo stage. */
+@custom-variant tall (@media (min-height: 761px));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -23,4 +26,61 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/*
+ * /demo is a one-screen stage on desktop: the page is pinned to the viewport and never scrolls; the demo's own
+ * panels (timeline, live lease page) scroll inside. The site footer is dropped there. Below lg it scrolls as usual.
+ */
+@media (min-width: 1024px) {
+  body:has([data-demo-stage]) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  /* RainbowKit wraps header, main and footer in a plain div: it has to pass the height on. */
+  body:has([data-demo-stage]) div:has(> main) {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-height: 0;
+  }
+  body:has([data-demo-stage]) main {
+    min-height: 0;
+  }
+  body:has([data-demo-stage]) footer:not([data-demo-stage] footer) {
+    display: none;
+  }
+}
+
+/* A balance card lighting up when money moves through it, and its +/- chip popping in. */
+@keyframes demo-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes demo-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.demo-flash {
+  opacity: 0;
+  animation: demo-flash 1.8s ease-out;
+}
+.demo-pop {
+  animation: demo-pop 0.45s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-flash,
+  .demo-pop {
+    animation: none;
+  }
 }

@@ -13,7 +13,8 @@ type Ctx = {
   clearSettled: () => void;
   /**
    * Compact mode for fast, scripted flows such as the guided demo: at most `max` toasts on screen and success
-   * toasts gone after `successMs`. Call with no argument to restore the defaults.
+   * toasts gone after `successMs`; `max: 0` shows none at all (the page reports progress itself). Call with no
+   * argument to restore the defaults.
    */
   setCompact: (opts?: { max: number; successMs: number }) => void;
 };
@@ -32,7 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const clearSettled = useCallback(() => setToasts((ts) => ts.filter((t) => t.kind === "error")), []);
   const setCompact = useCallback((opts?: { max: number; successMs: number }) => {
     mode.current = opts ?? DEFAULTS;
-    setToasts((ts) => ts.slice(-mode.current.max));
+    setToasts((ts) => (mode.current.max > 0 ? ts.slice(-mode.current.max) : []));
   }, []);
   const autoDismiss = useCallback(
     (id: number, kind: ToastKind) => {
@@ -43,6 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback(
     (t: Omit<Toast, "id">) => {
       const id = nextId++;
+      if (mode.current.max <= 0) return id;
       setToasts((ts) => [...ts.slice(-(mode.current.max - 1)), { ...t, id }]);
       autoDismiss(id, t.kind);
       return id;

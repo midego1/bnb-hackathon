@@ -15,7 +15,7 @@ async function noToasts(page: Page) {
   await expect(page.locator('[role="status"]')).toHaveCount(0, { timeout: 15_000 });
 }
 
-/** Track the most toasts ever on screen at once (the demo caps them at two). */
+/** Track the most toasts ever on screen at once (the demo shows none: its timeline reports every transaction). */
 async function trackToasts(page: Page) {
   await page.evaluate(() => {
     const w = window as unknown as { __maxToasts: number };
@@ -72,9 +72,8 @@ test("landing page: Play the demo runs the happy path to a settled, balanced sum
   await expect(page.getByTestId("demo-inspection").locator("li")).toHaveCount(2);
 
   const b = await expectSettledAndBalanced(page, "happy");
-  // Fast mode never stacks more than two toasts, and none is left over the summary.
-  expect(await maxToasts(page)).toBeGreaterThan(0);
-  expect(await maxToasts(page)).toBeLessThanOrEqual(2);
+  // No toast ever covers the stage: the timeline and the balance cards report every transaction instead.
+  expect(await maxToasts(page)).toBe(0);
   await expect(page.locator('[role="status"]')).toHaveCount(0, { timeout: 1_000 });
   expect(b.treasury).toBeGreaterThan(BigInt(0)); // the one-time fee reached the treasury
   expect(b.landlord).toBeGreaterThan(BigInt(0));
