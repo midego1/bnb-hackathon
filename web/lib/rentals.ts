@@ -99,10 +99,10 @@ export function periodCount(n: number, rentPeriod: number): string {
 export type RhythmKey = "week" | "twoWeeks" | "month";
 export const rhythmKey = (rentPeriod: number): RhythmKey => (rentPeriod === 7 * DAY ? "week" : rentPeriod === 14 * DAY ? "twoWeeks" : "month");
 /** Localized period words for the UI (the API and the agent keep the English helpers above). */
-export const perIn = (t: T, rentPeriod: number) => t(`rental.rhythm.per.${rhythmKey(rentPeriod)}`);
-export const countIn = (t: T, n: number, rentPeriod: number) => t(`rental.rhythm.count.${rhythmKey(rentPeriod)}.${n === 1 ? "one" : "other"}`, { n });
+export const perIn = (t: Translate, rentPeriod: number) => t(`rental.rhythm.per.${rhythmKey(rentPeriod)}`);
+export const countIn = (t: Translate, n: number, rentPeriod: number) => t(`rental.rhythm.count.${rhythmKey(rentPeriod)}.${n === 1 ? "one" : "other"}`, { n });
 /** "week 3" / "第 3 周"; `title`: "Week 3". */
-export const nthIn = (t: T, n: number, rentPeriod: number, title = false) => t(`rental.rhythm.${title ? "nthTitle" : "nth"}.${rhythmKey(rentPeriod)}`, { n });
+export const nthIn = (t: Translate, n: number, rentPeriod: number, title = false) => t(`rental.rhythm.${title ? "nthTitle" : "nth"}.${rhythmKey(rentPeriod)}`, { n });
 
 /** Rent per period from a monthly price: monthly x days / 30, rounded down to token units. */
 export function rentPerPeriod(monthly: bigint, rentPeriod: number): bigint {
