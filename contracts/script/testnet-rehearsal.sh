@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# LOCAL ONLY. Rehearses the BSC testnet deploy path (contracts/script/testnet.sh) end to end against throwaway anvil
+# LOCAL ONLY. Rehearses the testnet deploy path (contracts/script/testnet.sh) end to end against throwaway anvil
 # nodes on 127.0.0.1: one started with --chain-id 97 (pretends to be BSC testnet) and one with --chain-id 56 (pretends
-# to be BSC mainnet, to prove the refusal). Ports come from 28550-28559 (override: REHEARSAL_PORTS="a b").
+# to be BSC mainnet, to prove the refusal). With DEPLOY_CHAIN_ID=5611 the pair is 5611 (opBNB testnet) and 204 (opBNB
+# mainnet). Ports come from 28550-28559 (override: REHEARSAL_PORTS="a b").
 # Both nodes are killed and every temp file is removed on exit. Nothing here touches a real network.
 #
-#   pnpm deploy:testnet:rehearse
+#   pnpm deploy:testnet:rehearse      (chainId 97)
+#   pnpm deploy:opbnb:rehearse        (chainId 5611)
+#
+# The last step runs one 1-month rental on the rehearsed deployment and prints the gas of every call, so the cost per
+# rental can be priced at each network's real gas price (docs/ARCHITECTURE.md).
 #
 # The deployer is a fresh keystore created in a temp dir (password file, also temp) and funded with anvil_setBalance,
 # so the rehearsal goes through the exact keystore + --sender path used on the real testnet. Role addresses are fresh
@@ -14,6 +19,13 @@ set -uo pipefail
 CONTRACTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$CONTRACTS" || exit 1
 TESTNET_SH="$CONTRACTS/script/testnet.sh"
+CID="${DEPLOY_CHAIN_ID:-97}"
+case "$CID" in
+  97) MAIN=56 RPC_VAR=BSC_TESTNET_RPC_URL ;;
+  5611) MAIN=204 RPC_VAR=OPBNB_TESTNET_RPC_URL ;;
+  *) echo "DEPLOY_CHAIN_ID must be 97 or 5611"; exit 64 ;;
+esac
+export DEPLOY_CHAIN_ID="$CID"
 
 if [[ -t 1 ]]; then G=$'\e[32m' R=$'\e[31m' B=$'\e[1m' D=$'\e[2m' N=$'\e[0m'; else G='' R='' B='' D='' N=''; fi
 PASS=0 FAIL=0
@@ -54,7 +66,7 @@ start_anvil() { # chainId port
 }
 
 # Clean slate: nothing from the caller's shell or .env may leak in (no real RPC, no real keys).
-for v in BSC_TESTNET_RPC_URL DEPLOYER_ADDRESS DEPLOYER_ACCOUNT DEPLOYER_KEYSTORE DEPLOYER_PASSWORD_FILE PRIVATE_KEY \
+for v in BSC_TESTNET_RPC_URL OPBNB_TESTNET_RPC_URL DEPLOYER_ADDRESS DEPLOYER_ACCOUNT DEPLOYER_KEYSTORE DEPLOYER_PASSWORD_FILE PRIVATE_KEY \
   FACTORY_OWNER FEE_RECIPIENT DEFAULT_ARBITER FEE_BPS TOKEN_ADDRESS BSCSCAN_API_KEY ETHERSCAN_API_KEY VERIFIER_URL \
   ALLOW_NON_LOCAL_BROADCAST FORCE_REDEPLOY RPC_URL ETH_RPC_URL ETH_FROM; do unset "$v"; done
 export KEYESCROW_NO_DOTENV=1 DEPLOYMENTS_DIR="$REL_DIR"
@@ -63,12 +75,12 @@ export FOUNDRY_BROADCAST="$TMP/broadcast" FOUNDRY_CACHE_PATH="$TMP/cache"
 
 FREE=()
 pick_ports
-P97="${FREE[0]}" P56="${FREE[1]}" PDEAD="${FREE[2]}"
-RPC97="http://127.0.0.1:$P97" RPC56="http://127.0.0.1:$P56"
-echo "${B}KeyEscrow testnet deploy rehearsal (LOCAL anvil only)${N}"
-echo "anvil --chain-id 97 on :$P97, anvil --chain-id 56 on :$P56, nothing listening on :$PDEAD"
-start_anvil 97 "$P97"
-start_anvil 56 "$P56"
+PNET="${FREE[0]}" PMAIN="${FREE[1]}" PDEAD="${FREE[2]}"
+RPCNET="http://127.0.0.1:$PNET" RPCMAIN="http://127.0.0.1:$PMAIN"
+echo "${B}KeyEscrow testnet deploy rehearsal for chainId $CID (LOCAL anvil only)${N}"
+echo "anvil --chain-id $CID on :$PNET, anvil --chain-id $MAIN on :$PMAIN, nothing listening on :$PDEAD"
+start_anvil "$CID" "$PNET"
+start_anvil "$MAIN" "$PMAIN"
 
 # expect <exit-code|nonzero> <grep pattern> <label> -- command...
 expect() {
@@ -99,85 +111,87 @@ echo "deployer (fresh temp keystore) $DEPLOYER"
 echo "owner $OWNER  treasury $TREASURY  dispute desk $DESK"
 
 # Shared env for the "configured" runs.
-cfg=(env BSC_TESTNET_RPC_URL="$RPC97" DEPLOYER_ADDRESS="$DEPLOYER" DEPLOYER_KEYSTORE="$KEYSTORE"
+cfg=(env "$RPC_VAR=$RPCNET" DEPLOYER_ADDRESS="$DEPLOYER" DEPLOYER_KEYSTORE="$KEYSTORE"
   DEPLOYER_PASSWORD_FILE="$TMP/password" FACTORY_OWNER="$OWNER" FEE_RECIPIENT="$TREASURY" DEFAULT_ARBITER="$DESK")
 # Direct forge calls (bypassing the wrapper) to prove the Solidity guard on its own.
 ANVIL0_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # anvil default dev key 0 (public)
 FRESH_KEY="$(cast wallet new --json | jq -r '.data[0].private_key')"         # throwaway, never leaves this process
 FRESH_ADDR="$(cast wallet address --private-key "$FRESH_KEY")"
-cast rpc anvil_setBalance "$FRESH_ADDR" 0xde0b6b3a7640000 --rpc-url "$RPC97" >/dev/null # 1 (t)BNB, local only
-cast rpc anvil_setBalance "$FRESH_ADDR" 0xde0b6b3a7640000 --rpc-url "$RPC56" >/dev/null
+cast rpc anvil_setBalance "$FRESH_ADDR" 0xde0b6b3a7640000 --rpc-url "$RPCNET" >/dev/null # 1 (t)BNB, local only
+cast rpc anvil_setBalance "$FRESH_ADDR" 0xde0b6b3a7640000 --rpc-url "$RPCMAIN" >/dev/null
 roles=(FACTORY_OWNER="$OWNER" FEE_RECIPIENT="$TREASURY" DEFAULT_ARBITER="$DESK")
 
 step "1. Preflight fails cleanly when the RPC is not configured / unreachable / the wrong chain"
-expect 2 "BSC_TESTNET_RPC_URL is not set" "check without BSC_TESTNET_RPC_URL" -- bash "$TESTNET_SH" check
+expect 2 "$RPC_VAR is not set" "check without $RPC_VAR" -- bash "$TESTNET_SH" check
 expect 2 "did not answer eth_chainId" "check with an unreachable RPC" -- \
-  env BSC_TESTNET_RPC_URL="http://127.0.0.1:$PDEAD" bash "$TESTNET_SH" check
-expect 3 "reports chainId 56, expected 97" "check against a chainId-56 RPC" -- \
-  env BSC_TESTNET_RPC_URL="$RPC56" bash "$TESTNET_SH" check
+  env "$RPC_VAR=http://127.0.0.1:$PDEAD" bash "$TESTNET_SH" check
+expect 3 "reports chainId $MAIN, expected $CID" "check against a chainId-$MAIN RPC" -- \
+  env "$RPC_VAR=$RPCMAIN" bash "$TESTNET_SH" check
 expect 1 "DEFAULT_ARBITER is not set" "check with a missing role address" -- \
-  env BSC_TESTNET_RPC_URL="$RPC97" DEPLOYER_ADDRESS="$DEPLOYER" DEPLOYER_KEYSTORE="$KEYSTORE" \
+  env "$RPC_VAR=$RPCNET" DEPLOYER_ADDRESS="$DEPLOYER" DEPLOYER_KEYSTORE="$KEYSTORE" \
   FACTORY_OWNER="$OWNER" FEE_RECIPIENT="$TREASURY" bash "$TESTNET_SH" check
 
 step "2. Solidity chain guard (forge script --broadcast straight at the local nodes, no wrapper)"
-expect nonzero "RefusingNonLocalChain\(97\)" "chainId 97 WITHOUT ALLOW_NON_LOCAL_BROADCAST, --broadcast refused" -- \
-  env PRIVATE_KEY="$FRESH_KEY" "${roles[@]}" forge script script/Deploy.s.sol --rpc-url "$RPC97" --broadcast
-expect nonzero "RefusingMainnet\(56\)" "chainId 56 WITH ALLOW_NON_LOCAL_BROADCAST=true, --broadcast still refused" -- \
+expect nonzero "RefusingNonLocalChain\($CID\)" "chainId $CID WITHOUT ALLOW_NON_LOCAL_BROADCAST, --broadcast refused" -- \
+  env PRIVATE_KEY="$FRESH_KEY" "${roles[@]}" forge script script/Deploy.s.sol --rpc-url "$RPCNET" --broadcast
+expect nonzero "RefusingMainnet\($MAIN\)" "chainId $MAIN WITH ALLOW_NON_LOCAL_BROADCAST=true, --broadcast still refused" -- \
   env PRIVATE_KEY="$FRESH_KEY" "${roles[@]}" ALLOW_NON_LOCAL_BROADCAST=true \
-  forge script script/Deploy.s.sol --rpc-url "$RPC56" --broadcast
-expect nonzero "RefusingAnvilAccount" "chainId 97 with an anvil default account as deployer refused" -- \
+  forge script script/Deploy.s.sol --rpc-url "$RPCMAIN" --broadcast
+expect nonzero "RefusingAnvilAccount" "chainId $CID with an anvil default account as deployer refused" -- \
   env PRIVATE_KEY="$ANVIL0_KEY" "${roles[@]}" ALLOW_NON_LOCAL_BROADCAST=true \
-  forge script script/Deploy.s.sol --rpc-url "$RPC97" --broadcast
-expect nonzero "RefusingAnvilAccount" "chainId 97 with an anvil default account as dispute desk refused" -- \
+  forge script script/Deploy.s.sol --rpc-url "$RPCNET" --broadcast
+expect nonzero "RefusingAnvilAccount" "chainId $CID with an anvil default account as dispute desk refused" -- \
   env PRIVATE_KEY="$FRESH_KEY" FACTORY_OWNER="$OWNER" FEE_RECIPIENT="$TREASURY" \
   DEFAULT_ARBITER=0x90F79bf6EB2c4f870365E785982E1f101E93b906 ALLOW_NON_LOCAL_BROADCAST=true \
-  forge script script/Deploy.s.sol --rpc-url "$RPC97" --broadcast
-expect nonzero "MissingRoleAddress" "chainId 97 without FEE_RECIPIENT refused (no default off anvil)" -- \
+  forge script script/Deploy.s.sol --rpc-url "$RPCNET" --broadcast
+expect nonzero "MissingRoleAddress" "chainId $CID without FEE_RECIPIENT refused (no default off anvil)" -- \
   env PRIVATE_KEY="$FRESH_KEY" FACTORY_OWNER="$OWNER" DEFAULT_ARBITER="$DESK" ALLOW_NON_LOCAL_BROADCAST=true \
-  forge script script/Deploy.s.sol --rpc-url "$RPC97" --broadcast
-expect nonzero "DeployerMismatch" "chainId 97 with DEPLOYER_ADDRESS not matching the key refused" -- \
+  forge script script/Deploy.s.sol --rpc-url "$RPCNET" --broadcast
+expect nonzero "DeployerMismatch" "chainId $CID with DEPLOYER_ADDRESS not matching the key refused" -- \
   env PRIVATE_KEY="$FRESH_KEY" DEPLOYER_ADDRESS="$OWNER" "${roles[@]}" ALLOW_NON_LOCAL_BROADCAST=true \
-  forge script script/Deploy.s.sol --rpc-url "$RPC97" --broadcast
-nonce="$(cast nonce "$FRESH_ADDR" --rpc-url "$RPC97")"
-[[ "$nonce" == 0 ]] && pass "no transaction reached the chainId-97 node (nonce $nonce)" || fail "nonce is $nonce"
-nonce="$(cast nonce "$FRESH_ADDR" --rpc-url "$RPC56")"
-[[ "$nonce" == 0 ]] && pass "no transaction reached the chainId-56 node (nonce $nonce)" || fail "nonce is $nonce"
+  forge script script/Deploy.s.sol --rpc-url "$RPCNET" --broadcast
+nonce="$(cast nonce "$FRESH_ADDR" --rpc-url "$RPCNET")"
+[[ "$nonce" == 0 ]] && pass "no transaction reached the chainId-$CID node (nonce $nonce)" || fail "nonce is $nonce"
+nonce="$(cast nonce "$FRESH_ADDR" --rpc-url "$RPCMAIN")"
+[[ "$nonce" == 0 ]] && pass "no transaction reached the chainId-$MAIN node (nonce $nonce)" || fail "nonce is $nonce"
 
 step "3. Preflight with an unfunded deployer: simulation + estimate printed, balance check fails"
 SHOW_LINES=20 expect 1 "deployer balance 0.000000000000000000 tBNB < estimate" "check, unfunded" -- \
   "${cfg[@]}" bash "$TESTNET_SH" check
 
-step "4. Fund the deployer on the LOCAL chainId-97 node (anvil_setBalance 0.5), preflight passes"
-cast rpc anvil_setBalance "$DEPLOYER" 0x6f05b59d3b20000 --rpc-url "$RPC97" >/dev/null
+step "4. Fund the deployer on the LOCAL chainId-$CID node (anvil_setBalance 0.5), preflight passes"
+cast rpc anvil_setBalance "$DEPLOYER" 0x6f05b59d3b20000 --rpc-url "$RPCNET" >/dev/null
 SHOW_LINES=20 expect 0 "Preflight passed" "check, funded" -- "${cfg[@]}" bash "$TESTNET_SH" check
-[[ "$(cast nonce "$DEPLOYER" --rpc-url "$RPC97")" == 0 ]] && pass "preflight sent nothing (deployer nonce 0)" ||
+[[ "$(cast nonce "$DEPLOYER" --rpc-url "$RPCNET")" == 0 ]] && pass "preflight sent nothing (deployer nonce 0)" ||
   fail "preflight changed the deployer nonce"
-[[ ! -e "$REL_DIR/97.json" && -f "$REL_DIR/97.dry-run.json" ]] &&
-  pass "simulation wrote only 97.dry-run.json, no 97.json" || fail "simulation wrote 97.json"
+[[ ! -e "$REL_DIR/$CID.json" && -f "$REL_DIR/$CID.dry-run.json" ]] &&
+  pass "simulation wrote only $CID.dry-run.json, no $CID.json" || fail "simulation wrote $CID.json"
 
 step "5. Deploy wrapper refuses without the opt-in flag / without confirmation"
 expect 4 "set ALLOW_NON_LOCAL_BROADCAST=true" "deploy without ALLOW_NON_LOCAL_BROADCAST" -- \
   "${cfg[@]}" bash "$TESTNET_SH" deploy --yes
 SHOW_LINES=3 expect 4 "No TTY for the confirmation prompt" "deploy with the flag but no confirmation (no TTY)" -- \
   "${cfg[@]}" ALLOW_NON_LOCAL_BROADCAST=true bash "$TESTNET_SH" deploy </dev/null
-[[ "$(cast nonce "$DEPLOYER" --rpc-url "$RPC97")" == 0 ]] && pass "still nothing sent (deployer nonce 0)" ||
+[[ "$(cast nonce "$DEPLOYER" --rpc-url "$RPCNET")" == 0 ]] && pass "still nothing sent (deployer nonce 0)" ||
   fail "deployer nonce changed"
 
-step "6. The broadcast, against the LOCAL chainId-97 anvil: keystore + --sender, then post-deploy checks"
+step "6. The broadcast, against the LOCAL chainId-$CID anvil: keystore + --sender, then post-deploy checks"
 SHOW_LINES=16 expect 0 "NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS=0x" "deploy --yes (keystore wallet)" -- \
   "${cfg[@]}" ALLOW_NON_LOCAL_BROADCAST=true bash "$TESTNET_SH" deploy --yes
-F="$REL_DIR/97.json"
+F="$REL_DIR/$CID.json"
 if [[ -f "$F" ]]; then
   echo "$F:" && jq . "$F" | indent
   want="$(jq -c 'keys' deployments/31337.example.json)" got="$(jq -c 'keys' "$F")"
-  [[ "$want" == "$got" ]] && pass "97.json has the same keys as 31337.example.json" || fail "keys differ: $got"
-  [[ "$(jq -r .chainId "$F")" == 97 && "$(jq -r .deployer "$F")" == "$DEPLOYER" && "$(jq -r .defaultArbiter "$F")" == "$DESK" ]] &&
-    pass "chainId 97, deployer = keystore wallet, roles from env" || fail "unexpected values in 97.json"
+  [[ "$want" == "$got" ]] && pass "$CID.json has the same keys as 31337.example.json" || fail "keys differ: $got"
+  [[ "$(jq -r .chainId "$F")" == "$CID" && "$(jq -r .deployer "$F")" == "$DEPLOYER" && "$(jq -r .defaultArbiter "$F")" == "$DESK" ]] &&
+    pass "chainId $CID, deployer = keystore wallet, roles from env" || fail "unexpected values in $CID.json"
 else
   fail "no $F"
 fi
-[[ ! -e deployments/97.json ]] && pass "nothing written to contracts/deployments/97.json" || fail "deployments/97.json exists"
-expect 4 "Refusing to overwrite" "second deploy refuses to overwrite 97.json" -- \
+# A real deployments/<chainId>.json may be committed; it must not mention the rehearsal deployer.
+! grep -qi "$DEPLOYER" "deployments/$CID.json" 2>/dev/null && pass "contracts/deployments/$CID.json untouched" ||
+  fail "the rehearsal wrote to deployments/$CID.json"
+expect 4 "Refusing to overwrite" "second deploy refuses to overwrite $CID.json" -- \
   "${cfg[@]}" ALLOW_NON_LOCAL_BROADCAST=true bash "$TESTNET_SH" deploy --yes
 
 step "7. Verification commands (dry run: no API contacted; standard-JSON input built locally)"
@@ -185,7 +199,43 @@ SHOW_LINES=8 expect 0 "EscrowFactory: standard-JSON input builds" "verify, dry r
   env VERIFY_DRY_RUN=1 bash "$TESTNET_SH" verify
 expect 2 "BSCSCAN_API_KEY is not set" "verify without BSCSCAN_API_KEY refuses" -- bash "$TESTNET_SH" verify
 
-step "8. Repo left clean"
+step "8. Gas: the deploy above, then one 1-month rental (no damage) on the rehearsed deployment"
+# Gas units are identical on 97 and 5611 (same EVM, same bytecode); price them per network, see docs/ARCHITECTURE.md.
+DEPLOY_GAS=0
+for g in $(jq -r '.receipts[].gasUsed' "$FOUNDRY_BROADCAST/Deploy.s.sol/$CID/run-latest.json" 2>/dev/null); do
+  DEPLOY_GAS=$((DEPLOY_GAS + $(cast to-dec "$g")))
+done
+((DEPLOY_GAS > 0)) && pass "deploy used $DEPLOY_GAS gas (4 contracts)" || fail "no deploy receipts"
+TENANT_KEY="$(cast wallet new --json | jq -r '.data[0].private_key')"
+TENANT="$(cast wallet address --private-key "$TENANT_KEY")"
+cast rpc anvil_setBalance "$TENANT" 0xde0b6b3a7640000 --rpc-url "$RPCNET" >/dev/null
+FACTORY="$(jq -r .escrowFactory "$F" 2>/dev/null)" TOKEN="$(jq -r .token "$F" 2>/dev/null)"
+RENTAL_GAS=0
+tx() { # label key to sig args...
+  local label="$1" key="$2" r g
+  shift 2
+  r="$(cast send --json --private-key "$key" --rpc-url "$RPCNET" "$@" 2>&1)" &&
+    [[ "$(jq -r .status <<<"$r")" == 0x1 ]] || { fail "$label: $r"; return 1; }
+  g="$(cast to-dec "$(jq -r .gasUsed <<<"$r")")"
+  RENTAL_GAS=$((RENTAL_GAS + g))
+  printf '   %s|%s %-34s %8s gas\n' "$D" "$N" "$label" "$g"
+}
+H=0x$(printf 'ab%.0s' {1..32})
+tx "faucet 300 mUSDT (test setup only)" "$TENANT_KEY" "$TOKEN" 'faucet(address,uint256)' "$TENANT" 300000000 && RENTAL_GAS=0
+tx "createLease (owner)" "$FRESH_KEY" "$FACTORY" \
+  'createLease((address,address,uint256,uint256,uint32,uint32,uint32,bytes32))' \
+  "($TENANT,0x0000000000000000000000000000000000000000,100000000,200000000,1,0,0,$H)"
+LEASE="$(cast call "$FACTORY" 'leasesByTenant(address)(address[])' "$TENANT" --rpc-url "$RPCNET" | tr -d '[]')"
+tx "approve (renter)" "$TENANT_KEY" "$TOKEN" 'approve(address,uint256)' "$LEASE" 300000000
+tx "fund rent + deposit (renter)" "$TENANT_KEY" "$LEASE" 'fund()'
+tx "addEvidence pickup photos (renter)" "$TENANT_KEY" "$LEASE" 'addEvidence(uint8,bytes32)' 0 "$H"
+tx "addEvidence return photos (renter)" "$TENANT_KEY" "$LEASE" 'addEvidence(uint8,bytes32)' 1 "$H"
+tx "propose split + report hash (owner)" "$FRESH_KEY" "$LEASE" 'propose(uint256,bytes32)' 200000000 "$H"
+tx "accept, settles (renter)" "$TENANT_KEY" "$LEASE" 'accept(uint32)' 1
+[[ "$(cast call "$LEASE" 'status()(uint8)' --rpc-url "$RPCNET")" == 4 ]] &&
+  pass "one rental, created to settled: $RENTAL_GAS gas in 7 transactions" || fail "rental did not settle"
+
+step "9. Repo left clean"
 dirty="$(diff <(printf "%s\n" "$BEFORE") <(printf "%s\n" "$(repo_state)") || true)"
 [[ -z "$dirty" ]] && pass "no new files under contracts/broadcast, deployments or cache (git status unchanged)" ||
   { fail "repo changes:"; echo "$dirty" | indent; }
