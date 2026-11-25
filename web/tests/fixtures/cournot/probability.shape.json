@@ -1,0 +1,18 @@
+{
+  "code": 0,
+  "msg": "Success",
+  "data": {
+    "probability": {
+      "result": { "point_estimate": 0.12, "interval": [0.08, 0.17] },
+      "basis": {
+        "primary_anchor": { "market": "BNB price below $500.00 at any time before 2027-01-01 05:00 UTC", "market_price": 0.599 },
+        "price_distance": { "spot_usd": 539.5, "threshold_usd": 450, "required_return": -0.1659 },
+        "cross_checks": [{ "source": "synthetic fixture", "summary": "not real data" }],
+        "limitations": ["synthetic test fixture"]
+      }
+    },
+    "billing": "free_quota",
+    "free_quota": { "remaining": 2, "ip": "203.0.113.7" },
+    "charged": false
+  }
+}

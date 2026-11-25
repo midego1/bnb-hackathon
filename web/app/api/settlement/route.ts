@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEvidenceStore } from "@/lib/server/evidence";
 import { jsonError, zodIssues } from "@/lib/server/http";
+import { inspectionMemoryFromEnv } from "@/lib/server/sponsors/livingbrain";
 import {
   inspectorFromEnv,
   PhotoResolutionError,
@@ -13,7 +14,8 @@ import {
 
 /**
  * POST /api/settlement — AI return inspection.
- * Body: { deposit, decimals?, currency?, checkIn: Photo[], checkOut: Photo[], notes? }
+ * Body: { deposit, decimals?, currency?, checkIn: Photo[], checkOut: Photo[], notes?, scooterId? }
+ * With scooterId the inspector first reads that scooter's inspection memory (Living Brain, or local) and writes this one back.
  * Returns a proposal whose tenantRefund + landlordClaim always equals the deposit.
  */
 export async function POST(request: NextRequest) {
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const provider = visionProviderFromEnv();
-    const result = await proposeSettlement(parsed.data, { provider, store: getEvidenceStore(), inspector: inspectorFromEnv() });
+    const result = await proposeSettlement(parsed.data, { provider, store: getEvidenceStore(), inspector: inspectorFromEnv(), memory: inspectionMemoryFromEnv() });
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof PhotoResolutionError) return jsonError(400, err.message);

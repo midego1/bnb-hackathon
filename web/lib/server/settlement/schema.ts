@@ -42,6 +42,8 @@ export const SettlementRequestSchema = z
     checkOut: photoSet,
     /** Free-text context from either party (rental terms, known pre-existing scratches, ...). */
     notes: z.string().max(2000).optional(),
+    /** Scooter identifier (plate or listing id) for the inspector's per-scooter memory (Living Brain). */
+    scooterId: z.string().trim().min(1).max(64).regex(/^[\w .:#-]+$/, "letters, digits, space and . : # - only").optional(),
   })
   .strict();
 

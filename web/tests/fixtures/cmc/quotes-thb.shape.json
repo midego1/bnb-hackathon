@@ -1,0 +1,40 @@
+{
+ "status": {
+  "error_code": 0,
+  "error_message": null,
+  "credit_count": 1,
+  "timestamp": "2026-11-25T12:00:05.000Z"
+ },
+ "data": {
+  "USDT": [
+   {
+    "symbol": "USDT",
+    "quote": {
+     "THB": {
+      "price": 33.2,
+      "percent_change_1h": 0,
+      "percent_change_24h": 0.1,
+      "percent_change_7d": 0.2,
+      "percent_change_30d": 0.4,
+      "last_updated": "2026-11-25T12:00:00.000Z"
+     }
+    }
+   }
+  ],
+  "BNB": [
+   {
+    "symbol": "BNB",
+    "quote": {
+     "THB": {
+      "price": 17928,
+      "percent_change_1h": 0,
+      "percent_change_24h": -2.1,
+      "percent_change_7d": -6.1,
+      "percent_change_30d": -11.5,
+      "last_updated": "2026-11-25T12:00:00.000Z"
+     }
+    }
+   }
+  ]
+ }
+}

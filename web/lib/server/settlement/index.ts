@@ -5,6 +5,7 @@ import { mockAssessment } from "./mock";
 import { extractJsonObject, repairProposal, type PhotoRef, type SettlementProposal, type SettlementRequest } from "./schema";
 import type { InspectorIdentity, InspectorSigner } from "./inspector";
 import type { VisionImage, VisionProvider } from "./vision";
+import type { InspectionMemory, MemoryStatus } from "../sponsors/livingbrain";
 
 export * from "./schema";
 export * from "./inspector";
@@ -29,6 +30,10 @@ export interface SettlementResult extends SettlementProposal {
    * pass it as `reportHash` to RentalEscrow.propose so the proposal is verifiable off-chain.
    */
   reportHash: Bytes32Hex;
+  /** Per-scooter memory the inspector read before judging (part of the hashed report). */
+  memory?: MemoryStatus & { scooterId: string; recalled: string[]; error?: string };
+  /** Whether this inspection was written back to memory (after hashing). */
+  memoryStored?: boolean;
   /** EIP-191 signature of `reportHash` by `inspector.address`. */
   inspectorSignature?: `0x${string}`;
   createdAt: string;
@@ -64,12 +69,34 @@ export interface ProposeOptions {
   store?: EvidenceStore;
   /** Inspector agent that signs the report; its identity is part of the hashed report. Null/undefined -> unsigned. */
   inspector?: InspectorSigner | null;
+  /** Per-scooter inspection memory (Living Brain, or the local stand-in). Used when the request has a scooterId. */
+  memory?: InspectionMemory | null;
   now?: Date;
+}
+
+/** Text the inspector gets about earlier inspections, so known damage is never charged twice. */
+export function memoryNotes(recalled: string[]): string {
+  if (!recalled.length) return "Inspection memory: no earlier inspections recorded for this scooter.";
+  return [
+    "Inspection memory (earlier inspections of this scooter). Damage listed here already existed before this rental: do NOT charge the renter for it again; say so in the reasons if you see it.",
+    ...recalled.map((r, i) => `${i + 1}. ${r}`),
+  ].join("\n");
 }
 
 export async function proposeSettlement(req: SettlementRequest, opts: ProposeOptions = {}): Promise<SettlementResult> {
   const deposit = BigInt(req.deposit);
   const provider = opts.provider ?? null;
+
+  let memory: SettlementResult["memory"];
+  if (opts.memory && req.scooterId) {
+    try {
+      const recalled = (await opts.memory.recall(req.scooterId)).map((m) => m.text);
+      memory = { ...opts.memory.status, scooterId: req.scooterId, recalled };
+    } catch (err) {
+      memory = { ...opts.memory.status, scooterId: req.scooterId, recalled: [], error: (err as Error).message.slice(0, 200) };
+    }
+  }
+  const notes = memory ? [req.notes, memoryNotes(memory.recalled)].filter(Boolean).join("\n\n") : req.notes;
 
   let raw: unknown;
   if (provider) {
@@ -79,7 +106,7 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
       currency: req.currency,
       checkIn,
       checkOut,
-      notes: req.notes,
+      notes,
     });
     if (typeof raw === "string") raw = extractJsonObject(raw);
   } else {
@@ -100,9 +127,18 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
     checkIn: req.checkIn,
     checkOut: req.checkOut,
     ...(opts.inspector ? { inspector: opts.inspector.identity } : {}),
+    ...(memory ? { memory } : {}),
     createdAt,
   };
   const reportHash = sha256Hex(canonicalJson(report));
-  if (!opts.inspector) return { ...report, reportHash };
-  return { ...report, reportHash, inspectorSignature: await opts.inspector.signReport(reportHash) };
+  let memoryStored: boolean | undefined;
+  if (opts.memory && req.scooterId) {
+    const res = await opts.memory
+      .remember({ scooterId: req.scooterId, at: createdAt, findings: proposal.reasons, newDamage: BigInt(proposal.landlordClaim) > BigInt(0), reportHash })
+      .catch((err: Error) => ({ stored: false, error: err.message }));
+    memoryStored = res.stored;
+  }
+  const extra = memoryStored === undefined ? {} : { memoryStored };
+  if (!opts.inspector) return { ...report, reportHash, ...extra };
+  return { ...report, reportHash, inspectorSignature: await opts.inspector.signReport(reportHash), ...extra };
 }

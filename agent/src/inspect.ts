@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { InspectionMemory } from "../../web/lib/server/sponsors/livingbrain.ts";
 import { REPO_DIR } from "./config.ts";
 import {
   PhotoResolutionError,
@@ -37,7 +38,16 @@ export interface InspectDeps {
   /** Defaults to visionProviderFromEnv(): Anthropic with ANTHROPIC_API_KEY, otherwise the deterministic mock. */
   provider?: VisionProvider | null;
   store?: EvidenceStore;
+  /** Per-scooter inspection memory; defaults to Living Brain (LIVING_BRAIN_*) or the web app's local stand-in. */
+  memory?: InspectionMemory | null;
   now?: Date;
+}
+
+/** Living Brain when configured, else web/.sponsor-logs/inspections.jsonl (shared with the web app). */
+async function inspectionMemory(): Promise<InspectionMemory> {
+  process.env.SPONSOR_LOG_DIR ??= path.join(REPO_DIR, "web", ".sponsor-logs");
+  const m = await import("../../web/lib/server/sponsors/livingbrain.ts");
+  return m.inspectionMemoryFromEnv();
 }
 
 let storePromise: Promise<EvidenceStore> | null = null;
@@ -68,6 +78,7 @@ export async function inspectMoveOut(input: unknown, deps: InspectDeps): Promise
       provider,
       store: deps.store ?? (provider ? await evidenceStore() : undefined),
       inspector: deps.inspector,
+      memory: deps.memory !== undefined ? deps.memory : parsed.data.scooterId ? await inspectionMemory() : null,
       now: deps.now,
     });
   } catch (err) {
