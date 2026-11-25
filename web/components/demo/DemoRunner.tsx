@@ -498,12 +498,13 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
 
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
-      {/* Controls: one row on desktop. */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
+      {/* Controls: one row on desktop. What fits depends on the bar's own width (a container query), not the window's:
+          the sidebar beside the stage may be a rail or expanded. */}
+      <div className="@container relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <h1 className="text-xl font-semibold tracking-tight max-[1399px]:sr-only">{pageTitle}</h1>
+          <h1 className="text-xl font-semibold tracking-tight @max-[1419px]:sr-only">{pageTitle}</h1>
           {testnet && <LiveBadge />}
-          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline min-[1400px]:inline" data-testid="demo-eli5">Explain it simply</Link>
+          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline @min-[1300px]:inline" data-testid="demo-eli5">Explain it simply</Link>
           <Segmented
             label={controls.story}
             value={path}
@@ -588,7 +589,9 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           />
         </div>
 
-        <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0">
+        {/* Should a card ever be taller than the space left (a very short window), this column scrolls on its own:
+            the page itself is pinned on desktop and would only clip it. */}
+        <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0 lg:overflow-y-auto">
           {phase === "idle" && <Intro path={path} testnet={!!testnet} />}
 
           {isGuided && caption?.beat === "intro" && <GuidedIntro path={path} pacer={guided.pacer} nav={nav} />}
@@ -693,7 +696,7 @@ function Segmented<T extends string>({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-subtle lg:sr-only min-[1400px]:not-sr-only">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-subtle lg:sr-only">{label}</span>
       <div className="inline-flex flex-wrap rounded-lg bg-surface-muted p-0.5" role="group" aria-label={label}>
         {options.map((o) => (
           <button
@@ -727,9 +730,9 @@ function LiveBadge() {
       data-testid="demo-live-badge"
     >
       <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-success" />
-      {/* Short between lg and 1400px, so the controls stay on one row at 1280. */}
-      <span className="lg:max-[1399px]:hidden">{testnetCopy.badge}</span>
-      <span className="hidden lg:max-[1399px]:inline">{testnetCopy.badgeShort}</span>
+      {/* Short on a narrower desktop controls bar, so the controls stay on one row at 1280. */}
+      <span className="lg:@max-[1365px]:hidden">{testnetCopy.badge}</span>
+      <span className="hidden lg:@max-[1365px]:inline">{testnetCopy.badgeShort}</span>
     </span>
   );
 }
@@ -876,7 +879,7 @@ function Summary({
       data-balanced={books?.balanced ? "true" : "false"}
     >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-2xl font-semibold tracking-tight xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
+        <h2 className="text-xl font-semibold tracking-tight tall:text-2xl xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
         <button
           type="button"
           onClick={onHide}
@@ -945,7 +948,7 @@ function Party({ who, note, value, testId }: { who: string; note: string; value:
   return (
     <div className="rounded-xl bg-surface-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
       <p className="text-base font-semibold">{who}</p>
-      <p className="text-sm leading-snug text-subtle">{note}</p>
+      <p className="hidden text-sm leading-snug text-subtle tall:block">{note}</p>
       <div className="mt-1">
         <Amount value={value} size="lg" />
       </div>

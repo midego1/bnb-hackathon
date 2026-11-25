@@ -147,14 +147,17 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 13.7 MiB | **2.76 MiB** | fits Free (3 MiB), 0.24 MiB headroom |
+| `keyescrow-web` | 14.05 MiB | **2.84 MiB** | fits Free (3 MiB), 0.16 MiB headroom |
 | `keyescrow-agent` | 4.3 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.24 MiB. The merges since the first build added
-0.35 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
+time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.16 MiB. The merges since the first build added
+0.43 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
 `pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
 ($5/month, 10 MiB limit), or a trim of the server bundle.
+
+Keep the app free of a `proxy.ts` / middleware: OpenNext then bundles a second handler of Next internals into the
+Worker (+0.2 MiB gzip, which took it to 3.01 MiB). The secrets page guards itself instead (`lib/server/secrets/page.ts`).
 
 ## One-time setup (Michiel)
 

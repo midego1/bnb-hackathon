@@ -35,9 +35,9 @@ test("back office lists every seeded rental with flags, transactions and vault i
   const rows = page.getByTestId("rental-row");
   await expect(rows.first()).toBeVisible();
   expect(await rows.count()).toBeGreaterThanOrEqual(3);
-  // The seeded dispute is flagged. (Earlier specs' "owner ignores it" runs fast-forward the shared chain 7 days each, so
-  // by now the desk's 14-day window may have passed: then it is flagged as overdue instead.)
-  const disputed = rows.filter({ has: page.locator('[data-code="disputed"], [data-code="arbiter-overdue"]') }).first();
+  // The seeded dispute is flagged, and still inside the desk's 14-day window: the specs that fast-forward the shared
+  // chain revert it after each test (e2e/chain.ts), so this holds in any spec order.
+  const disputed = rows.filter({ has: page.locator('[data-code="disputed"]') }).first();
   await expect(disputed).toHaveAttribute("data-status", "3");
   await expect(page.getByTestId("kpi-attention")).not.toContainText(/^0$/);
   // Expanding a rental shows its transactions with hashes.
