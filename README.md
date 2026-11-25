@@ -1,5 +1,7 @@
 # KeyEscrow
 
+[![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
+
 **Rent a scooter in Thailand without leaving your passport.**
 Tourists renting a scooter in Thailand usually leave their passport with the shop as the deposit, and bogus damage
 claims at return are common. KeyEscrow keeps the deposit and rent in a per-rental smart contract on BNB Chain, not
