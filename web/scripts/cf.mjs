@@ -37,6 +37,7 @@ export const WEB_SECRETS = [
   ["DEMO_TESTNET_KEYS", "optional", 'live testnet /demo: JSON {"landlord","tenant","arbiter"} private keys of the demo wallets'],
   ["DEMO_TESTNET_RPC_URL", "optional", "live testnet /demo: BSC testnet RPC the runner signs against (may embed an API key)"],
   ["DEMO_TESTNET_FUNDER_KEY", "optional", "live testnet /demo: small dedicated gas top-up wallet, never the deployer"],
+  ["STAGE_PRESENTER_CODE", "optional", "live judge demo /stage: code for the presenter's Accept / Reset buttons (open without it)"],
 ];
 export const AGENT_SECRETS = [
   ["INSPECTOR_PRIVATE_KEY", "optional", "the agent's report signer (must match reportSigner of agent #2921)"],

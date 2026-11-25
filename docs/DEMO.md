@@ -130,6 +130,32 @@ To show the owner-silence timeout by hand: after the renter's proposal, run
 `cast rpc evm_increaseTime 604800 && cast rpc evm_mine` (+7 days), then have the renter click
 *Return full deposit to renter*.
 
+## Live judge demo: a judge rents a real box (/stage)
+
+We bring a physical **KeyEscrow Mystery Box** (฿200/day, ฿1,000 deposit; edit `web/data/listings.json`). Listing:
+`/app/listings/mystery-box`. Big screen: `/stage/mystery-box`. Phone: `/r/mystery-box` (the QR on the big screen).
+
+1. **Big screen** shows the QR, the live status, the money strip (renter paid, in escrow, owner got, back to renter +
+   fee) and the timeline with BscScan links. It polls every 2 s and keeps the last state through Wi-Fi drops.
+2. **Judge's phone:** *Use a guest wallet* (a fresh testnet key made on the phone, kept in its localStorage, never
+   sent anywhere) or *Connect MetaMask* (shown only with a browser wallet or a WalletConnect project id) →
+   *Get test money* (0.002 tBNB + the mUSDT for rent and deposit, once per address) → *Pay into escrow* (the demo
+   owner creates the rental for that address, the phone approves and funds) → pickup photos → hand the box back →
+   return photos → *Run the AI inspection* → *Propose this split*.
+3. **Presenter:** *Accept the split (owner)* on the big screen. Both screens show *Settled*; the phone says
+   *Your ฿X are back* with a BscScan link.
+4. *Reset stage* forgets the current rental (it stays on-chain) so the next judge starts fresh.
+
+Notes: photos are compressed on the phone to ≤ 200 KB; on Cloudflare without R2 they live in the Durable Object for
+7 days. Every step is read back from the chain, so reloading either screen continues where it was. One rental at a
+time; an offer left unfunded for 5 minutes may be taken by the next renter. The contracts' shortest term is one month:
+the stage rental is "one day" in the UI and settles the same day.
+
+Server switches: `STAGE_DEMO=1` on a chain 97 build with the live demo's wallets (`DEMO_TESTNET_*`: landlord = owner,
+arbiter = dispute desk, funder pays the drips), or on local anvil (31337, its public dev keys). Optional
+`STAGE_PRESENTER_CODE` locks Accept / Reset; `STAGE_DRIPS_PER_HOUR` (30) and `STAGE_LEASES_PER_HOUR` (20) cap use.
+Rehearse headless: `cd web && npx playwright test stage`.
+
 ## If something goes wrong
 
 - **Live demo says someone else is playing:** it starts by itself when the other run ends (a lock lapses after 45 s
@@ -142,3 +168,5 @@ To show the owner-silence timeout by hand: after the renter's proposal, run
   never read prices.
 - **Rehearse without clicking:** `cd web && npx playwright test guided-demo` plays the demo stories headless against
   its own throwaway anvil.
+- **Stage: "Someone else is renting it right now":** press *Reset stage* on the big screen, then reload the phone.
+- **Stage: the funder is empty:** the phone says so in plain words; refill the funder wallet (`pnpm testnet:fund <funder address>`).

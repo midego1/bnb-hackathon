@@ -1,0 +1,17 @@
+{
+  "_note": "Physical items for the live stage demo (/app/listings/<slug>, /stage/<slug>, /r/<slug>). Edit freely: amounts in THB, photos under web/public. thbPerUsdt is the fixed demo rate used to price stage rentals in mUSDT (stable between the test-money drip and the rental).",
+  "thbPerUsdt": 33,
+  "listings": [
+    {
+      "slug": "mystery-box",
+      "name": "KeyEscrow Mystery Box",
+      "description": "A real box we brought to the stage. Rent it, take it, bring it back: the deposit sits in its own escrow on BNB Chain until both sides agree.",
+      "location": "On stage, BNB Bangkok",
+      "photos": [
+        "/listings/mystery-box.svg"
+      ],
+      "rentThb": 200,
+      "depositThb": 1000
+    }
+  ]
+}
