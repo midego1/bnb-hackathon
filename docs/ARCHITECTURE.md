@@ -66,6 +66,7 @@ flowchart LR
 | --- | --- | --- |
 | `EscrowFactory` | `contracts/src/EscrowFactory.sol` | Checks rental parameters and clones one `RentalEscrow` per rental (EIP-1167). Indexes rentals by owner, renter and arbiter. Holds the protocol fee setting for future rentals (`Ownable2Step`). |
 | `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds the deposit and rent for one rental. Releases rent on a fixed 30-day schedule. Anchors evidence hashes. Settles the deposit by mutual agreement, arbiter ruling or timeout. Initialised once, never upgradeable. |
+| `FleetVault` | `contracts/src/FleetVault.sol` | Minimal Fleet Vault (testnet prototype): investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim straight into it; that income minus the operator's maintenance fee is shared pro rata and claimable. See §4. |
 | `MockUSDT` | `contracts/src/mocks/MockUSDT.sol` | Testnet-only stablecoin: 6 decimals, faucet capped at 10,000 per call. Not a project token. |
 | Web app | `web/` | Role-based UI with a wallet connection (RainbowKit). Shows amounts in THB and USD. Links every rental to the block explorer. |
 | Server routes | `web/app/api/*` | Hold every secret: the AI inspection call, price lookups, evidence upload to Greenfield. Nothing secret uses a `NEXT_PUBLIC_` variable. |
@@ -178,8 +179,17 @@ Safety properties enforced in code:
   funds is wrapped in `ReentrancyGuardTransient`.
 - **Exact pull:** `_pull` compares the balance before and after the transfer and reverts on any shortfall,
   so a fee-on-transfer token cannot under-fund an escrow.
-- **Fixed recipients:** funds only ever go to the owner, the renter or the fee recipient that were set
-  at creation. No function takes a recipient address.
+- **Fixed recipients:** funds only ever go to the owner's payee, the renter or the fee recipient that were
+  set at creation. No function takes a recipient address.
+
+**Fleet Vault payee.** `createLeaseWithPayee(params, payee)` is `createLease` plus one address: every payout
+that would go to the owner (released rent, rent due at settlement, the deposit claim) goes to `payee()`
+instead, typically the `FleetVault`. The owner keeps every role (propose, accept, dispute, cancel); the
+factory emits `PayeeSet(escrow, payee)`. Plain `createLease` sets `payee = owner`, so existing flows are
+unchanged. The vault needs no callback: anything above `totalPrincipal + reservedIncome` is new income,
+which `sync()` (also run by `deposit`, `redeem` and `claim`) splits into the operator fee (max 30 %) and a
+per-share accumulator. Shares are 1:1 with deposited principal, redeemable 1:1; income credited before a
+redeem stays claimable. Rounding dust stays reserved, so the vault is always solvent (fuzz-tested).
 
 ## 5. Return settlement sequence
 

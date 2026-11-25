@@ -58,6 +58,8 @@ FACTORY_OWNER=0x...               # owns the factory (fee rate, treasury, disput
 FEE_RECIPIENT=0x...               # KeyEscrow treasury
 DEFAULT_ARBITER=0x...             # KeyEscrow dispute desk (the default arbiter for rentals)
 # FEE_BPS=1000                    # optional: 10% of ONE month's rent, once per rental (max 1000)
+# FLEET_OPERATOR=0x...            # optional: Fleet Vault operator (maintenance fee); default FEE_RECIPIENT
+# FLEET_OPERATOR_FEE_BPS=1000     # optional: operator fee in bps of vault income (max 3000)
 BSCSCAN_API_KEY=...               # for verification, see step 7
 ```
 
