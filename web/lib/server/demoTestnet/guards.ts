@@ -18,7 +18,8 @@ export type DemoTestnetPath = "happy" | "dispute";
 // ---------------------------------------------------------------------------------------------------------
 
 export type DemoTestnetConfig = {
-  secretsDir: string;
+  /** Local key source (keys.ts); unset when the keys come from env vars (DEMO_TESTNET_KEYS, e.g. on Workers). */
+  secretsDir?: string;
   /** dotenv file with BSC_TESTNET_RPC_URL and the DEPLOYER_* keystore settings (the repo-root .env). */
   envFile?: string;
   rpc?: string;
@@ -45,14 +46,14 @@ const int = (v: string | undefined, d: number, min: number, max: number) => {
 };
 
 /**
- * The runner exists only with DEMO_TESTNET_RUNNER=1 AND NEXT_PUBLIC_CHAIN_ID=97 AND a secrets dir. Anything else:
- * `undefined`, and every /api/demo-testnet route answers 404.
+ * The runner exists only with DEMO_TESTNET_RUNNER=1 AND NEXT_PUBLIC_CHAIN_ID=97 AND a key source (a secrets dir, or
+ * DEMO_TESTNET_KEYS in the env, see keys.ts). Anything else: `undefined`, and every /api/demo-testnet route answers 404.
  */
 export function demoTestnetConfig(env: Env): DemoTestnetConfig | undefined {
   if (env.DEMO_TESTNET_RUNNER !== "1") return undefined;
   if (Number(env.NEXT_PUBLIC_CHAIN_ID) !== DEMO_CHAIN_ID) return undefined;
-  const secretsDir = env.DEMO_TESTNET_SECRETS_DIR;
-  if (!secretsDir) return undefined;
+  const secretsDir = env.DEMO_TESTNET_SECRETS_DIR || undefined;
+  if (!secretsDir && !env.DEMO_TESTNET_KEYS) return undefined;
   const topUpAmount = (() => {
     try {
       const v = env.DEMO_TESTNET_TOP_UP_TBNB ? parseEther(env.DEMO_TESTNET_TOP_UP_TBNB) : TOP_UP_CAP;
@@ -115,6 +116,8 @@ export type RunState = {
   lease?: Address;
   /** Block of this run's latest receipt: reads for the run are served at (or after) it. */
   lastBlock?: bigint;
+  /** A transaction of this run that timed out unmined: a Retry of the same call waits for it instead of resending. */
+  stalled?: { key: string; hash: Hex };
 };
 
 /** How long a run usually takes at normal speed: the basis of the "free in ~N s" estimate. */
@@ -219,6 +222,9 @@ export function gasLeft(run: RunState, cfg: Pick<DemoTestnetConfig, "maxGasPerRu
   return left;
 }
 
+export const LOW_FUNDS_MESSAGE =
+  "The live testnet demo is out of test BNB for gas right now. Play it on the local demo, or ask the team to refill the testnet faucet wallet.";
+
 export type TopUpPlan = { action: "none" } | { action: "top-up"; amount: bigint } | { action: "refuse"; message: string };
 
 /**
@@ -230,10 +236,7 @@ export function topUpPlan(balance: bigint, deployerBalance: bigint, t: DemoTestn
   const amount = t.amount > TOP_UP_CAP ? TOP_UP_CAP : t.amount;
   const floor = t.deployerFloor < DEPLOYER_FLOOR_MIN ? DEPLOYER_FLOOR_MIN : t.deployerFloor;
   if (deployerBalance - amount < floor) {
-    return {
-      action: "refuse",
-      message: "The live testnet demo is out of test BNB for gas right now. Play it on the local demo, or ask the team to refill the testnet faucet wallet.",
-    };
+    return { action: "refuse", message: LOW_FUNDS_MESSAGE };
   }
   return { action: "top-up", amount };
 }
@@ -349,6 +352,16 @@ export function vetRead(address: string, run: RunState, a: Pick<DemoAddresses, "
   const ok = same(address, a.factory) || same(address, a.token) || (!!run.lease && same(address, run.lease));
   if (!ok) refuse("That contract is not part of this demo run.");
   return getAddress(address);
+}
+
+/**
+ * The demo dispute desk must be a wallet of its own: never the factory's default arbiter (on testnet the deployer and
+ * factory owner, which holds most of the tBNB) and never the wallet that funds top-ups. Leases name it per lease.
+ */
+export function assertDedicatedDesk(desk: Address, others: { defaultArbiter?: Address; funder?: Address; landlord: Address; tenant: Address }) {
+  for (const [what, a] of Object.entries(others)) {
+    if (a && same(desk, a)) throw new DemoError(503, "desk-not-dedicated", `The demo dispute desk must be its own wallet, not the ${what}. Refusing.`);
+  }
 }
 
 /** The zero address is never a demo actor (guards a half-loaded wallet file). */
