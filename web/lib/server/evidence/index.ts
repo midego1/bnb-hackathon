@@ -1,6 +1,8 @@
 import type { Env } from "../env";
 import { sha256Hex, type Bytes32Hex } from "../hash";
 import { cloudflareBinding, onCloudflare } from "../platform";
+import { getSharedState, STATE_BINDING, type SharedState } from "../state";
+import { StateEvidenceStore } from "./state";
 import { GreenfieldEvidenceStore, greenfieldConfigFromEnv } from "./greenfield";
 import { LocalEvidenceStore } from "./local";
 import { DisabledEvidenceStore, EVIDENCE_BINDING, R2EvidenceStore, type R2BucketLike } from "./r2";
@@ -9,23 +11,31 @@ import { maxEvidenceBytes, sniffContentType, type EvidenceContentType, type Evid
 export * from "./types";
 export { LocalEvidenceStore } from "./local";
 export { GreenfieldEvidenceStore } from "./greenfield";
+export { StateEvidenceStore, EvidenceStoreFullError } from "./state";
 export { DisabledEvidenceStore, EvidenceUploadsDisabledError, R2EvidenceStore, type R2BucketLike } from "./r2";
 
 let cached: EvidenceStore | null = null;
 
 /**
  * Node (`next dev` / `next start`): Greenfield when GREENFIELD_* is fully configured, otherwise the local filesystem
- * fallback. Cloudflare Workers have no disk: the EVIDENCE R2 bucket when bound, otherwise uploads are disabled.
+ * fallback. Cloudflare Workers have no disk: the EVIDENCE R2 bucket when bound, else small photos in the
+ * KeyEscrowState Durable Object (capped, 7-day expiry), else uploads are disabled.
  */
-export function evidenceStoreFromEnv(env: Env = process.env, platform: { cloudflare: boolean; r2?: R2BucketLike } = { cloudflare: false }): EvidenceStore {
-  if (platform.cloudflare) return platform.r2 ? new R2EvidenceStore(platform.r2) : new DisabledEvidenceStore();
+export function evidenceStoreFromEnv(
+  env: Env = process.env,
+  platform: { cloudflare: boolean; r2?: R2BucketLike; state?: () => SharedState } = { cloudflare: false },
+): EvidenceStore {
+  if (platform.cloudflare) return platform.r2 ? new R2EvidenceStore(platform.r2) : platform.state ? new StateEvidenceStore(platform.state) : new DisabledEvidenceStore();
   const gf = greenfieldConfigFromEnv(env);
   return gf ? new GreenfieldEvidenceStore(gf) : new LocalEvidenceStore();
 }
 
 export function getEvidenceStore(): EvidenceStore {
   // On Workers the bucket binding belongs to the request: build the (stateless) store per call.
-  if (onCloudflare()) return evidenceStoreFromEnv(process.env, { cloudflare: true, r2: cloudflareBinding<R2BucketLike>(EVIDENCE_BINDING) });
+  if (onCloudflare()) {
+    const state = cloudflareBinding(STATE_BINDING) ? getSharedState : undefined;
+    return evidenceStoreFromEnv(process.env, { cloudflare: true, r2: cloudflareBinding<R2BucketLike>(EVIDENCE_BINDING), state });
+  }
   cached ??= evidenceStoreFromEnv();
   return cached;
 }

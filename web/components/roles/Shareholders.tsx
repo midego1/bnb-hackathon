@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { utcDateTimeIn } from "@/components/lease/copy";
+import { PayeeMrrKpi } from "@/components/subscriptions/OwnerSubscriptions";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
 import { fleetVaultAbi, mockUsdtAbi } from "@/lib/contracts";
@@ -54,7 +55,7 @@ export function Shareholders() {
         <AddressTag address={vault.address} chainId={chainId} label={vault.symbol} />
         <span>{t("holders.operatorFee", { pct: (vault.operatorFeeBps / 100).toFixed(0) })}</span>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label={t("holders.kpi.tvl")} testId="vault-tvl" hint={t("holders.kpi.tvlHint")}><Amount value={vault.totalAssets} /></Kpi>
         <Kpi label={t("holders.kpi.earned")} testId="vault-earned" hint={t("holders.kpi.earnedHint")}><Amount value={earned} /></Kpi>
         <Kpi label={t("holders.kpi.yield")} testId="vault-yield" hint={t("holders.kpi.yieldHint")}>
@@ -63,6 +64,7 @@ export function Shareholders() {
         <Kpi label={t("holders.kpi.supply")} testId="vault-supply" hint={t("holders.kpi.supplyHint", { symbol: vault.symbol })}>
           {formatUsdt(vault.totalSupply)}
         </Kpi>
+        <PayeeMrrKpi payee={vault.address} />
       </div>
 
       <WalletGate what={t("holders.gate")}>

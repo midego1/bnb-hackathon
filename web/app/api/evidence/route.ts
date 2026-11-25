@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   EvidenceRejectedError,
+  EvidenceStoreFullError,
   EvidenceUploadsDisabledError,
   getEvidenceStore,
   MAX_FILES_PER_REQUEST,
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       items.push(await storeEvidence(store, new Uint8Array(await f.arrayBuffer()), f.name || undefined, maxBytes));
     }
   } catch (err) {
-    if (err instanceof EvidenceRejectedError || err instanceof EvidenceUploadsDisabledError) return jsonError(err.status, err.message);
+    if (err instanceof EvidenceRejectedError || err instanceof EvidenceUploadsDisabledError || err instanceof EvidenceStoreFullError) return jsonError(err.status, err.message);
     console.error("evidence store failed", (err as Error).message);
     return jsonError(502, `evidence storage (${store.name}) failed`);
   }

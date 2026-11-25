@@ -7,6 +7,11 @@ import { getDemoTestnetRunner, type DemoTestnetRunner } from "./runner";
 import { DemoError } from "./guards";
 import { SharedRunStore } from "./store";
 
+// The live stage demo's route (app/api/stage) imports its service from here, so it has the same module graph as the
+// /api/demo-testnet routes and shares their server chunks: a route of its own would add a copy of viem to the Worker.
+export { getStage } from "../stage";
+export { StageError } from "../stage/guards";
+
 /**
  * Shared plumbing of the /api/demo-testnet/* routes. They exist only when the live testnet demo is switched on
  * (DEMO_TESTNET_RUNNER=1 on a chain 97 build with a secrets dir): otherwise every route answers a bare 404.

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
@@ -50,7 +52,12 @@ export function Renter() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">{t.h("renter.find")}</h2>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-lg font-semibold">{t.h("renter.find")}</h2>
+          <Link href="/app/subscriptions" className="text-sm font-medium underline-offset-4 hover:underline" data-testid="tenant-subscriptions-link">
+            {t("renter.subscribeLink")} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
+          </Link>
+        </div>
         {scooters.length === 0 ? (
           <p className="text-sm text-subtle">{t("renter.noScooters")}</p>
         ) : (

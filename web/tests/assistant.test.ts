@@ -407,6 +407,7 @@ describe("composer", () => {
     expect(suggestionsFor(`/lease/${LEASE}`).map((s) => s.label)).toContain("Where is my deposit?");
     expect(suggestionsFor("/tenant").map((s) => s.label)).toContain("Find my rental");
     expect(suggestionsFor("/landlord")[0]).toMatchObject({ label: "Create a rental", fill: true });
+    expect(suggestionsFor("/app/subscriptions").map((s) => s.label)).toContain("My subscriptions");
     expect(suggestionsFor("/arbiter")[0].label).toBe("What needs my decision?");
     expect(suggestionsFor("/demo")[0].label).toBe("Explain KeyEscrow simply");
     expect(suggestionsFor("/how-it-works")[0].label).toBe("Explain KeyEscrow simply");

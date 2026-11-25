@@ -183,8 +183,12 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
   const [error, setError] = useState<string | null>(null);
   const toVault = scooter.vault && !!vault;
   const rate = prices?.rates.USDT.THB;
-  const rent = thbToUsdt(scooter.rentThb, rate);
-  const deposit = thbToUsdt(scooter.depositThb, rate);
+  // A subscription request carries the plan it was made under: its price, deposit and term.
+  const sub = booking.subscription;
+  const rentThb = sub?.priceThb ?? scooter.rentThb;
+  const depositThb = sub?.depositThb ?? scooter.depositThb;
+  const rent = thbToUsdt(rentThb, rate);
+  const deposit = thbToUsdt(depositThb, rate);
 
   async function offer() {
     setError(null);
@@ -193,10 +197,10 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       arbiter: zeroAddress,
       rentAmount: rent,
       depositAmount: deposit,
-      termMonths: BOOKING_TERM_MONTHS,
+      termMonths: sub?.maxPeriods ?? BOOKING_TERM_MONTHS,
       responseWindow: 0,
       arbiterWindow: 0,
-      leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb: scooter.rentThb, depositThb: scooter.depositThb, thbPerUsdt: rate, booking: booking.id })),
+      leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb, depositThb, months: sub?.maxPeriods, thbPerUsdt: rate, booking: booking.id })),
     };
     const receipt = await send(t("fleet.offerTx"), {
       address: deployment!.escrowFactory,
@@ -221,7 +225,8 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
         <p className="font-medium">{scooter.name} · {scooter.location}</p>
         <p className="text-xs text-subtle">
           {t("fleet.renter")} <span className="font-mono">{shortAddress(booking.renter)}</span>
-          {t("fleet.requestTerms", { rent: scooter.rentThb.toLocaleString("en-US"), deposit: scooter.depositThb.toLocaleString("en-US") })}
+          {t("fleet.requestTerms", { rent: rentThb.toLocaleString("en-US"), deposit: depositThb.toLocaleString("en-US") })}
+          {sub ? t("fleet.subscriptionTerm", { n: sub.maxPeriods }) : ""}
           {toVault ? t("fleet.paysVault") : ""}
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}

@@ -4,6 +4,7 @@ import type { body as enBody, head as enHead } from "../en/shell";
 /** Simplified Chinese for en/shell.ts. Terms: docs/i18n-glossary.md. */
 export const body: DeepPartial<typeof enBody> = {
   nav: {
+    subscriptions: "订阅",
     roles: "角色",
     demo: "演示",
     build: "开发",

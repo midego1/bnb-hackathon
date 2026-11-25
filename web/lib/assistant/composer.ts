@@ -23,6 +23,12 @@ export function suggestionsFor(path: string): Suggestion[] {
     ];
   }
   switch (p) {
+    case "/app/subscriptions":
+      return [
+        { label: "How does a subscription work?", prompt: "How does a monthly scooter subscription work, and how do I cancel it?" },
+        { label: "My subscriptions", prompt: "Find my rentals" },
+        SIMPLE,
+      ];
     case "/tenant":
       return [FIND, { label: "Where is my deposit?", prompt: "Where is my deposit?" }, SIMPLE];
     case "/landlord":

@@ -8,6 +8,7 @@ import { getAddress, isAddress } from "viem";
 export const STATIC_PAGES: Record<string, string> = {
   "/": "Home",
   "/tenant": "Renter",
+  "/app/subscriptions": "Subscriptions",
   "/landlord": "Fleet owner",
   "/arbiter": "Dispute desk",
   "/backoffice": "Back office",

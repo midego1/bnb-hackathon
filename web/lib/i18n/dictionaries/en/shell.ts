@@ -2,6 +2,7 @@
 export const body = {
   /** The sidebar's groups and items (components/shell/nav.ts). */
   nav: {
+    subscriptions: "Subscriptions",
     roles: "Roles",
     demo: "Demo",
     build: "Build",
