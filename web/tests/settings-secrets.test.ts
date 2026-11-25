@@ -11,11 +11,12 @@ import { checkRequest, isAllowedHost, isAllowedIp, RateLimiter } from "@/lib/ser
 import { restartUnits, secretSpec, SECRETS } from "@/lib/server/secrets/registry";
 import { auditFile, listSecrets, passcodeFile, restartUnit, secretsConfig, writeSecret, type Systemctl } from "@/lib/server/secrets/service";
 import { createSessionToken, ensurePasscode, passcodeMatches, readCookie, sessionCookie, sessionValid, SESSION_TTL_MS } from "@/lib/server/secrets/session";
-import { proxy } from "@/proxy";
+import { secretsPageAllowed } from "@/lib/server/secrets/page";
+import nextConfig from "@/next.config";
 import { GET, POST } from "@/app/api/settings/secrets/route";
 import { POST as SESSION_POST } from "@/app/api/settings/secrets/session/route";
 import { POST as RESTART_POST } from "@/app/api/settings/secrets/restart/route";
-import { NextRequest } from "next/server";
+import { POST as TEST_POST } from "@/app/api/settings/secrets/test/route";
 
 const KEY = `0x${"ab".repeat(32)}`;
 const spec = (name: string) => secretSpec(name)!;
@@ -305,13 +306,49 @@ describe("service and routes (temp env files only)", () => {
   const post = (url: string, body: unknown, cookie?: string) =>
     req(url, { method: "POST", body: JSON.stringify(body), headers: { origin, "content-type": "application/json", ...(cookie ? { cookie } : {}) } });
 
-  it("answers 404 everywhere when disabled (routes and the page proxy)", async () => {
+  // A page load from this machine, as `next start` sees it.
+  const pageHeaders = { host: "127.0.0.1:3000", "x-forwarded-for": "127.0.0.1", "sec-fetch-site": "none" };
+
+  it("the page renders only when on and the request is local: same checks as the API", () => {
+    expect(secretsPageAllowed(new Headers(pageHeaders), process.env)).toBe(true);
+    expect(secretsPageAllowed(new Headers({ ...pageHeaders, host: "keyescrow.example.com" }), process.env)).toBe(false);
+    expect(secretsPageAllowed(new Headers({ ...pageHeaders, "x-forwarded-for": "8.8.8.8" }), process.env)).toBe(false);
+    expect(secretsPageAllowed(new Headers({ ...pageHeaders, "cf-connecting-ip": "1.2.3.4" }), process.env)).toBe(false);
+    expect(secretsPageAllowed(new Headers({ ...pageHeaders, "sec-fetch-site": "cross-site" }), process.env)).toBe(false);
+    expect(secretsPageAllowed(new Headers(pageHeaders), { ...process.env, WORKERS_CI: "1" })).toBe(false);
+  });
+
+  it("security headers on the page and the API (next.config.ts)", async () => {
+    const rules = await nextConfig.headers!();
+    for (const source of ["/settings/secrets", "/api/settings/:path*"]) {
+      const rule = rules.find((r) => r.source === source)!;
+      expect(Object.fromEntries(rule.headers.map((h) => [h.key, h.value]))).toMatchObject({ "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY" });
+    }
+  });
+
+  it("with no proxy in front, every write route guards itself: 403 through a CDN or from another site", async () => {
+    const routes = [
+      [POST, api, { name: "CMC_API_KEY", value: "x" }],
+      [SESSION_POST, `${api}/session`, { passcode: "x" }],
+      [RESTART_POST, `${api}/restart`, { unit: "keyescrow-web" }],
+      [TEST_POST, `${api}/test`, { name: "CMC_API_KEY" }],
+    ] as const;
+    for (const [handler, url, body] of routes) {
+      const viaCdn = req(url, { method: "POST", body: JSON.stringify(body), headers: { origin, "content-type": "application/json", "cf-connecting-ip": "1.2.3.4" } });
+      expect((await handler(viaCdn)).status, url).toBe(403);
+      const crossSite = req(url, { method: "POST", body: JSON.stringify(body), headers: { origin: "http://evil.example", "content-type": "application/json" } });
+      expect((await handler(crossSite)).status, url).toBe(403);
+    }
+  });
+
+  it("answers 404 everywhere when disabled (routes and the page)", async () => {
     delete process.env.SETTINGS_SECRETS_ENABLED;
     expect((await GET(req(api))).status).toBe(404);
     expect((await POST(post(api, { name: "CMC_API_KEY", value: "x" }))).status).toBe(404);
     expect((await SESSION_POST(post(`${api}/session`, { passcode: "x" }))).status).toBe(404);
     expect((await RESTART_POST(post(`${api}/restart`, { unit: "keyescrow-web" }))).status).toBe(404);
-    expect(proxy(new NextRequest(`${origin}/settings/secrets`)).status).toBe(404);
+    expect((await TEST_POST(post(`${api}/test`, { name: "CMC_API_KEY" }))).status).toBe(404);
+    expect(secretsPageAllowed(new Headers(pageHeaders), process.env)).toBe(false);
     process.env.SETTINGS_SECRETS_ENABLED = "1";
     process.env.WORKERS_CI = "1";
     expect((await GET(req(api))).status).toBe(404);

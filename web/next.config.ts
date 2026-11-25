@@ -27,7 +27,18 @@ if (process.env.KEYESCROW_BUILD_TARGET === "cloudflare") {
 
 const cloudflare = process.env.KEYESCROW_BUILD_TARGET === "cloudflare";
 
+// The secrets page and its API (local only): no referrer, never framed. Cache-Control is set by Next for the dynamic
+// page and by the route handlers (lib/server/secrets/http.ts), which also run the request guard.
+const SECRETS_HEADERS = [
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return ["/settings/secrets", "/settings/secrets/:path*", "/api/settings/:path*"].map((source) => ({ source, headers: SECRETS_HEADERS }));
+  },
   // The Playwright run builds into its own directory (with dev accounts on) so it never clobbers `next build`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Always define the dev-accounts flag so Next inlines it and production bundles drop the anvil switcher

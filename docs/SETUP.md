@@ -91,7 +91,7 @@ The page and its API answer **404** unless the server runs with `SETTINGS_SECRET
 
 - **Never on Cloudflare.** A build with `SETTINGS_SECRETS_ENABLED=1` and Cloudflare's build env (`CF_PAGES`,
   `WORKERS_CI`) fails in `next.config.ts`; at runtime the flag is ignored there too.
-- **Local and tailnet only.** `proxy.ts` and every route refuse clients outside `127.0.0.1`, `::1` and Tailscale's
+- **Local and tailnet only.** The page (`notFound()`) and every route (403) refuse clients outside `127.0.0.1`, `::1` and Tailscale's
   `100.64.0.0/10`, a Host header that is not localhost / a tailnet IP / `*.ts.net`, and any request with CDN or proxy
   headers (`cf-connecting-ip`, `x-real-ip`, `forwarded`, `via`, more than one `x-forwarded-for` hop). Note: Next fills
   `x-forwarded-for` from the socket only when the client sent none, so the IP check is a filter; the boundaries are the

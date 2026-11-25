@@ -130,8 +130,19 @@ test("secrets API: locked without a session, refuses cross-site posts and unknow
     headers: { origin: "http://evil.example" },
   });
   expect(cross.status()).toBe(403);
-  const proxied = await request.get("/settings/secrets", { headers: { "cf-connecting-ip": "1.2.3.4" } });
-  expect(proxied.status()).toBe(403);
+  // The page itself: not found through a proxy or from another Host; security headers from next.config.ts. The page
+  // streams (Cache Components), so a refusal is the not-found page with noindex in a 200, never the secrets view; the
+  // API below answers real 403s.
+  const page = await request.get("/settings/secrets");
+  expect(page.status()).toBe(200);
+  expect(page.headers()["x-frame-options"]).toBe("DENY");
+  expect(page.headers()["referrer-policy"]).toBe("no-referrer");
+  expect(await page.text()).toContain('data-testid="secrets-page"');
+  for (const headers of [{ "cf-connecting-ip": "1.2.3.4" }, { host: "keyescrow.example.com" }] as Record<string, string>[]) {
+    const refused = await (await request.get("/settings/secrets", { headers })).text();
+    expect(refused).not.toContain('data-testid="secrets-page"');
+    expect(refused).toMatch(/<meta name="robots" content="noindex"/);
+  }
   const otherHost = await request.get("/api/settings/secrets", { headers: { host: "keyescrow.example.com" } });
   expect(otherHost.status()).toBe(403);
   const unknown = await request.post("/api/settings/secrets", { data: { name: "NEXT_PUBLIC_CHAIN_ID", value: "97" }, headers: { origin: baseURL! } });
