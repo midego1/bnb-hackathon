@@ -94,7 +94,8 @@ pnpm dev                                             # http://localhost:3000
 ```
 
 [docs/DEMO.md](docs/DEMO.md) has the seeded accounts and rentals and a 3-minute demo script. In a local build the
-landing page has a **▶ Play the demo** button that plays the whole story in one click (`/demo`).
+landing page has a **Play the live demo** button that plays the whole story in one click (`/demo`).
+The landing page at `/` is the marketing page; the app itself starts at `/app`.
 
 Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
 falls back to a labelled local mock when its key is missing. See [docs/API.md](docs/API.md) for the server API
@@ -229,7 +230,7 @@ contracts/           Foundry project
   src/mocks/MockUSDT.sol   testnet-only 6-decimal stablecoin with a capped faucet
   test/                    Foundry tests
 web/                 Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
-  app/                     pages: / /landlord (owner) /tenant (renter) /arbiter /lease/[address] (one rental)
+  app/                     pages: / (marketing) /app /landlord (owner) /tenant (renter) /arbiter /lease/[address] (one rental)
   app/api/                 server routes: AI settlement, price (CMC/Atlas), evidence upload (Greenfield)
   components/              UI: role pages, rental detail panels (rent, return, evidence, ruling, timeline)
   lib/                     chain + wallet config, generated contract bindings, server services

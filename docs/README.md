@@ -14,6 +14,7 @@
 | [SETUP.md](SETUP.md) | Setting API keys on paseo-box from the browser: the local-only, write-only `/settings/secrets` page, its passcode and guards. |
 | [DEMO.md](DEMO.md) | The one-click demo and a 3-minute demo script on a local anvil chain, with the seeded accounts and rentals. |
 | [screenshots/](screenshots/) | Screenshots of every page, taken from a seeded local anvil. |
+| [DESIGN.md](DESIGN.md) | Design notes for the app and the marketing page at `/`; [marketing/](marketing/) holds the hero artwork's source and pipeline. |
 | [AGENT.md](AGENT.md) | KeyEscrow Inspector: the AI inspection as an ERC-8004 agent (BNB Agent SDK, A2A + MCP), signed reports, testnet registration. |
 
 Each document has **Status** lines that separate what is on `main` from what is on the roadmap.

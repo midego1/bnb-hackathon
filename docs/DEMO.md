@@ -83,7 +83,7 @@ cast rpc evm_increaseTime 2592000 && cast rpc evm_mine      # +30 days
 
 ## One-click demo
 
-Landing page → **▶ Play the demo** (or open `/demo`; the yellow Demo accounts bar links there too). It exists
+Landing page (`/`) → **Play the live demo**, or the app home (`/app`) → **▶ Play the demo** (or open `/demo`; the yellow Demo accounts bar links there too). It exists
 only in local builds: `NEXT_PUBLIC_CHAIN_ID=31337` (the default) and `NEXT_PUBLIC_DEV_ACCOUNTS=1`. Production
 and testnet builds compile it out and `/demo` returns 404.
 
