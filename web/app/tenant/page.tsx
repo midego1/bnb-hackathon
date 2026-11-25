@@ -2,6 +2,7 @@
 
 import { useAccount } from "wagmi";
 import { LeaseGrid } from "@/components/lease/LeaseCard";
+import { Renter } from "@/components/roles/Renter";
 import { CopyButton, PageTitle } from "@/components/ui";
 import { shortAddress } from "@/lib/format";
 import { WalletGate } from "@/components/WalletGate";
@@ -20,9 +21,10 @@ export default function TenantPage() {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
       <PageTitle title="Renter">
-        Your deposit sits in a contract that only you and your owner can settle together, with a neutral dispute desk as fallback.
+        Book a scooter, pay deposit + rent into the rental&apos;s own escrow, and get your deposit back without leaving your passport. The
+        deposit only moves when you and the shop agree, or a neutral dispute desk rules.
       </PageTitle>
-      <ol className="mb-8 grid gap-3 sm:grid-cols-4">
+      <ol className="mb-8 hidden gap-3 sm:grid sm:grid-cols-4">
         {steps.map(([t, b], i) => (
           <li key={t} className="rounded-xl border border-border p-3 text-sm">
             <p className="font-semibold">
@@ -32,8 +34,9 @@ export default function TenantPage() {
           </li>
         ))}
       </ol>
-      <WalletGate what="see the rentals offered to you">
-        <h2 className="mb-3 text-lg font-semibold">My rentals</h2>
+      <WalletGate what="book a scooter and see your rentals">
+        <Renter />
+        <h2 className="mb-3 mt-8 text-lg font-semibold">All rental contracts for this wallet</h2>
         <LeaseGrid
           addresses={data}
           empty={

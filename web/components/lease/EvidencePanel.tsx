@@ -74,7 +74,7 @@ function PhotoRow({ title, hashes, empty }: { title: string; hashes: Hex[]; empt
 }
 
 /** Photo thumbnail with its on-chain hash on hover and a copy button; a hash tile when the file can't be loaded. */
-function EvidenceThumb({ photo }: { photo: EvidenceView }) {
+export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
   const [failed, setFailed] = useState(false);
   const short = `${photo.hash.slice(0, 10)}…${photo.hash.slice(-4)}`;
   return (

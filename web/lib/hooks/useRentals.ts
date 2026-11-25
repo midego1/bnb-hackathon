@@ -112,7 +112,10 @@ export function useRentals() {
       ]);
       // The vault's own share-token Transfer events (mint/burn) are noise next to Deposited / Redeemed.
       const vaultOnly = (vaultLogs as RawLog[]).filter((l) => l.eventName !== "Transfer" && l.eventName !== "Approval");
-      const all = [...created, ...payees, ...escrowLogs, ...vaultOnly, ...inflowLogs] as RawLog[];
+      // Income only: transfers into the vault from rental escrows (investor deposits are principal, not inflow).
+      const leaseSet = new Set(leases.map((l) => l.toLowerCase()));
+      const income = (inflowLogs as RawLog[]).filter((l) => leaseSet.has(String((l.args as { from?: string }).from).toLowerCase()));
+      const all = [...created, ...payees, ...escrowLogs, ...vaultOnly, ...income] as RawLog[];
       const latest = await c.getBlock();
       const times = await blockTimes(c, all.map((l) => l.blockNumber!).filter((b) => b !== null));
       const events = toEvents(all, times).sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1));

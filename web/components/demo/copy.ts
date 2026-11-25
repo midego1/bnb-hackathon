@@ -14,6 +14,7 @@ export const actorLabel: Record<DemoActor, string> = {
   tenant: "Renter",
   arbiter: "Dispute desk",
   inspector: "KeyEscrow Inspector (AI agent)",
+  investor: "Shareholder",
   anyone: "Anyone",
 };
 

@@ -36,6 +36,7 @@ const actorTone: Record<DemoStep["actor"], string> = {
   tenant: "bg-success-soft text-success-fg",
   arbiter: "bg-danger-soft text-danger-fg",
   inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
+  investor: "bg-info-soft text-info-fg",
   anyone: "bg-surface-muted text-muted",
 };
 
