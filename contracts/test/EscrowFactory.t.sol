@@ -21,6 +21,7 @@ contract EscrowFactoryTest is BaseTest {
         assertEq(t.depositAmount, DEPOSIT);
         assertEq(t.termMonths, TERM);
         assertEq(t.responseWindow, WINDOW);
+        assertEq(t.arbiterWindow, ARB_WINDOW);
         assertEq(t.leaseHash, LEASE_HASH);
         assertEq(t.feeBps, FEE_BPS);
         assertEq(t.feeRecipient, treasury);
@@ -36,7 +37,7 @@ contract EscrowFactoryTest is BaseTest {
     function test_createLease_emitsEvent() public {
         vm.expectEmit(false, true, true, true, address(factory));
         emit EscrowFactory.LeaseCreated(
-            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, WINDOW, LEASE_HASH
+            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, WINDOW, ARB_WINDOW, LEASE_HASH
         );
         _createLease();
     }
@@ -117,6 +118,46 @@ contract EscrowFactoryTest is BaseTest {
             abi.encodeWithSelector(EscrowFactory.InvalidResponseWindow.selector, p.responseWindow)
         );
         factory.createLease(p);
+    }
+
+    function test_createLease_zeroWindowsUseDefaults() public {
+        EscrowFactory.LeaseParams memory p = _params();
+        p.responseWindow = 0;
+        p.arbiterWindow = 0;
+
+        vm.expectEmit(false, true, true, true, address(factory));
+        emit EscrowFactory.LeaseCreated(
+            address(0), landlord, tenant, arbiter, RENT, DEPOSIT, TERM, 7 days, 14 days, LEASE_HASH
+        );
+        vm.prank(landlord);
+        RentalEscrow escrow = RentalEscrow(factory.createLease(p));
+
+        RentalEscrow.Terms memory t = escrow.terms();
+        assertEq(t.responseWindow, factory.DEFAULT_RESPONSE_WINDOW());
+        assertEq(t.arbiterWindow, factory.DEFAULT_ARBITER_WINDOW());
+        assertEq(t.responseWindow, 7 days);
+        assertEq(t.arbiterWindow, 14 days);
+    }
+
+    function test_createLease_revertsOnInvalidArbiterWindow() public {
+        EscrowFactory.LeaseParams memory p = _params();
+        p.arbiterWindow = 1 days - 1;
+        vm.prank(landlord);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.InvalidArbiterWindow.selector, p.arbiterWindow));
+        factory.createLease(p);
+
+        p.arbiterWindow = 90 days + 1;
+        vm.prank(landlord);
+        vm.expectRevert(abi.encodeWithSelector(EscrowFactory.InvalidArbiterWindow.selector, p.arbiterWindow));
+        factory.createLease(p);
+
+        // Bounds are inclusive.
+        p.arbiterWindow = 90 days;
+        vm.prank(landlord);
+        assertEq(RentalEscrow(factory.createLease(p)).terms().arbiterWindow, 90 days);
+        p.arbiterWindow = 1 days;
+        vm.prank(landlord);
+        assertEq(RentalEscrow(factory.createLease(p)).terms().arbiterWindow, 1 days);
     }
 
     function test_constructor_revertsOnBadConfig() public {
@@ -200,6 +241,7 @@ contract EscrowFactoryTest is BaseTest {
             depositAmount: DEPOSIT,
             termMonths: TERM,
             responseWindow: WINDOW,
+            arbiterWindow: ARB_WINDOW,
             leaseHash: LEASE_HASH,
             feeBps: 0,
             feeRecipient: address(0)

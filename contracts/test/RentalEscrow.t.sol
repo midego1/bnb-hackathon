@@ -422,30 +422,108 @@ contract RentalEscrowTest is BaseTest {
     // Landlord-response timeout
     // =============================================================================================
 
-    function test_claimTimeout_returnsDepositToTenant() public {
+    function test_claimTimeout_returnsFullDepositToTenant_notTheProposedSplit() public {
         RentalEscrow escrow = _createAndFund();
         escrow.releaseRent();
         uint256 tenantBefore = usdt.balanceOf(tenant);
+        uint256 landlordBefore = usdt.balanceOf(landlord);
 
+        // Tenant generously offers the landlord 300; the landlord never answers.
         vm.prank(tenant);
-        escrow.propose(DEPOSIT, REPORT_HASH);
-        assertEq(escrow.timeoutAt(), vm.getBlockTimestamp() + WINDOW);
+        escrow.propose(700e6, REPORT_HASH);
+        uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
+        assertEq(escrow.timeoutAt(), deadline);
 
-        vm.warp(vm.getBlockTimestamp() + WINDOW - 1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                RentalEscrow.TimeoutNotReached.selector, uint64(vm.getBlockTimestamp() + 1)
-            )
-        );
-        escrow.claimTimeout();
-
-        vm.warp(vm.getBlockTimestamp() + 1);
+        vm.warp(deadline);
+        vm.expectEmit(true, true, true, true, address(escrow));
+        emit RentalEscrow.Settled(DEPOSIT, 0, 0, 0, 0, escrow.LANDLORD_TIMEOUT_BASIS());
         vm.prank(stranger);
         escrow.claimTimeout();
 
         assertEq(uint8(escrow.status()), uint8(SETTLED));
         assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT);
+        assertEq(usdt.balanceOf(landlord), landlordBefore);
         assertEq(usdt.balanceOf(address(escrow)), 0);
+        assertEq(escrow.timeoutAt(), 0);
+    }
+
+    function test_claimTimeout_revertsBeforeDeadline_succeedsExactlyAtDeadline() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH);
+        uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
+
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.TimeoutNotReached.selector, deadline));
+        escrow.claimTimeout();
+
+        vm.warp(deadline - 1);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.TimeoutNotReached.selector, deadline));
+        escrow.claimTimeout();
+
+        vm.warp(deadline);
+        escrow.claimTimeout();
+        assertEq(uint8(escrow.status()), uint8(SETTLED));
+    }
+
+    function test_claimTimeout_doubleTriggerReverts() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH);
+        vm.warp(vm.getBlockTimestamp() + WINDOW);
+        escrow.claimTimeout();
+
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, SETTLED));
+        escrow.claimTimeout();
+        vm.prank(landlord);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, SETTLED));
+        escrow.accept(1);
+    }
+
+    function test_claimTimeout_releasedRentStays_dueRentToLandlord_prepaidRefunded() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.payRent(3); // months 0..3 funded
+        vm.warp(escrow.dueDate(1));
+        escrow.releaseRent(); // months 0,1 released
+        uint256 landlordAfterRelease = usdt.balanceOf(landlord);
+        assertEq(landlordAfterRelease, 2 * RENT - _fee(2 * RENT));
+
+        // Tenant proposes just before month 2 becomes due; the window spans that due date.
+        vm.warp(escrow.dueDate(2) - 1 days);
+        vm.prank(tenant);
+        escrow.propose(0, REPORT_HASH);
+        vm.warp(vm.getBlockTimestamp() + WINDOW);
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+
+        escrow.claimTimeout();
+
+        // Month 2 became due -> landlord; month 3 is prepaid but not due -> tenant; full deposit -> tenant.
+        assertEq(usdt.balanceOf(landlord), landlordAfterRelease + RENT - _fee(RENT));
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        assertEq(usdt.balanceOf(treasury), _fee(2 * RENT) + _fee(RENT));
+        assertEq(escrow.monthsReleased(), 3);
+        assertEq(usdt.balanceOf(address(escrow)), 0);
+    }
+
+    function test_claimTimeout_tenantCounterRestartsClock() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH);
+        vm.warp(vm.getBlockTimestamp() + 1 days);
+        vm.prank(landlord);
+        escrow.propose(0, REPORT_HASH);
+        vm.warp(vm.getBlockTimestamp() + 1 days);
+        vm.prank(tenant);
+        escrow.propose(900e6, REPORT_HASH);
+        uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
+        assertEq(escrow.timeoutAt(), deadline);
+
+        vm.warp(deadline - 1);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.TimeoutNotReached.selector, deadline));
+        escrow.claimTimeout();
+        vm.warp(deadline);
+        escrow.claimTimeout();
+        assertEq(uint8(escrow.status()), uint8(SETTLED));
     }
 
     function test_claimTimeout_notApplicableToLandlordProposal() public {
@@ -578,6 +656,161 @@ contract RentalEscrowTest is BaseTest {
     }
 
     // =============================================================================================
+    // Arbiter-deadline fallback
+    // =============================================================================================
+
+    function test_dispute_setsArbiterDeadline() public {
+        RentalEscrow escrow = _createAndFund();
+        assertEq(escrow.arbiterDeadline(), 0);
+        assertEq(escrow.disputedAt(), 0);
+
+        vm.warp(vm.getBlockTimestamp() + 3 days);
+        vm.prank(tenant);
+        escrow.dispute();
+        assertEq(escrow.disputedAt(), vm.getBlockTimestamp());
+        assertEq(escrow.arbiterDeadline(), vm.getBlockTimestamp() + ARB_WINDOW);
+
+        vm.prank(arbiter);
+        escrow.resolve(0, REPORT_HASH);
+        assertEq(escrow.arbiterDeadline(), 0);
+    }
+
+    function test_claimArbiterTimeout_returnsFullDepositToTenant() public {
+        RentalEscrow escrow = _createAndFund();
+        escrow.releaseRent();
+        vm.prank(landlord);
+        escrow.propose(0, REPORT_HASH); // landlord claims the whole deposit
+        vm.prank(tenant);
+        escrow.dispute();
+        uint64 deadline = escrow.arbiterDeadline();
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+        uint256 landlordBefore = usdt.balanceOf(landlord);
+
+        vm.warp(deadline);
+        vm.expectEmit(true, true, true, true, address(escrow));
+        emit RentalEscrow.Settled(DEPOSIT, 0, 0, 0, 0, escrow.ARBITER_TIMEOUT_BASIS());
+        vm.prank(stranger);
+        escrow.claimArbiterTimeout();
+
+        assertEq(uint8(escrow.status()), uint8(SETTLED));
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT);
+        assertEq(usdt.balanceOf(landlord), landlordBefore);
+        assertEq(usdt.balanceOf(address(escrow)), 0);
+    }
+
+    function test_claimArbiterTimeout_revertsBeforeDeadline_succeedsExactlyAtDeadline() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(landlord);
+        escrow.dispute();
+        uint64 deadline = uint64(vm.getBlockTimestamp() + ARB_WINDOW);
+        assertEq(escrow.arbiterDeadline(), deadline);
+
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.TimeoutNotReached.selector, deadline));
+        escrow.claimArbiterTimeout();
+
+        vm.warp(deadline - 1);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.TimeoutNotReached.selector, deadline));
+        escrow.claimArbiterTimeout();
+
+        vm.warp(deadline);
+        escrow.claimArbiterTimeout();
+        assertEq(uint8(escrow.status()), uint8(SETTLED));
+    }
+
+    function test_claimArbiterTimeout_doubleTriggerReverts() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.dispute();
+        vm.warp(escrow.arbiterDeadline());
+        escrow.claimArbiterTimeout();
+
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, SETTLED));
+        escrow.claimArbiterTimeout();
+        vm.prank(arbiter);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, SETTLED));
+        escrow.resolve(0, REPORT_HASH);
+    }
+
+    function test_claimArbiterTimeout_revertsWhenNotDisputed() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.warp(vm.getBlockTimestamp() + 365 days);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, ACTIVE));
+        escrow.claimArbiterTimeout();
+
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, MOVE_OUT));
+        escrow.claimArbiterTimeout();
+
+        RentalEscrow unfunded = _createLease();
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.InvalidStatus.selector, CREATED));
+        unfunded.claimArbiterTimeout();
+    }
+
+    function test_resolve_worksUntilDeadline_revertsExactlyAtDeadline() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.dispute();
+        uint64 deadline = escrow.arbiterDeadline();
+
+        vm.warp(deadline);
+        vm.prank(arbiter);
+        vm.expectRevert(abi.encodeWithSelector(RentalEscrow.ArbiterDeadlinePassed.selector, deadline));
+        escrow.resolve(0, REPORT_HASH);
+
+        vm.warp(deadline - 1);
+        vm.prank(arbiter);
+        escrow.resolve(0, REPORT_HASH);
+        assertEq(uint8(escrow.status()), uint8(SETTLED));
+    }
+
+    function test_claimArbiterTimeout_releasedRentStays_dueRentToLandlord_prepaidRefunded() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.payRent(3); // months 0..3 funded
+        vm.warp(escrow.dueDate(1));
+        escrow.releaseRent(); // months 0,1 released
+        uint256 landlordAfterRelease = usdt.balanceOf(landlord);
+
+        // Dispute shortly before month 2 is due; the arbiter window spans that due date.
+        vm.warp(escrow.dueDate(2) - 5 days);
+        vm.prank(landlord);
+        escrow.dispute();
+        // Rent keeps flowing during the dispute: month 2 is released while the arbiter is silent.
+        vm.warp(escrow.dueDate(2));
+        escrow.releaseRent();
+        assertEq(escrow.monthsReleased(), 3);
+        uint256 landlordMid = usdt.balanceOf(landlord);
+        assertEq(landlordMid, landlordAfterRelease + RENT - _fee(RENT));
+
+        vm.warp(escrow.arbiterDeadline());
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+        escrow.claimArbiterTimeout();
+
+        // Released rent stays with the landlord; prepaid month 3 + the full deposit go back to the tenant.
+        assertEq(usdt.balanceOf(landlord), landlordMid);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        assertEq(usdt.balanceOf(address(escrow)), 0);
+    }
+
+    function test_claimArbiterTimeout_paysDueButUnreleasedRentToLandlord() public {
+        RentalEscrow escrow = _createAndFund();
+        vm.prank(tenant);
+        escrow.payRent(1); // months 0,1 funded, nothing released
+        vm.warp(escrow.dueDate(1) - 2 days);
+        vm.prank(tenant);
+        escrow.dispute();
+        vm.warp(escrow.arbiterDeadline()); // month 1 became due during the dispute
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+
+        escrow.claimArbiterTimeout();
+
+        assertEq(usdt.balanceOf(landlord), 2 * RENT - _fee(2 * RENT));
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT);
+        assertEq(usdt.balanceOf(address(escrow)), 0);
+    }
+
+    // =============================================================================================
     // Reentrancy
     // =============================================================================================
 
@@ -621,7 +854,7 @@ contract RentalEscrowTest is BaseTest {
         uint256 tenantRefund,
         uint32 extraMonths,
         uint256 elapsed,
-        bool viaArbiter
+        uint8 path
     ) public {
         tenantRefund = bound(tenantRefund, 0, DEPOSIT);
         extraMonths = uint32(bound(extraMonths, 0, TERM - 1));
@@ -635,16 +868,29 @@ contract RentalEscrowTest is BaseTest {
         uint256 tenantStart = usdt.balanceOf(tenant) + DEPOSIT + RENT * (1 + extraMonths);
         vm.warp(block.timestamp + elapsed);
 
-        if (viaArbiter) {
+        path = path % 4;
+        if (path == 0) {
             vm.prank(landlord);
             escrow.dispute();
             vm.prank(arbiter);
             escrow.resolve(tenantRefund, REPORT_HASH);
-        } else {
+        } else if (path == 1) {
             vm.prank(landlord);
             escrow.propose(tenantRefund, REPORT_HASH);
             vm.prank(tenant);
             escrow.accept(1);
+        } else if (path == 2) {
+            vm.prank(tenant);
+            escrow.propose(tenantRefund, REPORT_HASH);
+            vm.warp(block.timestamp + WINDOW);
+            escrow.claimTimeout();
+            tenantRefund = DEPOSIT;
+        } else {
+            vm.prank(landlord);
+            escrow.dispute();
+            vm.warp(block.timestamp + ARB_WINDOW);
+            escrow.claimArbiterTimeout();
+            tenantRefund = DEPOSIT;
         }
 
         uint256 out = usdt.balanceOf(landlord) + usdt.balanceOf(tenant) + usdt.balanceOf(treasury);

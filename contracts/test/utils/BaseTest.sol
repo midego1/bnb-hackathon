@@ -21,7 +21,8 @@ abstract contract BaseTest is Test {
     uint256 internal constant RENT = 500e6; // 500 mUSDT / month
     uint256 internal constant DEPOSIT = 1_000e6; // 2 months' rent
     uint32 internal constant TERM = 12;
-    uint32 internal constant WINDOW = 7 days;
+    uint32 internal constant WINDOW = 5 days; // landlord-response window (non-default on purpose)
+    uint32 internal constant ARB_WINDOW = 10 days; // arbiter window (non-default on purpose)
     uint16 internal constant FEE_BPS = 50; // 0.5%
     bytes32 internal constant LEASE_HASH = keccak256("lease.pdf");
     bytes32 internal constant REPORT_HASH = keccak256("ai-report.json");
@@ -42,6 +43,7 @@ abstract contract BaseTest is Test {
             depositAmount: DEPOSIT,
             termMonths: TERM,
             responseWindow: WINDOW,
+            arbiterWindow: ARB_WINDOW,
             leaseHash: LEASE_HASH
         });
     }

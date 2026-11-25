@@ -15,9 +15,10 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 ///   Active   --propose()-->         MoveOut   (either party proposes a deposit split)
 ///   MoveOut  --propose()-->         MoveOut   (counter-proposal, resets the clock)
 ///   MoveOut  --accept()-->          Settled   (counterparty agrees -> instant payout)
-///   MoveOut  --claimTimeout()-->    Settled   (landlord silent on a tenant proposal -> tenant's terms apply)
+///   MoveOut  --claimTimeout()-->    Settled   (landlord silent on a tenant proposal -> full deposit to tenant)
 ///   Active/MoveOut --dispute()-->   Disputed
-///   Disputed --resolve()-->         Settled   (arbiter rules)
+///   Disputed --resolve()-->         Settled   (arbiter rules before the arbiter deadline)
+///   Disputed --claimArbiterTimeout()--> Settled (arbiter silent past the deadline -> full deposit to tenant)
 ///
 /// Rent: month `i` (0-based) is due at `startTime + i * RENT_PERIOD`. Funded rent for a due month can be
 /// released to the landlord by anyone (keeper-friendly); the tenant may release funded rent early.
@@ -25,8 +26,21 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /// refunded to the tenant.
 ///
 /// Security model: no single party can move the deposit. It leaves the contract only through mutual
-/// agreement, the arbiter's ruling, or the landlord-response timeout. Rent only ever flows to the
+/// agreement, the arbiter's ruling, or one of the two timeouts. Rent only ever flows to the
 /// landlord according to the schedule fixed at creation.
+///
+/// Timeouts (both put the burden of proof on the landlord, who holds no funds and must actively claim):
+///   - Landlord-response timeout: a tenant proposal left unanswered (no accept, counter-proposal or
+///     dispute) for `responseWindow` seconds returns the FULL deposit to the tenant, regardless of the
+///     split the tenant proposed. A silent landlord has not substantiated any claim.
+///   - Arbiter-deadline fallback: a dispute the arbiter has not resolved within `arbiterWindow` seconds
+///     can be closed by anyone, returning the FULL deposit to the tenant. From that moment the arbiter can
+///     no longer rule, so the outcome is deterministic and cannot be raced.
+///   In both cases rent already released stays released, funded rent that is due goes to the landlord and
+///   prepaid rent that is not yet due goes back to the tenant (exactly as in every other settlement).
+///   This is a product policy, not a technical necessity: to change it (e.g. split 50/50 or return the
+///   deposit to the landlord), change the amounts passed to {_settle} in {claimTimeout} and
+///   {claimArbiterTimeout}.
 /// @dev Deployed as EIP-1167 minimal proxies by {EscrowFactory}; configured once through {initialize}.
 contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
@@ -60,6 +74,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         uint256 depositAmount; // in token units
         uint32 termMonths; // number of rent periods
         uint32 responseWindow; // seconds the landlord has to answer a tenant proposal
+        uint32 arbiterWindow; // seconds the arbiter has to resolve an open dispute
         bytes32 leaseHash; // content hash of the off-chain lease document
         uint16 feeBps; // protocol fee on released rent, snapshotted from the factory
         address feeRecipient;
@@ -82,11 +97,17 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     uint256 public constant RENT_PERIOD = 30 days;
     uint16 public constant BPS = 10_000;
 
+    /// @notice `basis` of the {Settled} event when the landlord-response timeout settled the lease.
+    bytes32 public constant LANDLORD_TIMEOUT_BASIS = keccak256("keyescrow.timeout.landlord-response");
+    /// @notice `basis` of the {Settled} event when the arbiter-deadline fallback settled the lease.
+    bytes32 public constant ARBITER_TIMEOUT_BASIS = keccak256("keyescrow.timeout.arbiter-deadline");
+
     Terms internal _terms;
     Proposal internal _proposal;
 
     Status public status;
     uint64 public startTime;
+    uint64 public disputedAt; // timestamp the current dispute was raised (0 if never disputed)
     uint32 public monthsFunded;
     uint32 public monthsReleased;
     bytes32 public checkInHash;
@@ -129,6 +150,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     error ProposerCannotAccept();
     error TimeoutNotReached(uint64 deadline);
     error TimeoutNotApplicable();
+    error ArbiterDeadlinePassed(uint64 deadline);
     error NothingToRelease();
     error TermFullyFunded();
     error TransferShortfall(uint256 expected, uint256 received);
@@ -266,26 +288,31 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         _settle(p.tenantRefund, p.landlordClaim, p.reportHash);
     }
 
-    /// @notice If the landlord does not answer a tenant proposal within `responseWindow`, the tenant's terms apply.
-    /// @dev Callable by anyone; funds only ever go to the parties.
+    /// @notice Landlord-response timeout. If the landlord neither accepts, counter-proposes nor disputes a
+    /// tenant proposal within `responseWindow`, the FULL deposit goes back to the tenant.
+    /// @dev Callable by anyone from `proposedAt + responseWindow` (inclusive); funds only ever go to the
+    /// parties. The tenant's proposed split is deliberately ignored: by staying silent the landlord has not
+    /// substantiated any claim on the deposit. Rent is settled as in every other path (see {_settle}).
     function claimTimeout() external nonReentrant inStatus(Status.MoveOut) {
         Proposal memory p = _proposal;
         if (p.proposer != _terms.tenant) revert TimeoutNotApplicable();
         uint64 deadline = p.proposedAt + _terms.responseWindow;
         if (block.timestamp < deadline) revert TimeoutNotReached(deadline);
 
-        _settle(p.tenantRefund, p.landlordClaim, p.reportHash);
+        _settle(_terms.depositAmount, 0, LANDLORD_TIMEOUT_BASIS);
     }
 
-    /// @notice Escalate to the arbiter.
+    /// @notice Escalate to the arbiter. Starts the `arbiterWindow` clock.
     function dispute() external onlyParty {
         Status s = status;
         if (s != Status.Active && s != Status.MoveOut) revert InvalidStatus(s);
         status = Status.Disputed;
+        // forge-lint: disable-next-line(unsafe-typecast) -- uint64 seconds overflow in ~5e11 years
+        disputedAt = uint64(block.timestamp);
         emit DisputeRaised(msg.sender);
     }
 
-    /// @notice Arbiter rules on the deposit split.
+    /// @notice Arbiter rules on the deposit split. Only possible before {arbiterDeadline}.
     /// @param rulingHash Hash of the arbiter's written ruling.
     function resolve(uint256 tenantRefund, bytes32 rulingHash)
         external
@@ -293,8 +320,23 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
         only(_terms.arbiter)
         inStatus(Status.Disputed)
     {
+        uint64 deadline = arbiterDeadline();
+        if (block.timestamp >= deadline) revert ArbiterDeadlinePassed(deadline);
         if (tenantRefund > _terms.depositAmount) revert InvalidAmount();
         _settle(tenantRefund, _terms.depositAmount - tenantRefund, rulingHash);
+    }
+
+    /// @notice Arbiter-deadline fallback. If the arbiter has not resolved the dispute within
+    /// `arbiterWindow`, anyone can close it and the FULL deposit goes back to the tenant.
+    /// @dev Policy choice: the burden of proof is on the landlord. A deposit claim that the arbiter never
+    /// upheld is not paid out. Rent already released stays released; funded rent that is due still goes to
+    /// the landlord and prepaid future rent to the tenant (see {_settle}). Callable from
+    /// `disputedAt + arbiterWindow` (inclusive), at which point {resolve} stops working.
+    function claimArbiterTimeout() external nonReentrant inStatus(Status.Disputed) {
+        uint64 deadline = arbiterDeadline();
+        if (block.timestamp < deadline) revert TimeoutNotReached(deadline);
+
+        _settle(_terms.depositAmount, 0, ARBITER_TIMEOUT_BASIS);
     }
 
     /// @notice Landlord withdraws an unfunded lease offer.
@@ -333,6 +375,13 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     function timeoutAt() external view returns (uint64) {
         if (status != Status.MoveOut || _proposal.proposer != _terms.tenant) return 0;
         return _proposal.proposedAt + _terms.responseWindow;
+    }
+
+    /// @notice While disputed: timestamp from which {claimArbiterTimeout} is callable and {resolve} is not.
+    /// 0 if the lease is not in dispute.
+    function arbiterDeadline() public view returns (uint64) {
+        if (status != Status.Disputed) return 0;
+        return disputedAt + _terms.arbiterWindow;
     }
 
     // ---------------------------------------------------------------------------------------------

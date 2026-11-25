@@ -19,7 +19,8 @@ contract EscrowFactory is Ownable2Step {
         uint256 rentAmount;
         uint256 depositAmount;
         uint32 termMonths;
-        uint32 responseWindow;
+        uint32 responseWindow; // seconds; 0 = DEFAULT_RESPONSE_WINDOW
+        uint32 arbiterWindow; // seconds; 0 = DEFAULT_ARBITER_WINDOW
         bytes32 leaseHash;
     }
 
@@ -28,6 +29,10 @@ contract EscrowFactory is Ownable2Step {
     uint32 public constant MAX_TERM_MONTHS = 60;
     uint32 public constant MIN_RESPONSE_WINDOW = 1 days;
     uint32 public constant MAX_RESPONSE_WINDOW = 60 days;
+    uint32 public constant DEFAULT_RESPONSE_WINDOW = 7 days;
+    uint32 public constant MIN_ARBITER_WINDOW = 1 days;
+    uint32 public constant MAX_ARBITER_WINDOW = 90 days;
+    uint32 public constant DEFAULT_ARBITER_WINDOW = 14 days;
 
     /// @notice Escrow implementation every lease clones.
     address public immutable implementation;
@@ -52,6 +57,7 @@ contract EscrowFactory is Ownable2Step {
         uint256 depositAmount,
         uint32 termMonths,
         uint32 responseWindow,
+        uint32 arbiterWindow,
         bytes32 leaseHash
     );
     event FeeUpdated(uint16 feeBps, address feeRecipient);
@@ -61,6 +67,7 @@ contract EscrowFactory is Ownable2Step {
     error InvalidAmount();
     error InvalidTerm(uint32 termMonths);
     error InvalidResponseWindow(uint32 responseWindow);
+    error InvalidArbiterWindow(uint32 arbiterWindow);
     error FeeTooHigh(uint16 feeBps);
 
     constructor(IERC20 token_, address owner_, uint16 feeBps_, address feeRecipient_) Ownable(owner_) {
@@ -71,6 +78,7 @@ contract EscrowFactory is Ownable2Step {
     }
 
     /// @notice Create a lease offer. The tenant activates it by calling {RentalEscrow.fund}.
+    /// @dev `responseWindow` / `arbiterWindow` of 0 select the defaults (7 and 14 days).
     function createLease(LeaseParams calldata p) external returns (address escrow) {
         address landlord = msg.sender;
         if (p.tenant == address(0) || p.arbiter == address(0)) revert ZeroAddress();
@@ -81,8 +89,13 @@ contract EscrowFactory is Ownable2Step {
         if (p.termMonths < MIN_TERM_MONTHS || p.termMonths > MAX_TERM_MONTHS) {
             revert InvalidTerm(p.termMonths);
         }
-        if (p.responseWindow < MIN_RESPONSE_WINDOW || p.responseWindow > MAX_RESPONSE_WINDOW) {
-            revert InvalidResponseWindow(p.responseWindow);
+        uint32 responseWindow = p.responseWindow == 0 ? DEFAULT_RESPONSE_WINDOW : p.responseWindow;
+        if (responseWindow < MIN_RESPONSE_WINDOW || responseWindow > MAX_RESPONSE_WINDOW) {
+            revert InvalidResponseWindow(responseWindow);
+        }
+        uint32 arbiterWindow = p.arbiterWindow == 0 ? DEFAULT_ARBITER_WINDOW : p.arbiterWindow;
+        if (arbiterWindow < MIN_ARBITER_WINDOW || arbiterWindow > MAX_ARBITER_WINDOW) {
+            revert InvalidArbiterWindow(arbiterWindow);
         }
 
         escrow = Clones.clone(implementation);
@@ -96,7 +109,8 @@ contract EscrowFactory is Ownable2Step {
                     rentAmount: p.rentAmount,
                     depositAmount: p.depositAmount,
                     termMonths: p.termMonths,
-                    responseWindow: p.responseWindow,
+                    responseWindow: responseWindow,
+                    arbiterWindow: arbiterWindow,
                     leaseHash: p.leaseHash,
                     feeBps: feeBps,
                     feeRecipient: feeRecipient
@@ -119,7 +133,8 @@ contract EscrowFactory is Ownable2Step {
             p.rentAmount,
             p.depositAmount,
             p.termMonths,
-            p.responseWindow,
+            responseWindow,
+            arbiterWindow,
             p.leaseHash
         );
     }
