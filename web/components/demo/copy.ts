@@ -45,7 +45,7 @@ export const controls = {
   restart: "↺ Restart",
   connecting: "Connecting to the local chain…",
   paused: "Paused. Press Resume to continue.",
-  pausing: "Pausing after this step…",
+  pausing: "Pausing before the next transaction…",
   showSummary: "Show the summary",
 };
 
@@ -152,4 +152,41 @@ export const testnetCopy = {
   loading: "Loading the live testnet demo…",
   ctaTitle: "See the whole story in one click, live on BSC Testnet",
   ctaBody: "A fresh scooter rental, funded, paid out, inspected by AI and settled, with real BSC testnet transactions you can open on BscScan. No wallet needed. About two minutes.",
+};
+
+/** Guided speed: the intro card, the three beats of every step, the transaction lines and the presenter keys. */
+export const guidedCopy = {
+  speed: "Guided",
+  speedTitle: "Slow, explained: each step says what happens, runs it, then shows what changed",
+  normalTitle: "One short caption per step",
+  fastTitle: "No pauses",
+  beat: { intro: "Before we start", now: "What happens now", run: "On-chain now", changed: "What just changed" },
+  back: "← Back",
+  next: "Next →",
+  pressNext: "Press Next → to continue.",
+  paused: "Paused. Press Resume or the space bar.",
+  reviewing: "Looking back: this already happened. Next → returns to the live demo.",
+  keys: "Space pauses · ← → move through the captions",
+  why: "Why it matters",
+  /** The transaction lines of the "On-chain now" beat. */
+  signing: (who: string) => `Signing as ${who}`,
+  calling: (contract: string, fn: string, args: string) => `calling ${contract}.${fn}(${args})`,
+  upload: (n: number) => `Storing ${n} file${n === 1 ? "" : "s"} off-chain; only the fingerprint${n === 1 ? "" : "s"} will go on-chain`,
+  inspect: "AI Inspector comparing the start and end photos",
+  time: (seconds: number) => `Jumping the demo chain's clock forward ${Math.round(seconds / 86_400)} days`,
+  confirmed: "confirmed",
+  failed: "failed",
+  nothingYet: "Starting…",
+  /** The actor cards while a step runs. */
+  acting: "▶ Acting now",
+  receiving: "← Receives",
+  intro: {
+    title: "How KeyEscrow works",
+    body:
+      "Renting a scooter in Thailand often means leaving your passport or a cash deposit at the shop, and getting it back can be hard. " +
+      "KeyEscrow puts the deposit in escrow (held by a neutral party): a smart contract on BNB Chain that nobody can change.",
+    cast: "Who is who",
+    see: "What you will see",
+    beats: "Every step has three parts: what happens now, the transaction itself, and what just changed.",
+  },
 };

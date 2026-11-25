@@ -4,7 +4,7 @@ import type { DemoActor } from "@/lib/demo/script";
 import { formatFiat, toFiat } from "@/lib/fiat";
 import { formatUsdt } from "@/lib/format";
 import { usePrices } from "@/lib/usePrices";
-import { actorCards, panels } from "./copy";
+import { actorCards, guidedCopy, panels } from "./copy";
 
 /** Live mUSDT balances of everyone the money can reach. `escrow` is unset until the demo rental exists. */
 export type Wallets = { landlord: bigint; tenant: bigint; treasury: bigint; escrow?: bigint };
@@ -33,7 +33,7 @@ export function deltas(base: Wallets | null, now: Wallets | null): Partial<Recor
   return out;
 }
 
-const tone: Record<WalletKey | "arbiter" | "inspector", string> = {
+export const tone: Record<WalletKey | "arbiter" | "inspector", string> = {
   landlord: "bg-violet-500",
   tenant: "bg-emerald-500",
   escrow: "bg-amber-500",
@@ -55,37 +55,57 @@ const actorCard: Partial<Record<DemoActor, WalletKey | "arbiter" | "inspector">>
  * balances, plus the two referees that never hold money. A card flashes and shows the step's net change when money
  * moves through it.
  */
-export function ActorBoard({ wallets, base, actor }: { wallets: Wallets | null; base: Wallets | null; actor?: DemoActor }) {
+export function ActorBoard({
+  wallets,
+  base,
+  actor,
+  receiving = [],
+}: {
+  wallets: Wallets | null;
+  base: Wallets | null;
+  actor?: DemoActor;
+  /** Cards that get something in the current step (money, a record, a proposal): highlighted next to the actor. */
+  receiving?: readonly string[];
+}) {
   const d = deltas(base, wallets);
   const active = actor ? actorCard[actor] : undefined;
+  const gets = (k: string) => k !== active && (receiving.includes(k) || (d[k as WalletKey] ?? ZERO) > ZERO);
   return (
     <aside className="relative grid grid-cols-2 gap-2 lg:flex lg:min-h-0 lg:flex-col lg:overflow-y-auto" aria-label="Who holds the money" data-testid="demo-actors">
       {ORDER.map((k) => (
-        <MoneyCard key={k} id={k} value={wallets?.[k]} delta={d[k]} active={active === k} />
+        <MoneyCard key={k} id={k} value={wallets?.[k]} delta={d[k]} active={active === k} receiving={gets(k)} />
       ))}
       <div className="col-span-2 grid grid-cols-2 gap-2">
-        <RefereeCard id="arbiter" active={active === "arbiter"} />
-        <RefereeCard id="inspector" active={active === "inspector"} />
+        <RefereeCard id="arbiter" active={active === "arbiter"} receiving={gets("arbiter")} />
+        <RefereeCard id="inspector" active={active === "inspector"} receiving={gets("inspector")} />
       </div>
     </aside>
   );
 }
 
-const cardBase = "relative overflow-hidden rounded-xl border bg-surface transition-shadow";
-const ring = (active: boolean) =>
-  active ? "border-amber-400 ring-2 ring-amber-400 dark:border-amber-500 dark:ring-amber-500" : "border-border";
+const cardBase = "relative overflow-hidden rounded-xl border transition-shadow";
+/** The acting card: amber ring and tint. A receiving card: green ring and tint. */
+const ring = (active: boolean, receiving = false) =>
+  active
+    ? "border-amber-400 bg-amber-50 ring-2 ring-amber-400 dark:border-amber-500 dark:bg-amber-950/40 dark:ring-amber-500"
+    : receiving
+      ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500 dark:border-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-500"
+      : "border-border bg-surface";
+const tag = (active: boolean, receiving: boolean) => (active ? guidedCopy.acting : receiving ? guidedCopy.receiving : undefined);
+const tagTone = (active: boolean) => (active ? "font-semibold text-amber-800 dark:text-amber-300" : "font-semibold text-emerald-800 dark:text-emerald-300");
 
-function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint; delta?: bigint; active: boolean }) {
+function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; value?: bigint; delta?: bigint; active: boolean; receiving: boolean }) {
   const { prices } = usePrices();
   const thb = useThb();
   const copy = actorCards[id];
   const usd = value === undefined ? null : toFiat(value, "USDT", "USD", prices);
   return (
     <div
-      className={`${cardBase} ${ring(active)} px-3 py-2.5`}
+      className={`${cardBase} ${ring(active, receiving)} px-3 py-2.5`}
       data-testid={`demo-actor-${id}`}
       data-balance={value?.toString() ?? ""}
       data-active={active ? "true" : "false"}
+      data-receiving={receiving ? "true" : "false"}
     >
       {delta !== undefined && (
         <span
@@ -112,7 +132,7 @@ function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint
           </span>
         )}
       </div>
-      <p className="relative truncate text-[13px] text-subtle hidden tall:block">{copy.note}</p>
+      <p className={`relative truncate text-[13px] hidden tall:block ${tag(active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(active, receiving) ?? copy.note}</p>
       {value === undefined ? (
         <p className="relative mt-0.5 text-sm text-subtle">{"empty" in copy ? copy.empty : "…"}</p>
       ) : (
@@ -127,15 +147,20 @@ function MoneyCard({ id, value, delta, active }: { id: WalletKey; value?: bigint
   );
 }
 
-function RefereeCard({ id, active }: { id: "arbiter" | "inspector"; active: boolean }) {
+function RefereeCard({ id, active, receiving }: { id: "arbiter" | "inspector"; active: boolean; receiving: boolean }) {
   const copy = actorCards[id];
   return (
-    <div className={`${cardBase} ${ring(active)} px-3 py-2`} data-testid={`demo-actor-${id}`} data-active={active ? "true" : "false"}>
+    <div
+      className={`${cardBase} ${ring(active, receiving)} px-3 py-2`}
+      data-testid={`demo-actor-${id}`}
+      data-active={active ? "true" : "false"}
+      data-receiving={receiving ? "true" : "false"}
+    >
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone[id]}`} />
         {copy.name}
       </p>
-      <p className="text-[13px] leading-snug text-subtle">{copy.note}</p>
+      <p className={`text-[13px] leading-snug ${tag(active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(active, receiving) ?? copy.note}</p>
     </div>
   );
 }

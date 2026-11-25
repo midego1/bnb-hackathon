@@ -90,9 +90,9 @@ and testnet builds compile it out and `/demo` returns 404.
 | Control | What it does |
 | --- | --- |
 | **Story** | *Happy path* (renter proposes the AI split, owner accepts), *Dispute path* (owner disputes, the dispute desk rules on a split), *Owner ignores it* (7-day fast-forward, then the full deposit goes back to the renter). |
-| **Speed** | *Normal* holds each caption long enough to read aloud (about a minute for the happy path). *Fast* runs the transactions back to back (about 10 s). |
-| **Mode** | *Autoplay*, or *Step by step*: each step waits for **Next step →**. Best for a live pitch, you talk, then click. |
-| **Pause / Restart** | Pause takes effect after the current transaction. Restart begins again with a fresh rental. |
+| **Speed** | *Guided* (the default) explains itself, no presenter needed: a short intro card (what KeyEscrow is, who is who), then three beats per step: **What happens now** (who acts, in plain words, up long enough to read at 200 words a minute, at least 6 s, with a thin bar until it moves on), **On-chain now** ("Signing as Renter → calling RentalEscrow.fund()" with a spinner, then the transaction hash) and **What just changed** (the money that moved, highlighted, and what the contract now guarantees). The acting card lights up amber, the receiving card green. About 3:10 for the happy path, 3:30 for the other two. *Normal* holds one short caption per step (about a minute). *Fast* runs the transactions back to back (about 10 s). |
+| **Mode** | *Autoplay*, or *Step by step*: each step waits for **Next step →** (in Guided, every caption waits for **Next →**, and **← Back** shows earlier captions again). Best for a live pitch, you talk, then click. |
+| **Pause / Restart** | Pause (or the space bar) works at any moment: it freezes the caption timer, or holds before the next transaction. **Next →** (or the → key; clickers send it) skips the current wait. Restart begins again with a fresh rental. |
 | **Retry** | If a step fails (node down, AI route offline, …) the error is shown in plain words with **Retry this step** and **Start over**. Retried steps resume where they stopped: nothing is sent twice. |
 
 What it does, step by step (each run creates a **new rental**, cycling through three monthly scooter rentals: a
@@ -124,7 +124,7 @@ the normal UI: the `useTx` hook (simulate, send, toast), `uploadEvidence`, `runI
 `LeaseDetail` page component, rendered live under the narration.
 
 `/demo?autoplay=1` starts on load (the landing button uses it); add `&path=dispute` or `&path=timeout`,
-`&speed=fast` or `&step=1` to preset the controls.
+`&speed=normal`, `&speed=fast` or `&step=1` to preset the controls (`&timescale=0.05` shortens every Guided wait, for tests).
 
 | Start | Mid-run (step by step) | End |
 | --- | --- | --- |
