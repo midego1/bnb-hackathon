@@ -1,16 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { keccak256, toBytes } from "viem";
+import { Check, ExternalLink } from "lucide-react";
 import { Card, Skeleton, useMoney } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
-import { formatDate } from "@/lib/format";
+import { formatDate, shortAddress } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
+import { rentalCopy as c } from "./copy";
 import { roleOfAddress } from "./model";
-
-const LANDLORD_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.landlord-response"));
-const ARBITER_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.arbiter-deadline"));
+import { ARBITER_TIMEOUT_BASIS, LANDLORD_TIMEOUT_BASIS } from "./story";
 type Money = (v: bigint) => string;
 const months = (n: unknown) => `${n} month${Number(n) === 1 ? "" : "s"}`;
 const evidenceKinds = ["pickup photo", "return photo", "document"];
@@ -20,69 +19,79 @@ function describe(e: TimelineEvent, lease: LeaseData, money: Money): { title: st
   const usdt = (v: unknown) => money(v as bigint);
   switch (e.name) {
     case "LeaseCreated":
-      return { title: "Rental offered by the owner", body: `${usdt(a.rentAmount)} / month, ${usdt(a.depositAmount)} deposit, ${a.termMonths} months`, tone: "bg-dot-neutral" };
+      return { title: "Rental offered by the owner", body: `${usdt(a.rentAmount)} / month, ${usdt(a.depositAmount)} deposit, ${a.termMonths} months`, tone: "text-subtle" };
     case "Funded":
-      return { title: "Renter funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} first month's rent`, tone: "bg-dot-success" };
+      return { title: "Renter funded the escrow", body: `${usdt(a.deposit)} deposit + ${usdt(a.firstRent)} first month's rent`, tone: "text-success" };
     case "RentPaid":
-      return { title: `Renter prepaid ${months(a.months)} of rent`, body: usdt(a.amount), tone: "bg-dot-success" };
+      return { title: `Renter prepaid ${months(a.months)} of rent`, body: usdt(a.amount), tone: "text-success" };
     case "RentReleased":
       return {
         title: `${months(a.months)} of rent paid out to the owner`,
         body: `${usdt(a.toLandlord)} to owner${(a.fee as bigint) > BigInt(0) ? `, ${usdt(a.fee)} KeyEscrow fee` : ""} · triggered by the ${roleOfAddress(lease, a.caller)}`,
-        tone: "bg-dot-success",
+        tone: "text-success",
       };
     case "EvidenceAdded":
       return {
         title: `${evidenceKinds[Number(a.kind)] ?? "evidence"} recorded by the ${roleOfAddress(lease, a.by)}`,
         body: <code className="text-xs" title={String(a.contentHash)}>{String(a.contentHash).slice(0, 18)}…</code>,
-        tone: "bg-dot-neutral",
+        tone: "text-subtle",
       };
     case "SettlementProposed":
-      return { title: `The ${roleOfAddress(lease, a.proposer)} proposed a deposit split`, body: `renter gets ${usdt(a.tenantRefund)} · owner keeps ${usdt(a.landlordClaim)}`, tone: "bg-dot-info" };
+      return { title: `The ${roleOfAddress(lease, a.proposer)} proposed a deposit split`, body: `renter gets ${usdt(a.tenantRefund)} · owner keeps ${usdt(a.landlordClaim)}`, tone: "text-info" };
     case "DisputeRaised":
-      return { title: `The ${roleOfAddress(lease, a.by)} opened a dispute`, tone: "bg-danger" };
+      return { title: `The ${roleOfAddress(lease, a.by)} opened a dispute`, tone: "text-danger" };
     case "Settled":
       return {
         title: a.basis === LANDLORD_TIMEOUT_BASIS ? "Settled: owner did not reply in time" : a.basis === ARBITER_TIMEOUT_BASIS ? "Settled: dispute desk deadline passed" : "Settled, all funds paid out",
         body: `renter ${usdt((a.tenantRefund as bigint) + (a.rentToTenant as bigint))} · owner ${usdt((a.landlordClaim as bigint) + (a.rentToLandlord as bigint) - (a.fee as bigint))}`,
-        tone: "bg-foreground",
+        tone: "text-foreground",
       };
     case "ProtocolFeePaid":
-      return { title: "One-time KeyEscrow fee taken from the owner's first payout", body: usdt(a.amount), tone: "bg-dot-neutral" };
+      return { title: "One-time KeyEscrow fee taken from the owner's first payout", body: usdt(a.amount), tone: "text-subtle" };
+    case "PayeeSet":
+      return { title: c.timeline.payee, tone: "text-subtle" };
     case "Cancelled":
-      return { title: "Offer cancelled by the owner", tone: "bg-dot-neutral" };
+      return { title: "Offer cancelled by the owner", tone: "text-subtle" };
     default:
-      return { title: e.name, tone: "bg-dot-neutral" };
+      return { title: e.name, tone: "text-subtle" };
   }
 }
 
 export function Timeline({ lease, events, chainId, unavailable }: { lease: LeaseData; events: TimelineEvent[] | undefined; chainId: number; unavailable?: boolean }) {
   const money = useMoney();
   return (
-    <Card title="Timeline">
+    <Card title={c.timeline.title} aside={<span className="text-xs text-subtle">{c.timeline.sub}</span>}>
       {unavailable ? (
         <p className="text-sm text-subtle">History is unavailable because this network&apos;s RPC refused the event query. Balances and actions above are still live.</p>
       ) : !events ? (
         <Skeleton className="h-24" />
+      ) : events.length === 0 ? (
+        <p className="text-sm text-subtle">{c.timeline.none}</p>
       ) : (
-        <ol className="relative space-y-4 border-l border-border pl-5" data-testid="timeline">
+        <ol className="divide-y divide-border" data-testid="timeline">
           {events.map((e) => {
             const d = describe(e, lease, money);
             const href = explorerLink(chainId, "tx", e.txHash);
             return (
-              <li key={`${e.txHash}-${e.logIndex}`} className="relative" data-event={e.name}>
-                <span className={`absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-surface ${d.tone}`} />
-                <p className="text-sm font-medium first-letter:uppercase">{d.title}</p>
-                {d.body && <p className="text-sm text-muted-foreground">{d.body}</p>}
-                <p className="text-xs text-subtle">
-                  {formatDate(e.timestamp)} · block {e.blockNumber.toString()}
-                  {href && (
-                    <>
-                      {" · "}
-                      <a href={href} target="_blank" rel="noreferrer" className="underline">
-                        BscScan
-                      </a>
-                    </>
+              <li key={`${e.txHash}-${e.logIndex}`} className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] gap-x-3 py-2.5" data-event={e.name}>
+                <span className={`mt-0.5 inline-flex size-5 items-center justify-center rounded-full bg-muted ${d.tone}`} aria-hidden>
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold first-letter:uppercase">{d.title}</p>
+                  {d.body && <p className="text-sm text-muted-foreground">{d.body}</p>}
+                </div>
+                <p className="text-right text-xs text-subtle tabular-nums">
+                  {formatDate(e.timestamp)}
+                  <br />
+                  {href ? (
+                    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-mono underline underline-offset-2">
+                      {shortAddress(e.txHash)} <ExternalLink aria-hidden className="size-3" />
+                    </a>
+                  ) : (
+                    <span className="font-mono" title={e.txHash}>
+                      {shortAddress(e.txHash)}
+                    </span>
                   )}
                 </p>
               </li>

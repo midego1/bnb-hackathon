@@ -135,6 +135,10 @@ function slug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "scooter";
 }
 
+/** Unsigned requests can add listings and bookings: cap the per-chain record so spam cannot grow it without end. */
+export const MAX_SCOOTERS = 200;
+export const MAX_BOOKINGS = 500;
+
 /** Mutates `data` with one action. Exported for tests. */
 export function applyAction(data: FleetData, a: FleetAction, now: string) {
   const scooter = (id: string) => {
@@ -152,6 +156,7 @@ export function applyAction(data: FleetData, a: FleetAction, now: string) {
   };
   switch (a.action) {
     case "addScooter": {
+      if (data.scooters.length >= MAX_SCOOTERS) throw new FleetError(`the demo fleet is full (${MAX_SCOOTERS} scooters)`, 409);
       let id = slug(`${a.name} ${a.location}`);
       for (let i = 2; data.scooters.some((s) => s.id === id); i++) id = `${slug(`${a.name} ${a.location}`)}-${i}`;
       data.scooters.push({
@@ -178,6 +183,7 @@ export function applyAction(data: FleetData, a: FleetAction, now: string) {
       const subscription = a.action === "subscribe" ? { ...s.plan! } : undefined;
       if (open) open.subscription = subscription;
       else data.bookings.push({ id: randomUUID(), scooterId: a.scooterId, renter: a.renter, createdAt: now, status: "requested", ...(subscription && { subscription }) });
+      data.bookings.splice(0, data.bookings.length - MAX_BOOKINGS); // oldest go first
       return;
     }
     case "offerPlan":

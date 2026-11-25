@@ -100,6 +100,6 @@ test("a link to a rental that no longer exists points to the latest one instead 
   const link = gone.getByRole("link", { name: "Open the latest one" });
   await expect(link).toHaveAttribute("href", /^\/lease\/0x[0-9a-fA-F]{40}$/);
   await link.click();
-  await expect(page.getByRole("heading", { name: /Rental 0x/ })).toBeVisible();
+  await expect(page.getByTestId("rental-title")).toBeVisible();
   await expect(page.getByTestId("lease-gone")).toBeHidden();
 });

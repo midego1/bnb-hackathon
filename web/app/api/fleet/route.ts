@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SUPPORTED_CHAIN_IDS } from "@/lib/actions/fields";
 import { FleetError, fleetActionSchema, getFleetStore } from "@/lib/server/fleet";
 import { jsonError, zodIssues } from "@/lib/server/http";
 
@@ -11,18 +12,18 @@ import { jsonError, zodIssues } from "@/lib/server/http";
  */
 function chainOf(request: Request) {
   const id = Number(new URL(request.url).searchParams.get("chainId") ?? "31337");
-  return Number.isInteger(id) && id > 0 ? id : undefined;
+  return (SUPPORTED_CHAIN_IDS as readonly number[]).includes(id) ? id : undefined;
 }
 
 export async function GET(request: Request) {
   const chainId = chainOf(request);
-  if (!chainId) return jsonError(400, "chainId must be a positive integer");
+  if (!chainId) return jsonError(400, "chainId must be 31337 or 97");
   return NextResponse.json(await getFleetStore().read(chainId), { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
   const chainId = chainOf(request);
-  if (!chainId) return jsonError(400, "chainId must be a positive integer");
+  if (!chainId) return jsonError(400, "chainId must be 31337 or 97");
   const parsed = fleetActionSchema.safeParse(await request.json().catch(() => undefined));
   if (!parsed.success) return jsonError(400, "invalid fleet action", zodIssues(parsed.error));
   try {

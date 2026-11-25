@@ -4,6 +4,7 @@ import { dailyTokenLimit, TokenBudget } from "@/lib/assistant/limits";
 import { modelFromEnv, resolveModel } from "@/lib/assistant/model";
 import { casStore, type AssistantStore } from "@/lib/assistant/store";
 import { webActionHost } from "@/lib/server/actions";
+import { clientIp } from "@/lib/server/http";
 import { cloudflareBinding } from "@/lib/server/platform";
 import { getSharedState } from "@/lib/server/state";
 
@@ -16,9 +17,10 @@ export function assistantStore(): AssistantStore {
  * The web app's Ask AI host: the same action host as /api/v1, the model from server env (ANTHROPIC_API_KEY, never
  * NEXT_PUBLIC_; the demo model without it), the shared state, and inspect_return through this app's own
  * POST /api/settlement (called over fetch, so the assistant's Worker chunk does not carry a second copy of it).
- * Built per request; `origin` is the request's own origin.
+ * Built per request; settlement calls go to the request's own origin and carry the caller's IP for its rate limit.
  */
-export function assistantDeps(origin: string, env: Record<string, string | undefined> = process.env): EngineDeps {
+export function assistantDeps(req: Request, env: Record<string, string | undefined> = process.env): EngineDeps {
+  const origin = new URL(req.url).origin;
   const store = assistantStore();
   return {
     store,
@@ -31,7 +33,7 @@ export function assistantDeps(origin: string, env: Record<string, string | undef
       const self = cloudflareBinding<{ fetch: typeof fetch }>("WORKER_SELF_REFERENCE");
       const res = await (self ? self.fetch.bind(self) : fetch)(new URL("/api/settlement", origin), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-forwarded-for": clientIp(req) },
         body: JSON.stringify({
           deposit: lease.terms.depositAmount.toString(),
           decimals: 6,

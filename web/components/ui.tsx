@@ -190,6 +190,18 @@ export function useMoney() {
   );
 }
 
+/** Baht only, for headlines: "฿6,800", or "206.06 USDT" until rates load. */
+export function useBaht() {
+  const { prices } = usePrices();
+  return useCallback(
+    (value: bigint) => {
+      const thb = toFiat(value, "USDT", "THB", prices);
+      return thb === null ? `${formatUsdt(value)} USDT` : formatFiat(thb, "THB");
+    },
+    [prices],
+  );
+}
+
 /**
  * An on-chain USDT amount shown THB first, then USD, with the exact token amount underneath.
  * Falls back to the USDT figure alone until /api/price answers.

@@ -137,13 +137,25 @@ contract FleetVaultTest is BaseTest {
         assertEq(usdt.balanceOf(address(vault)), 4_000e6);
     }
 
-    function test_sync_noSharesOrNoIncomeIsNoop() public {
+    function test_sync_noSharesSendsIncomeToOperator() public {
         _income(50e6);
-        assertEq(vault.sync(), 0); // no shareholders yet: income waits
+        assertEq(vault.sync(), 0); // no shareholders: nothing is credited to shares...
+        assertEq(usdt.balanceOf(operator), 50e6); // ...the operator gets all of it
+        assertEq(vault.totalOperatorFees(), 50e6);
+        assertEq(vault.unsyncedIncome(), 0);
+        _deposit(alice, 1_000e6);
+        assertEq(vault.sync(), 0); // nothing waits for the first depositor
         assertEq(vault.claimable(alice), 0);
-        _deposit(alice, 1_000e6); // first depositor picks up the waiting income on the next sync
-        assertEq(vault.sync(), 45e6);
-        assertEq(vault.sync(), 0);
+    }
+
+    /// Regression: income that reached an empty vault could be taken with a 1-unit deposit and an immediate claim.
+    function test_orphanIncome_cannotBeTakenByATinyDeposit() public {
+        _income(1_000e6);
+        _deposit(alice, 1);
+        vm.prank(alice);
+        vm.expectRevert(FleetVault.NothingToClaim.selector);
+        vault.claim();
+        assertEq(usdt.balanceOf(operator), 1_000e6);
     }
 
     function test_deposit_doesNotDiluteEarlierIncome() public {

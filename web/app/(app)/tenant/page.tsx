@@ -1,63 +1,22 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { useAccount } from "wagmi";
-import { LeaseGrid } from "@/components/lease/LeaseCard";
 import { Renter } from "@/components/roles/Renter";
-import { CopyButton, PageTitle } from "@/components/ui";
-import { shortAddress } from "@/lib/format";
+import { RenterWelcome } from "@/components/roles/RenterWelcome";
 import { WalletGate } from "@/components/WalletGate";
-import { useLeaseList } from "@/lib/hooks/useLease";
 
-const steps = [
-  ["Fund", "Pay the deposit plus the first month's rent into this rental's own escrow (two wallet steps: approve, then fund)."],
-  ["Ride", "Rent is paid out to the owner month by month. You can prepay months or release rent early."],
-  ["Return", "Bring the scooter back and add return photos. The AI inspection proposes a deposit split; one side proposes, the other accepts."],
-  ["Disagree?", "Open a dispute and the dispute desk rules. The owner can never take the deposit alone."],
-];
-
+/** Never empty: without a wallet a welcome with one live rental, with one the renter's rentals and the scooters to book. */
 export default function TenantPage() {
-  const { address } = useAccount();
-  const { data } = useLeaseList("tenant", address);
+  const { isConnected } = useAccount();
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
-      <PageTitle title="Renter">
-        Book a scooter, pay deposit + rent into the rental&apos;s own escrow, and get your deposit back without leaving your passport. The
-        deposit only moves when you and the shop agree, or a neutral dispute desk rules.
-      </PageTitle>
-      <Link href="/app/subscriptions" className="-mt-4 mb-6 inline-block text-sm font-medium underline-offset-4 hover:underline" data-testid="tenant-subscriptions-link">
-        Riding for months? Subscribe monthly instead <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
-      </Link>
-      <ol className="mb-8 hidden gap-3 sm:grid sm:grid-cols-4">
-        {steps.map(([t, b], i) => (
-          <li key={t} className="rounded-xl border border-border p-3 text-sm">
-            <p className="font-semibold">
-              {i + 1}. {t}
-            </p>
-            <p className="mt-1 text-muted-foreground">{b}</p>
-          </li>
-        ))}
-      </ol>
-      <WalletGate what="book a scooter and see your rentals">
-        <Renter />
-        <h2 className="mb-3 mt-8 text-lg font-semibold">All rental contracts for this wallet</h2>
-        <LeaseGrid
-          addresses={data}
-          empty={
-            <>
-              No rentals for this wallet yet. Send your owner your wallet address
-              {address && (
-                <>
-                  {" "}
-                  <span className="font-mono">{shortAddress(address)}</span> <CopyButton value={address} label="Copy my address" />
-                </>
-              )}{" "}
-              and the rental appears here once they create it.
-            </>
-          }
-        />
-      </WalletGate>
+      {isConnected ? (
+        <WalletGate what="see your rentals">
+          <Renter />
+        </WalletGate>
+      ) : (
+        <RenterWelcome />
+      )}
     </section>
   );
 }
