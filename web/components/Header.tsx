@@ -37,6 +37,14 @@ export function Header() {
           <NavLinks />
         </nav>
         <div className="flex items-center gap-2">
+          {/* The animated explainer: no wallet needed. Phones reach it from the home page. */}
+          <Link
+            href="/how-it-works"
+            data-testid="header-eli5"
+            className="hidden shrink-0 rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap text-muted transition hover:bg-surface-muted lg:inline-flex"
+          >
+            How it works
+          </Link>
           <span className="hidden xl:block">
             <PriceSourceBadge />
           </span>

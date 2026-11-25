@@ -441,6 +441,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <h1 className="text-xl font-semibold tracking-tight">{pageTitle}</h1>
           {testnet && <LiveBadge />}
+          <Link href="/how-it-works" className="hidden text-sm font-medium text-muted underline-offset-4 hover:text-foreground hover:underline min-[1400px]:inline" data-testid="demo-eli5">Explain it simply</Link>
           <Segmented
             label={controls.story}
             value={path}
