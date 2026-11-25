@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 <!-- coverage:start -->
 ![contracts coverage](https://img.shields.io/badge/coverage%20contracts-100%25-brightgreen.svg)
-![web coverage](https://img.shields.io/badge/coverage%20web-66%25-yellow.svg)
+![web coverage](https://img.shields.io/badge/coverage%20web-66.2%25-yellow.svg)
 ![agent coverage](https://img.shields.io/badge/coverage%20agent-81.4%25-green.svg)
 <!-- coverage:end -->
 [![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8)
@@ -122,12 +122,12 @@ artifact; `pnpm coverage` measures all three locally and rewrites the coverage b
 number covers `lib/` and the API routes, the pages are covered by Playwright).
 
 ```bash
-cd contracts && forge build && forge test   # 119 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 311 vitest tests (server routes, actions, demo, sponsors; offline)
+cd contracts && forge build && forge test   # 120 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT
+pnpm -C web lint && pnpm -C web test        # eslint + 344 vitest tests (server routes, actions, demo, sponsors; offline)
 pnpm -C web build                           # production build
-pnpm agent:test                             # 20 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil
+pnpm agent:test                             # 21 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil
 pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
-cd web && npx playwright test               # 82 browser tests in 15 files, 2 workers; own anvil :28546 + server :3150
+cd web && npx playwright test               # 91 browser tests in 17 files, 2 workers; own anvil :28546 + server :3150
 pnpm coverage                               # forge coverage + vitest v8 coverage, lcov in <part>/coverage/
 ```
 
