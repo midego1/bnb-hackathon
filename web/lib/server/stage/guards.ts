@@ -1,4 +1,5 @@
 import { parseEther, parseUnits } from "viem";
+import { TOKEN } from "@/lib/contracts";
 
 /**
  * Pure rules of the live stage demo (lib/server/stage/index.ts): when it is on, how much test money one phone gets,
@@ -14,8 +15,8 @@ export const DRIP_TBNB = parseEther("0.002");
 export const FUNDER_FLOOR = parseEther("0.02");
 /** The mUSDT drip covers rent + deposit plus this margin, so a small THB rate move cannot leave the phone short. */
 export const MUSDT_MARGIN_BPS = BigInt(1_000);
-/** MockUSDT.FAUCET_LIMIT: one faucet call mints at most this (6 decimals). */
-export const MAX_MUSDT_DRIP = parseUnits("10000", 6);
+/** MockUSDT.FAUCET_LIMIT: one faucet call mints at most 10,000 tokens. */
+export const MAX_MUSDT_DRIP = parseUnits("10000", TOKEN.decimals);
 /** Gas cap per server-signed stage transaction (createLease is ~400k). */
 export const MAX_GAS_PER_TX = BigInt(1_000_000);
 
@@ -34,7 +35,7 @@ export class StageError extends Error {
 export function thbToUnits(thb: number, thbPerUsdt: number): bigint {
   if (!(thb > 0) || !(thbPerUsdt > 0)) throw new StageError(500, "The listing price or the exchange rate is not usable.");
   const cents = Math.ceil((thb / thbPerUsdt) * 100 - 1e-9);
-  return BigInt(cents) * BigInt(10_000);
+  return BigInt(cents) * BigInt(10) ** BigInt(TOKEN.decimals - 2);
 }
 
 /**
