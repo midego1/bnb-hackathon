@@ -1,4 +1,4 @@
-import { formatEther, formatGwei, getAddress, parseEventLogs, type Address, type Hash, type Hex, type TransactionReceipt } from "viem";
+import { formatEther, formatGwei, formatUnits, getAddress, parseEventLogs, type Address, type Hash, type Hex, type TransactionReceipt } from "viem";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import { createChain97, gasPriceFrom, TxStalledError, txUrl, type Chain97 } from "../chain97.mts";
@@ -23,6 +23,7 @@ import {
   type DemoTestnetPath,
   type RunState,
 } from "./guards";
+import { planOnRamp } from "../onramp";
 import { loadDemoSecrets, type DemoSecrets, type DemoSecretsSource } from "./keys";
 import { MemoryRunStore, type DemoRunStore } from "./store";
 
@@ -259,18 +260,19 @@ export class DemoTestnetRunner {
   }
 
   /**
-   * PromptPay demo on-ramp (lib/server/onramp.ts, which vets `to` and caps `amount`): MockUSDT.faucet(to, amount),
-   * sent by the demo tenant wallet. The faucet is public; the wallet only pays the gas.
+   * PromptPay demo on-ramp (lib/server/onramp.ts vets the lease and the amount): MockUSDT.faucet to the renter, sent
+   * by the demo tenant wallet. The faucet is public; the wallet only pays the gas.
    */
-  async faucet(to: Address, amount: bigint): Promise<Hash> {
+  async onRamp(lease: string) {
     const l = await this.load();
+    const plan = await planOnRamp(l.c97.pub, DEMO_CHAIN_ID, l.addresses, lease);
     return this.serial(async () => {
-      const call = { address: l.addresses.token, abi: mockUsdtAbi, functionName: "faucet", args: [to, amount] } as const;
+      const call = { address: l.addresses.token, abi: mockUsdtAbi, functionName: "faucet", args: [plan.to, plan.amount] } as const;
       const { hash } = await l.c97.sendCall(l.wallets.tenant, call, { maxGas: BigInt(150_000) });
       const r = await l.c97.wait(hash);
       if (r.status !== "success") throw new DemoError(502, "chain-error", "The test mUSDT mint was reverted.");
-      console.log(`[demo-testnet] PromptPay demo minted ${amount} mUSDT units: ${txUrl(hash)}`);
-      return hash;
+      console.log(`[demo-testnet] PromptPay demo minted ${formatUnits(plan.amount, 6)} mUSDT: ${txUrl(hash)}`);
+      return { hash, url: txUrl(hash), to: plan.to, amount: plan.amount.toString() };
     });
   }
 

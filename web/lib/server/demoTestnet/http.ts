@@ -1,26 +1,25 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { friendlyError } from "@/lib/errors";
-import type { Env } from "../env";
 import { onCloudflare } from "../platform";
 import { getSharedState } from "../state";
 import { getDemoTestnetRunner, type DemoTestnetRunner } from "./runner";
 import { DemoError } from "./guards";
 import { SharedRunStore } from "./store";
 
-/** The live demo runner, or undefined when it is off. Also used by the PromptPay demo on-ramp (lib/server/onramp.ts). */
-export function demoRunner(env: Env = process.env): DemoTestnetRunner | undefined {
-  // On Cloudflare Workers the lock and rate limit live in the KeyEscrowState Durable Object, not in isolate memory.
-  return onCloudflare() ? getDemoTestnetRunner(env, { store: (cfg) => new SharedRunStore(cfg, getSharedState) }) : getDemoTestnetRunner(env);
-}
-
 /**
  * Shared plumbing of the /api/demo-testnet/* routes. They exist only when the live testnet demo is switched on
  * (DEMO_TESTNET_RUNNER=1 on a chain 97 build with a secrets dir): otherwise every route answers a bare 404.
  */
 export async function handle(req: Request | undefined, fn: (runner: DemoTestnetRunner, body: unknown) => Promise<unknown>) {
-  const runner = demoRunner();
+  // On Cloudflare Workers the lock and rate limit live in the KeyEscrowState Durable Object, not in isolate memory.
+  const runner = onCloudflare() ? getDemoTestnetRunner(process.env, { store: (cfg) => new SharedRunStore(cfg, getSharedState) }) : getDemoTestnetRunner();
   if (!runner) return new NextResponse("Not Found", { status: 404 });
+  return serve(req, (body) => fn(runner, body));
+}
+
+/** Same-origin JSON in, JSON out; refusals map to their status, anything else to a scrubbed 502. */
+export async function serve(req: Request | undefined, fn: (body: unknown) => Promise<unknown>) {
   let body: unknown = undefined;
   if (req) {
     // Same-origin JSON only: a cross-site form post cannot start runs or send transactions.
@@ -30,7 +29,7 @@ export async function handle(req: Request | undefined, fn: (runner: DemoTestnetR
     body = await req.json().catch(() => undefined);
   }
   try {
-    return NextResponse.json(await fn(runner, body), { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(await fn(body), { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     if (e instanceof DemoError) {
       // Busy and rate-limited answers are expected (the browser retries them); every other refusal is worth a line.
@@ -63,6 +62,8 @@ export const TxBody = z.object({
   address,
   data: z.string().regex(/^0x[0-9a-fA-F]{8,20000}$/),
 });
+/** The PromptPay demo on-ramp (/api/demo-testnet/onramp). */
+export const OnRampBody = z.object({ lease: address });
 export const EndBody = z.object({ runId: z.string().uuid(), reason: note });
 
 /** Drops URLs (an RPC URL can carry an API key) from anything that leaves the server or reaches the log. */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Address } from "viem";
@@ -17,11 +18,13 @@ import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { amountDue, promptPayPayload, QR_TTL_MS, thbFor } from "@/lib/promptpay";
 import { usePrices } from "@/lib/usePrices";
-import { PromptPayQr } from "./PromptPayQr";
+
+// The QR encoder loads in the browser only: no server (Worker) copy of it.
+const PromptPayQr = dynamic(() => import("./PromptPayQr"), { ssr: false, loading: () => <Skeleton className="h-56 w-56" /> });
 
 /**
  * DEMO of a fiat on-ramp: the renter "pays" the baht amount by PromptPay QR, the server mints the same value in test
- * mUSDT to their wallet (POST /api/promptpay/onramp), then the renter's own wallet approves and funds the escrow.
+ * mUSDT to their wallet (POST /api/demo-testnet/onramp), then the renter's own wallet approves and funds the escrow.
  */
 export function PayWithPromptPay({ address }: { address: Address }) {
   const { address: me } = useAccount();
@@ -84,7 +87,8 @@ export function PayWithPromptPay({ address }: { address: Address }) {
   const due = amountDue(lease);
   if (!due) return page(<Notice>Nothing is due on this rental right now.</Notice>);
   const rate = prices?.rates.USDT.THB;
-  const thb = rate === undefined ? undefined : thbFor(due.amount, rate);
+  const baht = rate === undefined ? undefined : thbFor(due.amount, rate);
+  const thb = baht && baht > 0 ? baht : undefined; // under half a satang: no QR
   const left = Math.max(0, issuedAt + QR_TTL_MS - now);
   const secs = Math.ceil(left / 1000);
   const allowance = token?.allowance;
@@ -94,8 +98,9 @@ export function PayWithPromptPay({ address }: { address: Address }) {
     setMinting(true);
     setMintError(undefined);
     try {
-      const res = await fetch("/api/promptpay/onramp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lease: address }) });
+      const res = await fetch("/api/demo-testnet/onramp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lease: address }) });
       const json = await res.json().catch(() => ({}));
+      if (res.status === 404) throw new Error("The demo on-ramp is not switched on for this server. Use “Get test USDT” on the rental page instead.");
       if (!res.ok) throw new Error(json.error ?? `The demo on-ramp answered ${res.status}.`);
       setMinted(true);
       await queryClient.invalidateQueries();

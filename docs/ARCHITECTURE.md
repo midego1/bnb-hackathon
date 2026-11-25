@@ -248,7 +248,7 @@ inspection (ERC-8183 / x402) is roadmap.
 | Listings | `GET/POST /api/fleet` | scooter catalogue and booking requests | none | Node: `web/.fleet/<chainId>.json`. Workers: the Durable Object |
 | Actions | `/api/v1/<action>`, `/api/v1/openapi.json` | see [§4](#4-actions-rest-openapi-mcp-a2a) | none (public RPC) | none |
 | Live demo | `/api/demo-testnet/*` | see [§3](#the-demo-runner) | `DEMO_TESTNET_KEYS`, `DEMO_TESTNET_FUNDER_KEY` | off: 404 |
-| PromptPay demo on-ramp | `POST /api/promptpay/onramp` | `{lease}` → test mUSDT minted to its renter for what is due (`/app/pay/<rental>`; no real payment) | none on 31337 (anvil signs); 97: the live demo's wallets | 31337/97 only, capped at 10,000 mUSDT, rate-limited; 97 without the live demo: 503 |
+| PromptPay demo on-ramp | `POST /api/demo-testnet/onramp` | `{lease}` → test mUSDT minted to its renter for what is due (`/app/pay/<rental>`; no real payment) | none on 31337 (anvil signs); 97: the live demo's wallets | 31337/97 only, capped at 10,000 mUSDT, rate-limited; 97 without the live demo: 404 |
 
 Design rules:
 
