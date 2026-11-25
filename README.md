@@ -1,33 +1,50 @@
 # KeyEscrow
 
-Rental deposit and rent escrow on **BNB Chain**. Built for BNB Bangkok 2026 (Developer Track + CoinMarketCap x Atlas).
+**Rental deposits that neither side can run off with.**
+The deposit and rent sit in a per-lease smart contract on BNB Chain, not with the landlord.
+At move-out, an AI inspection proposes the split, the parties agree on-chain, and the money settles instantly.
 
-A landlord creates a lease. The tenant funds deposit + first month's rent in a stablecoin into a per-lease
-`RentalEscrow` contract. Rent is released monthly. At move-out, an AI inspection compares check-in and check-out
-photos and proposes a deposit split. One party submits it on-chain, the other accepts, and the deposit settles instantly.
-If they disagree, the arbiter rules. If the landlord does not respond in time, the deposit goes back to the tenant.
-**Neither party can move funds alone.**
+Built for BNB Bangkok 2026 (Developer Track + CoinMarketCap x Atlas).
 
-## Repo layout
+## How it works
 
-```
-contracts/   Foundry project: EscrowFactory, RentalEscrow, MockUSDT + tests
-web/         Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
-web/app/api  Server routes: AI settlement, price (CMC/Atlas), evidence upload (Greenfield)
-docs/        Architecture, write-up, business model, demo script
-```
+A landlord creates a lease. The tenant funds the deposit plus the first month's rent in a stablecoin into a
+per-lease `RentalEscrow` contract. Rent is released monthly. At move-out, an AI inspection compares check-in
+and check-out photos and proposes a deposit split. One party submits it on-chain, the other accepts, and the
+deposit settles instantly. If they disagree, the arbiter rules. If the landlord does not respond in time,
+the deposit goes back to the tenant. **Neither party can move funds alone.**
 
-## Networks
+## Features
 
-| Network | Chain ID | Use |
-| --- | --- | --- |
-| Anvil (local) | 31337 | development and scripted end-to-end tests |
-| BSC testnet | 97 | hackathon deployment |
-| opBNB testnet | 5611 | supported in the frontend |
+- **One escrow per lease.** `EscrowFactory` clones a minimal, non-upgradeable `RentalEscrow` (EIP-1167) for
+  each lease. Funds are isolated per lease, and the platform has no admin key over them.
+- **Scheduled rent.** Rent is released on a fixed 30-day schedule. Anyone can trigger a release once it is
+  due, and the tenant can release early. Prepaid rent that is not yet due goes back to the tenant at
+  settlement.
+- **AI move-out inspection.** A vision LLM compares check-in and check-out photos and returns
+  `{tenantRefund, landlordClaim, reasons[]}`. When the other party accepts, settlement is instant.
+- **Neutral arbitration.** The KeyEscrow dispute desk is the default arbiter. The landlord may name another
+  neutral arbiter, and the tenant sees it before funding.
+- **Tenant-protecting timeouts.** If the landlord stays silent on a proposal for 7 days, or the arbiter does
+  not rule within 14 days, the full deposit goes back to the tenant.
+- **Evidence off-chain, hashes on-chain.** The lease PDF and photos go to BNB Greenfield, with a local
+  fallback. Only content hashes are stored on-chain.
+- **Prices in baht.** Every amount is shown in THB and USD, using the Atlas on-chain feed or the
+  CoinMarketCap Pro API. Both are called server-side only and cached.
+- **Fair fee.** The protocol fee is 10 % of one month's rent, charged once per lease and taken from the
+  landlord's first rent release, never from the deposit. Bangkok agents typically charge a full month.
+- **No token.** KeyEscrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
 
-Testnet only. MockUSDT is a test stablecoin stand-in; KeyEscrow has no token of its own.
+> **Status:**
+>
+> - **Done:** the contracts and their tests, and the web shell (wallet connect, chains, role pages).
+> - **Being built:** the one-time fee model and the 7-day and 14-day timeout defaults with the arbiter
+>   deadline, which `main` still implements in an earlier form; the UI flows; the AI, price and evidence
+>   routes; the local seed script.
+>
+> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the details.
 
-## Setup
+## Quickstart
 
 Requirements: [Foundry](https://book.getfoundry.sh/getting-started/installation), Node 22, pnpm.
 
@@ -46,6 +63,45 @@ pnpm build         # forge build + next build
 Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
 falls back to a local mock when its key is missing.
 
+For a full local walkthrough with anvil and seeded landlord, tenant and dispute-desk accounts, see
+[docs/DEMO.md](docs/DEMO.md).
+
+## Networks
+
+| Network | Chain ID | Use |
+| --- | --- | --- |
+| Anvil (local) | 31337 | development and scripted end-to-end tests |
+| BSC testnet | 97 | hackathon deployment |
+| opBNB testnet | 5611 | supported in the frontend |
+
+Testnet only. MockUSDT is a test stablecoin stand-in; KeyEscrow has no token of its own.
+
+## Repo layout
+
+```
+contracts/           Foundry project
+  src/EscrowFactory.sol    creates one RentalEscrow clone per lease, indexes leases, protocol fee config
+  src/RentalEscrow.sol     per-lease escrow: deposit, rent schedule, evidence hashes, settlement
+  src/mocks/MockUSDT.sol   testnet-only 6-decimal stablecoin with a capped faucet
+  test/                    Foundry tests
+web/                 Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
+  app/                     pages: / /landlord /tenant /arbiter /lease/[address]
+  app/api/                 server routes: AI settlement, price (CMC/Atlas), evidence upload (Greenfield)
+  lib/                     chain + wallet config
+docs/                Architecture, business model, CMC x Atlas write-up, demo script
+```
+
+## Docs
+
+- [Architecture](docs/ARCHITECTURE.md): the components, the lease state machine, money flows, off-chain
+  services and scalability.
+- [Business model](docs/BUSINESS.md): the problem, users, the fee model with a THB example, the roadmap
+  and risks.
+- [CoinMarketCap x Atlas write-up](docs/WRITEUP.md): how price data is used, server-side caching and
+  fallbacks.
+- [Demo script](docs/DEMO.md): the 3-minute local demo.
+- [Contracts README](contracts/README.md)
+
 ## License
 
-MIT
+[MIT](LICENSE)
