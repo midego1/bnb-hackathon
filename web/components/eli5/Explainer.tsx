@@ -143,7 +143,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
 
   return (
     <div
-      className="flex flex-col gap-3 lg:min-h-0 lg:flex-1"
+      className="flex flex-col gap-3 stage:min-h-0 stage:flex-1"
       data-testid="eli5"
       data-scene={scene.id}
       data-index={s.index}
@@ -183,7 +183,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       </div>
 
       {/* The cartoon. */}
-      <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:aspect-auto lg:min-h-0 lg:flex-1">
+      <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="eli5-cartoon">
         <div className="absolute inset-0 p-2">
           <Stage scene={scene} t={s.t} reduced={reduced} ending={s.ending} />
         </div>

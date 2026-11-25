@@ -160,9 +160,9 @@ NEXT_PUBLIC_MOCK_USDT_ADDRESS=0x...        # printed by step 6 (= token in 97.js
 # NEXT_PUBLIC_BSC_TESTNET_RPC_URL=...      # optional; default https://bsc-testnet-rpc.publicnode.com
 ```
 
-The browser RPC must serve `eth_getLogs` (lease lists and timelines are built from events). viem's default BSC
-testnet RPC (`data-seed-prebsc-1-s1.bnbchain.org`) answers every `eth_getLogs` with `limit exceeded`, so the app
-defaults to PublicNode. Leave `NEXT_PUBLIC_DEV_ACCOUNTS` unset: testers connect their own wallet.
+Lease lists and timelines are built from events, which the server reads (`GET /api/chain/index`, through
+`KEYESCROW_RPC_URL_97`); the browser RPC only serves `eth_call`s and the wallet. Both default to PublicNode, because
+viem's default BSC testnet RPC (`data-seed-prebsc-1-s1.bnbchain.org`) answers every `eth_getLogs` with `limit exceeded`. Leave `NEXT_PUBLIC_DEV_ACCOUNTS` unset: testers connect their own wallet.
 
 Then `pnpm -C web build` and deploy or run the web app as usual. `pnpm testnet:web` does both: a production build
 into `web/.next-testnet` and a systemd user unit `keyescrow-web-testnet` running `next start` (env

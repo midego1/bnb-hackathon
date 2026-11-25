@@ -90,6 +90,7 @@ contract FleetVaultTest is BaseTest {
     function test_redeem_returnsPrincipalAndKeepsIncome() public {
         _deposit(alice, 1_000e6);
         _income(100e6);
+        skip(vault.SHARE_LOCK());
         vm.prank(alice);
         vault.redeem(1_000e6);
         assertEq(vault.balanceOf(alice), 0);
@@ -160,6 +161,7 @@ contract FleetVaultTest is BaseTest {
         _deposit(alice, 1_000e6);
         _income(100e6);
         vault.sync();
+        skip(vault.SHARE_LOCK());
         vm.prank(alice);
         assertTrue(vault.transfer(bob, 500e6));
         _income(100e6);
@@ -205,6 +207,7 @@ contract FleetVaultTest is BaseTest {
             vm.prank(bob);
             vault.claim();
         }
+        skip(vault.SHARE_LOCK());
         vm.prank(alice);
         vault.redeem(da);
         vm.prank(bob);

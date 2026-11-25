@@ -27,10 +27,10 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 
 | Contract | Address |
 |---|---|
-| EscrowFactory | `0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa` |
-| RentalEscrow implementation (EIP-1167 clones per rental) | `0x04150B5Bd1DcECa61C37703f5E4D23Ba64aD36D3` |
-| MockUSDT (test stablecoin, 6 decimals) | `0x88EC944a272A79caf78099DD8db6d15829254Ee5` |
-| FleetVault (BKK-FLEET-1 shares) | `0xc69A8020fC090911922dD44cc83eA4a31BDff52b` |
+| EscrowFactory | `0xd33b4dfF8C09e0079918fD987953c8f65F1363D8` |
+| RentalEscrow implementation (EIP-1167 clones per rental) | `0x63f174fE3E80442c95b82a811a7D0d13f34D2314` |
+| MockUSDT (test stablecoin, 6 decimals) | `0x46e69984A52233980F1CAeABB4571555e4c8fE37` |
+| FleetVault (BKK-FLEET-1 shares) | `0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB` |
 | ERC-8004 Identity Registry (inspector agent #2921) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Atlas feeds | _not yet: Atlas publishes no BSC testnet feed addresses; to be filled in at the venue_ |
 

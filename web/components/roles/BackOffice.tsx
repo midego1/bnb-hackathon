@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { Card, Notice, Skeleton, StatusBadge, useMoney, Amount, AddressTag } from "@/components/ui";
 import { LeaseStatus } from "@/lib/contracts";
 import { chainName } from "@/lib/chains";
@@ -20,7 +21,7 @@ type Filter = "all" | "attention" | "open" | "closed";
  */
 export function BackOffice() {
   const { chainId, deployment } = useDeployment();
-  const { data, isLoading, error } = useRentals();
+  const { data, error, refetch, isFetching } = useRentals();
   const { data: vault } = useVault();
   const { data: fleet } = useFleet();
   const money = useMoney();
@@ -33,8 +34,13 @@ export function BackOffice() {
   }, [fleet]);
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to BSC testnet.</Notice>;
-  if (error) return <Notice kind="error">Could not read the chain: {(error as Error).message}</Notice>;
-  if (isLoading || !data) return <Skeleton className="h-64" />;
+  if (!data) {
+    return error ? (
+      <ChainReadNotice error={error} hasData={false} onRetry={() => refetch()} retrying={isFetching} />
+    ) : (
+      <Skeleton className="h-64" />
+    );
+  }
 
   const rentals = data.rentals;
   const open = rentals.filter((r) => r.status === LeaseStatus.Active || r.status === LeaseStatus.MoveOut || r.status === LeaseStatus.Disputed);
@@ -51,7 +57,8 @@ export function BackOffice() {
   const feed = [...data.events].reverse().slice(0, 60);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="backoffice" data-block={data.latestBlock.toString()}>
+      <ChainReadNotice error={error} hasData stale={data.stale} block={data.latestBlock} onRetry={() => refetch()} retrying={isFetching} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi label="Rentals" testId="kpi-rentals">{rentals.length}</Kpi>
         <Kpi label="Open now" testId="kpi-open">{open.length}</Kpi>

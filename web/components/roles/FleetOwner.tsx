@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { parseEventLogs, parseUnits, zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
+import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { escrowFactoryAbi } from "@/lib/contracts";
 import { incomeOf, postFleet, scooterState, scooterStateLabel, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
@@ -47,7 +48,7 @@ export function thbToUsdt(thb: number, thbPerUsdt: number | undefined) {
 export function FleetOwner() {
   const { address } = useAccount();
   const { chainId, deployment } = useDeployment();
-  const { data: index } = useRentals();
+  const { data: index, error: indexError, refetch, isFetching } = useRentals();
   const { data: fleet } = useFleet();
   const money = useMoney();
 
@@ -68,13 +69,18 @@ export function FleetOwner() {
   if (!index || !fleet) {
     return (
       <div data-testid="fleet-owner" data-ready="false">
-        <Skeleton className="h-96" />
+        {!index && indexError ? (
+          <ChainReadNotice error={indexError} hasData={false} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
+        ) : (
+          <Skeleton className="h-96" />
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6" data-testid="fleet-owner" data-ready="true">
+      <ChainReadNotice error={indexError} hasData stale={index.stale} block={index.latestBlock} onRetry={() => refetch()} retrying={isFetching} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <Kpi label="Scooters" testId="kpi-scooters">{mine.length}</Kpi>
         <Kpi label="Available" testId="kpi-available">{count(["available"])}</Kpi>

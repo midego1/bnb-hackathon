@@ -1,0 +1,72 @@
+# End-to-end tests (e2e:chain + Playwright) on a Boat runner, so they never run on paseo-box.
+# Offline and keyless like ci.yml: throwaway local anvil, mocks, no secrets, no testnet, no deploys.
+#
+# Boat bills per runner start (the $20 plan: 12 starts a minute, 60 an hour, 200 a day, no overage),
+# so concurrency cancels a superseded run of the same branch, and push + pull_request of one branch
+# share a group. Boat only runs jobs for allowed GitHub users and never for bots, so Boat is used only
+# when the actor is midego1 and the run was not rerun by someone else; anything else falls back to
+# ubuntu-24.04 (also the escape hatch when Boat is down).
+# Kill switch: repository variable BOAT_CI=off puts the job on ubuntu-24.04 (unset means on).
+# Runner size: repository variable BOAT_RUNNER (default boat-large; boat-small, boat, boat-large fit the plan).
+name: E2E
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  FOUNDRY_VERSION: v1.10.0
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  e2e:
+    name: End-to-end (e2e:chain + Playwright)
+    runs-on: ${{ (vars.BOAT_CI != 'off' && contains(fromJSON('["midego1"]'), github.actor) && github.triggering_actor == github.actor) && (vars.BOAT_RUNNER || 'boat-large') || 'ubuntu-24.04' }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+          cache: true
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (pnpm version from package.json "packageManager")
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm -C web install --frozen-lockfile
+      - name: forge build
+        working-directory: contracts
+        run: forge build
+      - name: e2e:chain (all money paths on a throwaway anvil)
+        run: pnpm e2e:chain
+      - name: Install Chromium for Playwright
+        run: pnpm -C web exec playwright install --with-deps chromium
+      - name: Playwright (anvil + next build + browser tests)
+        run: pnpm -C web test:e2e --reporter=list,html
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+      - name: Upload the Playwright report and screenshots
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14
+          if-no-files-found: ignore

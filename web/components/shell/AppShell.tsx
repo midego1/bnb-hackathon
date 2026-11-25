@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useAccount, useConnect } from "wagmi";
+import { AskAiEntry } from "@/components/assistant/AskAiEntry";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { LogoMark } from "@/components/LogoMark";
 import { ThemeCycleButton, ThemeSwitch } from "@/components/ThemeSwitch";
@@ -81,7 +82,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
       aria-label="Sidebar"
       data-testid="sidebar"
       data-collapsed={collapsed || undefined}
-      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
+      className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-surface lg:sticky lg:top-0 lg:z-auto lg:flex lg:h-dvh lg:w-56 lg:max-w-none lg:shadow-none rail:w-16`}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-3 rail:h-auto rail:flex-col rail:gap-2 rail:py-3">
         <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
@@ -111,8 +112,10 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
         </button>
       </div>
 
-      {/* Ask AI (Cmd+J) mounts here; empty until that feature lands. */}
-      <div id="ask-ai-slot" data-ask-ai-slot className="shrink-0 px-3 empty:hidden" />
+      {/* Ask AI: opens the assistant panel (also Cmd+J / Ctrl+J); on a phone the drawer closes first. */}
+      <div id="ask-ai-slot" data-ask-ai-slot className="shrink-0 px-3 empty:hidden">
+        <AskAiEntry onOpen={closeDrawer} />
+      </div>
 
       <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((g) => (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
+import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, PriceSourceBadge, Skeleton, StatusBadge, statusMeta, useMoney } from "@/components/ui";
 import { chainName, explorerLink } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
@@ -22,13 +23,23 @@ import { Timeline } from "./Timeline";
 export function LeaseDetail({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
-  const { data: lease, error, isLoading } = useLease(deployment ? address : undefined);
-  const { data: events, error: eventsError } = useLeaseEvents(deployment ? address : undefined);
+  const { data: lease, error, isLoading, refetch, isFetching } = useLease(deployment ? address : undefined);
+  const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to the network this rental lives on.</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
   if (error || !lease)
-    return <Notice kind="error">No KeyEscrow rental found at {address} on {chainName(chainId)}. Check the link and the network your wallet is on.</Notice>;
+    return (
+      <div className="space-y-3">
+        <Notice kind="error">
+          No KeyEscrow rental could be read at {address} on {chainName(chainId)}. Check the link and the network your wallet is on; if the
+          public RPC was just busy, retry.
+        </Notice>
+        <button type="button" onClick={() => refetch()} disabled={isFetching} data-testid="chain-retry" className="rounded-md border border-border-strong px-3 py-1.5 text-sm">
+          {isFetching ? "Retrying…" : "Retry now"}
+        </button>
+      </div>
+    );
 
   const viewer = viewerRole(lease, me);
   const scan = explorerLink(chainId, "address", address);
@@ -67,6 +78,13 @@ export function LeaseDetail({ address }: { address: Address }) {
         </div>
       </div>
 
+      <ChainReadNotice
+        error={eventsError}
+        hasData={!!events}
+        onRetry={() => refetchEvents()}
+        retrying={eventsFetching}
+        what="this rental's history"
+      />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
           {lease.status === LeaseStatus.Created && viewer === "tenant" && <FundingPanel lease={lease} />}

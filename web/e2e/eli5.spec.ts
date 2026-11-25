@@ -185,6 +185,42 @@ test.describe("screenshots", () => {
   });
 });
 
+// Short desktop windows (toolbars, zoom, devtools): the stage is not pinned below 720px tall (app/globals.css), so the
+// page scrolls and the cartoon keeps its own aspect ratio instead of being squeezed to nothing.
+for (const vp of [
+  { width: 1280, height: 600 },
+  { width: 1440, height: 700 },
+  { width: 1176, height: 664 }, // 1470x830 at 125% browser zoom
+]) {
+  test(`short window ${vp.width}x${vp.height}: the page scrolls, the cartoon is whole, the controls are reachable`, async ({ page }) => {
+    await page.setViewportSize(vp);
+    await page.goto("/how-it-works?ending=happy&speed=25&autoplay=0");
+    await expect(root(page)).toHaveAttribute("data-playing", "false");
+    expect(await page.evaluate(() => getComputedStyle(document.body).overflowY), "stage pinned on a short window").not.toBe("hidden");
+    const cartoon = (await page.getByTestId("eli5-cartoon").boundingBox())!;
+    expect(cartoon.height, "cartoon height").toBeGreaterThan(cartoon.width * 0.4); // its 1200:560 aspect ratio
+    const m = await page.evaluate(() => ({ sh: document.scrollingElement!.scrollHeight, ih: window.innerHeight, sw: document.scrollingElement!.scrollWidth, iw: window.innerWidth }));
+    expect(m.sh, "page scrolls").toBeGreaterThan(m.ih);
+    expect(m.sw, "page scrolls sideways").toBeLessThanOrEqual(m.iw);
+    // Wheel down to the controls and play to the recap: the replay button is reachable.
+    const play = page.getByTestId("eli5-play");
+    for (let i = 0; i < 20; i++) {
+      const b = await play.boundingBox();
+      if (b && b.y >= 0 && b.y + b.height <= vp.height) break;
+      await page.mouse.move(vp.width / 2, vp.height / 2);
+      await page.mouse.wheel(0, 250);
+      await page.waitForTimeout(50);
+    }
+    await expect(page.getByTestId("eli5-play")).toBeInViewport({ ratio: 1 });
+    await page.getByTestId("eli5-play").click();
+    await expect(root(page)).toHaveAttribute("data-done", "true", { timeout: 20_000 });
+    await page.getByTestId("eli5-replay").scrollIntoViewIfNeeded();
+    await expect(page.getByTestId("eli5-replay")).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId("eli5-narration")).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, `${vp.width}x${vp.height}-short-recap.png`), fullPage: true });
+  });
+}
+
 test("recording: the happy ending at normal speed (ELI5_VIDEO=1)", async ({ browser }) => {
   test.skip(process.env.ELI5_VIDEO !== "1", "set ELI5_VIDEO=1 to record");
   test.setTimeout(180_000);

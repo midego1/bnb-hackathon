@@ -56,6 +56,8 @@ export function explainRevert(errorName: string, args: readonly unknown[] = []):
       return `The deadline has not been reached yet: it opens at ${iso(args[0] as bigint)}.`;
     case "ArbiterDeadlinePassed":
       return `The dispute desk's deadline passed at ${iso(args[0] as bigint)}. Use prepare_claim_timeout: the full deposit goes back to the renter.`;
+    case "ResponseWindowClosed":
+      return `The owner's reply window closed at ${iso(args[0] as bigint)}. Use prepare_claim_timeout: the full deposit goes back to the renter.`;
     case "InvalidNonce":
       return `The proposal changed: the current one is #${args[0]}, you reviewed #${args[1]}. Read it again (get_lease) before accepting.`;
     case "Unauthorized":
