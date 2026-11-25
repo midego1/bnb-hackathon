@@ -499,7 +499,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
   useDemoKeys({ space: running ? togglePause : undefined, next: running ? next : undefined, back: canReview ? guided.back : undefined });
 
   return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
+    <div className="flex flex-col gap-3 stage:min-h-0 stage:flex-1" data-testid="demo-runner" data-phase={phase}>
       {/* Controls: one row on desktop. What fits depends on the bar's own width (a container query), not the window's:
           the sidebar beside the stage may be a rail or expanded. */}
       <div className="@container relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
@@ -581,8 +581,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
       </div>
 
       {/* The stage: actors | current step + live lease page | timeline. */}
-      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
-        <div className="order-2 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
+      <div className="grid gap-3 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] stage:min-h-0 stage:flex-1 stage:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
+        <div className="order-2 lg:order-none lg:flex lg:flex-col stage:min-h-0">
           <ActorBoard
             wallets={wallets}
             base={onStage ? base : null}
@@ -591,9 +591,15 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           />
         </div>
 
-        {/* Should a card ever be taller than the space left (a very short window), this column scrolls on its own:
-            the page itself is pinned on desktop and would only clip it. */}
-        <div className="relative order-1 flex flex-col gap-3 lg:order-none lg:min-h-0 lg:overflow-y-auto">
+        {/* Should a card ever be taller than the space left, this column scrolls on its own (wheel, trackpad, or focus it
+            and use the arrow keys): the page itself is pinned on a tall-enough desktop and would only clip it. */}
+        <div
+          className="relative order-1 flex flex-col gap-3 rounded-2xl lg:order-none stage:min-h-0 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          role="region"
+          aria-label={panels.stage}
+          tabIndex={0}
+          data-testid="demo-center"
+        >
           {phase === "idle" && <Intro path={path} testnet={!!testnet} />}
 
           {isGuided && caption?.beat === "intro" && <GuidedIntro path={path} pacer={guided.pacer} nav={nav} />}
@@ -649,7 +655,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
           </LivePanel>
         </div>
 
-        <div className="order-3 lg:order-none lg:flex lg:min-h-0 lg:flex-col">
+        <div className="order-3 lg:order-none lg:flex lg:flex-col stage:min-h-0">
           <StepTimeline
             steps={steps}
             statuses={statuses}
@@ -802,7 +808,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
   return (
     <section
       aria-labelledby="live-lease"
-      className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:min-h-0 lg:flex-1"
+      className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:min-h-0 stage:flex-1"
     >
       <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-2">
         <h2 id="live-lease" className="text-base font-semibold">
@@ -815,7 +821,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
           </Link>
         )}
       </div>
-      <div className="relative space-y-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" data-testid="demo-live">
+      <div className="relative space-y-4 p-4 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent" role="region" aria-labelledby="live-lease" tabIndex={0} data-testid="demo-live">
         {children}
         {lease ? <LeaseDetail address={lease} /> : <p className="text-base text-subtle">{panels.liveEmpty}</p>}
       </div>
@@ -874,7 +880,7 @@ function Summary({
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path && (!testnet || testnetPaths.includes(p)));
   return (
     <section
-      className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
+      className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:flex lg:flex-col stage:absolute stage:inset-0 stage:z-10 stage:overflow-y-auto tall:p-5 xl:tall:p-6"
       data-testid="demo-summary"
       data-path={ctx.path}
       data-status={settled ? "settled" : "open"}
