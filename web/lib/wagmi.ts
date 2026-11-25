@@ -1,8 +1,8 @@
 import { connectorsForWallets, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { bscTestnet, opBNBTestnet } from "viem/chains";
-import { anvil, anvilRpcUrl, supportedChains } from "./chains";
+import { opBNBTestnet } from "viem/chains";
+import { anvil, anvilRpcUrl, bscTestnet, bscTestnetRpcUrl, supportedChains } from "./chains";
 import { devAccountsConnector } from "./devAccounts";
 
 const appName = "KeyEscrow";
@@ -12,7 +12,7 @@ const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 const transports: Record<number, ReturnType<typeof http>> = {
   [anvil.id]: http(anvilRpcUrl),
-  [bscTestnet.id]: http(process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL),
+  [bscTestnet.id]: http(bscTestnetRpcUrl),
   [opBNBTestnet.id]: http(process.env.NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL),
 };
 

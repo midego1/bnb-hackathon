@@ -153,15 +153,43 @@ Check the result at `https://testnet.bscscan.com/address/<escrowFactory>#code`.
 
 ```bash
 NEXT_PUBLIC_CHAIN_ID=97
-NEXT_PUBLIC_BSC_TESTNET_RPC_URL=https://data-seed-prebsc-1-s1.bnbchain.org:8545
 NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS=0x...   # printed by step 6 (= escrowFactory in 97.json)
 NEXT_PUBLIC_MOCK_USDT_ADDRESS=0x...        # printed by step 6 (= token in 97.json)
+# NEXT_PUBLIC_BSC_TESTNET_RPC_URL=...      # optional; default https://bsc-testnet-rpc.publicnode.com
 ```
 
-Then `pnpm -C web build` and deploy or run the web app as usual. Testers get MockUSDT from its capped faucet
-(`MockUSDT.faucet(to, amount)`, see `contracts/src/mocks/MockUSDT.sol`) and need a little tBNB from step 1 for gas.
+The browser RPC must serve `eth_getLogs` (lease lists and timelines are built from events). viem's default BSC
+testnet RPC (`data-seed-prebsc-1-s1.bnbchain.org`) answers every `eth_getLogs` with `limit exceeded`, so the app
+defaults to PublicNode. Leave `NEXT_PUBLIC_DEV_ACCOUNTS` unset: testers connect their own wallet.
 
-`Seed.s.sol` is anvil-only and refuses chain 97. On testnet, demo leases are created through the app.
+Then `pnpm -C web build` and deploy or run the web app as usual. `pnpm testnet:web` does both: a production build
+into `web/.next-testnet` and a systemd user unit `keyescrow-web-testnet` running `next start` (env
+`TESTNET_WEB_HOST`, default `127.0.0.1`, and `TESTNET_WEB_PORT`, default `3001`). Testers get MockUSDT from its capped
+faucet (`MockUSDT.faucet(to, amount)`, see `contracts/src/mocks/MockUSDT.sol`) and need a little tBNB for gas.
+
+`Seed.s.sol` is anvil-only and refuses chain 97. On testnet, use `pnpm testnet:seed` (below) or create leases in the app.
+
+## 9. Live checks on BSC testnet
+
+`web/scripts/testnet.mts` drives the deployed contracts from `deployments/97.json` with real transactions. It only
+talks to an RPC that answers chainId 97, signs for chain 97 only, and decrypts the deployer keystore
+(`DEPLOYER_KEYSTORE` + `DEPLOYER_PASSWORD_FILE`) in memory. In a git worktree it reads the main checkout's `.env`.
+
+| Command | What it does | Cost |
+| --- | --- | --- |
+| `pnpm testnet:status` | tBNB and mUSDT balances of the deployer and the test wallets | nothing sent |
+| `pnpm e2e:testnet` | happy path (create, fund + prepay, rent release with the 10% one-time fee, check-out evidence, tenant proposal, landlord accepts) and dispute path (landlord claims all, tenant disputes, dispute desk rules); asserts every balance change and that token totals are conserved | ~0.002 tBNB |
+| `pnpm testnet:seed` | leaves an unfunded offer, an active lease and a disputed lease (60-day arbiter window) for the web app | ~0.002 tBNB |
+| `pnpm testnet:fund <address>` | sends 0.01 tBNB and 10,000 mUSDT from the deployer to a tester's wallet | 0.01 tBNB |
+
+The landlord and tenant are throwaway wallets created on first use in `.orca/secrets/testnet-e2e-wallets.json`
+(gitignored, mode 600) and topped up by the deployer to 0.004 tBNB each. The dispute desk is the deployer. Every
+transaction uses an explicit 1 gwei legacy gas price (`TESTNET_GAS_PRICE_GWEI`) and waits for its receipt. Reads are
+pinned to the latest receipt's block so a lagging RPC backend cannot serve stale balances. Each run writes a report
+with a BscScan link per transaction to `.orca/reports/testnet-<e2e|seed>.md` (outside git).
+
+The landlord-response (7 days) and arbiter (14 days) timeouts need real time to pass, so they are not run on
+testnet. `pnpm e2e:chain` covers both against anvil with time travel.
 
 ## opBNB testnet (chainId 5611)
 
