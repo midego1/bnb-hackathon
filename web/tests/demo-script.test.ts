@@ -18,6 +18,7 @@ describe("guided demo script", () => {
     expect(ids("happy").slice(-2)).toEqual(["accept", "final"]);
     expect(ids("dispute").slice(-3)).toEqual(["dispute", "resolve", "final"]);
     expect(ids("timeout").slice(-3)).toEqual(["wait", "timeout", "final"]);
+    expect(ids("fleet").slice(-3)).toEqual(["accept", "vault", "final"]);
     // Only the timeout path bends time, and it says so.
     expect(stepsFor("happy").some((s) => s.demoOnly)).toBe(false);
     expect(stepsFor("timeout").find((s) => s.id === "wait")?.demoOnly).toMatch(/demo only/);
@@ -34,9 +35,11 @@ describe("guided demo script", () => {
   it("the ledger balances only when everything paid in went somewhere and the escrow is empty", () => {
     const c = newContext("happy", 0, 33);
     const paidIn = c.deposit + c.rent;
-    c.before = { tenant: BigInt(1_000) * U, landlord: BigInt(0), treasury: BigInt(0), escrow: BigInt(0) };
-    c.after = { tenant: c.before.tenant - paidIn + BigInt(170) * U, landlord: paidIn - BigInt(180) * U, treasury: BigInt(10) * U, escrow: BigInt(0) };
+    c.before = { tenant: BigInt(1_000) * U, landlord: BigInt(0), treasury: BigInt(0), escrow: BigInt(0), vault: BigInt(0) };
+    c.after = { tenant: c.before.tenant - paidIn + BigInt(170) * U, landlord: paidIn - BigInt(180) * U, treasury: BigInt(10) * U, escrow: BigInt(0), vault: BigInt(0) };
     expect(ledger(c)).toMatchObject({ paidIn, tenantBack: BigInt(170) * U, treasury: BigInt(10) * U, balanced: true });
+    // Fleet Vault path: the owner's cut lands in the vault and still counts on the owner's side.
+    expect(ledger({ ...c, after: { ...c.after, landlord: BigInt(0), vault: paidIn - BigInt(180) * U } })?.balanced).toBe(true);
     c.after = { ...c.after, escrow: BigInt(1) };
     expect(ledger(c)?.balanced).toBe(false);
   });

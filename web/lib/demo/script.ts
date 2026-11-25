@@ -1,5 +1,5 @@
 import { parseEventLogs, parseUnits, zeroAddress, type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
-import { escrowFactoryAbi, EvidenceKind, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, type Deployment } from "../contracts";
+import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, type Deployment } from "../contracts";
 import type { DevRole } from "../devAccounts";
 import type { UploadedFile } from "../evidence";
 import { hashText } from "../hash";
@@ -12,13 +12,14 @@ import type { InspectionPhoto, InspectionResult } from "../settlement";
  * before each step and shows the caption, progress and transactions.
  */
 
-export type DemoPath = "happy" | "dispute" | "timeout";
+export type DemoPath = "happy" | "dispute" | "timeout" | "fleet";
 export type DemoActor = DevRole | "inspector" | "anyone";
 
 export const PATHS: Record<DemoPath, { label: string; blurb: string }> = {
   happy: { label: "Happy path", blurb: "Renter proposes the AI split, owner accepts, money moves at once." },
   dispute: { label: "Dispute path", blurb: "Owner disputes the proposal, the KeyEscrow dispute desk rules on a split." },
   timeout: { label: "Owner ignores it", blurb: "Owner stays silent for 7 days, so the full deposit goes back to the renter." },
+  fleet: { label: "Fleet Vault", blurb: "A fleet scooter: rent and the damage payout flow into the Fleet Vault, and its shareholders earn." },
 };
 
 /** Realistic monthly scooter rentals in Thailand, priced in baht; a fresh rental each run cycles through them. */
@@ -45,7 +46,8 @@ const CHECK_OUT = [
 ];
 
 export type Photo = { hash: Hex; label: string };
-export type Balances = { tenant: bigint; landlord: bigint; treasury: bigint; escrow: bigint };
+/** `vault` is the Fleet Vault (0 when the deployment has none); on the Fleet Vault path it receives the owner's cut. */
+export type Balances = { tenant: bigint; landlord: bigint; treasury: bigint; escrow: bigint; vault: bigint };
 export type DemoTx = { label: string; hash: Hex };
 
 /** Everything the steps learn as they go. Steps mutate it, so a retried step resumes where it failed. */
@@ -74,6 +76,8 @@ export type DemoCtx = {
   settled?: { tenantRefund: bigint; landlordClaim: bigint; rentToLandlord: bigint; rentToTenant: bigint; fee: bigint };
   after?: Balances;
   finalStatus?: number;
+  /** Fleet Vault path: vault income after the damaged return, and the demo shareholder's claimable income. */
+  vaultIncome?: { before: bigint; after: bigint; claimable: bigint; symbol: string };
 };
 
 type Call = { address: Address; abi: Abi; functionName: string; args?: readonly unknown[] };
@@ -123,13 +127,14 @@ const leaseOf = (ctx: DemoCtx) => {
 
 async function balances(api: DemoApi, ctx: DemoCtx): Promise<Balances> {
   const bal = (who: Address) => api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] });
-  const [tenant, landlord, treasury, escrow] = await Promise.all([
+  const [tenant, landlord, treasury, escrow, vault] = await Promise.all([
     bal(api.accounts.tenant),
     bal(api.accounts.landlord),
     bal(ctx.treasury ?? zeroAddress),
     bal(leaseOf(ctx)),
+    api.deployment.fleetVault ? bal(api.deployment.fleetVault) : Promise.resolve(BigInt(0)),
   ]);
-  return { tenant, landlord, treasury, escrow };
+  return { tenant, landlord, treasury, escrow, vault };
 }
 
 async function anchor(api: DemoApi, ctx: DemoCtx, kind: "CheckIn" | "CheckOut") {
@@ -171,10 +176,14 @@ const createLease: DemoStep = {
       ctx.checkIn = await uploadPhotos(api, CHECK_IN);
     }
     if (!ctx.lease) {
-      const receipt = await api.tx("Create rental", {
+      const vault = api.deployment.fleetVault;
+      if (ctx.path === "fleet" && !vault) throw new Error("This deployment has no Fleet Vault. Redeploy the local chain (pnpm chain:deploy).");
+      const fleet = ctx.path === "fleet";
+      const receipt = await api.tx(fleet ? "Create fleet rental" : "Create rental", {
         address: api.deployment.escrowFactory,
         abi: escrowFactoryAbi,
-        functionName: "createLease",
+        // Fleet Vault path: same rental, but the owner's payouts (rent + any damage claim) go to the vault.
+        functionName: fleet ? "createLeaseWithPayee" : "createLease",
         args: [
           {
             tenant: api.accounts.tenant,
@@ -186,6 +195,7 @@ const createLease: DemoStep = {
             arbiterWindow: ARBITER_WINDOW,
             leaseHash: ctx.leaseHash,
           },
+          ...(fleet ? [vault] : []),
         ],
       });
       const [created] = parseEventLogs({ abi: escrowFactoryAbi, eventName: "LeaseCreated", logs: receipt.logs });
@@ -431,11 +441,35 @@ const final: DemoStep = {
   },
 };
 
+const vaultIncome: DemoStep = {
+  id: "vault",
+  title: "Fleet Vault balance goes up",
+  actor: "investor",
+  caption: (c, m) => {
+    const v = c.vaultIncome;
+    return v
+      ? `This scooter belongs to the Fleet Vault. Its rent and the ${m(c.settled?.landlordClaim ?? BigInt(0))} damage payout from the slashed deposit went straight into the vault: ` +
+          `its unshared income rose from ${m(v.before)} to ${m(v.after)}. After the operator's maintenance fee, ${v.symbol} shareholders split it; the demo shareholder can now claim ${m(v.claimable)}.`
+      : "This scooter belongs to the Fleet Vault: its rent and the damage payout go into the vault, and the shareholders claim their part.";
+  },
+  async run(api, ctx) {
+    const vault = api.deployment.fleetVault;
+    if (!vault) throw new Error("This deployment has no Fleet Vault.");
+    const read = <T,>(functionName: string, args: unknown[] = []) => api.read<T>({ address: vault, abi: fleetVaultAbi as Abi, functionName, args });
+    const [after, claimable, symbol] = await Promise.all([read<bigint>("unsyncedIncome"), read<bigint>("claimable", [api.accounts.investor]), read<string>("symbol")]);
+    // Everything this rental paid into the vault since funding (rent + damage payout).
+    const paid = ctx.before ? (await balances(api, ctx)).vault - ctx.before.vault : BigInt(0);
+    const before = after - paid;
+    ctx.vaultIncome = { before: before < BigInt(0) ? BigInt(0) : before, after, claimable, symbol };
+  },
+};
+
 const prefix = [createLease, recordCheckIn, getUsdt, fund, payRent, checkOut, inspect, propose];
 
 export function stepsFor(path: DemoPath): DemoStep[] {
   if (path === "dispute") return [...prefix, dispute, resolve, final];
   if (path === "timeout") return [...prefix, wait, claimTimeout, final];
+  if (path === "fleet") return [...prefix, accept, vaultIncome, final];
   return [...prefix, accept, final];
 }
 
@@ -447,7 +481,8 @@ export function ledger(ctx: DemoCtx) {
   if (!ctx.before || !ctx.after) return undefined;
   const paidIn = need(ctx);
   const tenantBack = ctx.after.tenant - ctx.before.tenant + paidIn;
-  const landlord = ctx.after.landlord - ctx.before.landlord;
+  // The owner's side: the owner's wallet plus the Fleet Vault (which receives the owner's cut on the Fleet Vault path).
+  const landlord = ctx.after.landlord - ctx.before.landlord + (ctx.after.vault - ctx.before.vault);
   const treasury = ctx.after.treasury - ctx.before.treasury;
   const escrowLeft = ctx.after.escrow;
   const balanced = escrowLeft === BigInt(0) && tenantBack + landlord + treasury === paidIn;
