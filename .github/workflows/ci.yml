@@ -85,4 +85,5 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
           cache: true
+      - run: pnpm -C agent typecheck
       - run: pnpm agent:test

@@ -1,15 +1,11 @@
 import type { ReactNode } from "react";
 import type { Dict } from "./dictionaries/en";
+import type { HeadKey, Key, Vars } from "./keys";
 import { fmt, langOf, type Lang, type Mode } from "./locales";
 
 /** Shared by the server helper (server.ts) and the client hook (client.tsx): no hooks, no Next. */
 
-type Leaves<T, P extends string = ""> = {
-  [K in keyof T & string]: T[K] extends string ? `${P}${K}` : T[K] extends object ? Leaves<T[K], `${P}${K}.`> : never;
-}[keyof T & string];
-export type Key = Leaves<Omit<Dict, "headlines">>;
-export type HeadKey = Leaves<Dict["headlines"]>;
-type Vars = Record<string, string | number>;
+export type { HeadKey, Key } from "./keys";
 /** A localized data module (locales.ts `localized`). */
 type ByLang<T> = (lang: Lang) => T;
 

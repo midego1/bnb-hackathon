@@ -1,6 +1,6 @@
 import type { Address, Hex } from "viem";
 import { LeaseStatus } from "./contracts";
-import type { T } from "./i18n/t";
+import type { Translate } from "./i18n/keys";
 
 /**
  * Pure model behind the back office, fleet owner and renter views: folds raw chain events (factory LeaseCreated /
@@ -250,7 +250,7 @@ export function worstFlag(flags: RentalFlag[]): FlagLevel | undefined {
 }
 
 /** Human label of one chain event, for the back office feed, in the active language (roles.event). */
-export function describeEvent(e: ChainEvent, money: (v: bigint) => string, t: T): string {
+export function describeEvent(e: ChainEvent, money: (v: bigint) => string, t: Translate): string {
   const a = e.args;
   const m = (v: unknown) => money(big(v));
   switch (e.name) {

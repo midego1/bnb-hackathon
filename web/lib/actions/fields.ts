@@ -7,7 +7,7 @@
  */
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { z } from "zod";
-import type { T } from "@/lib/i18n/t";
+import type { Translate } from "@/lib/i18n/keys";
 
 /** MockUSDT on anvil and BSC testnet: 6 decimals, symbol mUSDT. */
 export const TOKEN = { symbol: "mUSDT", decimals: 6 } as const;
@@ -148,7 +148,7 @@ export function fieldError(schema: z.ZodObject, key: string, value: unknown): st
 }
 
 /** fieldError for the web forms, in the active language (ui.field); the API and MCP tools keep the English. */
-export function fieldErrorIn(t: T, schema: z.ZodObject, key: string, value: unknown): string | undefined {
+export function fieldErrorIn(t: Translate, schema: z.ZodObject, key: string, value: unknown): string | undefined {
   const msg = fieldError(schema, key, value);
   if (!msg || t.lang === "en") return msg;
   const range = /^(\d+) to (\d+)\.$/.exec(msg);
