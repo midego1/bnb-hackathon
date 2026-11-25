@@ -186,7 +186,7 @@ SHOW_LINES=8 expect 0 "EscrowFactory: standard-JSON input builds" "verify, dry r
 expect 2 "BSCSCAN_API_KEY is not set" "verify without BSCSCAN_API_KEY refuses" -- bash "$TESTNET_SH" verify
 
 step "8. Repo left clean"
-dirty="$(diff <(echo "$BEFORE") <(repo_state) || true)"
+dirty="$(diff <(printf "%s\n" "$BEFORE") <(printf "%s\n" "$(repo_state)") || true)"
 [[ -z "$dirty" ]] && pass "no new files under contracts/broadcast, deployments or cache (git status unchanged)" ||
   { fail "repo changes:"; echo "$dirty" | indent; }
 
