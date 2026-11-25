@@ -136,7 +136,7 @@ export function Pitch() {
           <div key={scene.id} className="demo-pop min-w-0" data-testid="pitch-narration" aria-live="polite">
             <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{scene.text}</p>
             <p className="mt-1.5 text-sm text-subtle" data-testid="pitch-note">
-              <span className="font-semibold text-muted tabular-nums">{mmss(scene.at)}</span> · {scene.note}
+              <span className="font-semibold text-muted-foreground tabular-nums">{mmss(scene.at)}</span> · {scene.note}
             </p>
           </div>
 
