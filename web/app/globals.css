@@ -335,6 +335,30 @@
   --color-actor-inspector-tint: var(--actor-inspector-tint);
 }
 
+/* The rental page's status banner: dark in both themes (lifted a step in dark so it still reads as a block). */
+:root {
+  --banner: #0f172a;
+  --banner-foreground: #f8fafc;
+  --banner-muted: #cbd5e1;
+  --banner-line: #334155;
+  --banner-ok: #6ee7b7;
+  --banner-warn: #fcd34d;
+  --banner-danger: #fda4af;
+}
+:root.dark {
+  --banner: #1e293b;
+  --banner-line: #475569;
+}
+@theme inline {
+  --color-banner: var(--banner);
+  --color-banner-foreground: var(--banner-foreground);
+  --color-banner-muted: var(--banner-muted);
+  --color-banner-line: var(--banner-line);
+  --color-banner-ok: var(--banner-ok);
+  --color-banner-warn: var(--banner-warn);
+  --color-banner-danger: var(--banner-danger);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
