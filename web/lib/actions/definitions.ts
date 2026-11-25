@@ -71,14 +71,24 @@ const prepare = <S extends z.ZodObject>(a: Omit<PrepareAction<S>, "kind">): Prep
 // Shared bits
 // ---------------------------------------------------------------------------------------------------------
 
-/** Anvil's seeded demo lease and dev accounts (deterministic on a fresh `pnpm chain:deploy && pnpm chain:seed`). */
-const EX = {
+/**
+ * Anvil's seeded demo lease and dev accounts (deterministic on a fresh `pnpm chain:deploy && pnpm chain:seed`). Other
+ * chains have no fixed demo rental: /developers swaps these for the newest rental in the chain index (withSample).
+ */
+export const EX = {
   lease: "0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e",
   owner: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   renter: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
   arbiter: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
   hash: "0x9d9e1f7ac51b4a8f8a3c1f0b3d8f0f6e3e2b1c0d9a8b7c6d5e4f3a2b1c0d9e8f",
 };
+
+/** `example` with the anvil values of EX replaced by a live rental and its parties (lease, owner, renter, arbiter). */
+export function withSample<T extends Record<string, unknown>>(example: T, sample: Partial<Record<"lease" | "owner" | "renter" | "arbiter", string>> | undefined): T {
+  if (!sample) return example;
+  const swap = new Map(Object.entries(sample).map(([k, v]) => [EX[k as keyof typeof EX], v]));
+  return Object.fromEntries(Object.entries(example).map(([k, v]) => [k, swap.get(v as string) ?? v])) as T;
+}
 
 const chainId = field.chainId;
 
