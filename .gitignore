@@ -15,6 +15,10 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/*/31337/
 contracts/broadcast/**/dry-run/
+# Local anvil deployments churn on every redeploy; *.example.json shows the shape (fresh anvil, deterministic).
+contracts/deployments/31337.json
+contracts/deployments/31337.demo.json
+contracts/deployments/.e2e/
 lcov.info
 
 # Node / Next.js

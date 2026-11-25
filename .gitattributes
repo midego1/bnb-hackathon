@@ -1,0 +1,2 @@
+# Demo evidence files are hashed on-chain (SHA-256 of the exact bytes): never normalise line endings.
+web/public/demo/** -text

@@ -1,0 +1,18 @@
+{
+  "kind": "check-in",
+  "note": "Placeholder evidence for the seeded demo lease. contentHash = SHA-256 of the file bytes.",
+  "photos": [
+    {
+      "file": "checkin-living-room.svg",
+      "sha256": "0xd36ac8ce53abda4fd2c02158942f6a5bb5aa16c506526090b5e2298350254f2f"
+    },
+    {
+      "file": "checkin-kitchen.svg",
+      "sha256": "0x06b89f7c70f55cc894e0fd8802a8c082dd1cc55e36a26ffbb79f395d09ef694a"
+    },
+    {
+      "file": "checkin-bedroom.svg",
+      "sha256": "0x67896c84005631763c65184350cf864ac5296b15424975fc09facaa200bfb975"
+    }
+  ]
+}

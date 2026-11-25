@@ -1,0 +1,15 @@
+{
+  "arbiter": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+  "chainId": 31337,
+  "checkInHash": "0x09016344099766d2e2a452e2017d8c518d9263d17ada5750e242893c83c0518f",
+  "checkInManifest": "/demo/checkin-manifest.json",
+  "depositAmount": 882360000,
+  "landlord": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "lease": "0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e",
+  "leaseFile": "/demo/lease.pdf",
+  "leaseHash": "0x959edffbf37ea1566e26607be313c47de4a9f5ca8d2d16e50c463b572e3509d5",
+  "rentAmount": 441180000,
+  "rentThb": 15000,
+  "tenant": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+  "termMonths": 12
+}

@@ -189,8 +189,8 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     }
 
     /// @notice Called once by the factory right after cloning. Validation lives in the factory.
-    function initialize(Terms calldata terms) external initializer {
-        _terms = terms;
+    function initialize(Terms calldata terms_) external initializer {
+        _terms = terms_;
         status = Status.Created;
     }
 

@@ -4,6 +4,11 @@ out = "out"
 # No incremental build cache: the project is small, and the cache file churns on every build.
 cache = false
 libs = ["lib"]
+# Scripts write deployment JSON and hash the demo evidence files served by the web app.
+fs_permissions = [
+  { access = "read-write", path = "./deployments" },
+  { access = "read", path = "../web/public/demo" },
+]
 solc_version = "0.8.28"
 evm_version = "cancun"
 optimizer = true

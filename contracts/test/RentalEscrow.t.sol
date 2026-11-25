@@ -967,7 +967,7 @@ contract RentalEscrowTest is BaseTest {
             escrow.payRent(extraMonths);
         }
         uint256 tenantStart = usdt.balanceOf(tenant) + DEPOSIT + RENT * (1 + extraMonths);
-        vm.warp(block.timestamp + elapsed);
+        vm.warp(vm.getBlockTimestamp() + elapsed);
 
         path = path % 4;
         if (path == 0) {
@@ -983,13 +983,13 @@ contract RentalEscrowTest is BaseTest {
         } else if (path == 2) {
             vm.prank(tenant);
             escrow.propose(tenantRefund, REPORT_HASH);
-            vm.warp(block.timestamp + WINDOW);
+            vm.warp(vm.getBlockTimestamp() + WINDOW);
             escrow.claimTimeout();
             tenantRefund = DEPOSIT;
         } else {
             vm.prank(landlord);
             escrow.dispute();
-            vm.warp(block.timestamp + ARB_WINDOW);
+            vm.warp(vm.getBlockTimestamp() + ARB_WINDOW);
             escrow.claimArbiterTimeout();
             tenantRefund = DEPOSIT;
         }

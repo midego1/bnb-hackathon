@@ -103,6 +103,34 @@ docs/                Architecture, business model, CMC x Atlas write-up, demo sc
 - [Demo script](docs/DEMO.md): the 3-minute local demo.
 - [Contracts README](contracts/README.md)
 
+## Run locally
+
+Everything runs against a local [anvil](https://book.getfoundry.sh/anvil/) node; no keys or accounts needed.
+
+```bash
+pnpm chain:anvil          # terminal 1: anvil on 127.0.0.1:8545 (ANVIL_PORT=... to change)
+pnpm chain:deploy         # MockUSDT + EscrowFactory -> contracts/deployments/31337.json
+pnpm chain:seed           # demo balances + one funded demo lease -> contracts/deployments/31337.demo.json
+```
+
+Point both at another local node with `RPC_URL=http://host:port pnpm chain:deploy`. The deploy script refuses any
+chain other than 31337 unless `ALLOW_NON_LOCAL_BROADCAST=true` is set (and `PRIVATE_KEY` is then required);
+known mainnets are always refused. On a fresh anvil the addresses are deterministic, see
+`contracts/deployments/31337.example.json` and `31337.demo.example.json`.
+
+Demo roles (anvil default accounts): #0 deployer / factory owner / KeyEscrow treasury (fee recipient), #1 landlord,
+#2 tenant, #3 KeyEscrow dispute desk (default arbiter). The demo lease is a Bangkok condo at 15,000 THB/month
+(441.18 mUSDT at ~34 THB/USDT) with a 2-month deposit over 12 months. Its on-chain content hashes are SHA-256 of
+the placeholder files in `web/public/demo/` (lease PDF and check-in photo manifest).
+
+End-to-end check of every settlement path against a throwaway anvil (port 28545, started and killed by the runner):
+
+```bash
+pnpm e2e:chain            # deploy, seed, happy path, dispute, landlord timeout, arbiter fallback
+```
+
+It needs `pnpm -C web install` (it uses viem) and exits non-zero if any path fails.
+
 ## License
 
 [MIT](LICENSE)

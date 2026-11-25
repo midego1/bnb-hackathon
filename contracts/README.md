@@ -5,13 +5,50 @@ Foundry project with the on-chain part of KeyEscrow.
 | Contract | Purpose |
 | --- | --- |
 | `EscrowFactory` | Deploys one `RentalEscrow` per lease and indexes leases by landlord / tenant / arbiter. |
-| `RentalEscrow` | Holds deposit + rent in a stablecoin, releases rent monthly, settles the deposit by mutual agreement, arbiter ruling, or timeout. |
+| `RentalEscrow` | Holds deposit + rent in a stablecoin, releases rent monthly, settles the deposit by mutual agreement, arbiter ruling, or one of two timeouts. |
 | `MockUSDT` | Testnet-only 6-decimal stablecoin with a capped faucet. |
 
 ```bash
 forge build
 forge test -vv
-forge coverage --report summary
+forge coverage --report summary --no-match-coverage "(test|script)/"
 ```
+
+## Settlement rules
+
+| Path | Who triggers | Deposit goes to |
+| --- | --- | --- |
+| Proposal accepted | the counterparty | split as proposed |
+| Dispute resolved | the arbiter, before the arbiter deadline | split as ruled |
+| Landlord-response timeout | anyone, `responseWindow` (default 7 days) after an unanswered *tenant* proposal | **tenant, in full** |
+| Arbiter-deadline fallback | anyone, `arbiterWindow` (default 14 days) after a dispute is opened | **tenant, in full** |
+
+Both timeouts put the burden of proof on the landlord: a deposit claim that the landlord never defended, or that the
+arbiter never upheld, is not paid. A counter-proposal or dispute by the landlord stops the response clock. Once the
+arbiter deadline passes the arbiter can no longer rule, so the fallback cannot be raced. In every path, rent already
+released stays released, funded rent that is due goes to the landlord and prepaid rent that is not yet due goes back
+to the tenant.
+
+This is a product choice, not a technical constraint. To change it, edit the amounts passed to `_settle` in
+`RentalEscrow.claimTimeout` / `RentalEscrow.claimArbiterTimeout` (and the matching tests). Both windows are set per
+lease at creation (`EscrowFactory.createLease`, 0 = default; response 1-60 days, arbiter 1-90 days).
+
+## Platform roles and fee
+
+- **Default arbiter.** `EscrowFactory.defaultArbiter` is the KeyEscrow dispute desk (owner-settable). A lease created
+  with `arbiter = address(0)` uses it; a landlord may still name any other arbiter that is neither party.
+- **Protocol fee.** Once per lease, `feeBps` of **one month's** rent (default 1000 = 10%, hard cap 1000) is deducted
+  from the landlord's first rent payout and sent to `feeRecipient` (KeyEscrow treasury). It is never taken from the
+  deposit or charged to the tenant. Rate and recipient are snapshotted into each lease, so later changes only affect
+  new leases. Emits `ProtocolFeePaid`.
+
+## Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `script/Deploy.s.sol` | Deploys MockUSDT (unless `TOKEN_ADDRESS`) + EscrowFactory, writes `deployments/<chainId>.json`. Chain guard: 31337 only unless `ALLOW_NON_LOCAL_BROADCAST=true`; mainnets always refused. |
+| `script/Seed.s.sol` | Anvil only. Mints demo balances and creates + funds one demo lease, writes `deployments/31337.demo.json`. |
+
+The end-to-end runner (`pnpm e2e:chain`, source in `web/scripts/e2e-chain.mts`) uses both against a throwaway anvil.
 
 Dependencies are git submodules under `lib/` (`git submodule update --init --recursive`).
