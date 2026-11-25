@@ -1,3 +1,5 @@
+English | [简体中文](WRITEUP.zh-CN.md)
+
 # KeyEscrow: CoinMarketCap x Atlas write-up (one page)
 
 **Team:** KeyEscrow · contact: hackathon@vanpeltventures.org (team names: _owner to fill in_) · repo: this repository · demo: `/integrations` and the owner/renter rental pages.

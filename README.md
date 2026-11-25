@@ -1,3 +1,5 @@
+English | [简体中文](README.zh-CN.md)
+
 # KeyEscrow
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
