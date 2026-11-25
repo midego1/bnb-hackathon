@@ -183,10 +183,10 @@ in `both`). Server components call `getDictionary()`, client components `useT()`
 headlines (EN+中文 puts the Chinese line under the English, body text stays English), `t.of(module)` and
 `t.head(module, pick)` for the localized data modules (`*.zh.ts` next to the English: demo copy and script, the
 guided narration, the ELI5 cartoon, the landing copy, `lib/errors.zh.ts`). The app screens' strings are in the
-dictionary itself, one file per group (`web/lib/i18n/dictionaries/{en,zh}/{shell,roles,rental,more}.ts`, a `body` and a
+dictionary itself, one file per group (`web/lib/i18n/dictionaries/{en,zh}/{shell,roles,rental,more,subs,stage}.ts`, a `body` and a
 `head` for headlines and the big status sentences), so the browser only ever gets the active language. Shared lib
 sentences the API also returns stay English there and are mapped for the UI (`fieldErrorIn`, the rental flags'
-`code` + `vars`, `describeEvent(e, money, t)`). The switch sits in the landing header and footer and the sidebar
+`code` + `vars`, `describeEvent(e, money, t)`, the stage feed's `eventLabel(e, t)`). The switch sits in the landing header and footer and the sidebar
 footer. A missing Chinese key falls back to English;
 `web/tests/i18n.test.ts` lists any. `?bilingual=1` switches to `both`. Fixed terms: [i18n-glossary.md](i18n-glossary.md).
 
