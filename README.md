@@ -45,7 +45,7 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 
 ### BSC testnet contracts (chain 97)
 
-From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144802840).
+From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144828181).
 
 | Contract | Address |
 | --- | --- |

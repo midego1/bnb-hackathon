@@ -41,7 +41,9 @@
     ".next-testnet/types/**/*.ts",
     ".next-testnet/dev/types/**/*.ts",
     ".next-sponsors/types/**/*.ts",
-    ".next-sponsors/dev/types/**/*.ts"
+    ".next-sponsors/dev/types/**/*.ts",
+    ".next-mkt/types/**/*.ts",
+    ".next-mkt/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
