@@ -70,4 +70,17 @@ export const E2E_WEB_ENV: Record<string, string> = {
   DEMO_TESTNET_SECRETS_DIR: "",
   DEMO_TESTNET_ENV_FILE: "",
   DEMO_TESTNET_RPC_URL: "",
+  // Sponsor integrations: never live in e2e (no CMC credits, no Cournot free calls, no Living Brain).
+  CMC_API_BASE: "",
+  RISK_CACHE_TTL_SECONDS: "",
+  COURNOT_LIVE: "",
+  COURNOT_API_BASE: "",
+  COURNOT_API_KEY: "",
+  COURNOT_MAX_LIVE_CALLS: "",
+  LIVING_BRAIN_API_KEY: "",
+  LIVING_BRAIN_SUBJECT_ID: "",
+  LIVING_BRAIN_BRAIN_ID: "",
+  LIVING_BRAIN_BASE_URL: "",
+  ATLAS_MAX_AGE_SECONDS: "",
+  SPONSOR_LOG_DIR: "test-results/e2e-sponsor-logs",
 };

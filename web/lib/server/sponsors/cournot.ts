@@ -25,7 +25,7 @@ export interface CournotConfig {
 
 export function cournotConfig(env: Env = process.env): CournotConfig {
   const base = (env.COURNOT_API_BASE || COURNOT_DEFAULT_BASE).replace(/\/+$/, "");
-  if (!ALLOWED_BASES.has(base)) throw new Error(`COURNOT_API_BASE must be one of ${[...ALLOWED_BASES].join(", ")}`);
+  if (!ALLOWED_BASES.has(base) && !/^http:\/\/127\.0\.0\.1:\d+$/.test(base)) throw new Error(`COURNOT_API_BASE must be one of ${[...ALLOWED_BASES].join(", ")}`);
   const apiKey = env.COURNOT_API_KEY && /^ck_live_[A-Za-z0-9_-]{1,256}$/.test(env.COURNOT_API_KEY) ? env.COURNOT_API_KEY : undefined;
   return { base, apiKey, live: env.COURNOT_LIVE === "1" && !env.VITEST };
 }

@@ -55,8 +55,9 @@ export function IntegrationsView() {
               }
             >
               <p className="text-sm text-muted">{i.detail}</p>
-              <p className="mt-2 text-xs text-subtle">
-                Env (server-side, web/.env.local): {i.env.map((e) => <code key={e} className="mr-1 rounded bg-surface-muted px-1">{e}</code>)}
+              <p className="mt-2 text-xs text-subtle">Env (server-side, web/.env.local):</p>
+              <p className="mt-1 flex flex-wrap gap-1 text-xs">
+                {i.env.map((e) => <code key={e} className="break-all rounded bg-surface-muted px-1">{e}</code>)}
               </p>
               <p className="mt-3 text-xs font-semibold">Recent calls</p>
               {i.calls.length ? (

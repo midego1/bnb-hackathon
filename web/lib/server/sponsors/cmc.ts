@@ -5,6 +5,13 @@ import { logSponsorCall, safeEndpoint } from "./log";
 /** CoinMarketCap Pro API, server-side only. The key never leaves this module and is never logged. */
 export const CMC_BASE = "https://pro-api.coinmarketcap.com";
 
+/** CMC_API_BASE may only point at the real API or a local fixture server (Playwright replays recorded fixtures). */
+export function cmcBase(env: Env = process.env): string {
+  const b = (env.CMC_API_BASE || CMC_BASE).replace(/\/+$/, "");
+  if (b === CMC_BASE || /^http:\/\/127\.0\.0\.1:\d+$/.test(b)) return b;
+  throw new CmcError(`CMC_API_BASE must be ${CMC_BASE} or http://127.0.0.1:<port>`, null);
+}
+
 type FetchLike = typeof fetch;
 
 export function cmcApiKey(env: Env = process.env): string | undefined {
@@ -27,7 +34,7 @@ interface CmcEnvelope<T> {
 
 /** GET a Pro API path; logs endpoint, time, status and credit count (never the key). */
 export async function cmcGet<T>(pathname: string, params: Record<string, string>, key: string, fetchImpl: FetchLike = fetch): Promise<T> {
-  const url = new URL(pathname, CMC_BASE);
+  const url = new URL(pathname, cmcBase());
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const started = Date.now();
   const at = new Date(started).toISOString();
