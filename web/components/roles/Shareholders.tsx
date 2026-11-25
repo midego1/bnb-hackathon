@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, AddressTag, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
+import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
 import { fleetVaultAbi, mockUsdtAbi } from "@/lib/contracts";
@@ -14,6 +14,7 @@ import { useRentals } from "@/lib/hooks/useRentals";
 import { useTx } from "@/lib/hooks/useTx";
 import { useVault, vaultIncome, type VaultState } from "@/lib/hooks/useVault";
 import type { ChainEvent } from "@/lib/rentals";
+import { shareLock } from "@/lib/windows";
 import { Kpi, TxLink, When } from "./shared";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
@@ -143,6 +144,7 @@ function Position({ vault }: { vault: VaultState }) {
   const share = me && vault.totalSupply > BigInt(0) ? (Number(me.shares) / Number(vault.totalSupply)) * 100 : 0;
   const short = me && amount !== undefined && me.usdt < amount ? amount - me.usdt : BigInt(0);
   const { deployment } = useDeployment();
+  const lock = shareLock(me?.lockedUntil ?? BigInt(0), vault.chainNow);
 
   return (
     <Card title="Your position">
@@ -164,6 +166,13 @@ function Position({ vault }: { vault: VaultState }) {
           </ActionButton>
         </div>
       </div>
+      {lock.locked && (
+        <div className="mt-4" data-testid="share-lock">
+          <Notice kind="info">
+            {lock.reason} Unlocks <Countdown target={lock.until} clock={vault} />.
+          </Notice>
+        </div>
+      )}
       <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
         <Field label="Buy shares (USDT)" hint="1 share per USDT. Principal stays in the vault and can be redeemed 1:1.">
           <input className={inputClass} inputMode="decimal" value={input} onChange={(e) => setInput(e.target.value)} data-testid="deposit-amount" />
@@ -201,6 +210,18 @@ function Position({ vault }: { vault: VaultState }) {
           onClick={() => send("Buy fleet shares", { address: vault.address, abi: fleetVaultAbi, functionName: "deposit", args: [amount!] })}
         >
           Buy shares
+        </ActionButton>
+      </div>
+      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <p className="text-sm text-muted">Redeem your shares 1:1 for USDT (all {me ? formatUsdt(me.shares) : "…"} {vault.symbol}).</p>
+        <ActionButton
+          variant="secondary"
+          data-testid="redeem-shares"
+          busy={pending === "Redeem shares"}
+          disabledReason={!me || me.shares === BigInt(0) ? "You hold no shares." : lock.reason}
+          onClick={() => send("Redeem shares", { address: vault.address, abi: fleetVaultAbi, functionName: "redeem", args: [me!.shares] })}
+        >
+          Redeem shares
         </ActionButton>
       </div>
     </Card>
