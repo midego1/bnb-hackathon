@@ -1,6 +1,6 @@
 "use client";
 
-import { Play } from "lucide-react";
+import { CircleCheck, Play, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -563,6 +563,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             )}
             {running && (
               <button type="button" onClick={() => start(path)} className={secondaryBtn}>
+                <RotateCcw aria-hidden className="size-4" />
                 {controls.restart}
               </button>
             )}
@@ -667,7 +668,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
 const secondaryBtn =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover";
 const primarySmall =
-  "inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover";
 
 function BigButton({ children, onClick, disabled, testId }: { children: ReactNode; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
@@ -916,6 +917,7 @@ function Summary({
             className={`mt-3 text-base font-medium tall:mt-4 ${books.balanced ? "text-success" : "text-danger"}`}
             data-testid="demo-balanced"
           >
+            {books.balanced && <CircleCheck aria-hidden className="mr-1.5 inline size-4 align-[-3px]" />}
             {books.balanced
               ? summaryCopy.balanced(money(books.paidIn), money(books.tenantBack), money(books.landlord), money(books.treasury))
               : summaryCopy.unbalanced}
@@ -924,6 +926,7 @@ function Summary({
       )}
       <div className="mt-3 flex flex-wrap gap-2 lg:mt-auto lg:pt-3">
         <button type="button" onClick={onAgain} className={primarySmall} data-testid="demo-run-again">
+          <RotateCcw aria-hidden className="size-4" />
           {summaryCopy.again}
         </button>
         {others.map((p) => (

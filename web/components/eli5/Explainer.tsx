@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { ChevronLeft, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useReducer, useSyncExternalStore } from "react";
 import { baht, copy, dollars, ENDINGS, story, type Ending, type Scene } from "./script";
@@ -214,7 +214,8 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         <div className="flex flex-col gap-2 lg:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => dispatch({ type: "back" })} disabled={s.index === 0} className={secondaryBtn} data-testid="eli5-back" aria-label={copy.back}>
-              ◀ {copy.back}
+              <ChevronLeft aria-hidden className="size-4" />
+              {copy.back}
             </button>
             {done ? (
               <button type="button" onClick={() => dispatch({ type: "replay" })} className={primaryBtn} data-testid="eli5-replay">
