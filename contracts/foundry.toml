@@ -20,3 +20,7 @@ line_length = 110
 [rpc_endpoints]
 anvil = "http://127.0.0.1:8545"
 bsc_testnet = "${BSC_TESTNET_RPC_URL}"
+
+[lint]
+# Rent periods and response windows are measured in days; validator timestamp drift (seconds) is irrelevant.
+exclude_lints = ["block-timestamp"]
