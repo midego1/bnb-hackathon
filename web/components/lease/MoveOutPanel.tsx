@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Hex } from "viem";
 import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { photosForHash } from "@/lib/demoEvidence";
+import { prepareProposeSettlement } from "@/lib/actions/definitions";
+import { fieldError } from "@/lib/actions/fields";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { formatDate, formatUsdt, parseUsdt } from "@/lib/format";
 import { hashText } from "@/lib/hash";
@@ -112,7 +114,9 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const [reason, setReason] = useState("");
   const deposit = lease.terms.depositAmount;
   const refundAmount = parseUsdt(refund);
-  const refundError = refundAmount === undefined ? "Enter an amount." : refundAmount > deposit ? "Cannot exceed the deposit." : undefined;
+  // Same rule and message as the prepare_propose_settlement API / MCP tool (lib/actions).
+  const refundError =
+    fieldError(prepareProposeSettlement.input, "toRenter", refund) ?? (refundAmount !== undefined && refundAmount > deposit ? "Cannot exceed the deposit." : undefined);
 
   async function inspect() {
     setInspecting(true);

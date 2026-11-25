@@ -7,16 +7,19 @@ import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } f
 import type { AgentConfig } from "./config.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
 import { buildMcpServer } from "./mcp.ts";
-import { inspectorLabel, visionProviderFromEnv, type VisionProvider } from "./shared.ts";
+import { inspectorLabel, PriceService, visionProviderFromEnv, type ActionHost, type VisionProvider } from "./shared.ts";
 
 export interface BuildOptions {
   /** Override the vision provider (tests); default comes from env (mock without ANTHROPIC_API_KEY). */
   provider?: VisionProvider | null;
   now?: () => Date;
+  /** Host for the rental-action tools (RPC per chain, prices); default: process env + a price service. null = off. */
+  actions?: ActionHost | null;
 }
 
 /**
- * One process, three faces over the same skill:
+ * One process, three faces over the same skills (the inspection, plus every rental action from web/lib/actions on
+ * MCP and A2A):
  *   A2A   GET /.well-known/agent-card.json, JSON-RPC at POST /a2a (message/send)
  *   MCP   Streamable HTTP at POST /mcp (stateless, JSON responses)
  *   REST  POST /inspect (same body as POST /api/settlement in the web app)
@@ -33,7 +36,11 @@ export function buildApp(cfg: AgentConfig, opts: BuildOptions = {}): Express {
     chainId: registry?.chainId,
   });
 
-  const a2a = new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps));
+  const prices = new PriceService();
+  const actions: ActionHost | null =
+    opts.actions !== undefined ? opts.actions : { env: process.env, prices: () => prices.get() };
+
+  const a2a = new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps, actions));
 
   const app = express();
   app.disable("x-powered-by");
@@ -64,7 +71,7 @@ export function buildApp(cfg: AgentConfig, opts: BuildOptions = {}): Express {
   });
 
   app.post("/mcp", async (req, res) => {
-    const server = buildMcpServer(deps(), identity);
+    const server = buildMcpServer(deps(), identity, actions);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();

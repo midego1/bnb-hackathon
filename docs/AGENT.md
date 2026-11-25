@@ -1,7 +1,7 @@
 # KeyEscrow Inspector: the AI inspection as a BNB Chain agent
 
 KeyEscrow Inspector is the return inspection from `POST /api/settlement`, run as an agent that other software can
-find and call. It has an on-chain identity on BNB Chain (ERC-8004), it exposes one skill over A2A and MCP, and it
+find and call. It has an on-chain identity on BNB Chain (ERC-8004), it exposes the inspection skill over A2A and MCP (plus every rental action as a tool, [below](#rental-actions-as-agent-tools)), and it
 signs every report it produces. The on-chain proposal therefore names the agent that made it: the renter or
 owner (`landlord`) passes `reportHash` to `RentalEscrow.propose()`, and that hash covers the inspector's ERC-8004 agent id.
 The UI shows this as "Signed by KeyEscrow Inspector, ERC-8004 agent #N".
@@ -20,6 +20,7 @@ inspection (ERC-8183 / x402) are on the [roadmap](#roadmap-pay-per-inspection-er
 - [How it fits together](#how-it-fits-together)
 - [Run it locally](#run-it-locally)
 - [The skill](#the-skill)
+- [Rental actions as agent tools](#rental-actions-as-agent-tools)
 - [ERC-8004 identity and signed reports](#erc-8004-identity-and-signed-reports)
 - [Register on BSC testnet](#register-on-bsc-testnet)
 - [Local rehearsal](#local-rehearsal)
@@ -134,6 +135,193 @@ result. The input is validated with the same zod schema, and `tenantRefund + lan
 | A2A (protocol 0.3.0, JSON-RPC) | Card at `/.well-known/agent-card.json`. Send `message/send` to `/a2a` with one data part: the request object. An optional `"skill": "inspect_move_out"` key is accepted. The reply is one agent message with a data part: the result, or `{error, details?, status}`. |
 | MCP (Streamable HTTP, stateless) | `POST /mcp`. Tools: `inspect_move_out` (result in `structuredContent`), `verify_report` (recompute the hash, recover the signer), `inspector_identity`. Errors come back as `isError: true` with `{error, details?}`. |
 | REST | `POST /inspect`: 200 with the result, 400 for invalid input, 502 when the model fails. |
+
+## Rental actions as agent tools
+
+Besides the inspection, the agent serves every KeyEscrow rental action as a tool, so an AI assistant can run a scooter
+rental for a person: read where the deposit is, create a rental from baht amounts, fund it, propose the deposit split,
+accept, dispute, rule, claim a missed deadline. **Each action is defined once** in
+[`web/lib/actions/definitions.ts`](../web/lib/actions/definitions.ts) and served from that one definition as:
+
+| Face | Where | Generated from the definition |
+| --- | --- | --- |
+| MCP tool | agent `POST /mcp` (next to `inspect_move_out`) | name, title, description, JSON Schema of the input, validation |
+| A2A skill | agent card `/.well-known/agent-card.json`, `message/send` with `{"skill": "<name>", ...input}` | id, name, description, example |
+| REST | web app `GET /api/v1/<read>?…`, `POST /api/v1/<prepare_*>` | route table, validation, errors |
+| OpenAPI 3.1 | web app `GET /api/v1/openapi.json`, docs page `/developers` (curl per action) | operation, parameters / request body, roles, statuses |
+| Web forms | create rental, propose split, rule on a dispute | the same field schemas and messages (`fieldError`) |
+
+**Non-custodial.** Reads return JSON. Every `prepare_*` returns `{chainId, from, steps: [{to, data, value,
+description}], summary}` with **unsigned** transactions, after dry-running all steps in order on the chain
+(`eth_simulateV1`, so "approve, then fund" is checked as a pair). A step that would revert comes back as a plain
+reason (`"Step 1 (Create the rental offer) would fail: Owner, renter and arbiter must be three different
+addresses."`) before anyone signs. Nothing in this layer holds or uses a private key: the person signs the steps with
+their own wallet. Roles and status are checked first (`409 precondition_failed`), so a renter who asks to accept their
+own proposal is told why instead of getting a revert.
+
+| Action | Kind | Who | Needs status | What it does |
+| --- | --- | --- | --- | --- |
+| `get_lease` | read | anyone | | Terms, status, months paid, current proposal and deadlines, mUSDT with baht/dollar equivalents |
+| `list_leases` | read | anyone | | A wallet's rentals (as owner, renter or dispute desk) from the factory's on-chain index |
+| `explain_status` | read | anyone | | Plain language: where the deposit is, what can happen next, who must act by when |
+| `quote` | read | anyone | | THB / USD / mUSDT at the price API's rate (Atlas, CMC, else marked demo rates) |
+| `prepare_create_lease` | prepare | owner | | `createLease` (or `createLeaseWithPayee` with `payee`, e.g. a Fleet Vault); rent and deposit in THB, USD or mUSDT |
+| `prepare_fund` | prepare | renter | Created | `approve` (only if needed) + `fund` |
+| `prepare_release_rent` | prepare | anyone | Active, MoveOut, Disputed | `releaseRent` for due months (the renter may release early) |
+| `prepare_add_evidence` | prepare | owner, renter | not closed | `addEvidence(kind, sha256)` for pickup / return photos or a report |
+| `prepare_propose_settlement` | prepare | owner, renter | Active, MoveOut | `propose`, from an amount or straight from an `inspect_move_out` result |
+| `prepare_accept` | prepare | the other side | MoveOut | `accept(nonce)`, pinned to the proposal that was reviewed |
+| `prepare_dispute` | prepare | owner, renter | Active, MoveOut | `dispute` |
+| `prepare_resolve` | prepare | dispute desk | Disputed | `resolve(toRenter, sha256(ruling))` |
+| `prepare_claim_timeout` | prepare | anyone | MoveOut, Disputed | `claimTimeout` or `claimArbiterTimeout`, whichever deadline was missed |
+| `prepare_cancel` | prepare | owner | Created | `cancel` an unfunded offer |
+
+On-chain names: owner = `landlord`, renter = `tenant`, dispute desk = `arbiter`. Amounts in: human mUSDT strings
+(`"441.18"`) or baht/dollars where a `currency` field says so. Amounts out: `{units, display}` (base units and
+`"441.18 mUSDT"`).
+
+**Chains.** 31337 (local anvil) and 97 (BSC testnet), addresses from `contracts/deployments/*.json` (via
+`web/lib/contracts`). Each call may pass `chainId`; the default is `KEYESCROW_CHAIN_ID`, else `NEXT_PUBLIC_CHAIN_ID`,
+else 31337. Reads and simulations go through a server RPC: `KEYESCROW_RPC_URL_<chainId>`, defaulting to the web app's
+anvil URL for 31337 and to PublicNode for 97 (the bnbchain.org data-seed nodes refuse `eth_getLogs`; PublicNode also
+answers `eth_simulateV1`). The code is Worker-friendly: fetch-based RPC, env passed in, no fs, no module state.
+
+### One definition, every face
+
+```ts
+export const prepareDispute = prepare({
+  name: "prepare_dispute",                    // MCP tool name, A2A skill id, POST /api/v1/prepare_dispute
+  title: "Open a dispute",
+  description: "Prepare the transaction that sends the rental to the dispute desk. …",   // what the LLM reads
+  roles: ["owner", "renter"],                 // checked against `from` before simulating
+  statuses: ["Active", "MoveOut"],            // checked against the chain before simulating
+  input: z.object({ lease: leaseField(), from: fromField("the owner or the renter"), chainId: chainId() }).strict(),
+  example: { lease: EX.lease, from: EX.renter },   // curl example on /developers, checked by the tests
+  build: async ({ lease }, { lease: l }) => ({ calls: [{ to: lease, abi: rentalEscrowAbi, functionName: "dispute", description: "Open a dispute" }], summary: `…` }),
+});
+```
+
+`ACTIONS` lists the definitions. `agent/src/mcp.ts` loops over it to register the tools, `agent/src/card.ts` to
+build the A2A skills, `web/lib/actions/rest.ts` to build the route table behind `web/app/api/v1/[action]/route.ts`,
+and `web/lib/actions/openapi.ts` to write the OpenAPI document. The tool description every face shows is the
+definition's text plus the generated "Who / Needs rental status / Returns unsigned transactions" lines.
+
+### Connect Claude
+
+Run the agent (`pnpm agent:dev`, MCP at `http://127.0.0.1:8790/mcp`; set `KEYESCROW_CHAIN_ID=97` for BSC testnet),
+then point Claude at it. Replace the URL with the agent's public URL once it is hosted.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http keyescrow http://127.0.0.1:8790/mcp
+```
+
+or in a project's `.mcp.json`:
+
+```json
+{ "mcpServers": { "keyescrow": { "type": "http", "url": "http://127.0.0.1:8790/mcp" } } }
+```
+
+Claude Desktop (`claude_desktop_config.json`; the `mcp-remote` bridge turns the HTTP server into a local stdio one,
+or add the URL under Settings, Connectors when the agent has a public https URL):
+
+```json
+{ "mcpServers": { "keyescrow": { "command": "npx", "args": ["-y", "mcp-remote", "http://127.0.0.1:8790/mcp"] } } }
+```
+
+Example chat (what Claude does with the tools, abridged):
+
+> **Owner:** Rent my scooter to 0x3C44…93BC for 6 months, 3,500 baht a month, 2 months deposit. My wallet is 0x7099…79C8.
+>
+> **Claude** (calls `prepare_create_lease` with `rent: "3500", currency: "THB", depositMonths: 2, termMonths: 6`):
+> Here is the rental, ready to sign: rent 106.06 mUSDT a month (3,500 THB at 33 THB/USDT, demo rate), deposit
+> 212.12 mUSDT (2 months). You have 7 days to answer the renter's return proposal; the KeyEscrow dispute desk has 14
+> days to rule on a dispute. One transaction to sign with your wallet: *Create the rental offer*. Next, the renter
+> funds 318.18 mUSDT.
+>
+> **Renter:** Where is my deposit?
+>
+> **Claude** (calls `list_leases` for the renter's wallet, then `explain_status` with `viewer`): It is held in the
+> escrow contract 0xA22D…70c3, not by the owner: it only moves when you both agree, the dispute desk rules, or a
+> deadline passes. Rent: 1 of 6 months paid in. When you return the scooter you can propose how the deposit is split
+> (`prepare_propose_settlement`); if the owner does not answer within 7 days, the full deposit comes back to you
+> (`prepare_claim_timeout`).
+
+### Demo
+
+`pnpm agent:demo:tools` runs all of this on a throwaway local anvil (free port in 28660-28689, deployed and seeded
+with the forge scripts), as an MCP client over HTTP: it lists the tools, asks `explain_status` about the seeded
+rental, prepares a rental from baht amounts, signs the returned steps with anvil's public dev keys, has the renter
+fund it (approve + fund), and shows a simulated revert coming back as a plain reason. It refuses to sign unless the
+steps and the node both say chainId 31337; it never signs on BSC testnet. Output (trimmed):
+
+```text
+local anvil http://127.0.0.1:28660 (chainId 31337), seeded rental 0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e
+
+MCP http://127.0.0.1:40147/mcp: tools/list
+   | inspect_move_out             Move-out inspection
+   | verify_report                Verify an inspection report
+   | inspector_identity           Inspector identity
+   | get_lease                    Get a rental
+   | list_leases                  List rentals of a wallet
+   | explain_status               Explain where the deposit is
+   | quote                        Convert baht / dollars / mUSDT
+   | prepare_create_lease         Create a rental
+   | prepare_fund                 Fund the rental (renter)
+   | …                            (release rent, evidence, propose, accept, dispute, resolve, claim timeout, cancel)
+
+"Where is my deposit?" (renter 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC, seeded rental)
+> tools/call explain_status {"lease":"0x9f1a…3a8e","viewer":"0x3C44…93BC"}
+   | You are the renter. Rental running.
+   | Deposit (200.00 mUSDT): Held in the escrow contract 0x9f1a…3a8e. Neither side can take it alone: it only moves
+   | on agreement, a dispute-desk ruling or a timeout.
+   | Rent 100.00 mUSDT a month: 1 of 3 month(s) paid into escrow, 0 paid out to the owner, 1 still held. …
+   | What can happen next:
+   | - anyone: Pay 1 due month(s) of rent out to the owner. [prepare_release_rent]
+   | - the renter: At return, propose how the deposit is split (e.g. from the AI inspection). [prepare_propose_settlement]
+   | …
+
+"Rent my scooter to 0x3C44…93BC for 6 months, 3,500 baht a month, 2 months deposit"
+> tools/call prepare_create_lease {"from":"0x7099…79C8","renter":"0x3C44…93BC","rent":"3500","currency":"THB","depositMonths":2,"termMonths":6}
+   | summary: Create a 6-month rental for renter 0x3C44…93BC: rent 106.06 mUSDT a month (THB 3500 at 33.00 THB/USDT,
+   | demo rate), deposit 212.12 mUSDT (2 months of rent). … Next: the renter funds 318.18 mUSDT with prepare_fund.
+   | steps:   Create the rental offer
+   | expected rental: 0xA22D78bc37cE77FeE1c44F0C2C0d2524318570c3
+   | signed step 1 (Create the rental offer) as 0x70997970C51812dc3A010C7d01b50e0d17dc79C8: success, block 24
+
+Renter: prepare_fund (approve + fund, simulated as a pair)
+   | steps:   Approve 318.18 mUSDT for the escrow -> Pay the deposit and first month's rent into escrow
+   | signed step 1 (Approve 318.18 mUSDT for the escrow) as 0x3C44…93BC: success, block 25
+   | signed step 2 (Pay the deposit and first month's rent into escrow) as 0x3C44…93BC: success, block 26
+
+get_lease after signing
+   | status Active · deposit 212.12 mUSDT · rent 106.06 mUSDT/month · escrow holds 318.18 mUSDT
+
+A mistake comes back as a plain reason before anyone signs (the simulation reverts):
+   | {"error":"Step 1 (Create the rental offer) would fail: Owner, renter and arbiter must be three different addresses.",
+   |  "code":"simulation_reverted","details":{"step":1,"function":"createLease((address,…))","errorName":"RolesNotDistinct"}}
+```
+
+### How to add an action
+
+Adding a field or an action is one edit in `web/lib/actions/definitions.ts`; every face picks it up.
+
+1. **A field:** add it to the action's `input` with a helper from `web/lib/actions/fields.ts` (`field.address`,
+   `field.tokenAmount`, `field.money` + `field.currency`, `field.int(min, max, …)`, `field.bytes32`, `field.text`)
+   and a `title` and `description` written for a person and an LLM (`"x-unit"` for units). Use it in `build`.
+   Example: `payee` on `prepare_create_lease` (switches to `createLeaseWithPayee`) was added this way.
+2. **An action:** write a `read({...})` (with `run`) or `prepare({...})` (with `build` returning the contract calls
+   and a `summary`), give it `roles`, `statuses` and a valid `example`, and add it to `ACTIONS`. Name it in
+   snake_case; writes start with `prepare_`. Never sign or send in an action: return calls, the runner encodes and
+   simulates them.
+3. Run `pnpm -C web test` and `pnpm agent:test`. `agent/test/actions.test.ts` iterates every definition and fails
+   unless it is an MCP tool, an A2A skill, an OpenAPI operation and a route, all with the same description and
+   fields; `web/tests/actions.test.ts` checks every `example` against its own schema. No other file needs to change
+   (the `/developers` page, the OpenAPI document and the tool list are generated).
+
+Agent env for the tools: `KEYESCROW_CHAIN_ID`, `KEYESCROW_RPC_URL_31337`, `KEYESCROW_RPC_URL_97` (all optional, see
+above). The price source for baht conversions is the same `PriceService` as `GET /api/price`.
 
 ## ERC-8004 identity and signed reports
 
@@ -270,11 +458,14 @@ Not built. This is how payments would plug in without changing the identity or t
 ## Tests
 
 ```bash
-pnpm agent:test                          # vitest: card + registration file, config, the skill, A2A/MCP/REST over HTTP
+pnpm agent:test                          # vitest: card + registration file, config, the skill, A2A/MCP/REST over HTTP,
+                                         # rental-action parity (MCP/A2A/OpenAPI/routes) + an anvil integration run
+pnpm agent:demo:tools                    # the rental tools as an MCP client on a throwaway local anvil
 pnpm -C web test                         # includes web/tests/inspector.test.ts (signing, hash binding, tamper checks)
 cd contracts && forge test --match-contract MockIdentityRegistry
 pnpm agent:rehearse                      # the ERC-8004 registration path on local anvil (23 checks)
 ```
 
 Agent tests run offline. Provider keys are unset, `fetch` can only reach 127.0.0.1, and the HTTP tests start the
-agent on a free port in 3170-3199.
+agent on a free port in 3170-3199. The rental-action integration test starts its own anvil on a free port in
+28660-28689 and signs only with anvil's public dev keys.

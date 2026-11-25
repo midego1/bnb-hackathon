@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Hex } from "viem";
 import { FilePicker } from "@/components/FilePicker";
 import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, useMoney } from "@/components/ui";
+import { prepareResolve } from "@/lib/actions/definitions";
+import { fieldError } from "@/lib/actions/fields";
 import { rentalEscrowAbi } from "@/lib/contracts";
 import { uploadEvidence } from "@/lib/evidence";
 import { formatDate, formatUsdt, parseUsdt } from "@/lib/format";
@@ -25,7 +27,8 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
   const amount = parseUsdt(refund);
   const money = useMoney();
   const deadlinePassed = lease.arbiterDeadline > BigInt(0) && lease.chainNow >= lease.arbiterDeadline;
-  const error = amount === undefined ? "Enter an amount." : amount > deposit ? "Cannot exceed the deposit." : undefined;
+  // Same rule and message as the prepare_resolve API / MCP tool (lib/actions).
+  const error = fieldError(prepareResolve.input, "toRenter", refund) ?? (amount !== undefined && amount > deposit ? "Cannot exceed the deposit." : undefined);
 
   async function resolve() {
     if (amount === undefined) return;

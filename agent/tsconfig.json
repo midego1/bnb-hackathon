@@ -11,7 +11,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": { "@/*": ["../web/*"] }
   },
   "include": ["src", "scripts", "test"]
 }

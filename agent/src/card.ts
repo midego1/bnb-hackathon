@@ -1,7 +1,7 @@
 import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
 import { AgentEndpoint, AgentURIGenerator } from "@bnbagent/sdk/erc8004";
 import { AGENT_DESCRIPTION, AGENT_NAME, AGENT_VERSION, REPO_URL } from "./config.ts";
-import type { InspectorIdentity } from "./shared.ts";
+import { ACTIONS, toolDescription, type InspectorIdentity } from "./shared.ts";
 
 export const SKILL_ID = "inspect_move_out";
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -23,6 +23,20 @@ export const INSPECT_SKILL: AgentSkill = {
   outputModes: ["application/json"],
 };
 
+/**
+ * One A2A skill per rental action (web/lib/actions), described exactly like the MCP tool. Call it with a data part
+ * {"skill": "<name>", ...input}; the reply's data part is the result (or {error, code, details?}).
+ */
+export const ACTION_SKILLS: AgentSkill[] = ACTIONS.map((a) => ({
+  id: a.name,
+  name: a.title,
+  description: toolDescription(a),
+  tags: ["keyescrow", "rental", "scooter", "deposit", "escrow", "bnb-chain", a.kind === "read" ? "read" : "unsigned-tx"],
+  examples: [JSON.stringify({ skill: a.name, ...a.example })],
+  inputModes: ["application/json"],
+  outputModes: ["application/json"],
+}));
+
 /** The A2A agent card served at /.well-known/agent-card.json. */
 export function buildAgentCard(publicUrl: string, identity: InspectorIdentity | null): AgentCard {
   return {
@@ -39,7 +53,7 @@ export function buildAgentCard(publicUrl: string, identity: InspectorIdentity | 
     capabilities: { streaming: false, pushNotifications: false },
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],
-    skills: [INSPECT_SKILL],
+    skills: [INSPECT_SKILL, ...ACTION_SKILLS],
   };
 }
 
