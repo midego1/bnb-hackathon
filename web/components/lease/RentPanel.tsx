@@ -39,7 +39,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
             : "Nothing to pay out yet.";
 
   return (
-    <Card title="Rent" aside={<span className="text-xs text-slate-500">{money(lease.terms.rentAmount)} / month</span>}>
+    <Card title="Rent" aside={<span className="text-xs text-subtle">{money(lease.terms.rentAmount)} / month</span>}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <Stat label="Paid out to landlord">
           <span className="font-semibold" data-testid="months-released">{lease.monthsReleased}</span> / {lease.terms.termMonths} months
@@ -67,13 +67,13 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
           Pay out {releasable > 0 ? `${releasable} month${releasable > 1 ? "s" : ""}` : "rent"} to landlord
         </ActionButton>
         {viewer === "tenant" && releasable > 0 && lease.monthsDue < lease.monthsFunded && (
-          <p className="text-xs text-slate-500 sm:col-span-2">As the tenant you may pay out prepaid rent early. Once rent is due, anyone can trigger the payout.</p>
+          <p className="text-xs text-subtle sm:col-span-2">As the tenant you may pay out prepaid rent early. Once rent is due, anyone can trigger the payout.</p>
         )}
       </div>
       {canPrepay && (
-        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+        <div className="mt-4 border-t border-border pt-4">
           <p className="mb-1 text-sm font-medium">Prepay rent</p>
-          <p className="mb-2 text-xs text-slate-500">Paid into escrow now, paid out to the landlord only as each month comes due. Two wallet steps: approve, then pay.</p>
+          <p className="mb-2 text-xs text-subtle">Paid into escrow now, paid out to the landlord only as each month comes due. Two wallet steps: approve, then pay.</p>
           <div className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr] sm:items-start">
             <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label="Months to prepay" />
             <ActionButton

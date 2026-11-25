@@ -42,8 +42,8 @@ export function StepTimeline({
   }, [current, txCount]);
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:min-h-0 lg:flex-1">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-800">
+    <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:min-h-0 lg:flex-1">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">
         <h2 className="text-base font-semibold">{panels.story}</h2>
         {lease && (
           <Link href={`/lease/${lease}`} target="_blank" className="font-mono text-sm underline">
@@ -62,13 +62,13 @@ export function StepTimeline({
               data-step={s.id}
               data-status={st}
               data-current={isCurrent ? "true" : "false"}
-              className={`rounded-xl px-2 py-1.5 transition ${isCurrent ? "bg-amber-50 ring-1 ring-amber-300 dark:bg-amber-950/50 dark:ring-amber-800" : ""}`}
+              className={`rounded-xl px-2 py-1.5 transition ${isCurrent ? "bg-warning-soft ring-1 ring-amber-300 dark:ring-amber-800" : ""}`}
             >
               <div className="flex items-start gap-2">
                 <StepIcon status={st} n={i + 1} />
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-semibold leading-snug ${st === "pending" ? "text-slate-500 dark:text-slate-400" : ""}`}>{s.title}</p>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                  <p className={`text-sm font-semibold leading-snug ${st === "pending" ? "text-subtle" : ""}`}>{s.title}</p>
+                  <p className="text-[13px] text-subtle">
                     {actorLabel[s.actor]}
                     {s.demoOnly && (
                       <span className="ml-1 rounded bg-amber-200 px-1 font-medium text-amber-950 dark:bg-amber-400 dark:text-amber-950">{s.demoOnly}</span>
@@ -76,7 +76,7 @@ export function StepTimeline({
                   </p>
                   {(txs[s.id] ?? []).map((t) => (
                     <p key={t.hash} className="flex items-center justify-between gap-1 text-[13px]">
-                      <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">{t.label}</span>
+                      <span className="min-w-0 truncate text-muted">{t.label}</span>
                       <Link
                         href={lease ? `/lease/${lease}` : "#"}
                         target="_blank"
@@ -118,5 +118,5 @@ function StepIcon({ status, n }: { status: StepStatus; n: number }) {
         <Spinner />
       </span>
     );
-  return <span className={`${base} bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300`}>{n}</span>;
+  return <span className={`${base} bg-surface-strong text-muted`}>{n}</span>;
 }

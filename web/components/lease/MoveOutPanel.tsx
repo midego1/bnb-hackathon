@@ -42,21 +42,21 @@ function CurrentProposal({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   const timeoutReached = lease.timeoutAt > BigInt(0) && lease.chainNow >= lease.timeoutAt;
 
   return (
-    <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 dark:border-sky-900 dark:bg-sky-950/40" data-testid="current-proposal">
+    <div className="rounded-xl border border-info-border bg-info-soft p-4" data-testid="current-proposal">
       <p className="text-sm font-medium">
         Proposal #{p.nonce} by the {roleName(proposer)} · {formatDate(p.proposedAt)}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-xs text-slate-500">Back to tenant</p>
+          <p className="text-xs text-subtle">Back to tenant</p>
           <Amount value={p.tenantRefund} />
         </div>
         <div>
-          <p className="text-xs text-slate-500">Landlord keeps (damages)</p>
+          <p className="text-xs text-subtle">Landlord keeps (damages)</p>
           <Amount value={p.landlordClaim} />
         </div>
       </div>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-subtle">
         Inspection report fingerprint: <HashLink hash={p.reportHash} />
       </p>
       {lease.timeoutAt > BigInt(0) && (
@@ -132,7 +132,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold">AI move-out inspection</h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 text-sm text-muted">
           Compares the {photoCount(checkIn)} check-in and {photoCount(checkOut)} check-out photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
           lease and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
         </p>
@@ -158,20 +158,20 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
         </div>
         {aiError && <div className="mt-3"><Notice kind="error">{aiError}</Notice></div>}
         {report && (
-          <div className="mt-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700" data-testid="inspection-result">
+          <div className="mt-4 rounded-xl border border-border p-4" data-testid="inspection-result">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-medium">AI inspection proposal</p>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-subtle">
                 confidence {(report.confidence * 100).toFixed(0)}% · {report.mock ? "demo inspector (no AI key configured)" : `vision model: ${report.provider}`}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-slate-500">Back to tenant</p>
+                <p className="text-xs text-subtle">Back to tenant</p>
                 <Amount value={BigInt(report.tenantRefund)} />
               </div>
               <div>
-                <p className="text-xs text-slate-500">Landlord keeps</p>
+                <p className="text-xs text-subtle">Landlord keeps</p>
                 <Amount value={BigInt(report.landlordClaim)} />
               </div>
             </div>
@@ -183,7 +183,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
               </ul>
             )}
             {report.inspector && (
-              <p className="mt-3 text-xs text-slate-500" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
+              <p className="mt-3 text-xs text-subtle" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
                 Signed by {report.inspector.name}
                 {report.inspector.agentId !== undefined && <>, ERC-8004 agent #{report.inspector.agentId}</>}. Its identity is
                 registered on BNB Chain, so anyone can check this proposal came from it.
@@ -197,12 +197,12 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
             >
               Propose this split on-chain
             </ActionButton>
-            <p className="mt-2 text-xs text-slate-500">The other side then accepts (paid out at once), counters, or opens a dispute.</p>
+            <p className="mt-2 text-xs text-subtle">The other side then accepts (paid out at once), counters, or opens a dispute.</p>
           </div>
         )}
       </div>
 
-      <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
+      <div className="border-t border-border pt-5">
         <h3 className="text-sm font-semibold">Propose a split yourself</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Deposit back to tenant (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Tenant gets {money(refundAmount)}, landlord keeps {money(deposit - refundAmount)}</> : undefined}>
@@ -233,9 +233,9 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   const [confirming, setConfirming] = useState(false);
   return (
-    <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
+    <div className="border-t border-border pt-5">
       <h3 className="text-sm font-semibold">Can&apos;t agree?</h3>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-1 text-sm text-muted">
         Hand the deposit decision to the dispute desk ({lease.terms.arbiterWindow / 86400} days to rule, or the full deposit goes back to the
         tenant). Rent keeps being paid out as scheduled.
       </p>

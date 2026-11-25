@@ -36,7 +36,7 @@ function Switcher() {
   }
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+    <div className="border-b border-warning-border bg-warning-soft text-warning-fg">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
         <span className="font-semibold">Demo accounts</span>
         <span className="hidden opacity-70 sm:inline">local anvil only · act as</span>

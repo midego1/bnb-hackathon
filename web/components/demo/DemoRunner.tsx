@@ -32,10 +32,10 @@ const ROLE_SWITCH_TIMEOUT_MS = 10_000;
 
 const actorTone: Record<DemoStep["actor"], string> = {
   landlord: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
-  tenant: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  arbiter: "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200",
+  tenant: "bg-success-soft text-success-fg",
+  arbiter: "bg-danger-soft text-danger-fg",
   inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
-  anyone: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  anyone: "bg-surface-muted text-muted",
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -333,7 +333,7 @@ export function DemoRunner() {
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1" data-testid="demo-runner" data-phase={phase}>
       {/* Controls: one row on desktop. */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <h1 className="text-xl font-semibold tracking-tight">{pageTitle}</h1>
           <Segmented
@@ -366,11 +366,11 @@ export function DemoRunner() {
           />
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
             {note && (
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-300" data-testid="demo-phase-note">
+              <span className="text-sm font-medium text-muted" data-testid="demo-phase-note">
                 {note}
               </span>
             )}
-            {!ready && <span className="text-sm text-slate-500 dark:text-slate-400">{controls.connecting}</span>}
+            {!ready && <span className="text-sm text-subtle">{controls.connecting}</span>}
             {!running && phase !== "error" && (
               <BigButton onClick={() => start()} disabled={!ready} testId="demo-play">
                 ▶ {phase === "done" ? controls.playAgain : controls.play}
@@ -399,7 +399,7 @@ export function DemoRunner() {
           </div>
         </div>
         {phase !== "idle" && (
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100 dark:bg-slate-800" aria-hidden>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-surface-muted" aria-hidden>
             <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         )}
@@ -421,7 +421,7 @@ export function DemoRunner() {
           )}
 
           {phase === "error" && error && (
-            <div data-testid="demo-error" className="shrink-0 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-50">
+            <div data-testid="demo-error" className="shrink-0 rounded-2xl border border-danger-border bg-danger-soft px-5 py-4 text-danger-fg">
               <p className="text-base font-semibold">{errorCopy.title(current + 1, step?.title)}</p>
               <p className="mt-1 text-base">{error}</p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -451,9 +451,9 @@ export function DemoRunner() {
 }
 
 const secondaryBtn =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-500";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover";
 const primarySmall =
-  "inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200";
+  "inline-flex min-h-10 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover";
 
 function BigButton({ children, onClick, disabled, testId }: { children: ReactNode; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
@@ -484,8 +484,8 @@ function Segmented<T extends string>({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:sr-only min-[1400px]:not-sr-only">{label}</span>
-      <div className="inline-flex flex-wrap rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800" role="group" aria-label={label}>
+      <span className="text-xs font-medium uppercase tracking-wide text-subtle lg:sr-only min-[1400px]:not-sr-only">{label}</span>
+      <div className="inline-flex flex-wrap rounded-lg bg-surface-muted p-0.5" role="group" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}
@@ -497,8 +497,8 @@ function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
               value === o.value
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
             }`}
           >
             {o.label}
@@ -511,7 +511,7 @@ function Segmented<T extends string>({
 
 function Intro({ path }: { path: DemoPath }) {
   return (
-    <section className="shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-50 xl:px-6 xl:py-5">
+    <section className="shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg xl:px-6 xl:py-5">
       <p className="text-base leading-relaxed xl:text-lg">{pageIntro}</p>
       <h2 className="mt-3 text-lg font-semibold">{intro.title}</h2>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-base">
@@ -544,7 +544,7 @@ function Narration({
 }) {
   return (
     <section
-      className="shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-50 xl:tall:px-6 xl:tall:py-5"
+      className="shrink-0 rounded-2xl border border-warning-border bg-warning-soft px-5 py-4 text-warning-fg xl:tall:px-6 xl:tall:py-5"
       data-testid="demo-narration"
       aria-live="polite"
     >
@@ -560,7 +560,7 @@ function Narration({
       </div>
       <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{step.title}</h2>
       <p className="mt-1.5 text-lg leading-relaxed xl:tall:text-xl xl:tall:leading-relaxed">{caption}</p>
-      {children && <div className="mt-3 border-t border-amber-200 pt-2.5 dark:border-amber-900">{children}</div>}
+      {children && <div className="mt-3 border-t border-warning-border pt-2.5">{children}</div>}
     </section>
   );
 }
@@ -571,13 +571,13 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
   return (
     <section
       aria-labelledby="live-lease"
-      className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:min-h-0 lg:flex-1"
+      className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:min-h-0 lg:flex-1"
     >
-      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-200 px-4 py-2 dark:border-slate-800">
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-2">
         <h2 id="live-lease" className="text-base font-semibold">
           {panels.live}
         </h2>
-        <span className="hidden min-w-0 flex-1 truncate text-sm text-slate-500 dark:text-slate-400 xl:block">{panels.liveNote}</span>
+        <span className="hidden min-w-0 flex-1 truncate text-sm text-subtle xl:block">{panels.liveNote}</span>
         {lease && (
           <Link href={`/lease/${lease}`} target="_blank" className="text-sm font-medium underline-offset-4 hover:underline">
             {panels.openTab}
@@ -586,7 +586,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
       </div>
       <div className="relative space-y-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" data-testid="demo-live">
         {children}
-        {lease ? <LeaseDetail address={lease} /> : <p className="text-base text-slate-500 dark:text-slate-400">{panels.liveEmpty}</p>}
+        {lease ? <LeaseDetail address={lease} /> : <p className="text-base text-subtle">{panels.liveEmpty}</p>}
       </div>
     </section>
   );
@@ -602,11 +602,11 @@ function InspectionCard({ ctx }: { ctx: DemoCtx }) {
       </div>
       <div className="mt-2 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">{inspectionCopy.back}</p>
+          <p className="text-sm text-muted">{inspectionCopy.back}</p>
           <Amount value={BigInt(r.tenantRefund)} />
         </div>
         <div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">{inspectionCopy.keeps}</p>
+          <p className="text-sm text-muted">{inspectionCopy.keeps}</p>
           <Amount value={BigInt(r.landlordClaim)} />
         </div>
       </div>
@@ -615,7 +615,7 @@ function InspectionCard({ ctx }: { ctx: DemoCtx }) {
           <li key={i}>{reason}</li>
         ))}
       </ul>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400" data-testid="demo-inspector">
+      <p className="mt-2 text-sm text-muted" data-testid="demo-inspector">
         {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : inspectionCopy.unsigned}{" "}
         {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
       </p>
@@ -641,7 +641,7 @@ function Summary({
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path);
   return (
     <section
-      className="rounded-2xl border border-emerald-300 bg-white p-4 shadow-lg dark:border-emerald-800 dark:bg-slate-900 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
+      className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
       data-testid="demo-summary"
       data-path={ctx.path}
       data-status={settled ? "settled" : "open"}
@@ -652,13 +652,13 @@ function Summary({
         <button
           type="button"
           onClick={onHide}
-          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:block"
+          className="hidden shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-muted hover:bg-surface-muted lg:block"
           data-testid="demo-hide-summary"
         >
           {summaryCopy.hide}
         </button>
       </div>
-      <p className="mt-1 text-base text-slate-600 dark:text-slate-400">
+      <p className="mt-1 text-base text-muted">
         {ctx.finalStatus !== undefined && (
           <span className="mr-2 inline-block align-middle">
             <StatusBadge status={ctx.finalStatus as LeaseStatus} />
@@ -675,7 +675,7 @@ function Summary({
             <Party who={summaryCopy.escrow} note={summaryCopy.escrowNote} value={books.escrowLeft} testId="demo-bal-escrow" />
           </div>
           <p
-            className={`mt-3 text-base font-medium tall:mt-4 ${books.balanced ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
+            className={`mt-3 text-base font-medium tall:mt-4 ${books.balanced ? "text-success" : "text-danger"}`}
             data-testid="demo-balanced"
           >
             {books.balanced
@@ -705,9 +705,9 @@ function Summary({
 
 function Party({ who, note, value, testId }: { who: string; note: string; value: bigint; testId: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-4 py-2 dark:bg-slate-800/60 tall:py-3" data-testid={testId} data-value={value.toString()}>
+    <div className="rounded-xl bg-surface-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
       <p className="text-base font-semibold">{who}</p>
-      <p className="text-sm leading-snug text-slate-500 dark:text-slate-400">{note}</p>
+      <p className="text-sm leading-snug text-subtle">{note}</p>
       <div className="mt-1">
         <Amount value={value} size="lg" />
       </div>

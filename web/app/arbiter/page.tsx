@@ -25,7 +25,7 @@ export default function ArbiterPage() {
         {!data ? (
           <Skeleton className="h-36" />
         ) : data.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">No leases name this wallet as their dispute desk. Landlords pick the reviewer when they create a lease; the KeyEscrow dispute desk is the default.</p>
+          <p className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle">No leases name this wallet as their dispute desk. Landlords pick the reviewer when they create a lease; the KeyEscrow dispute desk is the default.</p>
         ) : (
           <div className="space-y-8">
             <Section title="Needs a ruling" addresses={data} want="disputed" empty="Nothing to rule on. Disputed leases show up here." />
@@ -46,7 +46,7 @@ function Section({ title, addresses, want, empty }: { title: string; addresses: 
           <Filtered key={a} address={a} want={want} />
         ))}
         {/* Shown only when no card rendered above (each Filtered renders nothing for leases of the other group). */}
-        <p className="hidden rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 only:block sm:col-span-2 dark:border-slate-700">
+        <p className="hidden rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-subtle only:block sm:col-span-2">
           {empty}
         </p>
       </div>

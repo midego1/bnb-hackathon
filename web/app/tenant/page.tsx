@@ -24,11 +24,11 @@ export default function TenantPage() {
       </PageTitle>
       <ol className="mb-8 grid gap-3 sm:grid-cols-4">
         {steps.map(([t, b], i) => (
-          <li key={t} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
+          <li key={t} className="rounded-xl border border-border p-3 text-sm">
             <p className="font-semibold">
               {i + 1}. {t}
             </p>
-            <p className="mt-1 text-slate-600 dark:text-slate-400">{b}</p>
+            <p className="mt-1 text-muted">{b}</p>
           </li>
         ))}
       </ol>

@@ -38,7 +38,7 @@ export function LeaseDetail({ address }: { address: Address }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-subtle">
             <Link href={viewer ? `/${viewer}` : "/"} className="hover:underline">
               ← {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Landlord: my leases" : viewer === "tenant" ? "Tenant: my leases" : "Home"}
             </Link>
@@ -47,15 +47,15 @@ export function LeaseDetail({ address }: { address: Address }) {
             Lease <span className="font-mono text-lg">{address.slice(0, 10)}…</span>
             <StatusBadge status={lease.status} />
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400" data-testid="next-step">
+          <p className="mt-1 text-sm text-muted" data-testid="next-step">
             {nextStep(lease, viewer)}
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 text-sm sm:items-end">
           {viewer ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800">You are the {roleName(viewer)}</span>
+            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
           ) : (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-subtle">
               {me ? "This wallet is not part of this lease, so the page is read-only." : "Connect a wallet to act on this lease. Until then it is read-only."}
             </span>
           )}
@@ -112,7 +112,7 @@ function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; 
           <Row label="Dispute desk deadline">{t.arbiterWindow / 86400} days</Row>
           <div>
             <Row label="KeyEscrow fee">{money(fee)}</Row>
-            <p className="mt-0.5 text-right text-xs text-slate-500">
+            <p className="mt-0.5 text-right text-xs text-subtle">
               Once: {(t.feeBps / 100).toFixed(0)}% of one month&apos;s rent, {lease.feeCharged ? "already paid" : "taken from the landlord's first payout"}
             </p>
           </div>
@@ -129,7 +129,7 @@ function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <dt className="text-slate-500">{label}</dt>
+      <dt className="text-subtle">{label}</dt>
       <dd className="text-right">{children}</dd>
     </div>
   );
@@ -141,7 +141,7 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   const passed = lease.chainNow >= lease.arbiterDeadline;
   return (
     <Card title={viewer === "arbiter" ? "Your deadline" : "Waiting for the dispute desk"}>
-      <p className="text-sm text-slate-600 dark:text-slate-400">
+      <p className="text-sm text-muted">
         {statusMeta[LeaseStatus.Disputed].hint} Rent is still paid out as it comes due.{" "}
         {passed ? (
           <>The dispute desk missed its deadline ({formatDate(lease.arbiterDeadline)}). Anyone can now close the dispute and return the full deposit to the tenant.</>
@@ -170,7 +170,7 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   return (
     <Card title="Waiting for the tenant">
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-4 text-sm text-muted">
         Send this page&apos;s link to your tenant. Once they fund the deposit and first month&apos;s rent, the lease starts and rent is paid
         out to you every month. You can withdraw the offer until then; nothing has been paid yet.
       </p>

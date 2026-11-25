@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { DevAccountSwitcher } from "./DevAccountSwitcher";
 import { LogoMark } from "./LogoMark";
+import { ThemeCycleButton, ThemeSwitch } from "./ThemeSwitch";
 import { PriceSourceBadge } from "./ui";
 
 const nav = [
@@ -16,7 +17,7 @@ const nav = [
 
 export function Header() {
   return (
-    <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <header className="border-b border-border bg-surface">
       <DevAccountSwitcher />
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
@@ -30,13 +31,15 @@ export function Header() {
           <span className="hidden md:block">
             <PriceSourceBadge />
           </span>
+          <ThemeSwitch className="hidden sm:inline-flex" />
           <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
         </div>
       </div>
-      <nav className="flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm sm:hidden">
+      <nav className="flex items-center gap-1 overflow-x-auto px-4 pb-2 text-sm sm:hidden" data-testid="mobile-nav">
         <NavLinks />
-        <span className="ml-auto shrink-0">
+        <span className="ml-auto flex shrink-0 items-center gap-2">
           <PriceSourceBadge />
+          <ThemeCycleButton className="inline-flex" />
         </span>
       </nav>
     </header>
@@ -62,8 +65,8 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
   return (
     <Link
       href={href}
-      className={`rounded-lg px-3 py-1.5 transition ${
-        active ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      className={`rounded-lg px-2.5 py-1.5 transition sm:px-3 ${
+        active ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-muted"
       }`}
     >
       {label}
