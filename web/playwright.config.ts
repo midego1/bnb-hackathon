@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_WEB_ENV, E2E_WEB_PORT } from "./e2e/env";
 
 /**
  * Browser smoke test: `pnpm -C web test:e2e`.
@@ -6,23 +7,10 @@ import { defineConfig, devices } from "@playwright/test";
  * e2e/global-setup.ts starts a throwaway anvil on 127.0.0.1:28546 and deploys + seeds it with the M3 forge
  * scripts; the webServer below builds the app into .next-e2e with the anvil dev account switcher enabled
  * and serves it with `next start` on 127.0.0.1:3150. Nothing here touches any other node or port.
+ * The web server gets every NEXT_PUBLIC_* explicitly (e2e/env.ts), so a web/.env.local cannot leak into the build.
  */
-export const E2E_RPC_PORT = Number(process.env.E2E_RPC_PORT ?? 28546);
-export const E2E_WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3150);
-
-const env = {
-  NEXT_DIST_DIR: ".next-e2e",
-  NEXT_PUBLIC_RPC_URL: `http://127.0.0.1:${E2E_RPC_PORT}`,
-  NEXT_PUBLIC_DEV_ACCOUNTS: "1",
-  // Offline: deterministic mock inspector and price, evidence on local disk.
-  VISION_LLM_PROVIDER: "mock",
-  ANTHROPIC_API_KEY: "",
-  CMC_API_KEY: "",
-  ATLAS_RPC_URL: "",
-  GREENFIELD_RPC_URL: "",
-  EVIDENCE_DIR: "test-results/e2e-evidence",
-  NEXT_TELEMETRY_DISABLED: "1",
-};
+// Ports and the full, hermetic web-server environment live in e2e/env.ts (see there for why).
+export { E2E_RPC_PORT, E2E_WEB_PORT } from "./e2e/env";
 
 export default defineConfig({
   testDir: "e2e",
@@ -43,7 +31,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${E2E_WEB_PORT}`,
     url: `http://127.0.0.1:${E2E_WEB_PORT}`,
-    env,
+    env: E2E_WEB_ENV,
     reuseExistingServer: false,
     timeout: 600_000,
     stdout: "ignore",

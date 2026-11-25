@@ -46,3 +46,6 @@ pnpm -C web test:e2e   # Playwright browser smoke test
 `Seed.s.sol`, builds the app into `.next-e2e` with dev accounts on, serves it with `next start` on 127.0.0.1:3150,
 then drives landlord create → tenant fund → rent release → AI proposal → landlord accept through the UI. It refuses
 to start if port 28546 is taken and kills only what it started. Screenshots land in `web/test-results/screenshots/`.
+The web server gets every `NEXT_PUBLIC_*` (and every server-side key, blanked) explicitly from `e2e/env.ts`, so a
+`web/.env.local` for your own dev server never leaks into the e2e build; global setup fails the run if the fresh
+deploy does not land on those exact addresses.

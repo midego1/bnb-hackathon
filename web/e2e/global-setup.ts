@@ -10,13 +10,13 @@ import { readFileSync, rmSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { getAddress } from "viem";
-import { E2E_RPC_PORT } from "../playwright.config";
+import { E2E_DEPLOYMENT, E2E_RPC_PORT, E2E_WEB_ENV } from "./env";
 
 const WEB = path.resolve(__dirname, "..");
 const CONTRACTS = path.resolve(WEB, "../contracts");
 // Under contracts/deployments/.e2e/ (gitignored), separate from the e2e:chain runner's files.
 const DEPLOYMENTS_DIR = "deployments/.e2e/web";
-const RPC = `http://127.0.0.1:${E2E_RPC_PORT}`;
+const RPC = E2E_WEB_ENV.NEXT_PUBLIC_RPC_URL;
 const ANVIL_DEFAULT_KEY_0 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 function portInUse(port: number): Promise<boolean> {
@@ -67,17 +67,22 @@ export default async function globalSetup() {
     forge(["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast"], env);
     forge(["script", "script/Seed.s.sol", "--rpc-url", RPC, "--broadcast"], env);
 
-    // The app bakes in lib/contracts/deployments.generated.json (synced from the fresh-anvil deployment);
-    // a deterministic deploy must land on the same addresses.
+    // The web server is built with E2E_WEB_ENV (explicit addresses, see e2e/env.ts) and, as a fallback, bakes in
+    // lib/contracts/deployments.generated.json. The fresh deploy must land on exactly those addresses.
     const deployed = JSON.parse(readFileSync(path.join(CONTRACTS, DEPLOYMENTS_DIR, "31337.json"), "utf8"));
     const baked = JSON.parse(readFileSync(path.join(WEB, "lib/contracts/deployments.generated.json"), "utf8"))["31337"];
-    for (const [k, b] of [
-      ["escrowFactory", "escrowFactory"],
-      ["token", "mockUsdt"],
-      ["defaultArbiter", "disputeDesk"],
-    ] as const) {
-      if (getAddress(deployed[k]) !== getAddress(baked[b])) {
-        throw new Error(`deployed ${k} ${deployed[k]} != app config ${baked[b]}; run \`pnpm -C web sync:contracts\``);
+    const checks: [string, string, string][] = [
+      ["escrowFactory", E2E_WEB_ENV.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS, baked.escrowFactory],
+      ["token", E2E_WEB_ENV.NEXT_PUBLIC_MOCK_USDT_ADDRESS, baked.mockUsdt],
+      ["defaultArbiter", E2E_WEB_ENV.NEXT_PUBLIC_DISPUTE_DESK_ADDRESS, baked.disputeDesk],
+    ];
+    for (const [k, passed, inBundle] of checks) {
+      const actual = getAddress(deployed[k]);
+      if (actual !== getAddress(passed) || actual !== getAddress(E2E_DEPLOYMENT[k as keyof typeof E2E_DEPLOYMENT])) {
+        throw new Error(`deployed ${k} ${actual} != address the e2e app is built with (${passed}); see web/e2e/env.ts`);
+      }
+      if (actual !== getAddress(inBundle)) {
+        throw new Error(`deployed ${k} ${actual} != lib/contracts/deployments.generated.json (${inBundle}); run \`pnpm -C web sync:contracts\``);
       }
     }
     console.log(`[e2e] anvil ${RPC}: deployed + seeded (factory ${deployed.escrowFactory})`);
