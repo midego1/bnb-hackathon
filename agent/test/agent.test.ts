@@ -102,7 +102,7 @@ describe("inspect_move_out skill", () => {
     const viaWeb = await proposeSettlement(SettlementRequestSchema.parse(SAMPLE_REQUEST), { inspector, now: NOW });
     expect(viaAgent).toEqual(viaWeb);
     expect(BigInt(viaAgent.tenantRefund) + BigInt(viaAgent.landlordClaim)).toBe(BigInt(SAMPLE_REQUEST.deposit));
-    expect(viaAgent.reasons[0]).toMatch(/^Kitchen: /);
+    expect(viaAgent.reasons[0]).toMatch(/^Left side: /);
     expect((await verifyInspectorReport({ ...viaAgent })).signatureValid).toBe(true);
   });
 

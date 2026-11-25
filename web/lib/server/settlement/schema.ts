@@ -22,7 +22,7 @@ export const PhotoRefSchema = z
       .optional(),
     /** Publicly reachable image URL (https, or http for local dev). */
     url: z.url({ protocol: /^https?$/ }).optional(),
-    /** Optional room/angle label, e.g. "kitchen counter". */
+    /** Optional angle label, e.g. "left side" or "plate close-up". */
     label: z.string().max(120).optional(),
   })
   .strict()
@@ -40,7 +40,7 @@ export const SettlementRequestSchema = z
     currency: z.string().min(1).max(12).default("USDT"),
     checkIn: photoSet,
     checkOut: photoSet,
-    /** Free-text context from either party (lease clauses, known pre-existing wear, ...). */
+    /** Free-text context from either party (rental terms, known pre-existing scratches, ...). */
     notes: z.string().max(2000).optional(),
   })
   .strict();

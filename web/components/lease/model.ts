@@ -14,9 +14,9 @@ export function viewerRole(lease: LeaseData, who: Address | undefined): Viewer {
   return null;
 }
 
-/** How a role is named in the UI: the arbiter is "the dispute desk" everywhere. */
+/** How a role is named in the UI: landlord = "owner" (the rental shop), tenant = "renter", arbiter = "dispute desk". */
 export function roleName(v: Viewer): string {
-  return v === "arbiter" ? "dispute desk" : (v ?? "someone");
+  return v === "arbiter" ? "dispute desk" : v === "landlord" ? "owner" : v === "tenant" ? "renter" : "someone";
 }
 
 export function roleOfAddress(lease: LeaseData, a: unknown): string {
@@ -31,7 +31,7 @@ export function nextDue(lease: LeaseData): bigint | undefined {
   return lease.startTime + BigInt(lease.monthsReleased) * RENT_PERIOD;
 }
 
-/** How many funded months `viewer` can release right now (tenant may release early). */
+/** How many funded months `viewer` can release right now (renter may release early). */
 export function releasableMonths(lease: LeaseData, viewer: Viewer): number {
   const live = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
   if (!live) return 0;
@@ -39,15 +39,15 @@ export function releasableMonths(lease: LeaseData, viewer: Viewer): number {
   return Math.max(0, upTo - lease.monthsReleased);
 }
 
-/** One-line "what happens next" for the person looking at the lease. */
+/** One-line "what happens next" for the person looking at the rental. */
 export function nextStep(lease: LeaseData, viewer: Viewer): string {
   const p = lease.proposal;
   switch (lease.status) {
     case LeaseStatus.Created:
-      return viewer === "tenant" ? "Your move: fund the deposit and first month's rent." : "Waiting for the tenant to fund the deposit and first month's rent.";
+      return viewer === "tenant" ? "Your move: fund the deposit and first month's rent." : "Waiting for the renter to fund the deposit and first month's rent.";
     case LeaseStatus.Active: {
       const r = releasableMonths(lease, viewer);
-      if (r > 0) return `${r} month${r > 1 ? "s" : ""} of rent ready to pay out to the landlord.`;
+      if (r > 0) return `${r} month${r > 1 ? "s" : ""} of rent ready to pay out to the owner.`;
       const due = nextDue(lease);
       return `Month ${Math.min(lease.monthsDue, lease.terms.termMonths)} of ${lease.terms.termMonths}. ${
         due ? `Next rent due ${formatDate(due)}.` : "All rent paid out."

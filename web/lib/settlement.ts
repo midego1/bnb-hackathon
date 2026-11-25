@@ -20,7 +20,7 @@ export type InspectionResult = {
 export type InspectionPhoto = Hex | { hash: Hex; label?: string };
 const photoRef = (p: InspectionPhoto) => (typeof p === "string" ? { hash: p } : p);
 
-/** Runs the AI move-out inspection over the check-in vs check-out photo hashes. */
+/** Runs the AI return inspection over the pickup vs return photo hashes. */
 export async function runInspection(input: {
   deposit: bigint;
   checkIn: InspectionPhoto[];

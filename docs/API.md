@@ -15,16 +15,16 @@ the `uint256` values the contracts take.
 
 ## POST /api/settlement
 
-Runs the AI move-out inspection: it compares the check-in and check-out photos and proposes a deposit split.
+Runs the AI return inspection: it compares the pickup and return photos and proposes a deposit split.
 
 ```json
 {
-  "deposit": "500000000",
+  "deposit": "200000000",
   "decimals": 6,
   "currency": "USDT",
-  "checkIn":  [{ "hash": "0x9d9e…ab59", "label": "Living room" }],
-  "checkOut": [{ "hash": "0x34be…3c72", "label": "Living room" }, { "url": "https://…/oven.jpg" }],
-  "notes": "Tenant says the hinge was already loose."
+  "checkIn":  [{ "hash": "0x9d9e…ab59", "label": "Left side" }],
+  "checkOut": [{ "hash": "0x34be…3c72", "label": "Left side" }, { "url": "https://…/front-mirror.jpg" }],
+  "notes": "Renter says the mirror was already scratched at pickup."
 }
 ```
 
@@ -37,11 +37,11 @@ Response (200):
 
 ```json
 {
-  "tenantRefund": "460000000",
-  "landlordClaim": "40000000",
-  "reasons": ["Living room: cabinet door hinge loose; door does not close fully (est. repair)."],
+  "tenantRefund": "184000000",
+  "landlordClaim": "16000000",
+  "reasons": ["Left side: deep scratches on the side panel not visible at pickup (est. panel respray)."],
   "confidence": 0.65,
-  "deposit": "500000000", "decimals": 6, "currency": "USDT",
+  "deposit": "200000000", "decimals": 6, "currency": "USDT",
   "mock": true, "provider": "mock", "repairs": [],
   "checkIn": […], "checkOut": […],
   "createdAt": "2026-11-25T09:51:24.048Z",
@@ -62,9 +62,9 @@ Guarantees:
 - When `INSPECTOR_PRIVATE_KEY` is set, the report also carries `inspector` (`name`, signer `address`, ERC-8004
   `agentId` and `agentRegistry`), which is inside the hash, and `inspectorSignature`, an EIP-191 signature of
   `reportHash`. See [AGENT.md](AGENT.md#erc-8004-identity-and-signed-reports).
-- Mock mode is deterministic. A check-out photo whose hash or URL also appears at check-in counts as unchanged, and
-  every other check-out photo counts as one finding. The claim is 8% of the deposit per finding plus a small seeded
-  jitter, capped at 60% and rounded to whole tokens. If nothing changed, the tenant gets a full refund.
+- Mock mode is deterministic. A return photo whose hash or URL also appears at pickup counts as unchanged, and
+  every other return photo counts as one finding. The claim is 8% of the deposit per finding plus a small seeded
+  jitter, capped at 60% and rounded to whole tokens. If nothing changed, the renter gets a full refund.
 
 Provider config: `VISION_LLM_PROVIDER` (`anthropic` by default, or `mock`) and `VISION_LLM_MODEL` (default
 `claude-opus-5-5`). The Anthropic provider uses structured JSON output and the server-side refusal fallback. To add
@@ -103,10 +103,10 @@ helpers `toFiat` / `formatFiat` / `formatTokenInFiat` are in `web/lib/fiat.ts`. 
 
 ## POST /api/evidence and GET /api/evidence/&lt;hash&gt;
 
-Upload the lease PDF and photos as `multipart/form-data`, one or more `file` fields (up to 20 per request):
+Upload the rental agreement PDF and photos as `multipart/form-data`, one or more `file` fields (up to 20 per request):
 
 ```bash
-curl -F file=@lease.pdf -F file=@kitchen.png http://localhost:3000/api/evidence
+curl -F file=@lease.pdf -F file=@left-side.png http://localhost:3000/api/evidence
 ```
 
 ```json

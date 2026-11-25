@@ -56,8 +56,8 @@ DEPLOYER_ACCOUNT=keyescrow-deployer
 DEPLOYER_ADDRESS=0x...            # output of `cast wallet address --account keyescrow-deployer`
 FACTORY_OWNER=0x...               # owns the factory (fee rate, treasury, dispute desk); a wallet you control
 FEE_RECIPIENT=0x...               # KeyEscrow treasury
-DEFAULT_ARBITER=0x...             # KeyEscrow dispute desk (the default arbiter for leases)
-# FEE_BPS=1000                    # optional: 10% of ONE month's rent, once per lease (max 1000)
+DEFAULT_ARBITER=0x...             # KeyEscrow dispute desk (the default arbiter for rentals)
+# FEE_BPS=1000                    # optional: 10% of ONE month's rent, once per rental (max 1000)
 BSCSCAN_API_KEY=...               # for verification, see step 7
 ```
 
@@ -142,7 +142,7 @@ It verifies `MockUSDT`, `EscrowFactory` (with ABI-encoded constructor arguments 
 - No key? Sourcify needs none:
   `forge verify-contract <address> src/EscrowFactory.sol:EscrowFactory --chain 97 --verifier sourcify --constructor-args <hex>`
   (`VERIFY_DRY_RUN=1` prints the hex).
-- Lease escrows are EIP-1167 clones of the verified `RentalEscrow` implementation, so their code is the verified code.
+- Rental escrows are EIP-1167 clones of the verified `RentalEscrow` implementation, so their code is the verified code.
 
 Check the result at `https://testnet.bscscan.com/address/<escrowFactory>#code`.
 
@@ -167,7 +167,7 @@ into `web/.next-testnet` and a systemd user unit `keyescrow-web-testnet` running
 `TESTNET_WEB_HOST`, default `127.0.0.1`, and `TESTNET_WEB_PORT`, default `3001`). Testers get MockUSDT from its capped
 faucet (`MockUSDT.faucet(to, amount)`, see `contracts/src/mocks/MockUSDT.sol`) and need a little tBNB for gas.
 
-`Seed.s.sol` is anvil-only and refuses chain 97. On testnet, use `pnpm testnet:seed` (below) or create leases in the app.
+`Seed.s.sol` is anvil-only and refuses chain 97. On testnet, use `pnpm testnet:seed` (below) or create rentals in the app.
 
 ## 9. Live checks on BSC testnet
 
@@ -178,17 +178,17 @@ talks to an RPC that answers chainId 97, signs for chain 97 only, and decrypts t
 | Command | What it does | Cost |
 | --- | --- | --- |
 | `pnpm testnet:status` | tBNB and mUSDT balances of the deployer and the test wallets | nothing sent |
-| `pnpm e2e:testnet` | happy path (create, fund + prepay, rent release with the 10% one-time fee, check-out evidence, tenant proposal, landlord accepts) and dispute path (landlord claims all, tenant disputes, dispute desk rules); asserts every balance change and that token totals are conserved | ~0.002 tBNB |
-| `pnpm testnet:seed` | leaves an unfunded offer, an active lease and a disputed lease (60-day arbiter window) for the web app | ~0.002 tBNB |
+| `pnpm e2e:testnet` | happy path (create, fund + prepay, rent release with the 10% one-time fee, return evidence, renter proposal, owner accepts) and dispute path (owner claims all, renter disputes, dispute desk rules); asserts every balance change and that token totals are conserved | ~0.002 tBNB |
+| `pnpm testnet:seed` | leaves an unfunded offer, an active rental and a disputed rental (60-day arbiter window) for the web app | ~0.002 tBNB |
 | `pnpm testnet:fund <address>` | sends 0.01 tBNB and 10,000 mUSDT from the deployer to a tester's wallet | 0.01 tBNB |
 
-The landlord and tenant are throwaway wallets created on first use in `.orca/secrets/testnet-e2e-wallets.json`
+The owner and renter are throwaway wallets created on first use in `.orca/secrets/testnet-e2e-wallets.json`
 (gitignored, mode 600) and topped up by the deployer to 0.004 tBNB each. The dispute desk is the deployer. Every
 transaction uses an explicit 1 gwei legacy gas price (`TESTNET_GAS_PRICE_GWEI`) and waits for its receipt. Reads are
 pinned to the latest receipt's block so a lagging RPC backend cannot serve stale balances. Each run writes a report
 with a BscScan link per transaction to `.orca/reports/testnet-<e2e|seed>.md` (outside git).
 
-The landlord-response (7 days) and arbiter (14 days) timeouts need real time to pass, so they are not run on
+The owner-response (7 days) and arbiter (14 days) timeouts need real time to pass, so they are not run on
 testnet. `pnpm e2e:chain` covers both against anvil with time travel.
 
 ## 10. Live one-click demo on BSC testnet

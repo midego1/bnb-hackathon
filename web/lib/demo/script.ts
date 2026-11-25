@@ -16,32 +16,32 @@ export type DemoPath = "happy" | "dispute" | "timeout";
 export type DemoActor = DevRole | "inspector" | "anyone";
 
 export const PATHS: Record<DemoPath, { label: string; blurb: string }> = {
-  happy: { label: "Happy path", blurb: "Tenant proposes the AI split, landlord accepts, money moves at once." },
-  dispute: { label: "Dispute path", blurb: "Landlord disputes the proposal, the KeyEscrow dispute desk rules on a split." },
-  timeout: { label: "Landlord ignores it", blurb: "Landlord stays silent for 7 days, so the full deposit goes back to the tenant." },
+  happy: { label: "Happy path", blurb: "Renter proposes the AI split, owner accepts, money moves at once." },
+  dispute: { label: "Dispute path", blurb: "Owner disputes the proposal, the KeyEscrow dispute desk rules on a split." },
+  timeout: { label: "Owner ignores it", blurb: "Owner stays silent for 7 days, so the full deposit goes back to the renter." },
 };
 
-/** Realistic Bangkok rentals, priced in baht; a fresh lease each run cycles through them. */
+/** Realistic monthly scooter rentals in Thailand, priced in baht; a fresh rental each run cycles through them. */
 export const PROPERTIES = [
-  { name: "1-bed condo near BTS Ari", rentThb: 18_000 },
-  { name: "Studio near BTS On Nut", rentThb: 12_500 },
-  { name: "2-bed condo in Thonglor", rentThb: 32_000 },
+  { name: "Honda Click 125i from a shop in Chiang Mai Old City", rentThb: 3_400 },
+  { name: "Honda Scoopy-i from a shop in Pai", rentThb: 3_000 },
+  { name: "Yamaha NMAX 155 from a shop in Patong, Phuket", rentThb: 5_500 },
 ] as const;
 export type Property = (typeof PROPERTIES)[number];
 
-const TERM_MONTHS = 12;
+const TERM_MONTHS = 3;
 const RESPONSE_WINDOW = 7 * 86_400;
 const ARBITER_WINDOW = 14 * 86_400;
 const DEPOSIT_MONTHS = BigInt(2);
 const UNIT = BigInt(1_000_000); // 1 mUSDT (6 decimals)
 
 const CHECK_IN = [
-  { file: "checkin-living-room.png", label: "Living room" },
-  { file: "checkin-bedroom.png", label: "Bedroom" },
+  { file: "checkin-left-side.png", label: "Left side" },
+  { file: "checkin-front.png", label: "Front" },
 ];
 const CHECK_OUT = [
-  { file: "checkout-living-room.png", label: "Living room" },
-  { file: "checkout-bedroom.png", label: "Bedroom" },
+  { file: "checkout-left-side.png", label: "Left side" },
+  { file: "checkout-front.png", label: "Front" },
 ];
 
 export type Photo = { hash: Hex; label: string };
@@ -117,7 +117,7 @@ export function newContext(path: DemoPath, run: number, thbPerUsdt: number | und
 
 const need = (ctx: DemoCtx) => ctx.deposit + ctx.rent;
 const leaseOf = (ctx: DemoCtx) => {
-  if (!ctx.lease) throw new Error("The demo lease has not been created yet. Start over.");
+  if (!ctx.lease) throw new Error("The demo rental has not been created yet. Start over.");
   return ctx.lease;
 };
 
@@ -135,7 +135,7 @@ async function balances(api: DemoApi, ctx: DemoCtx): Promise<Balances> {
 async function anchor(api: DemoApi, ctx: DemoCtx, kind: "CheckIn" | "CheckOut") {
   const photos = (kind === "CheckIn" ? ctx.checkIn : ctx.checkOut) ?? [];
   const field = kind === "CheckIn" ? "checkInAnchored" : "checkOutAnchored";
-  const label = kind === "CheckIn" ? "check-in" : "check-out";
+  const label = kind === "CheckIn" ? "pickup" : "return";
   for (let i = ctx[field]; i < photos.length; i++) {
     await api.tx(`Record ${label} photo ${i + 1}/${photos.length}`, {
       address: leaseOf(ctx),
@@ -153,16 +153,16 @@ async function uploadPhotos(api: DemoApi, set: typeof CHECK_IN): Promise<Photo[]
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Steps shared by every path: lease -> funding -> first rent -> move-out photos -> AI inspection -> proposal
+// Steps shared by every path: rental -> funding -> first rent -> return photos -> AI inspection -> proposal
 // ---------------------------------------------------------------------------------------------------------------
 
 const createLease: DemoStep = {
   id: "create",
-  title: "Landlord offers the lease",
+  title: "Owner offers the rental",
   actor: "landlord",
   caption: (c, m) =>
-    `${c.property.name}: ${m(c.rent)} a month, ${m(c.deposit)} deposit (two months, the Bangkok norm), ${c.termMonths}-month term. ` +
-    `The lease PDF and check-in photos are stored off-chain; only their SHA-256 fingerprints go on-chain. The KeyEscrow dispute desk is the default referee.`,
+    `${c.property.name}: ${m(c.rent)} a month, ${m(c.deposit)} deposit held in escrow instead of the renter's passport, ${c.termMonths}-month rental period. ` +
+    `The rental agreement PDF and pickup photos are stored off-chain; only their SHA-256 fingerprints go on-chain. The KeyEscrow dispute desk is the default referee.`,
   async run(api, ctx) {
     await api.as("landlord");
     if (!ctx.leaseHash || !ctx.checkIn) {
@@ -171,7 +171,7 @@ const createLease: DemoStep = {
       ctx.checkIn = await uploadPhotos(api, CHECK_IN);
     }
     if (!ctx.lease) {
-      const receipt = await api.tx("Create lease", {
+      const receipt = await api.tx("Create rental", {
         address: api.deployment.escrowFactory,
         abi: escrowFactoryAbi,
         functionName: "createLease",
@@ -189,7 +189,7 @@ const createLease: DemoStep = {
         ],
       });
       const [created] = parseEventLogs({ abi: escrowFactoryAbi, eventName: "LeaseCreated", logs: receipt.logs });
-      if (!created) throw new Error("The lease was created but its address could not be read from the receipt.");
+      if (!created) throw new Error("The rental was created but its address could not be read from the receipt.");
       ctx.lease = created.args.escrow as Address;
     }
     const terms = await api.read<{ feeRecipient: Address; feeBps: number }>({ address: ctx.lease, abi: rentalEscrowAbi, functionName: "terms" });
@@ -200,10 +200,10 @@ const createLease: DemoStep = {
 
 const recordCheckIn: DemoStep = {
   id: "checkin",
-  title: "Check-in photos on record",
+  title: "Pickup photos on record",
   actor: "landlord",
   caption: () =>
-    "The landlord anchors the fingerprint of each check-in photo on the lease contract. At move-out the AI inspection compares against exactly these files; nobody can swap them later.",
+    "The owner anchors the fingerprint of each pickup photo on the rental contract. At return the AI inspection compares against exactly these files; nobody can swap them later.",
   async run(api, ctx) {
     await api.as("landlord");
     await anchor(api, ctx, "CheckIn");
@@ -212,12 +212,12 @@ const recordCheckIn: DemoStep = {
 
 const getUsdt: DemoStep = {
   id: "faucet",
-  title: "Tenant gets demo mUSDT",
+  title: "Renter gets demo mUSDT",
   actor: "tenant",
   caption: (c, m) =>
     c.faucet === BigInt(0)
-      ? `The tenant already holds enough MockUSDT (the testnet stand-in for USDT) for ${m(need(c))}, so no faucet is needed.`
-      : `MockUSDT is the testnet stand-in for USDT. The tenant taps its faucet for the ${m(need(c))} they need. On mainnet this would be real USDT.`,
+      ? `The renter already holds enough MockUSDT (the testnet stand-in for USDT) for ${m(need(c))}, so no faucet is needed.`
+      : `MockUSDT is the testnet stand-in for USDT. The renter taps its faucet for the ${m(need(c))} they need. On mainnet this would be real USDT.`,
   async run(api, ctx) {
     await api.as("tenant");
     const balance = await api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [api.accounts.tenant] });
@@ -232,10 +232,10 @@ const getUsdt: DemoStep = {
 
 const fund: DemoStep = {
   id: "fund",
-  title: "Tenant funds deposit + first month",
+  title: "Renter funds deposit + first month",
   actor: "tenant",
   caption: (c, m) =>
-    `Two wallet steps: approve, then fund. ${m(need(c))} moves into this lease's own escrow contract, not to the landlord. From here on, neither side can move the deposit alone.`,
+    `Two wallet steps: approve, then fund. ${m(need(c))} moves into this rental's own escrow contract, not to the owner. From here on, neither side can move the deposit alone.`,
   async run(api, ctx) {
     await api.as("tenant");
     const lease = leaseOf(ctx);
@@ -255,7 +255,7 @@ const payRent: DemoStep = {
   caption: (c, m) => {
     const fee = c.fee ?? (c.rent * BigInt(c.feeBps ?? 1000)) / BigInt(10_000);
     return (
-      `Month 1 is due on day one. The tenant releases it: ${m(c.rentToLandlord ?? c.rent - fee)} to the landlord and the one-time KeyEscrow fee of ${m(fee)} ` +
+      `Month 1 is due on day one. The renter releases it: ${m(c.rentToLandlord ?? c.rent - fee)} to the owner and the one-time KeyEscrow fee of ${m(fee)} ` +
       `(${((c.feeBps ?? 1000) / 100).toFixed(0)}% of one month's rent) to the KeyEscrow treasury. The deposit stays locked.`
     );
   },
@@ -273,11 +273,11 @@ const payRent: DemoStep = {
 
 const checkOut: DemoStep = {
   id: "checkout",
-  title: "Move-out: check-out photos",
+  title: "Return: scooter photos",
   actor: "tenant",
   caption: () =>
-    "Move-out day. In real life eleven more months of rent flow the same way; the demo skips ahead. No clock is faked: settling the deposit does not depend on time. " +
-    "The tenant records two check-out photos. The living-room wall has a scuff and the bedroom floor a stain.",
+    "Return day. In real life two more months of rent flow the same way; the demo skips ahead. No clock is faked: settling the deposit does not depend on time. " +
+    "The renter brings the scooter back and records two return photos from the same angles. The left side panel is scratched and a mirror is cracked.",
   async run(api, ctx) {
     await api.as("tenant");
     ctx.checkOut ??= await uploadPhotos(api, CHECK_OUT);
@@ -291,9 +291,9 @@ const inspect: DemoStep = {
   actor: "inspector",
   caption: (c, m) =>
     c.inspection
-      ? `The KeyEscrow Inspector agent compared check-in and check-out photos: ${m(BigInt(c.inspection.tenantRefund))} back to the tenant, ` +
-        `${m(BigInt(c.inspection.landlordClaim))} to the landlord for repairs. It drafts; it never decides. Its report hash goes on-chain with the proposal.`
-      : "The KeyEscrow Inspector agent compares check-in and check-out photos and drafts a deposit split with reasons. It drafts; it never decides.",
+      ? `The KeyEscrow Inspector agent compared pickup and return photos: ${m(BigInt(c.inspection.tenantRefund))} back to the renter, ` +
+        `${m(BigInt(c.inspection.landlordClaim))} to the owner for repairs. It drafts; it never decides. Its report hash goes on-chain with the proposal.`
+      : "The KeyEscrow Inspector agent compares pickup and return photos and drafts a deposit split with reasons. It drafts; it never decides.",
   async run(api, ctx) {
     if (!ctx.checkIn || !ctx.checkOut) throw new Error("The photos are missing. Start over.");
     ctx.inspection = await api.inspect({ deposit: ctx.deposit, checkIn: ctx.checkIn, checkOut: ctx.checkOut });
@@ -302,13 +302,13 @@ const inspect: DemoStep = {
 
 const propose: DemoStep = {
   id: "propose",
-  title: "Tenant proposes the split on-chain",
+  title: "Renter proposes the split on-chain",
   actor: "tenant",
   caption: (c, m) =>
     c.inspection
-      ? `The tenant agrees with the AI and proposes it on-chain: ${m(BigInt(c.inspection.tenantRefund))} back, ${m(BigInt(c.inspection.landlordClaim))} to the landlord. ` +
-        `Now the landlord has ${RESPONSE_WINDOW / 86_400} days to accept, counter or dispute.`
-      : "The tenant proposes the AI split on-chain.",
+      ? `The renter agrees with the AI and proposes it on-chain: ${m(BigInt(c.inspection.tenantRefund))} back, ${m(BigInt(c.inspection.landlordClaim))} to the owner. ` +
+        `Now the owner has ${RESPONSE_WINDOW / 86_400} days to accept, counter or dispute.`
+      : "The renter proposes the AI split on-chain.",
   async run(api, ctx) {
     await api.as("tenant");
     const r = ctx.inspection;
@@ -331,9 +331,9 @@ function captureSettled(ctx: DemoCtx, receipt: TransactionReceipt) {
 
 const accept: DemoStep = {
   id: "accept",
-  title: "Landlord accepts: instant settlement",
+  title: "Owner accepts: instant settlement",
   actor: "landlord",
-  caption: () => "The landlord reviews the photos and the AI reasons and accepts. One transaction pays everyone out: no agent, no court, no weeks of waiting.",
+  caption: () => "The owner reviews the photos and the AI reasons and accepts. One transaction pays everyone out: no haggling at the counter, no passport held back, no court.",
   async run(api, ctx) {
     await api.as("landlord");
     const receipt = await api.tx("Accept proposal", { address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "accept", args: [ctx.nonce ?? 1] });
@@ -343,11 +343,11 @@ const accept: DemoStep = {
 
 const dispute: DemoStep = {
   id: "dispute",
-  title: "Landlord opens a dispute",
+  title: "Owner opens a dispute",
   actor: "landlord",
   caption: () =>
-    `The landlord thinks the repairs cost more than the AI says and opens a dispute instead. Now only the KeyEscrow dispute desk can split the deposit, ` +
-    `within ${ARBITER_WINDOW / 86_400} days; if it misses that deadline, the full deposit goes back to the tenant.`,
+    `The owner thinks the repairs cost more than the AI says and opens a dispute instead. Now only the KeyEscrow dispute desk can split the deposit, ` +
+    `within ${ARBITER_WINDOW / 86_400} days; if it misses that deadline, the full deposit goes back to the renter.`,
   async run(api, ctx) {
     await api.as("landlord");
     await api.tx("Open dispute", { address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "dispute" });
@@ -369,14 +369,14 @@ const resolve: DemoStep = {
   caption: (c, m) => {
     const r = c.ruling ?? deskRuling(c);
     return (
-      `The dispute desk reviews the same photos and the AI report and rules: the landlord keeps ${m(r.landlordClaim)} for the repaint and cleaning, ` +
-      `${m(r.tenantRefund)} goes back to the tenant. The ruling's fingerprint is stored on-chain with the payout.`
+      `The dispute desk reviews the same photos and the AI report and rules: the owner keeps ${m(r.landlordClaim)} for the panel respray and a new mirror, ` +
+      `${m(r.tenantRefund)} goes back to the renter. The ruling's fingerprint is stored on-chain with the payout.`
     );
   },
   async run(api, ctx) {
     await api.as("arbiter");
     const r = deskRuling(ctx);
-    const text = `Ruling for lease ${ctx.lease}: wall repaint and floor cleaning quoted above the AI estimate. Landlord keeps ${r.landlordClaim} base units, tenant gets ${r.tenantRefund} back.`;
+    const text = `Ruling for rental ${ctx.lease}: the shop's repair quote for the side panel and mirror is above the AI estimate. Owner keeps ${r.landlordClaim} base units, renter gets ${r.tenantRefund} back.`;
     ctx.ruling = { ...r, text };
     const receipt = await api.tx("Resolve dispute", {
       address: leaseOf(ctx),
@@ -390,11 +390,11 @@ const resolve: DemoStep = {
 
 const wait: DemoStep = {
   id: "wait",
-  title: "Landlord stays silent for 7 days",
+  title: "Owner stays silent for 7 days",
   actor: "anyone",
   demoOnly: `fast-forward ${RESPONSE_WINDOW / 86_400} days (demo only)`,
   caption: () =>
-    `The landlord does not answer. On a real chain we would wait ${RESPONSE_WINDOW / 86_400} days; on this local demo chain we fast-forward the block clock ` +
+    `The owner does not answer. On a real chain we would wait ${RESPONSE_WINDOW / 86_400} days; on this local demo chain we fast-forward the block clock ` +
     "(anvil's evm_increaseTime). This is the only place the demo bends time, and it is impossible on a real network.",
   async run(api, ctx) {
     if (!ctx.fastForwarded) {
@@ -406,14 +406,14 @@ const wait: DemoStep = {
 
 const claimTimeout: DemoStep = {
   id: "timeout",
-  title: "Full deposit back to the tenant",
+  title: "Full deposit back to the renter",
   actor: "tenant",
   caption: (c, m) =>
-    `The landlord's reply window has passed, so anyone can close the lease. The landlord never backed a claim, so the full ${m(c.deposit)} deposit goes back to the tenant, ` +
-    "not just the AI split. Silence can never cost the tenant money.",
+    `The owner's reply window has passed, so anyone can close the rental. The owner never backed a claim, so the full ${m(c.deposit)} deposit goes back to the renter, ` +
+    "not just the AI split. Silence can never cost the renter money.",
   async run(api, ctx) {
     await api.as("tenant");
-    const receipt = await api.tx("Claim landlord timeout", { address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "claimTimeout" });
+    const receipt = await api.tx("Claim owner timeout", { address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "claimTimeout" });
     captureSettled(ctx, receipt);
   },
 };
@@ -422,11 +422,11 @@ const final: DemoStep = {
   id: "final",
   title: "Final balances",
   actor: "anyone",
-  caption: () => "The escrow is empty and every baht is accounted for: what the tenant paid in went to the landlord, the KeyEscrow treasury, or back to the tenant.",
+  caption: () => "The escrow is empty and every baht is accounted for: what the renter paid in went to the owner, the KeyEscrow treasury, or back to the renter.",
   async run(api, ctx) {
     ctx.after = await balances(api, ctx);
     ctx.finalStatus = Number(await api.read<number>({ address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "status" }));
-    if (ctx.finalStatus !== LeaseStatus.Settled) throw new Error("The lease did not end up settled. Open the lease page to see why.");
+    if (ctx.finalStatus !== LeaseStatus.Settled) throw new Error("The rental did not end up settled. Open the rental page to see why.");
     await api.refresh();
   },
 };
@@ -440,7 +440,7 @@ export function stepsFor(path: DemoPath): DemoStep[] {
 }
 
 /**
- * The summary's books: what the tenant paid in must equal what the tenant got back plus what the landlord and the
+ * The summary's books: what the renter paid in must equal what the renter got back plus what the owner and the
  * treasury received, with the escrow left empty. Faucet mints happen before the `before` snapshot.
  */
 export function ledger(ctx: DemoCtx) {

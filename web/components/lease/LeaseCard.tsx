@@ -11,15 +11,15 @@ import { nextStep, viewerRole } from "./model";
 export function LeaseCard({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { data: lease, error } = useLease(address);
-  if (error) return <div className="rounded-2xl border border-danger-border p-4 text-sm text-danger">Could not load lease {shortAddress(address)}. Check that your wallet is on the right network.</div>;
+  if (error) return <div className="rounded-2xl border border-danger-border p-4 text-sm text-danger">Could not load rental {shortAddress(address)}. Check that your wallet is on the right network.</div>;
   if (!lease) return <Skeleton className="h-36" />;
   const viewer = viewerRole(lease, me);
   const other =
     viewer === "landlord"
-      ? `Tenant ${shortAddress(lease.terms.tenant)}`
+      ? `Renter ${shortAddress(lease.terms.tenant)}`
       : viewer === "arbiter"
-        ? `Landlord ${shortAddress(lease.terms.landlord)} · tenant ${shortAddress(lease.terms.tenant)}`
-        : `Landlord ${shortAddress(lease.terms.landlord)}`;
+        ? `Owner ${shortAddress(lease.terms.landlord)} · renter ${shortAddress(lease.terms.tenant)}`
+        : `Owner ${shortAddress(lease.terms.landlord)}`;
   return (
     <Link
       href={`/lease/${address}`}
@@ -29,7 +29,7 @@ export function LeaseCard({ address }: { address: Address }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">Lease <span className="font-mono">{shortAddress(address)}</span></p>
+          <p className="text-sm font-medium">Rental <span className="font-mono">{shortAddress(address)}</span></p>
           <p className="text-xs text-subtle">{other}</p>
         </div>
         <StatusBadge status={lease.status} />
@@ -45,7 +45,7 @@ export function LeaseCard({ address }: { address: Address }) {
         </div>
       </div>
       <p className="text-sm text-muted">{nextStep(lease, viewer)}</p>
-      <span className="text-xs font-medium text-subtle group-hover:text-foreground">Open lease →</span>
+      <span className="text-xs font-medium text-subtle group-hover:text-foreground">Open rental →</span>
     </Link>
   );
 }

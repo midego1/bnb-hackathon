@@ -34,16 +34,16 @@ export function PageTitle({ title, children }: { title: string; children?: React
 export const statusMeta: Record<LeaseStatus, { label: string; hint: string; className: string }> = {
   [LeaseStatus.Created]: {
     label: "Awaiting funding",
-    hint: "The tenant still has to fund the deposit and first month's rent.",
-    className: "bg-warning-soft text-warning-fg ring-warning-border",
+    hint: "The renter still has to fund the deposit and first month's rent.",
+    className: "bg-amber-100 text-amber-900 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-900",
   },
   [LeaseStatus.Active]: {
     label: "Active",
-    hint: "The deposit is locked in escrow; rent is paid out to the landlord month by month.",
-    className: "bg-success-soft text-success-fg ring-success-border",
+    hint: "The deposit is locked in escrow; rent is paid out to the owner month by month.",
+    className: "bg-emerald-100 text-emerald-900 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900",
   },
   [LeaseStatus.MoveOut]: {
-    label: "Move-out proposal",
+    label: "Return proposal",
     hint: "A deposit split is on the table and waits for the other side to answer.",
     className: "bg-info-soft text-info-fg ring-info-border",
   },
@@ -54,13 +54,13 @@ export const statusMeta: Record<LeaseStatus, { label: string; hint: string; clas
   },
   [LeaseStatus.Settled]: {
     label: "Settled",
-    hint: "All funds have been paid out. This lease is closed.",
-    className: "bg-surface-strong text-foreground ring-border-strong",
+    hint: "All funds have been paid out. This rental is closed.",
+    className: "bg-slate-200 text-slate-800 ring-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700",
   },
   [LeaseStatus.Cancelled]: {
     label: "Cancelled",
-    hint: "The landlord withdrew this offer before it was funded.",
-    className: "bg-surface-muted text-muted ring-border",
+    hint: "The owner withdrew this offer before it was funded.",
+    className: "bg-zinc-100 text-zinc-600 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800",
   },
 };
 

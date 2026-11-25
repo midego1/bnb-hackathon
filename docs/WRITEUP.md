@@ -2,7 +2,7 @@
 
 **TL;DR:**
 
-- KeyEscrow holds rental deposits and rent in a stablecoin on BNB Chain, but landlords and tenants in
+- KeyEscrow holds rental deposits and rent in a stablecoin on BNB Chain, but owners and renters in
   Thailand think in **baht**.
 - We use live price data in two places: to show every amount in **THB and USD**, and to convert AI damage
   estimates quoted in THB into a **fair settlement value** in token units.
@@ -27,19 +27,19 @@ Every amount in the app is stored on-chain in token units (MockUSDT, 6 decimals)
 units:
 
 ```
-Rent / month   ฿14,559                      [● Live CoinMarketCap]
-               $441.18 · 441.18 USDT
-Deposit        ฿29,118
-               $882.36 · 882.36 USDT
+Rent / month   ฿3,300                       [● Live CoinMarketCap]
+               $100.00 · 100.00 USDT
+Deposit        ฿6,600
+               $200.00 · 200.00 USDT
 ```
 
-Running text (timeline, fee note, proposals) uses the short form `฿14,559 ($441.18)`. Hovering an amount shows
+Running text (timeline, fee note, proposals) uses the short form `฿3,300 ($100.00)`. Hovering an amount shows
 the exact on-chain USDT and the rate source; hovering the badge shows the source, its update time and any
 warning.
 
-- **Landlord** creating a lease: they type the rent and deposit in USDT and see the THB and USD value live
+- **Owner** creating a rental: they type the rent and deposit in USDT and see the THB and USD value live
   underneath, plus the one-time fee in THB. (Typing the rent in THB directly is on the roadmap.)
-- **Tenant** funding a lease: before signing the funding transaction, they see the deposit plus first
+- **Renter** funding a rental: before signing the funding transaction, they see the deposit plus first
   month in THB.
 - **Dispute desk:** compares the claim amounts in THB, the currency in which repair quotes are written.
 - **Every rate shown** carries its **source and age** in the badge. Fallback rates read *Demo rates*; a live
@@ -47,8 +47,8 @@ warning.
 
 ### 2. Fair settlement value (roadmap)
 
-The AI inspection estimates damage in THB, for example "repaint living-room wall ≈ ฿3,000", because that is
-how Bangkok contractors quote. To turn this into an on-chain proposal, the server:
+The AI inspection estimates damage in THB, for example "respray scratched left side panel ≈ ฿1,500", because
+that is how Thai scooter repair shops quote. To turn this into an on-chain proposal, the server:
 
 1. Fetches the current THB-per-USDT quote.
 2. Converts each line item, then caps the total `landlordClaim` at the deposit
@@ -80,13 +80,13 @@ The route reports the source it used, and the UI shows it.
   stays in one place.
 - **The browser calls only `/api/price`.** It never calls CoinMarketCap directly, so the key cannot leak
   and the CMC rate limits apply to one server, not to every visitor.
-- **The contracts never read a price.** Escrow amounts are fixed in token units when the lease is created.
+- **The contracts never read a price.** Escrow amounts are fixed in token units when the rental is created.
   A bad price can at worst make a THB label wrong for a few minutes. It cannot move funds. A settlement
   always needs a human on each side to sign, or the arbiter.
 
 ## Caching
 
-- One in-memory quote (USDT and BNB in USD and THB). Every page load and every lease card reads the same
+- One in-memory quote (USDT and BNB in USD and THB). Every page load and every rental card reads the same
   cached value, and the browser refetches once a minute, so upstream traffic depends on the TTL, not on the
   number of visitors.
 - The TTL is `PRICE_CACHE_TTL_SECONDS` (default 60 s). One CoinMarketCap refresh costs 2 credits, so the

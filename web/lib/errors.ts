@@ -1,20 +1,20 @@
 import { BaseError, ContractFunctionRevertedError, UserRejectedRequestError } from "viem";
 
 const plain: Record<string, string> = {
-  Unauthorized: "This wallet is not allowed to do that on this lease. Switch to the right account.",
-  InvalidStatus: "The lease is not in the right state for this action anymore. Refresh and check its status.",
-  InvalidAmount: "That amount is not valid for this lease.",
+  Unauthorized: "This wallet is not allowed to do that on this rental. Switch to the right account.",
+  InvalidStatus: "The rental is not in the right state for this action anymore. Refresh and check its status.",
+  InvalidAmount: "That amount is not valid for this rental.",
   InvalidNonce: "The proposal changed while you were reviewing it. Read the new proposal and try again.",
   ProposerCannotAccept: "You made this proposal, so the other party has to accept it.",
   TimeoutNotReached: "The deadline has not been reached yet.",
-  ArbiterDeadlinePassed: "The arbiter's deadline has passed. The dispute can now only be closed by the fallback (full deposit to the tenant).",
+  ArbiterDeadlinePassed: "The arbiter's deadline has passed. The dispute can now only be closed by the fallback (full deposit to the renter).",
   InvalidArbiterWindow: "The arbiter window must be between 1 and 90 days.",
-  TimeoutNotApplicable: "The timeout only applies to a proposal made by the tenant.",
+  TimeoutNotApplicable: "The timeout only applies to a proposal made by the renter.",
   NothingToRelease: "There is no funded rent due for release right now.",
-  TermFullyFunded: "All months of the lease term are already paid.",
+  TermFullyFunded: "All months of the rental term are already paid.",
   TransferShortfall: "The token transfer came up short.",
   ZeroAddress: "An address is missing.",
-  RolesNotDistinct: "Landlord, tenant and arbiter must be three different addresses.",
+  RolesNotDistinct: "Owner, renter and arbiter must be three different addresses.",
   InvalidTerm: "The term must be between 1 and 60 months.",
   InvalidResponseWindow: "The response window must be between 1 and 60 days.",
   ERC20InsufficientAllowance: "Approve the USDT amount first.",
@@ -22,7 +22,7 @@ const plain: Record<string, string> = {
   FaucetLimitExceeded: "The faucet gives at most 10,000 test USDT per request.",
 };
 
-/** Turns any wallet/RPC/contract error into a sentence a tenant or landlord can act on. */
+/** Turns any wallet/RPC/contract error into a sentence a renter or owner can act on. */
 export function friendlyError(err: unknown): string {
   if (err instanceof BaseError) {
     if (err.walk((e) => e instanceof UserRejectedRequestError)) return "You cancelled the request in your wallet.";

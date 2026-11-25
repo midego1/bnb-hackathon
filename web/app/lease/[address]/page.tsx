@@ -5,7 +5,7 @@ import { Notice } from "@/components/ui";
 
 async function LeasePageInner({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
-  if (!isAddress(address)) return <Notice kind="error">&ldquo;{address}&rdquo; is not a valid lease address.</Notice>;
+  if (!isAddress(address)) return <Notice kind="error">&ldquo;{address}&rdquo; is not a valid rental address.</Notice>;
   return <LeaseDetail address={getAddress(address)} />;
 }
 

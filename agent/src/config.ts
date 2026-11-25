@@ -9,9 +9,9 @@ export const REPO_DIR = path.resolve(AGENT_DIR, "..");
 export const AGENT_NAME = "KeyEscrow Inspector";
 export const AGENT_VERSION = "0.1.0";
 export const AGENT_DESCRIPTION =
-  "Neutral move-out inspector for KeyEscrow rental-deposit escrows on BNB Chain. Compares check-in and check-out " +
-  "photos and proposes how the deposit is split (tenantRefund + landlordClaim = deposit), with reasons, a confidence " +
-  "score and a reportHash that the tenant or landlord passes to RentalEscrow.propose(). Every report is signed by " +
+  "Neutral return inspector for KeyEscrow scooter-rental deposit escrows on BNB Chain. Compares pickup and return " +
+  "photos of the scooter and proposes how the deposit is split (tenantRefund = renter, landlordClaim = owner), with reasons, a " +
+  "confidence score and a reportHash that the renter or owner passes to RentalEscrow.propose(). Every report is signed by " +
   "this agent's ERC-8004 identity.";
 export const REPO_URL = "https://github.com/midego1/bnb-hackathon";
 

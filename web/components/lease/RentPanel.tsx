@@ -11,7 +11,7 @@ import { useTx } from "@/lib/hooks/useTx";
 import { nextDue, releasableMonths, type Viewer } from "./model";
 import { Stat } from "./FundingPanel";
 
-/** Rent schedule: release funded rent; tenant can prepay further months. */
+/** Rent schedule: release funded rent; renter can prepay further months. */
 export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer }) {
   const { address } = useAccount();
   const { send, pending } = useTx();
@@ -33,7 +33,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
       : lease.monthsReleased >= lease.terms.termMonths
         ? "All rent for the term has been paid out."
         : fundedAhead === 0
-          ? "No paid-in rent left in escrow. The tenant needs to prepay the next month first."
+          ? "No paid-in rent left in escrow. The renter needs to prepay the next month first."
           : due
             ? `Next month is paid in but not due until ${formatDate(due)}.`
             : "Nothing to pay out yet.";
@@ -41,7 +41,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
   return (
     <Card title="Rent" aside={<span className="text-xs text-subtle">{money(lease.terms.rentAmount)} / month</span>}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label="Paid out to landlord">
+        <Stat label="Paid out to owner">
           <span className="font-semibold" data-testid="months-released">{lease.monthsReleased}</span> / {lease.terms.termMonths} months
         </Stat>
         <Stat label="Paid into escrow">
@@ -64,16 +64,16 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
           onClick={() => send("Release rent", { address: lease.address, abi: rentalEscrowAbi, functionName: "releaseRent" })}
           data-testid="release-rent"
         >
-          Pay out {releasable > 0 ? `${releasable} month${releasable > 1 ? "s" : ""}` : "rent"} to landlord
+          Pay out {releasable > 0 ? `${releasable} month${releasable > 1 ? "s" : ""}` : "rent"} to owner
         </ActionButton>
         {viewer === "tenant" && releasable > 0 && lease.monthsDue < lease.monthsFunded && (
-          <p className="text-xs text-subtle sm:col-span-2">As the tenant you may pay out prepaid rent early. Once rent is due, anyone can trigger the payout.</p>
+          <p className="text-xs text-subtle sm:col-span-2">As the renter you may pay out prepaid rent early. Once rent is due, anyone can trigger the payout.</p>
         )}
       </div>
       {canPrepay && (
         <div className="mt-4 border-t border-border pt-4">
           <p className="mb-1 text-sm font-medium">Prepay rent</p>
-          <p className="mb-2 text-xs text-subtle">Paid into escrow now, paid out to the landlord only as each month comes due. Two wallet steps: approve, then pay.</p>
+          <p className="mb-2 text-xs text-subtle">Paid into escrow now, paid out to the owner only as each month comes due. Two wallet steps: approve, then pay.</p>
           <div className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr] sm:items-start">
             <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label="Months to prepay" />
             <ActionButton

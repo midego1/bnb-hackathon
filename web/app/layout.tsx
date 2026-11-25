@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: { default: "KeyEscrow · rental deposits on BNB Chain", template: "%s · KeyEscrow" },
   description:
-    "Rental deposit and rent escrow on BNB Chain: each lease gets its own escrow, rent is paid out monthly, an AI move-out inspection proposes the deposit split and a neutral dispute desk rules when the parties disagree.",
+    "Rental deposit and rent escrow on BNB Chain: each rental gets its own escrow, rent is paid out monthly, an AI return inspection proposes the deposit split and a neutral dispute desk rules when the parties disagree.",
   applicationName: "KeyEscrow",
 };
 

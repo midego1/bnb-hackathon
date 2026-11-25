@@ -70,10 +70,10 @@ export function CreateLeaseForm() {
 
   const blocker =
     !deployment ? "KeyEscrow is not deployed on this network. Switch your wallet's network." :
-    !tenant ? "Enter the tenant's wallet address." :
+    !tenant ? "Enter the renter's wallet address." :
     errors.tenant || errors.rent || errors.deposit || errors.term || errors.window || errors.arbiterWindow || errors.arbiter ||
     (!arbiterAddr ? "Enter the dispute desk's wallet address." : undefined) ||
-    (!distinct ? "Landlord, tenant and dispute desk must be three different wallets." : undefined);
+    (!distinct ? "Owner, renter and dispute desk must be three different wallets." : undefined);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -90,8 +90,8 @@ export function CreateLeaseForm() {
       photoHashes = docs.items.slice(leaseDoc.length).map((i) => i.hash);
     }
 
-    setStatus("Creating lease…");
-    const receipt = await send("Create lease", {
+    setStatus("Creating rental…");
+    const receipt = await send("Create rental", {
       address: deployment.escrowFactory,
       abi: escrowFactoryAbi,
       functionName: "createLease",
@@ -114,8 +114,8 @@ export function CreateLeaseForm() {
     if (!escrow) return setStatus(null);
 
     for (const [i, hash] of photoHashes.entries()) {
-      setStatus(`Anchoring check-in photo ${i + 1} of ${photoHashes.length}…`);
-      await send(`Anchor check-in photo ${i + 1}/${photoHashes.length}`, {
+      setStatus(`Anchoring pickup photo ${i + 1} of ${photoHashes.length}…`);
+      await send(`Anchor pickup photo ${i + 1}/${photoHashes.length}`, {
         address: escrow,
         abi: rentalEscrowAbi,
         functionName: "addEvidence",
@@ -129,19 +129,19 @@ export function CreateLeaseForm() {
   const showDevTenant = process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337;
 
   return (
-    <Card title="New lease" aside={<PriceSourceBadge />}>
+    <Card title="New rental" aside={<PriceSourceBadge />}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" data-testid="create-lease-form">
         <div className="sm:col-span-2">
           <Field
-            label="Tenant wallet"
+            label="Renter wallet"
             error={errors.tenant}
             hint={
               showDevTenant ? (
                 <button type="button" className="underline" onClick={() => setTenant(devAccounts.tenant)}>
-                  Use anvil tenant {shortAddress(devAccounts.tenant)}
+                  Use anvil renter {shortAddress(devAccounts.tenant)}
                 </button>
               ) : (
-                "The tenant funds the escrow from this address."
+                "The renter funds the escrow from this address."
               )
             }
           >
@@ -158,10 +158,10 @@ export function CreateLeaseForm() {
         >
           <input name="deposit" inputMode="decimal" className={inputClass} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </Field>
-        <Field label="Term (months)" error={errors.term}>
+        <Field label="Rental period (months)" error={errors.term}>
           <input name="term" type="number" min={1} max={60} className={inputClass} value={term} onChange={(e) => setTerm(e.target.value)} />
         </Field>
-        <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the tenant's move-out proposal. If you stay silent, the full deposit goes back to the tenant.">
+        <Field label="Your reply window (days)" error={errors.window} hint="How long you have to answer the renter's return proposal. If you stay silent, the full deposit goes back to the renter.">
           <input name="window" type="number" min={1} max={60} className={inputClass} value={windowDays} onChange={(e) => setWindowDays(e.target.value)} />
         </Field>
         <div className="flex flex-col gap-2 sm:col-span-2">
@@ -171,30 +171,30 @@ export function CreateLeaseForm() {
             <span>
               Use the KeyEscrow dispute desk {desk && <span className="font-mono text-xs text-subtle">({shortAddress(desk)})</span>}
               <span className="block text-xs text-subtle">
-                A neutral reviewer that only steps in if you and the tenant disagree on the deposit. Untick to name your own; the tenant sees
+                A neutral reviewer that only steps in if you and the renter disagree on the deposit. Untick to name your own; the renter sees
                 it before funding.
               </span>
             </span>
           </label>
-          <Field label="Dispute desk deadline (days)" error={errors.arbiterWindow} hint="If the dispute desk has not ruled within this time, the full deposit can go back to the tenant.">
+          <Field label="Dispute desk deadline (days)" error={errors.arbiterWindow} hint="If the dispute desk has not ruled within this time, the full deposit can go back to the renter.">
             <input name="arbiterWindow" type="number" min={1} max={90} className={inputClass} value={arbiterDays} onChange={(e) => setArbiterDays(e.target.value)} />
           </Field>
           {!useDesk && <input name="arbiter" className={inputClass} placeholder="Your reviewer's wallet 0x…" aria-label="Dispute desk wallet" value={arbiter} onChange={(e) => setArbiter(e.target.value.trim())} />}
           {errors.arbiter && <span className="text-xs text-danger">{errors.arbiter}</span>}
         </div>
-        <FilePicker label="Lease contract (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain." testId="lease-pdf" />
-        <FilePicker label="Check-in photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Optional, can be added later. The AI move-out inspection compares against these." testId="checkin-photos" />
+        <FilePicker label="Rental agreement (PDF)" accept="application/pdf" files={leaseDoc} onChange={setLeaseDoc} hint="Optional: scooter model, plate and included helmets. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain." testId="lease-pdf" />
+        <FilePicker label="Pickup photos" accept="image/jpeg,image/png,image/webp" multiple files={photos} onChange={setPhotos} hint="Front, back, left, right and a plate close-up. Optional, can be added later. The AI return inspection compares against these." testId="checkin-photos" />
         <div className="flex flex-col gap-3 sm:col-span-2">
           {feeBps !== undefined && (
             <p className="text-xs text-subtle" data-testid="fee-note">
               KeyEscrow fee: one-time {(Number(feeBps) / 100).toFixed(0)}% of one month&apos;s rent
               {rentAmount ? ` (${money((rentAmount * BigInt(feeBps)) / BigInt(10_000))})` : ""}, taken from your first rent payout.
-              The tenant never pays it and the deposit is never charged.
+              The renter never pays it and the deposit is never charged.
             </p>
           )}
           {warning && <Notice kind="warn">{warning}</Notice>}
           <ActionButton type="submit" busy={!!pending || !!status} disabledReason={blocker}>
-            {status ?? "Create lease"}
+            {status ?? "Create rental"}
           </ActionButton>
         </div>
       </form>

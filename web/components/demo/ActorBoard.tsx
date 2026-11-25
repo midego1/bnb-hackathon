@@ -6,7 +6,7 @@ import { formatUsdt } from "@/lib/format";
 import { usePrices } from "@/lib/usePrices";
 import { actorCards, panels } from "./copy";
 
-/** Live mUSDT balances of everyone the money can reach. `escrow` is unset until the demo lease exists. */
+/** Live mUSDT balances of everyone the money can reach. `escrow` is unset until the demo rental exists. */
 export type Wallets = { landlord: bigint; tenant: bigint; treasury: bigint; escrow?: bigint };
 type WalletKey = keyof Wallets;
 
@@ -51,7 +51,7 @@ const actorCard: Partial<Record<DemoActor, WalletKey | "arbiter" | "inspector">>
 };
 
 /**
- * The left column of the stage: landlord, tenant, this lease's escrow and the KeyEscrow treasury with their live
+ * The left column of the stage: owner, renter, this rental's escrow and the KeyEscrow treasury with their live
  * balances, plus the two referees that never hold money. A card flashes and shows the step's net change when money
  * moves through it.
  */
@@ -140,7 +140,7 @@ function RefereeCard({ id, active }: { id: "arbiter" | "inspector"; active: bool
   );
 }
 
-/** "Tenant −฿36,000 → Escrow contract +฿36,000": the money that moved in the current step. Mints come from the faucet. */
+/** "Renter −฿10,200 → Escrow contract +฿10,200": the money that moved in the current step. Mints come from the faucet. */
 export function FlowStrip({ base, wallets }: { base: Wallets | null; wallets: Wallets | null }) {
   const thb = useThb();
   const d = deltas(base, wallets);

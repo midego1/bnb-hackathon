@@ -7,33 +7,35 @@ import {MockUSDT} from "../src/mocks/MockUSDT.sol";
 import {ScriptBase} from "./utils/ScriptBase.sol";
 
 /// @title Seed
-/// @notice LOCAL ANVIL ONLY. Creates demo accounts' balances, one funded demo lease so the frontend has
-/// something to show, and a second lease already in dispute for the arbiter scene of docs/DEMO.md. Reads `deployments/31337.json` (from {Deploy}) and writes `deployments/31337.demo.json`.
+/// @notice LOCAL ANVIL ONLY. Creates demo accounts' balances, one funded demo scooter rental so the frontend has
+/// something to show, and a second rental already in dispute for the arbiter scene of docs/DEMO.md. Reads `deployments/31337.json` (from {Deploy}) and writes `deployments/31337.demo.json`.
 ///
 ///   forge script script/Seed.s.sol --rpc-url "$RPC_URL" --broadcast
 ///
-/// Roles use anvil's default dev accounts: landlord = #1, tenant = #2, arbiter = #3 (the KeyEscrow dispute desk,
-/// picked up as the factory's default arbiter because the lease passes address(0)). Treasury = #0 (deployer).
+/// Roles use anvil's default dev accounts: landlord (the scooter rental shop owner) = #1, tenant (the renter) = #2,
+/// arbiter = #3 (the KeyEscrow dispute desk, picked up as the factory's default arbiter because the rental passes
+/// address(0)). Treasury = #0 (deployer). The contracts keep the landlord/tenant/lease names.
 ///
-/// Numbers: a Bangkok condo at 15,000 THB/month. Assuming ~34 THB per USDT that is 441.18 mUSDT/month,
-/// with the customary 2-month deposit (882.36 mUSDT) on a 12-month lease. Windows use the factory
-/// defaults (7 days landlord response, 14 days arbiter). The disputed lease uses a 60-day arbiter window so it
-/// survives the demo's +30 day time jump before the dispute desk rules.
+/// Numbers: a Honda Click 125i rented monthly from a shop in Chiang Mai at 3,400 THB/month. Assuming ~34 THB per
+/// USDT that is 100 mUSDT/month, with a 2-month deposit (200 mUSDT, about 6,800 THB) held in escrow instead of the
+/// renter's passport, over a 3-month rental. Windows use the factory defaults (7 days owner response, 14 days
+/// arbiter). The disputed rental uses a 60-day arbiter window so it survives the demo's +30 day time jump before the
+/// dispute desk rules.
 ///
 /// Evidence: content hashes are SHA-256 of the placeholder files in `web/public/demo/` (served by the web app
-/// at /demo/...). The lease hash covers `lease.pdf`; the check-in hash covers `checkin-manifest.json`, which in
-/// turn lists the SHA-256 of every check-in photo.
+/// at /demo/...). The lease hash covers `lease.pdf` (the rental agreement); the check-in hash covers
+/// `checkin-manifest.json`, which in turn lists the SHA-256 of every pickup photo of the scooter.
 contract Seed is ScriptBase {
-    uint256 internal constant RENT_THB = 15_000;
-    /// @dev 15,000 THB / ~34 THB per USDT, rounded to cents (6-decimal token units).
-    uint256 internal constant RENT = 441_180_000;
+    uint256 internal constant RENT_THB = 3_400;
+    /// @dev 3,400 THB / ~34 THB per USDT, rounded to cents (6-decimal token units).
+    uint256 internal constant RENT = 100_000_000;
     uint256 internal constant DEPOSIT = 2 * RENT;
-    uint32 internal constant TERM_MONTHS = 12;
+    uint32 internal constant TERM_MONTHS = 3;
 
     uint256 internal constant TENANT_MINT = 10_000e6;
     uint256 internal constant LANDLORD_MINT = 1_000e6;
     uint256 internal constant ARBITER_MINT = 100e6;
-    uint256 internal constant DISPUTED_CLAIM = 100e6; // landlord claims 100 mUSDT for a wall repaint
+    uint256 internal constant DISPUTED_CLAIM = 50e6; // owner claims 50 mUSDT (~1,700 THB) for a scratched side panel
     uint32 internal constant DISPUTED_ARBITER_WINDOW = 60 days;
 
     string internal constant DEMO_DIR = "../web/public/demo/";
@@ -86,7 +88,7 @@ contract Seed is ScriptBase {
         _write(escrow, disputed, landlord, tenant, arbiter, leaseHash, checkInHash);
     }
 
-    /// @dev Second demo lease: funded, landlord proposes keeping DISPUTED_CLAIM, tenant disputes.
+    /// @dev Second demo rental: funded, owner (landlord) proposes keeping DISPUTED_CLAIM, renter (tenant) disputes.
     function _seedDisputedLease(EscrowFactory factory, MockUSDT usdt, bytes32 leaseHash, bytes32 checkInHash)
         internal
         returns (address disputed)

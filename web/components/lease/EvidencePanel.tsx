@@ -14,7 +14,7 @@ import { useTx } from "@/lib/hooks/useTx";
 import { evidenceFromEvents } from "./evidence";
 import type { Viewer } from "./model";
 
-/** Lease document + check-in / check-out photos: off-chain files, content hashes anchored on-chain. */
+/** Rental agreement + pickup / return photos: off-chain files, content hashes anchored on-chain. */
 export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined }) {
   const { checkIn, checkOut } = evidenceFromEvents(events);
   const isParty = viewer === "landlord" || viewer === "tenant";
@@ -25,18 +25,18 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
     <Card title="Documents & photos" aside={<span className="text-xs text-subtle">Files off-chain · fingerprints (SHA-256) on-chain</span>}>
       <div className="space-y-5 text-sm">
         <div>
-          <p className="text-xs text-subtle">Lease contract</p>
+          <p className="text-xs text-subtle">Rental agreement</p>
           {lease.terms.leaseHash === ZERO_HASH ? (
-            <p className="text-subtle">No lease document attached.</p>
+            <p className="text-subtle">No rental agreement attached.</p>
           ) : (
             <HashLink hash={lease.terms.leaseHash} label="lease.pdf" href={documentUrl(lease.terms.leaseHash)} />
           )}
         </div>
-        <PhotoRow title="Check-in photos" hashes={checkIn} empty="None yet. The landlord or tenant can add them below; the AI inspection needs at least one." />
+        <PhotoRow title="Pickup photos" hashes={checkIn} empty="None yet. The owner or renter can add them below; the AI inspection needs at least one." />
         <PhotoRow
-          title="Check-out photos"
+          title="Return photos"
           hashes={checkOut}
-          empty={moveOutStage ? "None yet. Add them at move-out so the AI inspection can compare." : "Added at move-out, once the lease is active."}
+          empty={moveOutStage ? "None yet. Add them at return so the AI inspection can compare." : "Added at return, once the rental is active."}
         />
         {isParty && open && (
           <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
@@ -44,7 +44,7 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
             {moveOutStage ? (
               <AnchorPhotos lease={lease} kind="CheckOut" />
             ) : (
-              <p className="self-center text-xs text-subtle">Check-out photos can be added once the tenant has funded the lease.</p>
+              <p className="self-center text-xs text-subtle">Return photos can be added once the renter has funded the rental.</p>
             )}
           </div>
         )}
@@ -118,7 +118,8 @@ function AnchorPhotos({ lease, kind }: { lease: LeaseData; kind: "CheckIn" | "Ch
   const [busy, setBusy] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const { send } = useTx();
-  const label = kind === "CheckIn" ? "check-in" : "check-out";
+  const label = kind === "CheckIn" ? "pickup" : "return";
+  const testKey = kind === "CheckIn" ? "check-in" : "check-out"; // stable test ids, independent of the wording
 
   async function go() {
     setBusy("Uploading…");
@@ -147,10 +148,10 @@ function AnchorPhotos({ lease, kind }: { lease: LeaseData; kind: "CheckIn" | "Ch
         files={files}
         onChange={setFiles}
         hint="JPEG, PNG or WebP, up to 10 MB each. Tap to choose."
-        testId={`${label}-photos`}
+        testId={`${testKey}-photos`}
       />
       {warning && <Notice kind="warn">{warning}</Notice>}
-      <ActionButton variant="secondary" busy={!!busy} disabledReason={files.length === 0 ? `Choose one or more ${label} photos first.` : null} onClick={go} data-testid={`anchor-${label}`}>
+      <ActionButton variant="secondary" busy={!!busy} disabledReason={files.length === 0 ? `Choose one or more ${label} photos first.` : null} onClick={go} data-testid={`anchor-${testKey}`}>
         {busy ?? `Upload & record ${files.length || ""} photo${files.length === 1 ? "" : "s"} on-chain`}
       </ActionButton>
     </div>

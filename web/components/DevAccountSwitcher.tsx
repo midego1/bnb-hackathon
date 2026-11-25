@@ -6,10 +6,10 @@ import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/d
 import { useDeployment } from "@/lib/hooks/useDeployment";
 
 const roles: DevRole[] = ["landlord", "tenant", "arbiter"];
-const roleLabel: Record<DevRole, string> = { landlord: "Landlord", tenant: "Tenant", arbiter: "Dispute desk" };
+const roleLabel: Record<DevRole, string> = { landlord: "Owner", tenant: "Renter", arbiter: "Dispute desk" };
 
 /**
- * Local-only helper bar: act as the anvil landlord / tenant / arbiter without a browser wallet.
+ * Local-only helper bar: act as the anvil owner / renter / arbiter without a browser wallet.
  * Renders nothing unless built with NEXT_PUBLIC_DEV_ACCOUNTS=1 and the active chain is anvil (31337).
  */
 export function DevAccountSwitcher() {

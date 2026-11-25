@@ -55,20 +55,20 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
     >
       {p.nonce > 0 && (
         <div className="mb-4 text-sm text-muted">
-          Last proposal, by the {roleName(viewerRole(lease, p.proposer))}: tenant gets {money(p.tenantRefund)}, landlord keeps {money(p.landlordClaim)}.
+          Last proposal, by the {roleName(viewerRole(lease, p.proposer))}: renter gets {money(p.tenantRefund)}, owner keeps {money(p.landlordClaim)}.
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Deposit back to tenant (USDT)" error={error}>
+        <Field label="Deposit back to renter (USDT)" error={error}>
           <input name="rulingRefund" inputMode="decimal" className={inputClass} value={refund} onChange={(e) => setRefund(e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-xs text-subtle">Tenant gets</p>
+            <p className="text-xs text-subtle">Renter gets</p>
             <Amount value={amount !== undefined && !error ? amount : BigInt(0)} />
           </div>
           <div>
-            <p className="text-xs text-subtle">Landlord keeps</p>
+            <p className="text-xs text-subtle">Owner keeps</p>
             <Amount value={amount !== undefined && !error ? deposit - amount : BigInt(0)} />
           </div>
         </div>
@@ -85,7 +85,7 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
         busy={busy || pending === "Resolve dispute"}
         disabledReason={
           deadlinePassed
-            ? "Your deadline has passed. The full deposit now goes back to the tenant via \"Return full deposit to tenant\"."
+            ? "Your deadline has passed. The full deposit now goes back to the renter via \"Return full deposit to renter\"."
             : error ?? (!ruling.trim() && file.length === 0 ? "Write the reasons for your ruling, or attach it as a PDF." : null)
         }
         onClick={resolve}

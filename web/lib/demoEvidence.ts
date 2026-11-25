@@ -2,12 +2,12 @@ import type { Hex } from "viem";
 import manifest from "@/public/demo/checkin-manifest.json";
 
 /**
- * Placeholder evidence the seed script (contracts/script/Seed.s.sol) anchors on the demo leases. The files are
+ * Placeholder evidence the seed script (contracts/script/Seed.s.sol) anchors on the demo rentals. The files are
  * static assets under web/public/demo, not in evidence storage, so /api/evidence would 404 for their hashes.
  * The hashes are SHA-256 of the file bytes; tests/demo-evidence.test.ts keeps them in sync with the files.
  */
-export const DEMO_LEASE_HASH = "0x959edffbf37ea1566e26607be313c47de4a9f5ca8d2d16e50c463b572e3509d5" as Hex;
-export const DEMO_CHECKIN_MANIFEST_HASH = "0x09016344099766d2e2a452e2017d8c518d9263d17ada5750e242893c83c0518f" as Hex;
+export const DEMO_LEASE_HASH = "0x8e43b2a1bceb9f83f91ca4b0aee9dbfe91631fa35a5c03bd1272dc60f0153411" as Hex;
+export const DEMO_CHECKIN_MANIFEST_HASH = "0x5648f06d1aea37d500f2f808579978b486095e6c2044a575ba9806ef3817a6a6" as Hex;
 
 export type EvidenceView = { hash: Hex; src: string; label?: string };
 
@@ -23,7 +23,7 @@ export function documentUrl(hash: Hex): string {
 }
 
 /**
- * Photos to show for one anchored hash. A demo check-in manifest expands to its photos; a demo photo maps to its
+ * Photos to show for one anchored hash. A demo pickup manifest expands to its photos; a demo photo maps to its
  * static file; anything else is served by /api/evidence.
  */
 export function photosForHash(hash: Hex): EvidenceView[] {

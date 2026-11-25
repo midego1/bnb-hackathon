@@ -1,18 +1,18 @@
 {
   "kind": "check-in",
-  "note": "Placeholder evidence for the seeded demo lease. contentHash = SHA-256 of the file bytes.",
+  "note": "Placeholder pickup photos for the seeded demo scooter rental. contentHash = SHA-256 of the file bytes.",
   "photos": [
     {
-      "file": "checkin-living-room.svg",
-      "sha256": "0xd36ac8ce53abda4fd2c02158942f6a5bb5aa16c506526090b5e2298350254f2f"
+      "file": "checkin-front.svg",
+      "sha256": "0x1f06423c9595d4c1551d74f98bf1cf8aa31194d1890ee52372a42547b7cfc04d"
     },
     {
-      "file": "checkin-kitchen.svg",
-      "sha256": "0x06b89f7c70f55cc894e0fd8802a8c082dd1cc55e36a26ffbb79f395d09ef694a"
+      "file": "checkin-left-side.svg",
+      "sha256": "0x0ed1356fb1939317cd49fd1926013b29cc665f31ebafdd017ec43982eb9059ce"
     },
     {
-      "file": "checkin-bedroom.svg",
-      "sha256": "0x67896c84005631763c65184350cf864ac5296b15424975fc09facaa200bfb975"
+      "file": "checkin-plate.svg",
+      "sha256": "0xd6921c1914ea1cdcc49d4dd105dbc56fe5180c6fdcdc840ea9b00ea75c0780bf"
     }
   ]
 }

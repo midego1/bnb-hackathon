@@ -3,7 +3,7 @@ import path from "node:path";
 
 /**
  * The one-click guided demo (/demo) on the hermetic e2e anvil: click "Play the demo" in fast mode and check the end
- * summary (lease settled, balances add up) for the happy path and the dispute path, plus the "landlord ignores it"
+ * summary (lease settled, balances add up) for the happy path and the dispute path, plus the "owner ignores it"
  * timeout path (fast-forwards the throwaway anvil by 7 days).
  */
 
@@ -96,7 +96,7 @@ test("dispute path: landlord disputes, dispute desk rules on a split", async ({ 
   await expect(page.locator('[data-event="DisputeRaised"]')).toHaveCount(1);
   await shot(page, "14-demo-dispute-summary");
 
-  // "Try: landlord ignores it" from the end screen: a 7-day fast-forward, then the full deposit back to the tenant.
+  // "Try: owner ignores it" from the end screen: a 7-day fast-forward, then the full deposit back to the renter.
   await page.getByTestId("demo-try-timeout").click();
   await expect(page.locator('[data-step="wait"]')).toContainText("fast-forward 7 days (demo only)");
   await expectSettledAndBalanced(page, "timeout");
@@ -129,7 +129,7 @@ test("step by step waits for a click; a failed step shows the error and Retry ca
   await expect(status("inspect")).toHaveAttribute("data-status", "done", { timeout: 30_000 });
   await expect(page.getByTestId("demo-next")).toBeVisible();
   await expect(page.getByTestId("demo-narration")).toContainText("KeyEscrow Inspector agent compared");
-  await expect(page.getByText("Check-out photos (2)")).toBeVisible();
+  await expect(page.getByText("Return photos (2)")).toBeVisible();
   await noToasts(page);
   await shot(page, "12-demo-mid-run");
 

@@ -2,7 +2,7 @@
   "name": "keyescrow-inspector-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "KeyEscrow Inspector: the AI move-out inspection as a BNB Chain agent (ERC-8004 identity, A2A + MCP faces)",
+  "description": "KeyEscrow Inspector: the AI scooter return inspection as a BNB Chain agent (ERC-8004 identity, A2A + MCP faces)",
   "license": "MIT",
   "type": "module",
   "engines": {

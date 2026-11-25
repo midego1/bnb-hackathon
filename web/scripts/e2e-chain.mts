@@ -68,8 +68,8 @@ const treasury = deployer;
 const USDT = (v: string) => parseUnits(v, 6);
 const fmt = (v: bigint) => `${formatUnits(v, 6)} mUSDT`;
 
-// Demo lease numbers (must match contracts/script/Seed.s.sol): 15,000 THB/month at ~34 THB per USDT.
-const RENT = 441_180_000n;
+// Demo scooter rental numbers (must match contracts/script/Seed.s.sol): 3,400 THB/month at ~34 THB per USDT.
+const RENT = 100_000_000n;
 const DEPOSIT = 2n * RENT;
 const FEE_BPS = 1_000n;
 const FEE = (RENT * FEE_BPS) / 10_000n; // 10% of ONE month, once per lease
@@ -241,7 +241,7 @@ async function checkSeed() {
   eq(terms.landlord, landlord.address, "demo landlord = anvil #1");
   eq(terms.tenant, tenant.address, "demo tenant = anvil #2");
   eq(terms.arbiter, desk.address, "demo arbiter = dispute desk (anvil #3)");
-  eq(terms.rentAmount, RENT, "demo rent (15,000 THB)");
+  eq(terms.rentAmount, RENT, "demo rent (3,400 THB)");
   eq(terms.depositAmount, DEPOSIT, "demo deposit (2 months)");
   eq(terms.feeBps, Number(FEE_BPS), "demo fee bps");
   eq(terms.feeRecipient, treasury.address, "demo fee recipient = treasury (anvil #0)");
@@ -268,7 +268,7 @@ async function checkSeed() {
   eq(dTerms.arbiterWindow, Number(60n * DAY), "disputed demo lease arbiter window");
   eq(await balance(disputed), DEPOSIT + RENT, "disputed escrow holds deposit + first month");
   const dp = await read<{ landlordClaim: bigint; proposer: Address }>(disputed, ctx.escrowAbi, "proposal");
-  eq(dp.landlordClaim, USDT("100"), "disputed demo lease landlord claim");
+  eq(dp.landlordClaim, USDT("50"), "disputed demo lease landlord (owner) claim");
   eq(dp.proposer, landlord.address, "disputed demo lease proposer");
   assert(byTenant.includes(disputed), "factory indexes the disputed demo lease by tenant");
   return `lease ${lease}: ${fmt(RENT)}/month, ${fmt(DEPOSIT)} deposit, hashes match web/public/demo; disputed lease ${disputed}`;
@@ -292,7 +292,7 @@ async function happyPath() {
   await ok(keeper, escrow, ctx.escrowAbi, "releaseRent");
   expectDeltas(before, await balances(escrow), { landlord: RENT, escrow: -RENT }, "month 2");
 
-  // Move-out: tenant anchors check-out photos and submits the AI proposal (30 mUSDT cleaning).
+  // Return: renter (tenant) anchors return photos and submits the AI proposal (30 mUSDT for a cracked mirror).
   const claim = USDT("30");
   await ok(tenant, escrow, ctx.escrowAbi, "addEvidence", [1, keccak256(toHex("checkout-manifest"))]);
   await ok(tenant, escrow, ctx.escrowAbi, "propose", [DEPOSIT - claim, keccak256(toHex("ai-report"))]);

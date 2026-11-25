@@ -10,7 +10,7 @@ import { useTx } from "@/lib/hooks/useTx";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(1_000_000);
 
-/** Tenant: get test USDT, approve, fund deposit + first month. */
+/** Renter: get test USDT, approve, fund deposit + first month. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {
   const { address } = useAccount();
   const { data: token } = useTokenState(address, lease.address);
@@ -30,7 +30,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
       </div>
       <p className="mb-4 text-sm text-muted">
         Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
-        The landlord can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
+        The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <ActionButton

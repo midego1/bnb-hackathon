@@ -17,7 +17,7 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
         <p className="text-sm">Connect a wallet to {what}.</p>
         <ConnectButton />
         {process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337 && (
-          <p className="text-xs text-subtle">Local demo: pick Landlord, Tenant or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
+          <p className="text-xs text-subtle">Local demo: pick Owner, Renter or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
         )}
       </div>
     );

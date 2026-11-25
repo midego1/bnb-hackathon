@@ -11,7 +11,7 @@ export type UploadedFile = {
 };
 
 /**
- * Uploads lease documents / photos to POST /api/evidence (BNB Greenfield, or the server's local fallback)
+ * Uploads rental agreements / photos to POST /api/evidence (BNB Greenfield, or the server's local fallback)
  * and returns their sha256 content hashes, the bytes32 values that go on-chain. If the upload fails the file
  * is still hashed in the browser so the flow can continue; the result then says `storage: "browser"`.
  */

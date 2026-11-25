@@ -12,7 +12,7 @@ import {
 } from "@/lib/server/settlement";
 
 /**
- * POST /api/settlement — AI move-out inspection.
+ * POST /api/settlement — AI return inspection.
  * Body: { deposit, decimals?, currency?, checkIn: Photo[], checkOut: Photo[], notes? }
  * Returns a proposal whose tenantRefund + landlordClaim always equals the deposit.
  */
