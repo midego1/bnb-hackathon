@@ -331,6 +331,11 @@ To check every settlement path against a throwaway anvil (port 28545, started an
 pnpm e2e:chain            # deploy, seed, happy path, dispute, owner timeout, arbiter fallback
 ```
 
+## Contributing
+
+Setup, tests, branch and commit style, and how to add an Ask AI tool: [CONTRIBUTING.md](CONTRIBUTING.md). Please follow
+the [Code of Conduct](CODE_OF_CONDUCT.md), and report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE)
