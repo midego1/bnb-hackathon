@@ -876,7 +876,7 @@ function Summary({
       data-balanced={books?.balanced ? "true" : "false"}
     >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-2xl font-semibold tracking-tight xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
+        <h2 className="text-xl font-semibold tracking-tight tall:text-2xl xl:tall:text-3xl">{summaryCopy.outcome[ctx.path]}</h2>
         <button
           type="button"
           onClick={onHide}
@@ -945,7 +945,7 @@ function Party({ who, note, value, testId }: { who: string; note: string; value:
   return (
     <div className="rounded-xl bg-surface-muted px-4 py-2 tall:py-3" data-testid={testId} data-value={value.toString()}>
       <p className="text-base font-semibold">{who}</p>
-      <p className="text-sm leading-snug text-subtle">{note}</p>
+      <p className="hidden text-sm leading-snug text-subtle tall:block">{note}</p>
       <div className="mt-1">
         <Amount value={value} size="lg" />
       </div>
