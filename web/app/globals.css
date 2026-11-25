@@ -230,7 +230,7 @@
   --flash-up: rgb(52 211 153 / 25%);
   --flash-down: rgb(251 113 133 / 25%);
 
-  --status-done: #10b981;
+  --status-done: #059669; /* emerald-600: the white check on it is >= 3:1 (emerald-500 was 2.5:1) */
   --status-failed: #f43f5e;
   --on-status: #ffffff;
 
