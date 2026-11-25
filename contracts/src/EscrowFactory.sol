@@ -101,6 +101,8 @@ contract EscrowFactory is Ownable2Step {
     /// @notice Same as {createLease}, but the owner's payouts (rent and any deposit claim) go to `payee`
     /// instead of the owner, e.g. a {FleetVault} whose shareholders own the scooter. The owner keeps every
     /// role in the rental (propose, accept, dispute, cancel); only the money is routed.
+    /// The payee may not be the renter or the arbiter: an arbiter who receives the owner's deposit claim would
+    /// rule on its own payout.
     function createLeaseWithPayee(LeaseParams calldata p, address payee) external returns (address escrow) {
         if (payee == address(0)) revert ZeroAddress();
         return _createLease(p, payee);
@@ -108,6 +110,7 @@ contract EscrowFactory is Ownable2Step {
 
     function _createLease(LeaseParams calldata p, address payee) internal returns (address escrow) {
         RentalEscrow.Terms memory t = _checkedTerms(p, msg.sender);
+        if (payee == t.tenant || payee == t.arbiter) revert RolesNotDistinct();
 
         escrow = Clones.clone(implementation);
         RentalEscrow(escrow).initialize(t, payee);

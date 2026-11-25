@@ -300,6 +300,8 @@ describe("preconditions and simulation errors come back as plain reasons", () =>
     const data = encodeErrorResult({ abi: rentalEscrowAbi, errorName: "TimeoutNotReached", args: [deadline] });
     expect(decodeRevert(data).reason).toBe("The deadline has not been reached yet: it opens at 2027-01-15T08:00:00.000Z.");
     expect(explainRevert("InvalidStatus", [4])).toMatch(/status Settled/);
+    const closed = encodeErrorResult({ abi: rentalEscrowAbi, errorName: "ResponseWindowClosed", args: [deadline] });
+    expect(decodeRevert(closed).reason).toMatch(/reply window closed at 2027-01-15T08:00:00.000Z.*prepare_claim_timeout/);
     expect(explainRevert("ERC20InsufficientBalance", [RENTER, BigInt(1_000_000), BigInt(2_000_000)])).toMatch(/has 1.00 mUSDT, this needs 2.00 mUSDT/);
     expect(decodeRevert("0xdeadbeef").reason).toMatch(/would fail/);
   });

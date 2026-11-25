@@ -1,10 +1,10 @@
 {
   "97": {
-    "escrowFactory": "0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa",
-    "mockUsdt": "0x88EC944a272A79caf78099DD8db6d15829254Ee5",
+    "escrowFactory": "0xd33b4dfF8C09e0079918fD987953c8f65F1363D8",
+    "mockUsdt": "0x46e69984A52233980F1CAeABB4571555e4c8fE37",
     "disputeDesk": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
-    "fleetVault": "0xc69A8020fC090911922dD44cc83eA4a31BDff52b",
-    "fromBlock": 144802840
+    "fleetVault": "0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB",
+    "fromBlock": 144828181
   },
   "31337": {
     "escrowFactory": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",

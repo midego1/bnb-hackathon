@@ -29,6 +29,11 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
     /// @notice Hard cap on the operator's maintenance fee: 30% of income.
     uint16 public constant MAX_OPERATOR_FEE_BPS = 3_000;
     uint256 internal constant PRECISION = 1e18;
+    /// @notice Shares cannot be redeemed or transferred until this long after the holder's latest deposit.
+    /// Income is credited to whoever holds shares when it arrives, and anyone can trigger an escrow payout
+    /// (releaseRent, claimTimeout, ...). Without the lock, deposit -> trigger payout -> claim -> redeem in one
+    /// transaction (flash loan) would skim most of the income from long-term shareholders.
+    uint256 public constant SHARE_LOCK = 7 days;
 
     IERC20 public immutable asset;
     /// @notice Fleet operator (maintenance): receives `operatorFeeBps` of every income.
@@ -49,6 +54,8 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
 
     mapping(address => uint256) internal _accPaid;
     mapping(address => uint256) internal _credited;
+    /// @notice Until when `investor`'s shares are locked (see {SHARE_LOCK}). Claiming income is never locked.
+    mapping(address => uint256) public lockedUntil;
 
     event Deposited(address indexed investor, uint256 amount);
     event Redeemed(address indexed investor, uint256 shares);
@@ -62,6 +69,7 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
     error FeeTooHigh(uint16 feeBps);
     error NothingToClaim();
     error TransferShortfall(uint256 expected, uint256 received);
+    error SharesLocked(uint256 until);
 
     constructor(
         IERC20 asset_,
@@ -96,11 +104,13 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
         uint256 received = asset.balanceOf(address(this)) - before;
         if (received != amount) revert TransferShortfall(amount, received);
         totalPrincipal += amount;
+        lockedUntil[msg.sender] = block.timestamp + SHARE_LOCK;
         _mint(msg.sender, amount);
         emit Deposited(msg.sender, amount);
     }
 
     /// @notice Burn `shares` and get the same amount of principal back. Credited income stays claimable.
+    /// Reverts with {SharesLocked} within {SHARE_LOCK} of the caller's latest deposit.
     function redeem(uint256 shares) external nonReentrant {
         if (shares == 0) revert InvalidAmount();
         _sync();
@@ -185,7 +195,11 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
     }
 
     /// @dev Settle both sides' income at the old balances before shares move (mint, burn and transfer).
+    /// Shares leaving an account (redeem or transfer) must be past the account's deposit lock.
     function _update(address from, address to, uint256 value) internal override {
+        if (from != address(0) && block.timestamp < lockedUntil[from]) {
+            revert SharesLocked(lockedUntil[from]);
+        }
         if (from != address(0)) _accrue(from);
         if (to != address(0)) _accrue(to);
         super._update(from, to, value);

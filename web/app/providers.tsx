@@ -5,6 +5,7 @@ import { darkTheme, lightTheme, RainbowKitProvider } from "@rainbow-me/rainbowki
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
+import { AssistantProvider } from "@/components/assistant/AssistantProvider";
 import { ToastProvider } from "@/components/Toasts";
 import { getResolvedThemeSnapshot, subscribeTheme } from "@/lib/theme";
 import { wagmiConfig } from "@/lib/wagmi";
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={theme === "dark" ? rkDark : rkLight}>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <AssistantProvider>{children}</AssistantProvider>
+          </ToastProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

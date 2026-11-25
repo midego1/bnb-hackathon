@@ -186,3 +186,38 @@ test("mobile: the stage stacks and scrolls, nothing sticks out sideways", async 
   expect(m.sw).toBeLessThanOrEqual(m.iw);
   await page.screenshot({ path: path.join(SHOTS, "390x844-mobile-summary.png"), fullPage: true });
 });
+
+for (const vp of VIEWPORTS) {
+  const name = `${vp.width}x${vp.height}`;
+  test(`one screen at ${name} with the Ask AI panel open: it floats over the stage, the page never scrolls`, async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize(vp);
+    await page.goto("/demo");
+    await expect(page.getByTestId("demo-play")).toBeEnabled();
+    await page.keyboard.press("ControlOrMeta+j");
+    const panel = page.getByTestId("assistant-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel).toBeInViewport({ ratio: 1 });
+    await watchOverflow(page);
+    await expectOneScreen(page, "with the panel open, before play");
+    await expect(page.getByTestId("demo-play")).toBeInViewport({ ratio: 1 });
+    await page.getByTestId("demo-speed-fast").click();
+    await page.getByTestId("demo-play").click();
+    const summary = page.getByTestId("demo-summary");
+    await expect(summary).toBeVisible({ timeout: 90_000 });
+    await expect(summary).toHaveAttribute("data-balanced", "true");
+    await expect(summary).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId("demo-balanced")).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId("demo-run-again")).toBeInViewport({ ratio: 1 });
+    await expectOneScreen(page, "on the summary with the panel open");
+    // The floating panel overlays the lower right of the stage; it never covers the controls (Play, speed, mode).
+    const side = (await panel.boundingBox())!;
+    for (const id of ["demo-play", "demo-speed-fast", "demo-mode-step"]) {
+      const b = (await page.getByTestId(id).boundingBox())!;
+      expect(b.x + b.width <= side.x + 1 || b.y + b.height <= side.y + 1, `${id} is not under the panel`).toBe(true);
+    }
+    if (vp.width === 1470) await page.screenshot({ path: path.join(SHOTS, `${name}-panel-open-summary.png`) });
+    const worst = await worstOverflow(page);
+    expect(worst, `worst page overflow with the panel open (at: ${worst.at})`).toMatchObject({ y: 0, x: 0 });
+  });
+}
