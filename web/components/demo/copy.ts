@@ -124,14 +124,14 @@ export const testnetCopy = {
   badgeShort: "BSC Testnet",
   badgeTitle: "Every step is a real BSC testnet (chain 97) transaction, signed by KeyEscrow's demo wallets on the server. Click any hash to open it on BscScan.",
   pageIntro:
-    "One click plays the whole KeyEscrow story live on BSC Testnet: real contracts, real public transactions you can open on BscScan, and the real lease page updating underneath. No wallet needed: KeyEscrow's demo landlord, tenant and dispute desk sign on the server.",
+    "One click plays the whole KeyEscrow story live on BSC Testnet: real contracts, real public transactions you can open on BscScan, and the real rental page updating underneath. No wallet needed: KeyEscrow's demo owner, renter and dispute desk sign on the server.",
   bullets: [
-    "A fresh Bangkok lease, created, funded and settled with real transactions on BSC Testnet (chain 97). Each one takes a few seconds to confirm.",
+    "A fresh scooter rental, created, funded and settled with real transactions on BSC Testnet (chain 97). Each one takes a few seconds to confirm.",
     "Every transaction in the story column links to BscScan, and the balances on the left are read live from the chain.",
     "Every amount in baht first, then dollars and the exact mUSDT on-chain.",
-    "The AI move-out inspection, the KeyEscrow fee going to the treasury, and the final balances.",
+    "The AI return inspection, the KeyEscrow fee going to the treasury, and the final balances.",
   ],
-  timeoutNote: "Landlord ignores it needs 7 days of real time on a public chain; play it on the local demo.",
+  timeoutNote: "Owner ignores it needs 7 days of real time on a public chain; play it on the local demo.",
   timeoutShort: "needs 7 days; play it on the local demo",
   waiting: (code: "busy" | "rate-limited", sec: number) =>
     code === "busy" ? `Someone else is playing the live demo. Free in ~${sec} s; yours starts by itself.` : `The live demo just ran. Yours starts in ${sec} s…`,
@@ -146,5 +146,5 @@ export const testnetCopy = {
   off: "The live testnet demo is switched off on this server. Connect a wallet to use KeyEscrow on BSC testnet, or play the demo on a local build.",
   loading: "Loading the live testnet demo…",
   ctaTitle: "See the whole story in one click, live on BSC Testnet",
-  ctaBody: "A fresh Bangkok lease, funded, paid out, inspected by AI and settled, with real BSC testnet transactions you can open on BscScan. No wallet needed. About two minutes.",
+  ctaBody: "A fresh scooter rental, funded, paid out, inspected by AI and settled, with real BSC testnet transactions you can open on BscScan. No wallet needed. About two minutes.",
 };

@@ -126,7 +126,7 @@ export class DemoTestnetRunner {
         l.c97.pub.readContract({ address: resumeLease, abi: rentalEscrowAbi, functionName: "status" }).catch(() => 99),
       ]);
       const t = terms as { landlord: Address; tenant: Address; arbiter: Address } | undefined;
-      if (!t) throw new DemoError(400, "call-refused", "That is not a KeyEscrow lease.");
+      if (!t) throw new DemoError(400, "call-refused", "That is not a KeyEscrow rental.");
       vetResumeLease({ isLease: isLease as boolean, ...t, status: Number(status) }, l.addresses.accounts);
       lease = getAddress(resumeLease);
     }
