@@ -98,7 +98,7 @@ git clone --recursive https://github.com/midego1/bnb-hackathon.git && cd bnb-hac
 pnpm chain:anvil                                     # terminal 1: anvil on 127.0.0.1:8545
 pnpm chain:deploy && pnpm chain:seed                 # terminal 2: contracts, demo accounts, three demo rentals
 echo "NEXT_PUBLIC_DEV_ACCOUNTS=1" > web/.env.local   # the Demo accounts bar: act as owner / renter / dispute desk / shareholder
-pnpm dev                                             # http://localhost:3000, then ▶ Play the demo
+pnpm dev                                             # http://localhost:3000/app, then ▶ Play the demo (/ is the marketing page)
 ```
 
 Every sponsor integration falls back to a labelled mock when its key is missing (*Demo rates*, *demo inspector*),
@@ -270,7 +270,7 @@ contracts/                 Foundry project
   src/mocks/MockUSDT.sol     testnet-only 6-decimal stablecoin with a capped faucet
   deployments/97.json        the BSC testnet addresses
 web/                       Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
-  app/                       / /tenant /landlord /shareholders /backoffice /arbiter /lease/[address]
+  app/                       / (marketing page) /app (app home) /tenant /landlord /shareholders /backoffice /arbiter /lease/[address]
                              /demo /how-it-works /developers /integrations /settings/secrets (local only)
   app/api/                   settlement (AI), price, risk, cournot, evidence, fleet, integrations,
                              v1/[action] (REST actions + openapi.json), demo-testnet/* (live demo runner)

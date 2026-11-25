@@ -24,8 +24,11 @@ async function actAs(page: Page, role: "landlord" | "tenant" | "arbiter") {
 }
 
 async function openPanel(page: Page) {
-  await page.keyboard.press("ControlOrMeta+j");
-  await expect(page.getByTestId("assistant-panel")).toBeVisible();
+  // A key pressed before the page has hydrated is lost (right after goto, since the app shell is a nested layout): retry.
+  await expect(async () => {
+    await page.keyboard.press("ControlOrMeta+j");
+    await expect(page.getByTestId("assistant-panel")).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await expect(page.getByTestId("assistant-mock-badge")).toBeVisible();
 }
 

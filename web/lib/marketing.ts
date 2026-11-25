@@ -11,10 +11,10 @@ const bsc = deployments["97"];
 export const explorerAddress = (address: string) => `${EXPLORER}/address/${address}#code`;
 export const explorerTx = (hash: string) => `${EXPLORER}/tx/${hash}`;
 
-/** BSC testnet (chain 97). The first four are source-verified (exact match on Sourcify; `pnpm deploy:testnet:verify`). */
+/** BSC testnet (chain 97). All four are source-verified (exact match on Sourcify; `pnpm deploy:testnet:verify`). */
 export const TESTNET_CONTRACTS = [
   { name: "EscrowFactory", role: "Creates one escrow per rental and holds the fee setting", address: bsc.escrowFactory },
-  { name: "RentalEscrow", role: "The implementation every rental's escrow is a minimal clone of", address: "0x04150B5Bd1DcECa61C37703f5E4D23Ba64aD36D3" },
+  { name: "RentalEscrow", role: "The implementation every rental's escrow is a minimal clone of", address: bsc.rentalEscrowImplementation },
   { name: "FleetVault", role: "BKK-FLEET-1 shares: fleet income, shared pro rata", address: bsc.fleetVault },
   { name: "MockUSDT", role: "Test stablecoin (mUSDT, 6 decimals) standing in for USDT", address: bsc.mockUsdt },
 ] as const;

@@ -68,7 +68,7 @@ Requirements: [Foundry](https://book.getfoundry.sh/getting-started/installation)
 pnpm chain:anvil                                     # terminal 1: anvil on 127.0.0.1:8545, chain id 31337
 pnpm chain:deploy && pnpm chain:seed                 # terminal 2: contracts, demo accounts, three demo rentals
 echo "NEXT_PUBLIC_DEV_ACCOUNTS=1" > web/.env.local   # the yellow Demo accounts bar (local chain only)
-pnpm dev                                             # http://localhost:3000
+pnpm dev                                             # http://localhost:3000/app (/ is the marketing page)
 ```
 
 Leave the AI, CoinMarketCap, Atlas and Greenfield variables empty. The app then uses its labelled fallbacks (the
