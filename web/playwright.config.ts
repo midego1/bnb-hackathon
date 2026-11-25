@@ -12,12 +12,18 @@ import { E2E_WEB_ENV, E2E_WEB_PORT } from "./e2e/env";
 // Ports and the full, hermetic web-server environment live in e2e/env.ts (see there for why).
 export { E2E_RPC_PORT, E2E_WEB_PORT } from "./e2e/env";
 
+// Every spec shares the one anvil (the app is built against it) and some move its clock (evm_snapshot/evm_revert,
+// e2e/chain.ts), so specs run one at a time in the "chain" project. Only these front-end-only specs (no transaction,
+// no chain-state assertion) run beside them in "ui". A new spec is in "chain" unless it is added here.
+const UI_SPECS = ["eli5", "integrations", "marketing", "settings-secrets", "shell"].map((name) => `${name}.spec.ts`);
+const chromium = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } };
+
 export default defineConfig({
   testDir: "e2e",
   timeout: 120_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
-  workers: 1,
+  workers: 2,
   retries: 0,
   reporter: [["list"]],
   outputDir: "test-results/playwright",
@@ -27,7 +33,10 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } } }],
+  projects: [
+    { name: "chain", testIgnore: UI_SPECS, workers: 1, use: chromium },
+    { name: "ui", testMatch: UI_SPECS, use: chromium },
+  ],
   webServer: {
     command: `pnpm exec next build && pnpm exec next start -H 127.0.0.1 -p ${E2E_WEB_PORT}`,
     url: `http://127.0.0.1:${E2E_WEB_PORT}`,

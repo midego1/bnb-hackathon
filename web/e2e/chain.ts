@@ -1,5 +1,7 @@
 /**
- * The e2e anvil is shared by every spec in the run. The /demo "owner ignores it" story fast-forwards its clock by 7 days
+ * The e2e anvil is shared by every spec in the run; the specs that touch it run one at a time (the "chain" project in
+ * playwright.config.ts), so a snapshot here never collides with another worker's.
+ * The /demo "owner ignores it" story fast-forwards its clock by 7 days
  * (evm_increaseTime), which would push the seeded dispute past the dispute desk's 14-day window for every spec that
  * runs later. Specs that can play that story call `restoreChainAfterEachTest()`: each test runs on an anvil snapshot
  * (evm_snapshot) that is reverted afterwards (evm_revert), which also resets the block clock. So the chain every other
