@@ -16,7 +16,7 @@ function remember(mode: Mode) {
 
 /**
  * EN / 中文 / EN+中文. Sets the `ke_lang` cookie and re-renders from the server. On the landing header (from `sm`)
- * and footer now; the app sidebar mounts it in phase 2.
+ * and footer, and in the app sidebar's footer (components/shell/AppShell.tsx).
  */
 export function LangSwitch({ className = "inline-flex" }: { className?: string }) {
   const t = useT();

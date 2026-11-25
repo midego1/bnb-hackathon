@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStor
 import { useAccount, useConnect } from "wagmi";
 import { AskAiEntry } from "@/components/assistant/AskAiEntry";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
+import { LangSwitch } from "@/components/LangSwitch";
 import { LogoMark } from "@/components/LogoMark";
 import { ThemeCycleButton, ThemeSwitch } from "@/components/ThemeSwitch";
 import { PriceSourceBadge } from "@/components/ui";
@@ -144,6 +145,8 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
           <ThemeSwitch className="inline-flex rail:flex-col" />
           <PriceSourceBadge className="rail:hidden" />
         </div>
+        {/* Too wide for the icon rail: expand the sidebar to switch. */}
+        <LangSwitch className="inline-flex self-start border-border text-xs rail:hidden" />
         <WalletButton />
       </div>
     </aside>
