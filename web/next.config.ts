@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { assertSecretsPageBuildAllowed } from "./lib/secretsDeployGuard";
+
+// The write-only secrets page is local-only: a Cloudflare build with SETTINGS_SECRETS_ENABLED=1 fails here.
+assertSecretsPageBuildAllowed(process.env);
 
 // Optional x402 payment modules referenced by @coinbase/cdp-sdk (pulled in via RainbowKit's
 // Base Account connector). They are not installed and not used, so resolve them to an empty stub.

@@ -19,6 +19,15 @@ const example = JSON.parse(
   readFileSync(path.resolve(__dirname, "../../contracts/deployments/31337.example.json"), "utf8"),
 ) as { escrowFactory: string; token: string; defaultArbiter: string; fleetVault: string };
 
+/** Temp env files and state dir of the secrets page in e2e (absolute; e2e/settings-secrets.spec.ts seeds them). */
+const SECRETS_DIR = path.resolve(__dirname, "../test-results/e2e-secrets");
+export const E2E_SECRETS = {
+  dir: SECRETS_DIR,
+  root: path.join(SECRETS_DIR, "root.env"),
+  web: path.join(SECRETS_DIR, "web.env.local"),
+  state: path.join(SECRETS_DIR, "orca"),
+} as const;
+
 /** Addresses the e2e app is built with; global setup asserts the fresh deploy lands on exactly these. */
 export const E2E_DEPLOYMENT = {
   escrowFactory: example.escrowFactory,
@@ -90,4 +99,12 @@ export const E2E_WEB_ENV: Record<string, string> = {
   KEYESCROW_CHAIN_ID: "",
   KEYESCROW_RPC_URL_31337: "",
   KEYESCROW_RPC_URL_97: "",
+  // Write-only secrets page (/settings/secrets): on, but only against temp files under test-results (never a real
+  // .env), and with the restart buttons off so the run can never touch a systemd unit.
+  SETTINGS_SECRETS_ENABLED: "1",
+  SECRETS_ENV_FILE: E2E_SECRETS.root,
+  SECRETS_WEB_ENV_FILE: E2E_SECRETS.web,
+  SETTINGS_SECRETS_STATE_DIR: E2E_SECRETS.state,
+  SETTINGS_SECRETS_RESTART: "0",
+  SETTINGS_SECRETS_HOSTS: "",
 };
