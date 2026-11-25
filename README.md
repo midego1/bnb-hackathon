@@ -56,12 +56,13 @@ Then:
 
 ```bash
 pnpm test          # forge test
+pnpm -C web test   # API unit tests (vitest, offline)
 pnpm dev           # web on http://localhost:3000
 pnpm build         # forge build + next build
 ```
 
 Configuration: copy `.env.example` to `.env` / `web/.env.local` and fill in what you need. Every integration
-falls back to a local mock when its key is missing.
+falls back to a local mock when its key is missing. See [docs/API.md](docs/API.md) for the server API.
 
 For a full local walkthrough with anvil and seeded landlord, tenant and dispute-desk accounts, see
 [docs/DEMO.md](docs/DEMO.md).
