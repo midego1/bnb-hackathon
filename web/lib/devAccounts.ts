@@ -13,13 +13,15 @@ import { anvil, anvilRpcUrl } from "./chains";
 // Call sites check process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" inline so production builds constant-fold
 // the check and strip this module entirely.
 
-export type DevRole = "landlord" | "tenant" | "arbiter";
+export type DevRole = "landlord" | "tenant" | "arbiter" | "investor";
 
-/** Anvil default accounts #1-#3 (mnemonic "test test ... junk"). Public dev addresses, not secrets. */
+/** Anvil default accounts #1-#4 (mnemonic "test test ... junk"). Public dev addresses, not secrets. */
 export const devAccounts: Record<DevRole, Address> = {
   landlord: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   tenant: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
   arbiter: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+  // Fleet Vault shareholder (Seed.s.sol buys BKK-FLEET-1 shares with it).
+  investor: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
 };
 
 const STORAGE_KEY = "keyescrow.devRole";
@@ -28,7 +30,7 @@ export const DEV_CONNECTOR_ID = "anvilDevAccounts";
 function storedRole(): DevRole {
   try {
     const v = globalThis.localStorage?.getItem(STORAGE_KEY);
-    if (v === "landlord" || v === "tenant" || v === "arbiter") return v;
+    if (v === "landlord" || v === "tenant" || v === "arbiter" || v === "investor") return v;
   } catch {}
   return "landlord";
 }

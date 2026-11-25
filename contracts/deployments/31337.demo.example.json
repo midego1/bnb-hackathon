@@ -12,5 +12,7 @@
   "rentAmount": 100000000,
   "rentThb": 3400,
   "tenant": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-  "termMonths": 3
+  "termMonths": 3,
+  "fleetLease": "0x93b6BDa6a0813D808d75aA42e900664Ceb868bcF",
+  "investor": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
 }

@@ -37,6 +37,8 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   // --- Owner creates a rental --------------------------------------------------------------------
   await page.goto("/landlord");
   await actAs(page, "landlord");
+  // The fleet dashboard above the form loads from the chain; wait so the form does not move under the click.
+  await expect(page.getByTestId("fleet-owner")).toHaveAttribute("data-ready", "true");
   const form = page.getByTestId("create-lease-form");
   await expect(form).toBeVisible();
   await expect(page.getByTestId("fee-note")).toContainText("one-time 10%");
@@ -50,7 +52,13 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   await page.getByTestId("lease-pdf").setInputFiles(LEASE_PDF);
   await page.getByTestId("checkin-photos").setInputFiles(CHECKIN_PNG);
   await shot(page, "01-landlord-create");
-  await form.getByRole("button", { name: "Create rental" }).click();
+  // The page above and inside the form (fleet dashboard, risk panel) re-renders while chain data loads; a click that
+  // lands mid-render can be lost. Retry the click until the submit visibly started (busy button = no double submit).
+  const create = form.getByRole("button", { name: "Create rental" });
+  await expect(async () => {
+    if (await create.isEnabled()) await create.click({ timeout: 3_000 });
+    await expect(page.locator('[role="status"]', { hasText: "Create rental" }).first()).toBeVisible({ timeout: 8_000 });
+  }).toPass({ timeout: 60_000 });
 
   await page.waitForURL(/\/lease\/0x[0-9a-fA-F]{40}$/, { timeout: 60_000 });
   const leaseUrl = page.url();

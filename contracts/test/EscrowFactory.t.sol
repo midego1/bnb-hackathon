@@ -305,7 +305,7 @@ contract EscrowFactoryTest is BaseTest {
     function test_implementation_cannotBeInitialized() public {
         RentalEscrow impl = RentalEscrow(factory.implementation());
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        impl.initialize(_dummyTerms());
+        impl.initialize(_dummyTerms(), landlord);
     }
 
     function test_clone_cannotBeReinitialized() public {
@@ -314,7 +314,7 @@ contract EscrowFactoryTest is BaseTest {
         t.landlord = stranger;
         vm.prank(stranger);
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        escrow.initialize(t);
+        escrow.initialize(t, stranger);
     }
 
     function _dummyTerms() internal view returns (RentalEscrow.Terms memory) {

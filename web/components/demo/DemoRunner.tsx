@@ -36,6 +36,7 @@ const actorTone: Record<DemoStep["actor"], string> = {
   tenant: "bg-success-soft text-success-fg",
   arbiter: "bg-danger-soft text-danger-fg",
   inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
+  investor: "bg-info-soft text-info-fg",
   anyone: "bg-surface-muted text-muted",
 };
 
@@ -404,7 +405,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
     if (autoplayed.current || !ready) return;
     const q = new URLSearchParams(window.location.search);
     const p = q.get("path");
-    const initial: DemoPath = (p === "dispute" || p === "timeout") && (!testnet || testnetPaths.includes(p)) ? p : "happy";
+    const initial: DemoPath = (p === "dispute" || p === "timeout" || p === "fleet") && (!testnet || testnetPaths.includes(p)) ? p : "happy";
     if (q.get("speed") === "fast") speedRef.current = "fast";
     if (q.get("step") === "1") stepModeRef.current = true;
     autoplayed.current = true;
@@ -812,7 +813,12 @@ function Summary({
         <>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 tall:mt-4 tall:gap-3">
             <Party who={summaryCopy.tenant} note={summaryCopy.tenantNote(money(books.paidIn))} value={books.tenantBack} testId="demo-bal-tenant" />
-            <Party who={summaryCopy.landlord} note={summaryCopy.landlordNote} value={books.landlord} testId="demo-bal-landlord" />
+            <Party
+              who={ctx.path === "fleet" ? summaryCopy.vault : summaryCopy.landlord}
+              note={ctx.path === "fleet" ? summaryCopy.vaultNote(ctx.vaultIncome?.symbol ?? "fleet share") : summaryCopy.landlordNote}
+              value={books.landlord}
+              testId="demo-bal-landlord"
+            />
             <Party who={summaryCopy.treasury} note={summaryCopy.treasuryNote} value={books.treasury} testId="demo-bal-treasury" />
             <Party who={summaryCopy.escrow} note={summaryCopy.escrowNote} value={books.escrowLeft} testId="demo-bal-escrow" />
           </div>

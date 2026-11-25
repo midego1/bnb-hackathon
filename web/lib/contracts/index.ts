@@ -2,7 +2,7 @@ import { getAddress, isAddress, type Address } from "viem";
 import { targetChainId } from "../chains";
 import deployments from "./deployments.generated.json";
 
-export { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi } from "./abis.generated";
+export { escrowFactoryAbi, fleetVaultAbi, mockUsdtAbi, rentalEscrowAbi } from "./abis.generated";
 
 /**
  * Where the contracts live on each chain. The single source of truth is the deploy script's output in
@@ -13,11 +13,13 @@ export type Deployment = {
   mockUsdt: Address;
   /** KeyEscrow dispute desk: the default arbiter suggested for new rentals. */
   disputeDesk?: Address;
+  /** Fleet Vault (BKK-FLEET-1 shares); absent on deployments made before the vault existed. */
+  fleetVault?: Address;
   /** First block worth scanning for events (factory deployment). */
   fromBlock: bigint;
 };
 
-const table = deployments as Record<string, { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fromBlock?: number }>;
+const table = deployments as Record<string, { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fleetVault?: string; fromBlock?: number }>;
 
 function envAddress(v: string | undefined): Address | undefined {
   return v && isAddress(v) ? getAddress(v) : undefined;
@@ -48,6 +50,9 @@ export function getDeployment(chainId: number | undefined): Deployment | undefin
     disputeDesk: raw.disputeDesk
       ? getAddress(raw.disputeDesk)
       : envAddress(process.env.NEXT_PUBLIC_DISPUTE_DESK_ADDRESS),
+    fleetVault:
+      (chainId === targetChainId ? envAddress(process.env.NEXT_PUBLIC_FLEET_VAULT_ADDRESS) : undefined) ??
+      (raw.fleetVault ? getAddress(raw.fleetVault) : undefined),
     fromBlock: BigInt(raw.fromBlock ?? 0),
   };
 }

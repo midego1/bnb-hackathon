@@ -5,8 +5,8 @@ import { useAccount, useConnect } from "wagmi";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 
-const roles: DevRole[] = ["landlord", "tenant", "arbiter"];
-const roleLabel: Record<DevRole, string> = { landlord: "Owner", tenant: "Renter", arbiter: "Dispute desk" };
+const roles: DevRole[] = ["landlord", "tenant", "arbiter", "investor"];
+const roleLabel: Record<DevRole, string> = { landlord: "Owner", tenant: "Renter", arbiter: "Dispute desk", investor: "Shareholder" };
 
 /**
  * Local-only helper bar: act as the anvil owner / renter / arbiter without a browser wallet.
@@ -40,7 +40,7 @@ function Switcher() {
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
         <span className="font-semibold">Demo accounts</span>
         <span className="hidden opacity-70 sm:inline">local anvil only · act as</span>
-        <div className="flex gap-1" role="group" aria-label="Act as">
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Act as">
           {roles.map((r) => (
             <button
               key={r}

@@ -117,6 +117,9 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     bool public feeCharged; // the one-time protocol fee has been taken from a rent payout
     bytes32 public checkInHash;
     bytes32 public checkOutHash;
+    /// @notice Where the owner's money (rent and any deposit claim) is paid: the owner, or e.g. a {FleetVault}.
+    /// Set once at creation; the owner keeps every role in the rental, only the payout address differs.
+    address public payee;
 
     // ---------------------------------------------------------------------------------------------
     // Events
@@ -189,8 +192,11 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
     }
 
     /// @notice Called once by the factory right after cloning. Validation lives in the factory.
-    function initialize(Terms calldata terms_) external initializer {
+    /// @param payee_ Receives the owner's payouts; the factory passes the owner itself unless a payee was chosen.
+    // forge-lint: disable-next-line(missing-zero-check) -- the factory always passes the owner or a checked payee
+    function initialize(Terms calldata terms_, address payee_) external initializer {
         _terms = terms_;
+        payee = payee_;
         status = Status.Created;
     }
 
@@ -420,7 +426,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
             _terms.token.safeTransfer(_terms.feeRecipient, fee);
             emit ProtocolFeePaid(_terms.feeRecipient, fee);
         }
-        _terms.token.safeTransfer(_terms.landlord, toLandlord);
+        _terms.token.safeTransfer(payee, toLandlord);
     }
 
     /// @dev Final payout. State is written before any transfer (checks-effects-interactions).
@@ -437,7 +443,7 @@ contract RentalEscrow is Initializable, ReentrancyGuardTransient {
 
         uint256 fee = 0;
         if (rentToLandlord > 0) (, fee) = _payRent(rentToLandlord);
-        if (landlordClaim > 0) _terms.token.safeTransfer(_terms.landlord, landlordClaim);
+        if (landlordClaim > 0) _terms.token.safeTransfer(payee, landlordClaim);
 
         uint256 toTenant = tenantRefund + rentToTenant;
         if (toTenant > 0) _terms.token.safeTransfer(_terms.tenant, toTenant);

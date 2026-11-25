@@ -30,6 +30,8 @@ web/next-env.d.ts
 
 # Local evidence fallback storage
 web/.evidence/
+# Local scooter catalogue + booking requests (/api/fleet)
+web/.fleet/
 
 # OS / editor
 .DS_Store

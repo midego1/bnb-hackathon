@@ -62,6 +62,8 @@ export default async function globalSetup() {
   try {
     await waitForRpc();
     rmSync(path.join(CONTRACTS, DEPLOYMENTS_DIR), { recursive: true, force: true });
+    // The scooter catalogue links scooters to escrow addresses of the previous chain: start from the demo fleet.
+    rmSync(path.resolve(WEB, E2E_WEB_ENV.FLEET_DIR), { recursive: true, force: true });
     forge(["build"]);
     const env = { DEPLOYMENTS_DIR, PRIVATE_KEY: ANVIL_DEFAULT_KEY_0, ALLOW_NON_LOCAL_BROADCAST: "false" };
     forge(["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast"], env);
@@ -75,6 +77,7 @@ export default async function globalSetup() {
       ["escrowFactory", E2E_WEB_ENV.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS, baked.escrowFactory],
       ["token", E2E_WEB_ENV.NEXT_PUBLIC_MOCK_USDT_ADDRESS, baked.mockUsdt],
       ["defaultArbiter", E2E_WEB_ENV.NEXT_PUBLIC_DISPUTE_DESK_ADDRESS, baked.disputeDesk],
+      ["fleetVault", E2E_WEB_ENV.NEXT_PUBLIC_FLEET_VAULT_ADDRESS, baked.fleetVault],
     ];
     for (const [k, passed, inBundle] of checks) {
       const actual = getAddress(deployed[k]);

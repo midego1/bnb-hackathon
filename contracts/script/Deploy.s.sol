@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EscrowFactory} from "../src/EscrowFactory.sol";
+import {FleetVault} from "../src/FleetVault.sol";
 import {MockUSDT} from "../src/mocks/MockUSDT.sol";
 import {ScriptBase} from "./utils/ScriptBase.sol";
 
@@ -27,6 +28,10 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///   TOKEN_ADDRESS               reuse an existing stablecoin instead of deploying MockUSDT
 ///   FEE_BPS                     one-time fee in bps of one month's rent (default 1000 = 10%, max 1000)
 ///   DEPLOYMENTS_DIR             output directory relative to contracts/ (default `deployments`)
+///   FLEET_OPERATOR              Fleet Vault operator, gets the maintenance fee (default: anvil account 1, the demo
+///                               fleet owner, on anvil; FEE_RECIPIENT elsewhere)
+///   FLEET_OPERATOR_FEE_BPS      operator fee in bps of vault income (default 1000 = 10%, max 3000)
+///   FLEET_NAME / FLEET_SYMBOL   share token metadata (default "KeyEscrow Bangkok Fleet 1" / "BKK-FLEET-1")
 /// Off anvil the deployer and every role address must not be one of anvil's public default accounts.
 contract Deploy is ScriptBase {
     error FeeBpsOutOfRange(uint256 feeBps);
@@ -41,6 +46,9 @@ contract Deploy is ScriptBase {
         address defaultArbiter;
         uint16 feeBps;
         uint256 startBlock;
+        address fleetVault;
+        address fleetOperator;
+        uint16 fleetOperatorFeeBps;
     }
 
     function run() external returns (Deployment memory d) {
@@ -57,6 +65,14 @@ contract Deploy is ScriptBase {
         // forge-lint: disable-next-line(unsafe-typecast) -- range-checked above; the factory caps it further
         d.feeBps = uint16(feeBps);
         d.token = vm.envOr("TOKEN_ADDRESS", address(0));
+        d.fleetOperator = _isLocal()
+            ? vm.envOr("FLEET_OPERATOR", vm.addr(ANVIL_KEY_1))
+            : vm.envOr("FLEET_OPERATOR", d.feeRecipient);
+        if (!_isLocal()) _refuseAnvilAccount("FLEET_OPERATOR", d.fleetOperator);
+        uint256 opFee = vm.envOr("FLEET_OPERATOR_FEE_BPS", uint256(1_000));
+        if (opFee > 3_000) revert FeeBpsOutOfRange(opFee);
+        // forge-lint: disable-next-line(unsafe-typecast) -- range-checked above
+        d.fleetOperatorFeeBps = uint16(opFee);
         d.startBlock = block.number;
 
         if (key != 0) vm.startBroadcast(key);
@@ -64,6 +80,16 @@ contract Deploy is ScriptBase {
         if (d.token == address(0)) d.token = address(new MockUSDT());
         EscrowFactory factory =
             new EscrowFactory(IERC20(d.token), d.owner, d.feeBps, d.feeRecipient, d.defaultArbiter);
+        // Deployed last so the token and factory keep their addresses (deployer nonces 0 and 1 on a fresh anvil).
+        d.fleetVault = address(
+            new FleetVault(
+                IERC20(d.token),
+                vm.envOr("FLEET_NAME", string("KeyEscrow Bangkok Fleet 1")),
+                vm.envOr("FLEET_SYMBOL", string("BKK-FLEET-1")),
+                d.fleetOperator,
+                d.fleetOperatorFeeBps
+            )
+        );
         vm.stopBroadcast();
 
         d.factory = address(factory);
@@ -84,6 +110,9 @@ contract Deploy is ScriptBase {
         vm.serializeAddress(k, "feeRecipient", d.feeRecipient);
         vm.serializeUint(k, "feeBps", d.feeBps);
         vm.serializeAddress(k, "defaultArbiter", d.defaultArbiter);
+        vm.serializeAddress(k, "fleetVault", d.fleetVault);
+        vm.serializeAddress(k, "fleetOperator", d.fleetOperator);
+        vm.serializeUint(k, "fleetOperatorFeeBps", d.fleetOperatorFeeBps);
         string memory json = vm.serializeUint(k, "startBlock", d.startBlock);
 
         string memory path = _deploymentPath();

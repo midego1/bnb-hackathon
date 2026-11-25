@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {EscrowFactory} from "../src/EscrowFactory.sol";
+import {FleetVault} from "../src/FleetVault.sol";
 import {RentalEscrow} from "../src/RentalEscrow.sol";
 import {MockUSDT} from "../src/mocks/MockUSDT.sol";
 import {ScriptBase} from "./utils/ScriptBase.sol";
@@ -37,6 +38,9 @@ contract Seed is ScriptBase {
     uint256 internal constant ARBITER_MINT = 100e6;
     uint256 internal constant DISPUTED_CLAIM = 50e6; // owner claims 50 mUSDT (~1,700 THB) for a scratched side panel
     uint32 internal constant DISPUTED_ARBITER_WINDOW = 60 days;
+    /// @dev Anvil default account #4 (public dev key, not a secret): the demo shareholder.
+    uint256 internal constant ANVIL_KEY_4 = 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a;
+    uint256 internal constant INVESTOR_DEPOSIT = 3_000e6;
 
     string internal constant DEMO_DIR = "../web/public/demo/";
 
@@ -85,7 +89,12 @@ contract Seed is ScriptBase {
         vm.stopBroadcast();
 
         disputed = _seedDisputedLease(factory, usdt, leaseHash, checkInHash);
+        address fleetLease = _seedFleetVault(deployment, factory, usdt, leaseHash, checkInHash);
         _write(escrow, disputed, landlord, tenant, arbiter, leaseHash, checkInHash);
+        if (fleetLease != address(0)) {
+            vm.writeJson(vm.toString(fleetLease), _demoPath(), ".fleetLease");
+            vm.writeJson(vm.toString(vm.addr(ANVIL_KEY_4)), _demoPath(), ".investor");
+        }
     }
 
     /// @dev Second demo rental: funded, owner (landlord) proposes keeping DISPUTED_CLAIM, renter (tenant) disputes.
@@ -119,6 +128,51 @@ contract Seed is ScriptBase {
             .propose(DEPOSIT - DISPUTED_CLAIM, keccak256("keyescrow.demo.landlord-proposal"));
         vm.broadcast(ANVIL_KEY_2);
         RentalEscrow(disputed).dispute();
+    }
+
+    /// @dev Fleet Vault scene: the demo shareholder (#4) buys BKK-FLEET-1 shares, and a third rental pays its owner's
+    /// cut into the vault (month 1 rent already released), so the investor dashboard starts with income.
+    /// Skipped when the deployment has no vault (older deployments files).
+    function _seedFleetVault(
+        string memory deployment,
+        EscrowFactory factory,
+        MockUSDT usdt,
+        bytes32 leaseHash,
+        bytes32 checkInHash
+    ) internal returns (address fleetLease) {
+        if (!vm.keyExistsJson(deployment, ".fleetVault")) return address(0);
+        FleetVault vault = FleetVault(vm.parseJsonAddress(deployment, ".fleetVault"));
+        address investor = vm.addr(ANVIL_KEY_4);
+
+        vm.broadcast(ANVIL_KEY_0);
+        usdt.faucet(investor, TENANT_MINT);
+        vm.startBroadcast(ANVIL_KEY_4);
+        usdt.approve(address(vault), INVESTOR_DEPOSIT);
+        vault.deposit(INVESTOR_DEPOSIT);
+        vm.stopBroadcast();
+
+        vm.startBroadcast(ANVIL_KEY_1);
+        fleetLease = factory.createLeaseWithPayee(
+            EscrowFactory.LeaseParams({
+                tenant: vm.addr(ANVIL_KEY_2),
+                arbiter: address(0),
+                rentAmount: RENT,
+                depositAmount: DEPOSIT,
+                termMonths: TERM_MONTHS,
+                responseWindow: 0,
+                arbiterWindow: 0,
+                leaseHash: leaseHash
+            }),
+            address(vault)
+        );
+        RentalEscrow(fleetLease).addEvidence(RentalEscrow.EvidenceKind.CheckIn, checkInHash);
+        vm.stopBroadcast();
+
+        vm.startBroadcast(ANVIL_KEY_2);
+        usdt.approve(fleetLease, DEPOSIT + RENT);
+        RentalEscrow(fleetLease).fund();
+        RentalEscrow(fleetLease).releaseRent();
+        vm.stopBroadcast();
     }
 
     function _write(

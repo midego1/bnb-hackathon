@@ -69,6 +69,8 @@ contract EscrowFactory is Ownable2Step {
         uint32 arbiterWindow,
         bytes32 leaseHash
     );
+    /// @notice Emitted by {createLeaseWithPayee}: the rental's owner payouts go to `payee`, not the owner.
+    event PayeeSet(address indexed escrow, address indexed payee);
     event FeeUpdated(uint16 feeBps, address feeRecipient);
     event DefaultArbiterUpdated(address defaultArbiter);
 
@@ -93,7 +95,53 @@ contract EscrowFactory is Ownable2Step {
     /// @notice Create a lease offer. The tenant activates it by calling {RentalEscrow.fund}.
     /// @dev `responseWindow` / `arbiterWindow` of 0 select the defaults (7 and 14 days).
     function createLease(LeaseParams calldata p) external returns (address escrow) {
-        address landlord = msg.sender;
+        return _createLease(p, msg.sender);
+    }
+
+    /// @notice Same as {createLease}, but the owner's payouts (rent and any deposit claim) go to `payee`
+    /// instead of the owner, e.g. a {FleetVault} whose shareholders own the scooter. The owner keeps every
+    /// role in the rental (propose, accept, dispute, cancel); only the money is routed.
+    function createLeaseWithPayee(LeaseParams calldata p, address payee) external returns (address escrow) {
+        if (payee == address(0)) revert ZeroAddress();
+        return _createLease(p, payee);
+    }
+
+    function _createLease(LeaseParams calldata p, address payee) internal returns (address escrow) {
+        RentalEscrow.Terms memory t = _checkedTerms(p, msg.sender);
+
+        escrow = Clones.clone(implementation);
+        RentalEscrow(escrow).initialize(t, payee);
+
+        isLease[escrow] = true;
+        _leases.push(escrow);
+        _leasesByLandlord[t.landlord].push(escrow);
+        _leasesByTenant[t.tenant].push(escrow);
+        _leasesByArbiter[t.arbiter].push(escrow);
+
+        // The only external call above is to our own freshly cloned escrow, so log ordering cannot be spoofed.
+        // forge-lint: disable-next-item(reentrancy-events)
+        emit LeaseCreated(
+            escrow,
+            t.landlord,
+            t.tenant,
+            t.arbiter,
+            t.rentAmount,
+            t.depositAmount,
+            t.termMonths,
+            t.responseWindow,
+            t.arbiterWindow,
+            t.leaseHash
+        );
+        // forge-lint: disable-next-line(reentrancy-events)
+        if (payee != t.landlord) emit PayeeSet(escrow, payee);
+    }
+
+    /// @dev Validates the parameters and fills in the defaults and the current fee settings.
+    function _checkedTerms(LeaseParams calldata p, address landlord)
+        internal
+        view
+        returns (RentalEscrow.Terms memory)
+    {
         address arbiter = p.arbiter == address(0) ? defaultArbiter : p.arbiter;
         if (p.tenant == address(0) || arbiter == address(0)) revert ZeroAddress();
         if (p.tenant == landlord || arbiter == landlord || arbiter == p.tenant) {
@@ -111,46 +159,20 @@ contract EscrowFactory is Ownable2Step {
         if (arbiterWindow < MIN_ARBITER_WINDOW || arbiterWindow > MAX_ARBITER_WINDOW) {
             revert InvalidArbiterWindow(arbiterWindow);
         }
-
-        escrow = Clones.clone(implementation);
-        RentalEscrow(escrow)
-            .initialize(
-                RentalEscrow.Terms({
-                    token: token,
-                    landlord: landlord,
-                    tenant: p.tenant,
-                    arbiter: arbiter,
-                    rentAmount: p.rentAmount,
-                    depositAmount: p.depositAmount,
-                    termMonths: p.termMonths,
-                    responseWindow: responseWindow,
-                    arbiterWindow: arbiterWindow,
-                    leaseHash: p.leaseHash,
-                    feeBps: feeBps,
-                    feeRecipient: feeRecipient
-                })
-            );
-
-        isLease[escrow] = true;
-        _leases.push(escrow);
-        _leasesByLandlord[landlord].push(escrow);
-        _leasesByTenant[p.tenant].push(escrow);
-        _leasesByArbiter[arbiter].push(escrow);
-
-        // The only external call above is to our own freshly cloned escrow, so log ordering cannot be spoofed.
-        // forge-lint: disable-next-item(reentrancy-events)
-        emit LeaseCreated(
-            escrow,
-            landlord,
-            p.tenant,
-            arbiter,
-            p.rentAmount,
-            p.depositAmount,
-            p.termMonths,
-            responseWindow,
-            arbiterWindow,
-            p.leaseHash
-        );
+        return RentalEscrow.Terms({
+            token: token,
+            landlord: landlord,
+            tenant: p.tenant,
+            arbiter: arbiter,
+            rentAmount: p.rentAmount,
+            depositAmount: p.depositAmount,
+            termMonths: p.termMonths,
+            responseWindow: responseWindow,
+            arbiterWindow: arbiterWindow,
+            leaseHash: p.leaseHash,
+            feeBps: feeBps,
+            feeRecipient: feeRecipient
+        });
     }
 
     /// @notice Update the one-time protocol fee (bps of one month's rent) for leases created from now on.
