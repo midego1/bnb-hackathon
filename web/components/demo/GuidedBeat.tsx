@@ -5,9 +5,10 @@ import { useSyncExternalStore, type ReactNode } from "react";
 import { Spinner } from "@/components/Toasts";
 import type { Activity, Beat, Pacer } from "@/lib/demo/pacing";
 import type { DemoPath, DemoStep } from "@/lib/demo/script";
-import { PATHS } from "@/lib/demo/script";
+import { paths, stepText } from "@/lib/demo/script";
+import { useT } from "@/lib/i18n/client";
 import { tone } from "./ActorBoard";
-import { actorCards, actorLabel, guidedCopy, panels } from "./copy";
+import { demoCopy } from "./copy";
 
 /**
  * The narration card of Guided speed: the intro card before step 1, then three beats per step ("What happens now",
@@ -22,6 +23,9 @@ const card =
 const STEP_BEATS: Exclude<Beat, "intro">[] = ["now", "run", "changed"];
 
 export function GuidedIntro({ path, pacer, nav }: { path: DemoPath; pacer: Pacer | null; nav: BeatNav }) {
+  const t = useT();
+  const { actorCards, guidedCopy } = t.of(demoCopy);
+  const PATHS = t.of(paths);
   const c = guidedCopy.intro;
   const cast = ["tenant", "landlord", "escrow", "treasury", "arbiter", "inspector"] as const;
   return (
@@ -77,6 +81,8 @@ export function GuidedStep({
   pacer: Pacer | null;
   nav: BeatNav;
 }) {
+  const t = useT();
+  const { actorLabel, guidedCopy, panels } = t.of(demoCopy);
   return (
     <section className={card} data-testid="demo-narration" data-beat={beat} aria-live="polite">
       <Header>
@@ -92,7 +98,7 @@ export function GuidedStep({
         </span>
       </Header>
       {nav.reviewing && <Reviewing />}
-      <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{step.title}</h2>
+      <h2 className="mt-1.5 text-2xl font-semibold tracking-tight xl:tall:text-3xl">{t.head(stepText, (x) => x[step.id].title)}</h2>
 
       {beat === "changed" ? (
         <>
@@ -137,6 +143,7 @@ function BeatChip({ active, children }: { active?: boolean; children: ReactNode 
 }
 
 function Reviewing() {
+  const { guidedCopy } = useT().of(demoCopy);
   return (
     <p className="mt-1.5 rounded-lg bg-surface/70 px-2.5 py-1 text-sm font-medium" data-testid="demo-reviewing">
       {guidedCopy.reviewing}
@@ -147,6 +154,7 @@ function Reviewing() {
 const short = (h: string) => `${h.slice(0, 10)}…${h.slice(-6)}`;
 
 function ActivityList({ activities }: { activities: Activity[] }) {
+  const { actorLabel, guidedCopy } = useT().of(demoCopy);
   return (
     <ul className="mt-3 space-y-1.5 border-t border-warning-border pt-2.5" data-testid="demo-activities">
       {activities.length === 0 && (
@@ -186,6 +194,7 @@ function ActivityList({ activities }: { activities: Activity[] }) {
 }
 
 function Footer({ pacer, nav }: { pacer: Pacer | null; nav: BeatNav }) {
+  const { guidedCopy } = useT().of(demoCopy);
   return (
     <div className="mt-3 flex items-center gap-3">
       <div className="min-w-0 flex-1">{pacer && !nav.reviewing && <BeatBar pacer={pacer} />}</div>
@@ -213,6 +222,7 @@ function Footer({ pacer, nav }: { pacer: Pacer | null; nav: BeatNav }) {
 
 /** How long until the demo moves on; "Press Next →" in step-by-step mode. Only this re-renders on every tick. */
 function BeatBar({ pacer }: { pacer: Pacer }) {
+  const { guidedCopy } = useT().of(demoCopy);
   const clock = useSyncExternalStore(pacer.subscribe, pacer.getSnapshot, pacer.getSnapshot);
   if (!clock.active) return null;
   if (clock.untilClick) return <p className="text-sm font-medium">{guidedCopy.pressNext}</p>;

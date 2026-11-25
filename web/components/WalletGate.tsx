@@ -6,19 +6,21 @@ import { useAccount } from "wagmi";
 import { chainName } from "@/lib/chains";
 import { getDeployment } from "@/lib/contracts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 import { Notice } from "./ui";
 
-/** Renders children only with a connected wallet on a chain where KeyEscrow is deployed. */
+/** Renders children only with a connected wallet on a chain where KeyEscrow is deployed. `what`: already in the active language ("see your rentals"). */
 export function WalletGate({ children, what }: { children: ReactNode; what: string }) {
   const { isConnected, chainId: walletChainId } = useAccount();
   const { chainId } = useDeployment();
+  const t = useT();
   if (!isConnected) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border-strong p-6">
-        <p className="text-sm">Connect a wallet to {what}.</p>
+        <p className="text-sm">{t("shell.gate.connect", { what })}</p>
         <ConnectButton />
         {process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" && chainId === 31337 && (
-          <p className="text-xs text-subtle">Local demo: pick Owner, Renter or Dispute desk in the yellow &ldquo;Demo accounts&rdquo; bar instead.</p>
+          <p className="text-xs text-subtle">{t("shell.gate.devHint")}</p>
         )}
       </div>
     );
@@ -27,7 +29,7 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
   if (!getDeployment(walletChainId)) {
     return (
       <Notice kind="warn">
-        KeyEscrow is not deployed on {chainName(walletChainId ?? chainId)} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).
+        {t("shell.gate.notDeployed", { chain: chainName(walletChainId ?? chainId) })}
       </Notice>
     );
   }

@@ -4,21 +4,22 @@ import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, statusMeta, useMoney } from "@/components/ui";
+import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, useMoney } from "@/components/ui";
 import { useFleet } from "@/components/roles/shared";
 import { chainName } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { latestLease, type ChainIndexResponse } from "@/lib/chainIndex";
-import { formatDate } from "@/lib/format";
 import { useChainIndex } from "@/lib/hooks/useChainIndex";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useLease, type LeaseData } from "@/lib/hooks/useLease";
 import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
+import { useT } from "@/lib/i18n/client";
+import { dateTimeIn } from "./copy";
 import { EvidencePanel } from "./EvidencePanel";
 import { FundingPanel, Stat } from "./FundingPanel";
-import { oneTimeFee, periodCount, periodName } from "@/lib/rentals";
 import { viewerRole, type Viewer } from "./model";
+import { countIn, oneTimeFee, perIn } from "@/lib/rentals";
 import { MoveOutPanel } from "./MoveOutPanel";
 import { RentPanel } from "./RentPanel";
 import { RentalHero } from "./RentalHero";
@@ -36,22 +37,23 @@ export function LeaseDetail({ address }: { address: Address }) {
   const { data: known } = useChainIndex(knownLeases);
   const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
   const { data: fleet } = useFleet();
+  const t = useT();
 
-  if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to the network this rental lives on.</Notice>;
+  if (!deployment) return <Notice kind="warn">{t("rental.detail.notDeployed", { chain: chainName(chainId) })}</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
   // A link to a rental of an older deployment (the testnet contracts were redeployed): not an error, point to a live one.
   if ((error || !lease) && known && !known.escrows.has(address.toLowerCase()))
     return (
       <Notice kind="info">
         <span data-testid="lease-gone">
-          This demo rental no longer exists on {chainName(chainId)}.{" "}
+          {t("rental.detail.gone", { chain: chainName(chainId) })}{" "}
           {known.latest ? (
             <Link href={`/lease/${known.latest}`} className="font-medium underline">
-              Open the latest one
+              {t("rental.detail.openLatest")}
             </Link>
           ) : (
             <Link href="/app" className="font-medium underline">
-              Open the app
+              {t("rental.detail.openApp")}
             </Link>
           )}
         </span>
@@ -61,11 +63,10 @@ export function LeaseDetail({ address }: { address: Address }) {
     return (
       <div className="space-y-3">
         <Notice kind="error">
-          No KeyEscrow rental could be read at {address} on {chainName(chainId)}. Check the link and the network your wallet is on; if the
-          public RPC was just busy, retry.
+          {t("rental.detail.unreadable", { address, chain: chainName(chainId) })}
         </Notice>
         <button type="button" onClick={() => refetch()} disabled={isFetching} data-testid="chain-retry" className="rounded-md border border-border-strong px-3 py-1.5 text-sm">
-          {isFetching ? "Retrying…" : "Retry now"}
+          {isFetching ? t("rental.detail.retrying") : t("rental.detail.retryNow")}
         </button>
       </div>
     );
@@ -82,7 +83,7 @@ export function LeaseDetail({ address }: { address: Address }) {
         hasData={!!events}
         onRetry={() => refetchEvents()}
         retrying={eventsFetching}
-        what="this rental's history"
+        what={t("rental.detail.historyWhat")}
       />
       <div className="grid gap-6 @4xl:grid-cols-2">
         <Timeline lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
@@ -124,25 +125,27 @@ export function LeaseDetail({ address }: { address: Address }) {
 function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; viewer: Viewer }) {
   const t = lease.terms;
   const money = useMoney();
+  const i = useT();
   const fee = oneTimeFee(t.rentAmount, t.rentPeriod, t.feeBps);
+  const you = i("rental.terms.you");
   return (
     <>
-      <Card title="Terms">
+      <Card title={i.h("rental.terms")}>
         <dl className="space-y-3 text-sm">
-          <Row label="Rental period">{periodCount(t.termPeriods, t.rentPeriod)} ({t.termPeriods} × rent per {periodName(t.rentPeriod)})</Row>
-          {lease.startTime > BigInt(0) && <Row label="Started">{formatDate(lease.startTime)}</Row>}
-          <Row label="Owner reply window">{t.responseWindow / 86400} days</Row>
-          <Row label="Dispute desk deadline">{t.arbiterWindow / 86400} days</Row>
+          <Row label={i("rental.terms.period")}>{i("rental.terms.periodValue", { n: t.termPeriods, months: countIn(i, t.termPeriods, t.rentPeriod), per: perIn(i, t.rentPeriod) })}</Row>
+          {lease.startTime > BigInt(0) && <Row label={i("rental.terms.started")}>{dateTimeIn(i)(lease.startTime)}</Row>}
+          <Row label={i("rental.terms.replyWindow")}>{i("rental.terms.days", { n: t.responseWindow / 86400 })}</Row>
+          <Row label={i("rental.terms.deskDeadline")}>{i("rental.terms.days", { n: t.arbiterWindow / 86400 })}</Row>
           <div>
-            <Row label="KeyEscrow fee">{money(fee)}</Row>
+            <Row label={i("rental.terms.fee")}>{money(fee)}</Row>
             <p className="mt-0.5 text-right text-xs text-subtle">
-              Once: {(t.feeBps / 100).toFixed(0)}% of one month&apos;s rent, {lease.feeCharged ? "already paid" : "taken from the owner's first payout"}
+              {i(lease.feeCharged ? "rental.terms.feeOncePaid" : "rental.terms.feeOnce", { pct: (t.feeBps / 100).toFixed(0) })}
             </p>
           </div>
-          <Row label="Owner"><AddressTag address={t.landlord} chainId={chainId} label={viewer === "landlord" ? "you" : undefined} /></Row>
-          <Row label="Renter"><AddressTag address={t.tenant} chainId={chainId} label={viewer === "tenant" ? "you" : undefined} /></Row>
-          <Row label="Dispute desk"><AddressTag address={t.arbiter} chainId={chainId} label={viewer === "arbiter" ? "you" : undefined} /></Row>
-          <Row label="Escrow"><AddressTag address={lease.address} chainId={chainId} /></Row>
+          <Row label={i("rental.terms.owner")}><AddressTag address={t.landlord} chainId={chainId} label={viewer === "landlord" ? you : undefined} /></Row>
+          <Row label={i("rental.terms.renter")}><AddressTag address={t.tenant} chainId={chainId} label={viewer === "tenant" ? you : undefined} /></Row>
+          <Row label={i("rental.terms.desk")}><AddressTag address={t.arbiter} chainId={chainId} label={viewer === "arbiter" ? you : undefined} /></Row>
+          <Row label={i("rental.terms.escrow")}><AddressTag address={lease.address} chainId={chainId} /></Row>
         </dl>
       </Card>
     </>
@@ -161,29 +164,33 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /** Dispute clock: arbiter must rule before the deadline; afterwards anyone returns the full deposit to the renter. */
 function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }) {
   const { send, pending } = useTx();
+  const t = useT();
+  const date = dateTimeIn(t)(lease.arbiterDeadline);
   const passed = lease.chainNow >= lease.arbiterDeadline;
+  const label = t("rental.deadline.tx");
   return (
-    <Card title={viewer === "arbiter" ? "Your deadline" : "Waiting for the dispute desk"}>
+    <Card title={t.h(viewer === "arbiter" ? "rental.deadlineYours" : "rental.deadlineWaiting")}>
       <p className="text-sm text-muted-foreground">
-        {statusMeta[LeaseStatus.Disputed].hint} Rent is still paid out as it comes due.{" "}
+        {t("ui.status.disputed.hint")} {t("rental.deadline.rentStill")}{" "}
         {passed ? (
-          <>The dispute desk missed its deadline ({formatDate(lease.arbiterDeadline)}). Anyone can now close the dispute and return the full deposit to the renter.</>
+          <>{t("rental.deadline.missed", { date })}</>
         ) : (
           <>
-            Ruling due by {formatDate(lease.arbiterDeadline)} (<Countdown target={lease.arbiterDeadline} clock={lease} />). If there is no
-            ruling by then, the full deposit goes back to the renter.
+            {t("rental.deadline.dueBy", { date })}
+            <Countdown target={lease.arbiterDeadline} clock={lease} />
+            {t("rental.deadline.dueByAfter")}
           </>
         )}
       </p>
       <ActionButton
         className="mt-4"
         variant="secondary"
-        busy={pending === "Claim arbiter timeout"}
-        disabledReason={passed ? null : `Available after ${formatDate(lease.arbiterDeadline)}: the dispute desk still has time to rule.`}
-        onClick={() => send("Claim arbiter timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimArbiterTimeout" })}
+        busy={pending === label}
+        disabledReason={passed ? null : t("rental.deadline.availableAfter", { date })}
+        onClick={() => send(label, { address: lease.address, abi: rentalEscrowAbi, functionName: "claimArbiterTimeout" })}
         data-testid="claim-arbiter-timeout"
       >
-        Return full deposit to renter
+        {t("rental.deadline.button")}
       </ActionButton>
     </Card>
   );
@@ -191,30 +198,30 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
 
 function CancelOffer({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
+  const t = useT();
+  const label = t("rental.cancel.tx");
   return (
-    <Card title="Waiting for the renter">
-      <p className="mb-4 text-sm text-muted-foreground">
-        Send this page&apos;s link to your renter. Once they fund the deposit and the first {periodName(lease.terms.rentPeriod)}&apos;s rent, the rental starts and rent is
-        paid out to you every {periodName(lease.terms.rentPeriod)}. You can withdraw the offer until then; nothing has been paid yet.
-      </p>
-      <ActionButton variant="danger" busy={pending === "Cancel offer"} onClick={() => send("Cancel offer", { address: lease.address, abi: rentalEscrowAbi, functionName: "cancel" })}>
-        Withdraw offer
+    <Card title={t.h("rental.waitingRenter")}>
+      <p className="mb-4 text-sm text-muted-foreground">{t("rental.cancel.body", { per: perIn(t, lease.terms.rentPeriod) })}</p>
+      <ActionButton variant="danger" busy={pending === label} onClick={() => send(label, { address: lease.address, abi: rentalEscrowAbi, functionName: "cancel" })}>
+        {t("rental.cancel.button")}
       </ActionButton>
     </Card>
   );
 }
 
 function SettledSummary({ events }: { events: ReturnType<typeof useLeaseEvents>["data"] }) {
+  const t = useT();
   const s = events?.find((e) => e.name === "Settled");
   if (!s) return null;
   const a = s.args as Record<string, bigint>;
   return (
-    <Card title="Final settlement">
+    <Card title={t.h("rental.settlement")}>
       <div className="grid gap-3 sm:grid-cols-2" data-testid="settlement">
-        <Stat label="Renter received">
+        <Stat label={t("rental.settlement.renter")}>
           <Amount value={a.tenantRefund + a.rentToTenant} />
         </Stat>
-        <Stat label="Owner received">
+        <Stat label={t("rental.settlement.owner")}>
           <Amount value={a.landlordClaim + a.rentToLandlord - a.fee} />
         </Stat>
       </div>

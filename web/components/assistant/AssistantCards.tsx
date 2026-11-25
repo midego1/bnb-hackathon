@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { ApprovalCard as Approval, Card, DoneCard as Done, LeaseCard as Lease, LeaseListCard as LeaseList, Money } from "@/lib/assistant/cards";
 import { safeAppPath } from "@/lib/assistant/paths";
+import { useT } from "@/lib/i18n/client";
+import type { Key } from "@/lib/i18n/t";
+import { perIn } from "@/lib/rentals";
 
 /** Cards are server data rendered as plain text; every link is an in-app path checked again here (or BscScan). */
 
@@ -69,12 +72,13 @@ export function CardView({ card }: { card: Card }) {
 }
 
 function LeaseCardView({ c }: { c: Lease }) {
+  const t = useT();
   return (
     <div className={shell} data-testid="assistant-card-lease" data-status={c.status}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <InApp href={`/lease/${c.address}`} className="font-mono text-xs text-subtle hover:underline">
-            Rental {short(c.address)}
+            {t("ai.rental", { address: short(c.address) })}
           </InApp>
           <p className="mt-0.5 font-medium">{c.headline}</p>
         </div>
@@ -82,31 +86,32 @@ function LeaseCardView({ c }: { c: Lease }) {
       </div>
       <dl className="mt-3 grid grid-cols-3 gap-2">
         <div>
-          <dt className="text-[11px] text-subtle">Deposit</dt>
+          <dt className="text-[11px] text-subtle">{t("ai.deposit")}</dt>
           <dd>
             <Amount m={c.deposit} strong />
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-subtle">Rent / month</dt>
+          <dt className="text-[11px] text-subtle">{t("ai.rentPeriod", { per: perIn(t, c.periods.rentPeriod) })}</dt>
           <dd>
             <Amount m={c.rent} />
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-subtle">In escrow now</dt>
+          <dt className="text-[11px] text-subtle">{t("ai.inEscrow")}</dt>
           <dd>
             <Amount m={c.escrow} />
           </dd>
         </div>
       </dl>
       <p className="mt-2 text-xs text-muted-foreground">
-        Owner {short(c.owner)} · Renter {short(c.renter)}
-        {c.you ? ` · You: ${c.you}` : ""} · {c.periods.funded}/{c.periods.term} rent periods paid (per {c.periods.per})
+        {t("ai.parties", { owner: short(c.owner), renter: short(c.renter) })}
+        {c.you ? t("ai.you", { you: c.you }) : ""}
+        {t("ai.periodsPaid", { funded: c.periods.funded, term: c.periods.term })}
       </p>
       {c.next && (
         <p className="mt-2 rounded-lg bg-muted px-2 py-1.5 text-xs" data-testid="assistant-card-next">
-          <span className="font-medium">Next · {c.next.who}:</span> {c.next.what}
+          <span className="font-medium">{t("ai.next", { who: c.next.who })}</span> {c.next.what}
         </p>
       )}
       <div className="mt-2 flex gap-3 text-xs">
@@ -128,25 +133,26 @@ function LeaseCardView({ c }: { c: Lease }) {
 }
 
 function LeaseListView({ c }: { c: LeaseList }) {
+  const t = useT();
   const [all, setAll] = useState(false);
   const rows = all ? c.rows : c.rows.slice(0, 5);
   const byStatus = Object.entries(c.totals.byStatus);
   return (
     <div className={shell} data-testid="assistant-card-list" data-total={c.totals.all}>
       <p className="font-medium">
-        {c.totals.all} rental{c.totals.all === 1 ? "" : "s"} · {c.totals.open} open
+        {t(c.totals.all === 1 ? "ai.rentals.one" : "ai.rentals.other", { n: c.totals.all, open: c.totals.open })}
       </p>
       {byStatus.length > 0 && (
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {byStatus.map(([s, n]) => `${n} ${s === "MoveOut" ? "return proposal" : s === "Created" ? "awaiting funding" : s.toLowerCase()}`).join(" · ")}
-          {` · deposits locked ${c.totals.deposits.thb ?? c.totals.deposits.token}`}
+          {byStatus.map(([s, n]) => t("ai.statusCount", { n, status: Object.hasOwn(STATUS_TONE, s) ? t(`ai.status.${s}` as Key) : s.toLowerCase() })).join(" · ")}
+          {t("ai.depositsLocked", { amount: c.totals.deposits.thb ?? c.totals.deposits.token })}
         </p>
       )}
       <ul className="mt-2 divide-y divide-border">
         {rows.map((r) => (
           <li key={`${r.address}-${r.role}`} className="flex items-center justify-between gap-2 py-1.5">
             <InApp href={r.href} className="min-w-0 truncate font-mono text-xs hover:underline">
-              {short(r.address)} <span className="font-sans text-subtle">as {r.role}</span>
+              {short(r.address)} <span className="font-sans text-subtle">{t("ai.asRole", { role: r.role })}</span>
             </InApp>
             <span className="flex shrink-0 items-center gap-2 text-xs">
               {r.deposit.thb ?? r.deposit.token}
@@ -157,33 +163,34 @@ function LeaseListView({ c }: { c: LeaseList }) {
       </ul>
       {c.rows.length > 5 && (
         <button type="button" onClick={() => setAll(!all)} className="mt-1 text-xs underline underline-offset-2">
-          {all ? "Show fewer" : `Show all ${c.rows.length}`}
+          {all ? t("ai.showFewer") : t("ai.showAll", { n: c.rows.length })}
         </button>
       )}
-      {c.truncated && <p className="mt-1 text-[11px] text-subtle">Only the newest 50 per role are listed.</p>}
+      {c.truncated && <p className="mt-1 text-[11px] text-subtle">{t("ai.truncated")}</p>}
     </div>
   );
 }
 
 function DoneView({ c }: { c: Done }) {
+  const t = useT();
   return (
     <div className="rounded-xl border border-success-border bg-success-soft p-3 text-sm text-success-fg" data-testid="assistant-card-done">
       <p className="flex items-center gap-1.5 font-medium">
         <CircleCheck aria-hidden className="size-4 shrink-0" />
-        {c.title}: {c.applied} transaction{c.applied === 1 ? "" : "s"} confirmed
+        {t(c.applied === 1 ? "ai.confirmed.one" : "ai.confirmed.other", { title: c.title, n: c.applied })}
       </p>
       <ul className="mt-1 space-y-0.5 text-xs">
-        {c.txs.map((t) => (
-          <li key={t.hash} className="flex flex-wrap gap-x-2">
-            <span>{t.description}</span>
-            {t.href ? (
-              <a href={t.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-mono underline underline-offset-2">
-                {short(t.hash)}
+        {c.txs.map((x) => (
+          <li key={x.hash} className="flex flex-wrap gap-x-2">
+            <span>{x.description}</span>
+            {x.href ? (
+              <a href={x.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-mono underline underline-offset-2">
+                {short(x.hash)}
                 <ArrowUpRight aria-hidden className="size-3" />
               </a>
             ) : (
-              <span className="font-mono" title={t.hash}>
-                {short(t.hash)} (local chain)
+              <span className="font-mono" title={x.hash}>
+                {t("ai.localChain", { hash: short(x.hash) })}
               </span>
             )}
           </li>
@@ -191,7 +198,7 @@ function DoneView({ c }: { c: Done }) {
       </ul>
       {c.lease && (
         <InApp href={c.lease.href} className="mt-1 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2">
-          Open rental {short(c.lease.address)}
+          {t("ai.openRental", { address: short(c.lease.address) })}
           <ArrowRight aria-hidden className="size-3" />
         </InApp>
       )}
@@ -211,13 +218,6 @@ const CONFIRMATION: Record<ApprovalState, { state: ToolState; approved?: boolean
   failed: { state: "output-error", approved: true },
 };
 
-const OUTCOME: Record<Exclude<ApprovalState, "waiting">, string> = {
-  signing: "Signing…",
-  approved: "Approved and signed",
-  declined: "Declined, not done",
-  expired: "Expired, not done",
-  failed: "Not completed",
-};
 
 /**
  * The approval card: the AI Elements Confirmation shell around the server-built card (title, the changes with before
@@ -239,6 +239,7 @@ export function ApprovalCardView({
   const waiting = state === "waiting";
   const tone = waiting || state === "signing" ? "border-(--assistant-waiting) ring-1 ring-(--assistant-waiting)" : "border-border";
   const c = CONFIRMATION[state];
+  const t = useT();
   return (
     <Confirmation
       state={c.state}
@@ -254,7 +255,7 @@ export function ApprovalCardView({
         <ConfirmationTitle className="block font-semibold text-foreground">{card.title}</ConfirmationTitle>
         <p className="flex items-center gap-1 text-xs text-warning">
           <TriangleAlert aria-hidden className="size-3 shrink-0" />
-          This changes the rental on chain. Check it before you approve.
+          {t("ai.approvalWarn")}
         </p>
       </div>
       <div className="space-y-2 p-3">
@@ -274,21 +275,21 @@ export function ApprovalCardView({
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">
-          Signed by: <span className="font-medium">{card.signerRole}</span> <span className="font-mono">{short(card.signer)}</span> (your wallet) ·{" "}
-          {card.steps.length} transaction{card.steps.length === 1 ? "" : "s"}
-          {card.ratesMock ? " · demo rates" : ""}
+          {t("ai.signedBy")} <span className="font-medium">{card.signerRole}</span> <span className="font-mono">{short(card.signer)}</span> {t("ai.yourWallet")} ·{" "}
+          {t(card.steps.length === 1 ? "ai.txs.one" : "ai.txs.other", { n: card.steps.length })}
+          {card.ratesMock ? t("ai.demoRates") : ""}
         </p>
         <Collapsible>
           <CollapsibleTrigger className="group/details inline-flex items-center gap-1 text-xs text-subtle hover:text-foreground">
             <ChevronRight aria-hidden className="size-3.5 transition-transform group-data-[state=open]/details:rotate-90" />
-            Details
+            {t("ai.details")}
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-1 space-y-1 text-xs text-muted-foreground">
             <p>{card.summary}</p>
             <ol className="list-decimal pl-5">
               {card.steps.map((s, i) => (
                 <li key={i}>
-                  {s.description} · <span className="font-mono">{s.function}</span> on <span className="font-mono">{short(s.to)}</span>
+                  {s.description} · <span className="font-mono">{s.function}</span> {t("ai.onContract")} <span className="font-mono">{short(s.to)}</span>
                 </li>
               ))}
             </ol>
@@ -306,16 +307,16 @@ export function ApprovalCardView({
               data-testid="assistant-approve"
               className="h-8 bg-(--assistant-waiting) px-3 text-sm text-(--assistant-waiting-foreground) hover:bg-(--assistant-waiting) hover:opacity-90"
             >
-              Approve
+              {t("ai.approve")}
             </ConfirmationAction>
             <ConfirmationAction variant="ghost" onClick={onDecline} data-testid="assistant-decline" className="h-8 px-3 text-sm">
-              Decline
+              {t("ai.decline")}
             </ConfirmationAction>
           </ConfirmationActions>
         </ConfirmationRequest>
         {!waiting && (
           <p className="text-xs font-medium" data-testid="assistant-approval-outcome">
-            {OUTCOME[state]}
+            {t(`ai.outcome.${state as Exclude<ApprovalState, "waiting">}`)}
           </p>
         )}
       </div>

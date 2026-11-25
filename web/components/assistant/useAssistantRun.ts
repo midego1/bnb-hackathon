@@ -19,6 +19,8 @@ import {
 } from "@/lib/assistant/history";
 import type { Item } from "@/lib/assistant/items";
 import { friendlyError } from "@/lib/errors";
+import { errorsIn } from "@/lib/errors.zh";
+import { useT } from "@/lib/i18n/client";
 
 export type { Item };
 
@@ -75,9 +77,13 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
   const abort = useRef<AbortController | null>(null);
   const optsRef = useRef(opts);
   const pathRef = useRef(opts.path);
+  // The notices and progress lines are written in the language active when they happen (they stay so in the history).
+  const t = useT();
+  const tRef = useRef(t);
   useEffect(() => {
     optsRef.current = opts;
     pathRef.current = opts.path;
+    tRef.current = t;
   });
 
   useEffect(() => {
@@ -159,7 +165,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
         return;
       case "run_finished":
         if (e.changesApplied) setItems((xs) => [...xs, { kind: "applied", id: nid(), count: e.changesApplied! }]);
-        if (e.reason === "stopped") setItems((xs) => [...xs, { kind: "notice", id: nid(), tone: "info", text: "Stopped." }]);
+        if (e.reason === "stopped") setItems((xs) => [...xs, { kind: "notice", id: nid(), tone: "info", text: tRef.current("ai.stopped") }]);
         if (e.reason !== "waiting") {
           setState("idle");
           setStatusText("");
@@ -174,7 +180,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
   }, [model]);
 
   const stream = useCallback(
-    async (body: Record<string, unknown>, initial: { state: AssistantState; text: string } = { state: "reading", text: "Thinking…" }) => {
+    async (body: Record<string, unknown>, initial: { state: AssistantState; text: string } = { state: "reading", text: tRef.current("ai.thinking") }) => {
       const ctl = new AbortController();
       abort.current = ctl;
       lastActivity.current = Date.now();
@@ -190,7 +196,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
         });
         if (!res.ok || !res.body) {
           const b = await res.json().catch(() => ({}));
-          apply({ type: "error", code: "http", message: b.error ?? "Ask AI is not available right now." });
+          apply({ type: "error", code: "http", message: b.error ?? tRef.current("ai.unavailable") });
           apply({ type: "run_finished", reason: "error" });
           return;
         }
@@ -205,7 +211,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
         if (ctl.signal.aborted) {
           apply({ type: "run_finished", reason: "stopped" });
         } else {
-          apply({ type: "error", code: "network", message: "Lost the connection to Ask AI." });
+          apply({ type: "error", code: "network", message: tRef.current("ai.lost") });
           apply({ type: "run_finished", reason: "error" });
         }
         void err;
@@ -307,23 +313,24 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
       const item = items.find((x): x is Extract<Item, { kind: "approval" }> => x.kind === "approval" && x.id === id);
       if (!item || item.state !== "waiting") return;
       const card = item.card;
+      const t = tRef.current;
       if (!address) {
-        setApproval(id, { progress: "Connect your wallet to sign." });
+        setApproval(id, { progress: t("ai.connect") });
         return;
       }
       if (address.toLowerCase() !== card.signer.toLowerCase()) {
-        setApproval(id, { progress: `Switch your wallet to ${card.signer}: this change was prepared for it.` });
+        setApproval(id, { progress: t("ai.switchWallet", { signer: card.signer }) });
         return;
       }
-      setApproval(id, { state: "signing", progress: "Confirm in your wallet…" });
+      setApproval(id, { state: "signing", progress: t("ai.confirmWallet") });
       setState("changing");
-      setStatusText(`Signing: ${card.title}…`);
+      setStatusText(t("ai.signing", { title: card.title }));
       const hashes: Hex[] = [];
       let error: string | undefined;
       try {
         if (walletChain !== card.chainId) await switchChain(config, { chainId: card.chainId as never });
         for (const [i, tx] of item.txs.entries()) {
-          setApproval(id, { progress: `Step ${i + 1} of ${item.txs.length}: confirm in your wallet…` });
+          setApproval(id, { progress: t("ai.stepConfirm", { i: i + 1, n: item.txs.length }) });
           const hash = await sendTransaction(config, {
             account: address as Address,
             to: tx.to as Address,
@@ -333,13 +340,13 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
           });
           hashes.push(hash);
           setState("changing");
-          setStatusText(`Confirming step ${i + 1} of ${item.txs.length}…`);
-          setApproval(id, { progress: `Step ${i + 1} of ${item.txs.length}: waiting for the block…` });
+          setStatusText(t("ai.confirmingStep", { i: i + 1, n: item.txs.length }));
+          setApproval(id, { progress: t("ai.stepBlock", { i: i + 1, n: item.txs.length }) });
           const receipt = await waitForTransactionReceipt(config, { hash, chainId: card.chainId as never });
-          if (receipt.status !== "success") throw new Error("The transaction was reverted on-chain.");
+          if (receipt.status !== "success") throw new Error(t("ai.reverted"));
         }
       } catch (err) {
-        error = friendlyError(err);
+        error = friendlyError(err, errorsIn(t.lang));
       }
       await queryClient.invalidateQueries();
       if (hashes.length === 0) {
@@ -351,7 +358,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
       setApproval(id, { state: error ? "failed" : "approved", progress: error });
       await stream(
         { resume: { approvalId: card.id, decision: "approve", txHashes: hashes, ...(error ? { error: error.slice(0, 300) } : {}) } },
-        { state: "changing", text: "Confirming the change on chain…" },
+        { state: "changing", text: t("ai.confirmingChange") },
       );
     },
     [address, config, items, queryClient, stream, walletChain],

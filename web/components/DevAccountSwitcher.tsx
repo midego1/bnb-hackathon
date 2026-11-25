@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useAccount, useConnect } from "wagmi";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 
 const roles: DevRole[] = ["landlord", "tenant", "arbiter", "investor"];
-const roleLabel: Record<DevRole, string> = { landlord: "Owner", tenant: "Renter", arbiter: "Dispute desk", investor: "Shareholder" };
+const roleLabel = { landlord: "shell.dev.owner", tenant: "shell.dev.renter", arbiter: "shell.dev.desk", investor: "shell.dev.shareholder" } as const satisfies Record<DevRole, string>;
 
 /**
  * Local-only helper bar: act as the anvil owner / renter / arbiter without a browser wallet.
@@ -23,6 +24,7 @@ function Switcher() {
   const { chainId } = useDeployment();
   const { address, connector } = useAccount();
   const { connectors, connectAsync } = useConnect();
+  const t = useT();
   if (chainId !== 31337) return null;
 
   const usingDev = connector?.id === DEV_CONNECTOR_ID;
@@ -39,9 +41,9 @@ function Switcher() {
   return (
     <div className="border-b border-warning-border bg-warning-soft text-warning-fg">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
-        <span className="font-semibold">Demo accounts</span>
-        <span className="hidden opacity-70 sm:inline">local anvil only · act as</span>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Act as">
+        <span className="font-semibold">{t("shell.dev.title")}</span>
+        <span className="hidden opacity-70 sm:inline">{t("shell.dev.sub")}</span>
+        <div className="flex flex-wrap gap-1" role="group" aria-label={t("shell.dev.actAs")}>
           {roles.map((r) => (
             <button
               key={r}
@@ -52,14 +54,14 @@ function Switcher() {
                 active === r ? "bg-highlight-pressed text-highlight-pressed-foreground" : "hover:bg-highlight-hover-soft"
               }`}
             >
-              {roleLabel[r]}
+              {t(roleLabel[r])}
             </button>
           ))}
         </div>
-        {!active && <span className="opacity-70">Pick a role to start</span>}
+        {!active && <span className="opacity-70">{t("shell.dev.pick")}</span>}
         <Link href="/demo" className="ml-auto inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline" data-testid="dev-play-demo">
           <Play aria-hidden className="size-3 fill-current" />
-          Play the demo
+          {t("shell.dev.play")}
         </Link>
       </div>
     </div>

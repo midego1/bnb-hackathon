@@ -9,17 +9,18 @@ import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { escrowFactoryAbi, TOKEN } from "@/lib/contracts";
-import { incomeOf, postFleet, scooterState, scooterStateLabel, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
+import { countIn } from "@/lib/rentals";
+import { planRent } from "@/lib/subscriptions";
+import { incomeOf, postFleet, scooterState, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { hashText } from "@/lib/hash";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 import { useRentals } from "@/lib/hooks/useRentals";
 import { useTx } from "@/lib/hooks/useTx";
 import { LeaseStatus } from "@/lib/contracts";
 import { usePrices } from "@/lib/usePrices";
 import type { RentalSummary } from "@/lib/rentals";
-import { planRent } from "@/lib/subscriptions";
-import { copy as subCopy } from "@/components/subscriptions/copy";
 import { FlagBadge, Kpi, useFleet } from "./shared";
 
 /** Booked scooters are offered for one monthly rent period; the renter funds deposit + the month up front. */
@@ -34,9 +35,10 @@ export const stateStyle: Record<ScooterState, string> = {
 };
 
 export function ScooterStateBadge({ state }: { state: ScooterState }) {
+  const t = useT();
   return (
     <span data-testid="scooter-state" data-state={state} className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${stateStyle[state]}`}>
-      {scooterStateLabel[state]}
+      {t(`roles.state.${state}`)}
     </span>
   );
 }
@@ -52,6 +54,7 @@ export function thbToUsdt(thb: number, thbPerUsdt: number | undefined) {
 
 /** Fleet owner dashboard: scooters with live status, income, booking requests, rentals and disputes. */
 export function FleetOwner() {
+  const t = useT();
   const { address } = useAccount();
   const { chainId, deployment } = useDeployment();
   const { data: index, error: indexError, refetch, isFetching } = useRentals();
@@ -76,7 +79,7 @@ export function FleetOwner() {
     return (
       <div data-testid="fleet-owner" data-ready="false">
         {!index && indexError ? (
-          <ChainReadNotice error={indexError} hasData={false} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
+          <ChainReadNotice error={indexError} hasData={false} onRetry={() => refetch()} retrying={isFetching} what={t("roles.what.rentals")} />
         ) : (
           <Skeleton className="h-96" />
         )}
@@ -88,19 +91,19 @@ export function FleetOwner() {
     <div className="space-y-6" data-testid="fleet-owner" data-ready="true">
       <ChainReadNotice error={indexError} hasData stale={index.stale} block={index.latestBlock} onRetry={() => refetch()} retrying={isFetching} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        <Kpi label="Scooters" testId="kpi-scooters">{mine.length}</Kpi>
-        <Kpi label="Available" testId="kpi-available">{count(["available"])}</Kpi>
-        <Kpi label="Rented" testId="kpi-rented">{count(["rented", "booked"])}</Kpi>
-        <Kpi label="In inspection" testId="kpi-inspection">{count(["inspection", "dispute"])}</Kpi>
-        <Kpi label="Active rentals" testId="kpi-active">{active.length}</Kpi>
-        <Kpi label="Disputes" testId="kpi-disputes"><span className={disputes.length ? "text-danger" : ""}>{disputes.length}</span></Kpi>
-        <Kpi label="Income to you" testId="kpi-income" hint={`+ ${money(toVault.total)} into the Fleet Vault`}>
+        <Kpi label={t("fleet.kpi.scooters")} testId="kpi-scooters">{mine.length}</Kpi>
+        <Kpi label={t("fleet.kpi.available")} testId="kpi-available">{count(["available"])}</Kpi>
+        <Kpi label={t("fleet.kpi.rented")} testId="kpi-rented">{count(["rented", "booked"])}</Kpi>
+        <Kpi label={t("fleet.kpi.inspection")} testId="kpi-inspection">{count(["inspection", "dispute"])}</Kpi>
+        <Kpi label={t("fleet.kpi.active")} testId="kpi-active">{active.length}</Kpi>
+        <Kpi label={t("fleet.kpi.disputes")} testId="kpi-disputes"><span className={disputes.length ? "text-danger" : ""}>{disputes.length}</span></Kpi>
+        <Kpi label={t("fleet.kpi.income")} testId="kpi-income" hint={t("fleet.kpi.incomeHint", { amount: money(toVault.total) })}>
           <Amount value={income.total} />
         </Kpi>
       </div>
 
       {requests.length > 0 && (
-        <Card title={`Booking requests (${requests.length})`}>
+        <Card title={t.h("fleet.requests", { n: requests.length })}>
           <ul className="divide-y divide-border" data-testid="booking-requests">
             {requests.map((b) => (
               <BookingRequest key={b.id} booking={b} scooter={mine.find((s) => s.id === b.scooterId)!} chainId={chainId} vault={deployment?.fleetVault} />
@@ -109,9 +112,9 @@ export function FleetOwner() {
         </Card>
       )}
 
-      <Card title="My fleet" aside={<span className="text-xs text-subtle">status live from each scooter&apos;s latest on-chain rental</span>}>
+      <Card title={t.h("fleet.myFleet")} aside={<span className="text-xs text-subtle">{t("fleet.fleetAside")}</span>}>
         {mine.length === 0 ? (
-          <p className="text-sm text-subtle">No scooters yet. Add your first one below.</p>
+          <p className="text-sm text-subtle">{t("fleet.noScooters")}</p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="fleet-list">
             {states.map(({ s, state, current }) => (
@@ -122,7 +125,7 @@ export function FleetOwner() {
       </Card>
 
       {(disputes.length > 0 || active.some((r) => r.flags.length > 0)) && (
-        <Card title="Needs your attention">
+        <Card title={t.h("fleet.attention")}>
           <ul className="space-y-2 text-sm" data-testid="owner-attention">
             {[...disputes, ...active.filter((r) => r.flags.length > 0)].map((r) => (
               <li key={r.address} className="flex flex-wrap items-center gap-2">
@@ -141,6 +144,7 @@ export function FleetOwner() {
 }
 
 function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: ScooterState; current?: RentalSummary; rentals: RentalSummary[] }) {
+  const t = useT();
   const income = incomeOf(rentals);
   return (
     <li className="overflow-hidden rounded-xl border border-border" data-testid="scooter-card" data-scooter={s.id}>
@@ -155,16 +159,16 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
           <ScooterStateBadge state={state} />
         </div>
         <p className="text-xs text-muted-foreground">
-          ฿{s.rentThb.toLocaleString("en-US")}/month · ฿{s.depositThb.toLocaleString("en-US")} deposit
-          {s.vault && <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 font-medium text-foreground">income → Fleet Vault</span>}
+          {t("fleet.terms", { rent: s.rentThb.toLocaleString("en-US"), deposit: s.depositThb.toLocaleString("en-US") })}
+          {s.vault && <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 font-medium text-foreground">{t("fleet.toVault")}</span>}
         </p>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-subtle">{rentals.length} rental{rentals.length === 1 ? "" : "s"} · earned</span>
+          <span className="text-subtle">{t(rentals.length === 1 ? "fleet.rentalsOne" : "fleet.rentalsOther", { n: rentals.length })}</span>
           <Amount value={income.total} />
         </div>
         {current && (
           <Link href={`/lease/${current.address}`} className="block text-xs underline-offset-2 hover:underline">
-            Current rental {shortAddress(current.address)} <ArrowRight aria-hidden className="inline size-3 align-[-1px]" />
+            {t("fleet.current", { address: shortAddress(current.address) })} <ArrowRight aria-hidden className="inline size-3 align-[-1px]" />
           </Link>
         )}
       </div>
@@ -173,6 +177,7 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
 }
 
 function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking; scooter: Scooter; chainId: number; vault?: Address }) {
+  const t = useT();
   const { send, pending } = useTx();
   const { prices } = usePrices();
   const { deployment } = useDeployment();
@@ -201,7 +206,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       arbiterWindow: 0,
       leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb, depositThb, months: sub?.maxPeriods, thbPerUsdt: rate, booking: booking.id })),
     };
-    const receipt = await send("Offer rental", {
+    const receipt = await send(t("fleet.offerTx"), {
       address: deployment!.escrowFactory,
       abi: escrowFactoryAbi,
       functionName: toVault ? "createLeaseWithPayee" : "createLease",
@@ -209,7 +214,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
     });
     if (!receipt) return;
     const [created] = parseEventLogs({ abi: escrowFactoryAbi, eventName: "LeaseCreated", logs: receipt.logs });
-    if (!created) return setError("Rental created, but its address could not be read from the receipt.");
+    if (!created) return setError(t("fleet.noAddress"));
     try {
       await postFleet(chainId, { action: "offer", bookingId: booking.id, lease: created.args.escrow as Address });
       await queryClient.invalidateQueries({ queryKey: ["fleet"] });
@@ -223,8 +228,10 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       <div>
         <p className="font-medium">{scooter.name} · {scooter.location}</p>
         <p className="text-xs text-subtle">
-          renter <span className="font-mono">{shortAddress(booking.renter)}</span> · ฿{rentThb.toLocaleString("en-US")} + ฿
-          {depositThb.toLocaleString("en-US")} deposit{sub ? ` · ${subCopy.issueLine(sub.maxPeriods, sub.periodDays)}` : ""}{toVault ? " · pays the Fleet Vault" : ""}
+          {t("fleet.renter")} <span className="font-mono">{shortAddress(booking.renter)}</span>
+          {t("fleet.requestTerms", { rent: rentThb.toLocaleString("en-US"), deposit: depositThb.toLocaleString("en-US") })}
+          {sub ? t("fleet.subscriptionTerm", { count: countIn(t, sub.maxPeriods, sub.periodDays * 86_400) }) : ""}
+          {toVault ? t("fleet.paysVault") : ""}
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
@@ -236,10 +243,10 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
             await queryClient.invalidateQueries({ queryKey: ["fleet"] });
           }}
         >
-          Decline
+          {t("fleet.decline")}
         </ActionButton>
-        <ActionButton busy={pending === "Offer rental"} disabledReason={!rate && "Loading the THB exchange rate…"} onClick={offer} data-testid="offer-rental">
-          Offer rental contract
+        <ActionButton busy={pending === t("fleet.offerTx")} disabledReason={!rate && t("fleet.loadingRate")} onClick={offer} data-testid="offer-rental">
+          {t("fleet.offer")}
         </ActionButton>
       </div>
     </li>
@@ -247,6 +254,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
 }
 
 function AddScooterForm({ owner, hasVault, chainId }: { owner?: Address; hasVault: boolean; chainId: number }) {
+  const t = useT();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
@@ -264,7 +272,7 @@ function AddScooterForm({ owner, hasVault, chainId }: { owner?: Address; hasVaul
     try {
       await postFleet(chainId, { action: "addScooter", owner, name, location, rentThb: Number(rent), depositThb: Number(deposit), vault: vault && hasVault });
       await queryClient.invalidateQueries({ queryKey: ["fleet"] });
-      setMsg({ kind: "info", text: `${name} is listed. Renters can book it now.` });
+      setMsg({ kind: "info", text: t("fleet.listed", { name }) });
       setName("");
       setLocation("");
     } catch (err) {
@@ -275,27 +283,28 @@ function AddScooterForm({ owner, hasVault, chainId }: { owner?: Address; hasVaul
   }
 
   return (
-    <Card title="Add a scooter">
+    <Card title={t.h("fleet.add")}>
       <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="add-scooter-form">
-        <Field label="Model">
+        <Field label={t("fleet.model")}>
           <input className={inputClass} name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Honda Click 160" required minLength={2} />
         </Field>
-        <Field label="Pickup location">
-          <input className={inputClass} name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ari, Bangkok" required minLength={2} />
+        <Field label={t("fleet.location")}>
+          <input className={inputClass} name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("fleet.locationPlaceholder")} required minLength={2} />
         </Field>
-        <Field label="Rent per month (THB)">
+        <Field label={t("fleet.rent")}>
           <input className={inputClass} name="rentThb" inputMode="numeric" value={rent} onChange={(e) => setRent(e.target.value.replace(/\D/g, ""))} required />
         </Field>
-        <Field label="Deposit (THB)" hint="Held in escrow instead of the renter's passport.">
+        <Field label={t("fleet.deposit")} hint={t("fleet.depositHint")}>
           <input className={inputClass} name="depositThb" inputMode="numeric" value={deposit} onChange={(e) => setDeposit(e.target.value.replace(/\D/g, ""))} required />
         </Field>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" checked={vault && hasVault} disabled={!hasVault} onChange={(e) => setVault(e.target.checked)} name="vault" />
-          Income to the Fleet Vault (BKK-FLEET-1 shareholders own this scooter){!hasVault && " · no vault on this deployment"}
+          {t("fleet.vault")}
+          {!hasVault && t("fleet.noVault")}
         </label>
         <div className="sm:col-span-2 lg:col-span-2 flex justify-end">
-          <ActionButton type="submit" busy={busy} disabledReason={!owner ? "Connect a wallet first." : null} data-testid="add-scooter">
-            List scooter
+          <ActionButton type="submit" busy={busy} disabledReason={!owner ? t("fleet.connectFirst") : null} data-testid="add-scooter">
+            {t("fleet.list")}
           </ActionButton>
         </div>
       </form>

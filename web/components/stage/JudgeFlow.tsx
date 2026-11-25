@@ -8,8 +8,10 @@ import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { ActionButton, Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { friendlyError } from "@/lib/errors";
+import { errorsIn } from "@/lib/errors.zh";
 import { uploadEvidence } from "@/lib/evidence";
 import { formatFiat } from "@/lib/fiat";
+import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
 import { runInspection, type InspectionResult } from "@/lib/settlement";
@@ -38,10 +40,11 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [note, setNote] = useState<string>();
+  const t = useT();
 
   async function signer(): Promise<WalletClient> {
     if (guestKey) return guestWallet(guestKey, chainId);
-    if (!wagmiWallet) throw new Error("Connect your wallet first.");
+    if (!wagmiWallet) throw new Error(t("judge.connectFirst"));
     if (wagmiWallet.chain?.id !== chainId) await switchChainAsync({ chainId: chainId as never });
     return wagmiWallet;
   }
@@ -54,7 +57,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
       await refresh();
     } catch (e) {
       setNote(undefined);
-      setError(friendlyError(e));
+      setError(friendlyError(e, errorsIn(t.lang)));
     } finally {
       setBusy(undefined);
     }
@@ -71,13 +74,13 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold">{listing.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {formatFiat(listing.rentThb, "THB")} / day · {formatFiat(listing.depositThb, "THB")} deposit
+            {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
           </p>
         </div>
       </header>
 
-      {offline && <Notice kind="warn">Connection is shaky. Your rental is safe on-chain; this screen catches up when the network is back.</Notice>}
-      {!status && !offline && <p className="text-muted-foreground">Loading…</p>}
+      {offline && <Notice kind="warn">{t("judge.offline")}</Notice>}
+      {!status && !offline && <p className="text-muted-foreground">{t("stage.loading")}</p>}
       {!status && pollError && offline && <Notice kind="error">{pollError}</Notice>}
 
       {status && step && (
@@ -107,7 +110,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
       {me && (
         <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs text-subtle">
           <span>
-            {guestKey ? "Testnet guest wallet, no real money" : "Your wallet"} · <span className="font-mono">{shortAddress(me)}</span>
+            {guestKey ? t("judge.guestWallet") : t("judge.yourWallet")} · <span className="font-mono">{shortAddress(me)}</span>
           </span>
           {(guestKey || external) && (step === "wallet" || step === "money" || step === "settled" || step === "busy") && (
             <button
@@ -118,7 +121,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
                 chooseExternal(false);
               }}
             >
-              Use another wallet
+              {t("judge.another")}
             </button>
           )}
         </footer>
@@ -156,6 +159,7 @@ const bigButton = "[&>button]:min-h-14 [&>button]:w-full [&>button]:text-lg";
 function Step(p: StepProps) {
   const { status, me, busy, thb } = p;
   const lease = status.lease;
+  const t = useT();
   const tx = (h: string) => explorerLink(p.chainId, "tx", h);
 
   switch (p.step) {
@@ -164,11 +168,8 @@ function Step(p: StepProps) {
 
     case "money":
       return (
-        <Big title="Get test money">
-          <p className="text-muted-foreground">
-            We send this wallet a little test BNB for gas and {thb(status.price.rent + status.price.deposit)} in test dollars (mUSDT) for the rent and the
-            deposit. Testnet only, no real money.
-          </p>
+        <Big title={t.h("judge.money")}>
+          <p className="text-muted-foreground">{t("judge.money.body", { amount: thb(status.price.rent + status.price.deposit) })}</p>
           <ActionButton
             className={bigButton}
             busy={busy === "drip"}
@@ -176,11 +177,11 @@ function Step(p: StepProps) {
             onClick={() =>
               p.act("drip", async () => {
                 const r = await stageAction<{ txs: string[] }>(status.listing.slug, { action: "drip", address: me });
-                p.setNote(r.txs.length ? `Test money sent (${r.txs.length} transaction${r.txs.length > 1 ? "s" : ""}).` : undefined);
+                p.setNote(r.txs.length ? t(r.txs.length > 1 ? "judge.money.sent.other" : "judge.money.sent.one", { n: r.txs.length }) : undefined);
               })
             }
           >
-            Get test money
+            {t("judge.money.button")}
           </ActionButton>
         </Big>
       );
@@ -188,37 +189,37 @@ function Step(p: StepProps) {
     case "rent":
     case "fund":
       return (
-        <Big title={`Rent it for ${thb(status.price.rent)}`}>
+        <Big title={t.h("judge.rent", { amount: thb(status.price.rent) })}>
           <dl className="grid grid-cols-2 gap-y-1 text-lg">
-            <dt className="text-muted-foreground">Rent (1 day)</dt>
+            <dt className="text-muted-foreground">{t("judge.rent.rent")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.rentAmount : status.price.rent)}</dd>
-            <dt className="text-muted-foreground">Deposit (comes back)</dt>
+            <dt className="text-muted-foreground">{t("judge.rent.deposit")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.depositAmount : status.price.deposit)}</dd>
           </dl>
-          <p className="text-sm text-muted-foreground">The money goes into this rental&apos;s own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.</p>
+          <p className="text-sm text-muted-foreground">{t("judge.rent.body")}</p>
           <ActionButton
             className={bigButton}
             busy={busy === "rent"}
             data-testid="judge-rent"
             onClick={() =>
               p.act("rent", async () => {
-                p.setNote("The owner is preparing your rental…");
+                p.setNote(t("judge.rent.preparing"));
                 const { lease: address } = await stageAction<{ lease: Address }>(status.listing.slug, { action: "lease", address: me });
-                p.setNote("Paying into the escrow…");
+                p.setNote(t("judge.rent.paying"));
                 await fundLease(await p.signer(), p.pub, address);
                 p.setNote(undefined);
               })
             }
           >
-            Pay into escrow
+            {t("judge.rent.button")}
           </ActionButton>
         </Big>
       );
 
     case "busy":
       return (
-        <Big title="Someone else is renting it right now">
-          <p className="text-muted-foreground">Only one rental at a time. Ask the presenter to reset the stage, then reload this page.</p>
+        <Big title={t.h("judge.busy")}>
+          <p className="text-muted-foreground">{t("judge.busy")}</p>
         </Big>
       );
 
@@ -231,12 +232,9 @@ function Step(p: StepProps) {
 
     case "waiting":
       return (
-        <Big title="Waiting for the owner">
-          <p className="text-muted-foreground">
-            You proposed: {thb(lease!.proposal.tenantRefund)} back to you, {thb(lease!.proposal.landlordClaim)} to the owner. The owner accepts on the
-            big screen.
-          </p>
-          <p className="animate-pulse text-sm text-subtle">Watching the chain…</p>
+        <Big title={t.h("judge.waiting")}>
+          <p className="text-muted-foreground">{t("judge.waiting.body", { back: thb(lease!.proposal.tenantRefund), kept: thb(lease!.proposal.landlordClaim) })}</p>
+          <p className="animate-pulse text-sm text-subtle">{t("judge.waiting.watching")}</p>
         </Big>
       );
 
@@ -245,14 +243,14 @@ function Step(p: StepProps) {
       const back = settled ? (settled.args.tenantRefund as bigint) + (settled.args.rentToTenant as bigint) : BigInt(0);
       const href = settled && tx(settled.txHash);
       return (
-        <Big title={<span data-testid="judge-settled">Your {thb(back)} are back</span>}>
-          <p className="text-muted-foreground">The escrow paid out and closed. Thanks for renting the {status.listing.name}!</p>
+        <Big title={<span data-testid="judge-settled">{t.h("judge.settled", { amount: thb(back) })}</span>}>
+          <p className="text-muted-foreground">{t("judge.settled.body", { name: status.listing.name })}</p>
           {href && (
             <a href={href} target="_blank" rel="noreferrer" className="text-lg font-medium underline">
-              See it on BscScan
+              {t("judge.settled.bscscan")}
             </a>
           )}
-          {same(status.rental?.renter, me) && <p className="text-xs text-subtle">Escrow {shortAddress(lease?.address)}</p>}
+          {same(status.rental?.renter, me) && <p className="text-xs text-subtle">{t("judge.settled.escrow", { address: shortAddress(lease?.address) })}</p>}
         </Big>
       );
     }
@@ -261,6 +259,7 @@ function Step(p: StepProps) {
 
 function WalletStep({ onGuest }: { onGuest: () => void }) {
   const { openConnectModal } = useConnectModal();
+  const t = useT();
   // WalletConnect needs a project id; without one only a browser wallet (MetaMask's in-app browser) can connect.
   const hasWallet = useSyncExternalStore(
     subscribeNothing,
@@ -268,11 +267,11 @@ function WalletStep({ onGuest }: { onGuest: () => void }) {
     () => false,
   );
   return (
-    <Big title="Rent it with one tap">
+    <Big title={t.h("judge.wallet")}>
       <ActionButton className={bigButton} onClick={onGuest} data-testid="judge-guest">
-        Use a guest wallet
+        {t("judge.wallet.guest")}
       </ActionButton>
-      <p className="-mt-2 text-sm text-muted-foreground">Testnet guest wallet, no real money. A fresh key is made on this phone and never leaves it.</p>
+      <p className="-mt-2 text-sm text-muted-foreground">{t("judge.wallet.guestHint")}</p>
       {hasWallet && (
         <ActionButton
           variant="secondary"
@@ -282,7 +281,7 @@ function WalletStep({ onGuest }: { onGuest: () => void }) {
             openConnectModal?.(); // undefined when a wallet is already connected: then that one is used
           }}
         >
-          Connect MetaMask
+          {t("judge.wallet.metamask")}
         </ActionButton>
       )}
     </Big>
@@ -293,7 +292,7 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
   const [reading, setReading] = useState(false);
   const lease = p.status.lease!;
-  const label = p.kind === "pickup" ? "pickup" : "return";
+  const t = useT();
 
   async function add(f: File | undefined) {
     if (!f) return;
@@ -303,7 +302,7 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
       const file = await compressPhoto(f);
       setPhotos((ps) => [...ps, { file, url: URL.createObjectURL(file) }].slice(-3));
     } catch (e) {
-      p.setNote(friendlyError(e));
+      p.setNote(friendlyError(e, errorsIn(t.lang)));
     } finally {
       setReading(false);
     }
@@ -311,16 +310,12 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
 
   const anchored = p.status.events.filter((e) => e.name === "EvidenceAdded").map((e) => String(e.args.contentHash).toLowerCase());
   return (
-    <Big title={p.kind === "pickup" ? "Take pickup photos" : "Hand it back, then take return photos"}>
-      <p className="text-muted-foreground">
-        {p.kind === "pickup"
-          ? "Photograph the box as you get it (1 to 3 photos). Their fingerprints go on-chain, so nobody can swap them later."
-          : "Give the box back to the presenter and photograph it again (1 to 3 photos). The AI inspector compares them with the pickup photos."}
-      </p>
+    <Big title={t.h(p.kind === "pickup" ? "judge.pickup" : "judge.return")}>
+      <p className="text-muted-foreground">{t(p.kind === "pickup" ? "judge.photos.pickupBody" : "judge.photos.returnBody")}</p>
       <div className="grid grid-cols-3 gap-2">
         {photos.map((ph) => (
           // eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL)
-          <img key={ph.url} src={ph.url} alt={`${label} photo`} className="aspect-square w-full rounded-lg object-cover" />
+          <img key={ph.url} src={ph.url} alt={t(`judge.photos.alt.${p.kind}`)} className="aspect-square w-full rounded-lg object-cover" />
         ))}
       </div>
       <label
@@ -337,23 +332,23 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
             e.target.value = "";
           }}
         />
-        {reading ? "Reading photo…" : photos.length ? "Take another photo" : "Open the camera"}
+        {t(reading ? "judge.photos.reading" : photos.length ? "judge.photos.another" : "judge.photos.open")}
       </label>
       <ActionButton
         className={bigButton}
         busy={p.busy === "photos"}
-        disabledReason={photos.length === 0 ? "Take at least one photo." : undefined}
+        disabledReason={photos.length === 0 ? t("judge.photos.atLeastOne") : undefined}
         data-testid={`judge-save-${p.kind}`}
         onClick={() =>
           p.act("photos", async () => {
             const { items, warning } = await uploadEvidence(photos.map((x) => x.file));
-            if (warning && items.some((i) => i.storage === "browser")) p.setNote("Photo upload failed, so only their fingerprints go on-chain.");
+            if (warning && items.some((i) => i.storage === "browser")) p.setNote(t("judge.photos.uploadFailed"));
             await anchorPhotos(await p.signer(), p.pub, lease.address, p.kind, items.map((i) => i.hash), anchored);
             setPhotos([]);
           })
         }
       >
-        {`Save ${photos.length || ""} ${label} photo${photos.length === 1 ? "" : "s"} on-chain`}
+        {t(`judge.photos.save.${p.kind}.${photos.length === 0 ? "zero" : photos.length === 1 ? "one" : "other"}`, { n: photos.length })}
       </ActionButton>
     </Big>
   );
@@ -362,18 +357,19 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
 function InspectStep(p: StepProps) {
   const [result, setResult] = useState<InspectionResult>();
   const lease = p.status.lease!;
+  const t = useT();
   const ev = (kind: number) =>
     p.status.events.filter((e) => e.name === "EvidenceAdded" && Number(e.args.kind) === kind).map((e) => String(e.args.contentHash).toLowerCase() as Hex);
 
   return (
-    <Big title="AI inspection">
+    <Big title={t.h("judge.inspect")}>
       {!result ? (
         <>
-          <p className="text-muted-foreground">The AI inspector compares the pickup and return photos and proposes how to split the deposit.</p>
+          <p className="text-muted-foreground">{t("judge.inspect.body")}</p>
           <ActionButton
             className={bigButton}
             busy={p.busy === "inspect"}
-            disabledReason={!ev(0).length || !ev(1).length ? "Waiting for the photos to show up on-chain…" : undefined}
+            disabledReason={!ev(0).length || !ev(1).length ? t("judge.inspect.waitingPhotos") : undefined}
             data-testid="judge-inspect"
             onClick={() =>
               p.act("inspect", async () => {
@@ -389,15 +385,15 @@ function InspectStep(p: StepProps) {
               })
             }
           >
-            Run the AI inspection
+            {t("judge.inspect.run")}
           </ActionButton>
         </>
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-y-1 text-lg" data-testid="judge-split">
-            <dt className="text-muted-foreground">Back to you</dt>
+            <dt className="text-muted-foreground">{t("judge.inspect.back")}</dt>
             <dd className="text-right font-semibold tabular-nums">{p.thb(BigInt(result.tenantRefund))}</dd>
-            <dt className="text-muted-foreground">To the owner</dt>
+            <dt className="text-muted-foreground">{t("judge.inspect.owner")}</dt>
             <dd className="text-right font-semibold tabular-nums">{p.thb(BigInt(result.landlordClaim))}</dd>
           </dl>
           <ul className="list-disc pl-5 text-sm text-muted-foreground">
@@ -405,14 +401,14 @@ function InspectStep(p: StepProps) {
               <li key={r}>{r}</li>
             ))}
           </ul>
-          {result.mock && <p className="text-xs text-subtle">Demo inspector (no vision model key on this server): deterministic, not a real look at the photos.</p>}
+          {result.mock && <p className="text-xs text-subtle">{t("judge.inspect.mock")}</p>}
           <ActionButton
             className={bigButton}
             busy={p.busy === "propose"}
             data-testid="judge-propose"
             onClick={() => p.act("propose", async () => proposeSplit(await p.signer(), p.pub, lease.address, BigInt(result.tenantRefund), result.reportHash))}
           >
-            Propose this split
+            {t("judge.inspect.propose")}
           </ActionButton>
         </>
       )}

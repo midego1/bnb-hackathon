@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { Address } from "viem";
 import { Spinner } from "@/components/Toasts";
-import type { DemoStep, DemoTx } from "@/lib/demo/script";
+import { txLabel, type DemoStep, type DemoTx } from "@/lib/demo/script";
 import { shortAddress } from "@/lib/format";
-import { actorLabel, panels } from "./copy";
+import { useT } from "@/lib/i18n/client";
+import { demoCopy } from "./copy";
 
 export type StepStatus = "pending" | "running" | "done" | "error";
 
@@ -31,6 +32,8 @@ export function StepTimeline({
   /** Live testnet: each hash opens on the block explorer instead of the lease timeline. */
   explorer?: { tx: (hash: string) => string; title: (hash: string) => string };
 }) {
+  const i18n = useT();
+  const { actorLabel, panels } = i18n.of(demoCopy);
   const list = useRef<HTMLOListElement>(null);
   const txCount = Object.values(txs).reduce((n, t) => n + t.length, 0);
 
@@ -96,7 +99,7 @@ export function StepTimeline({
                   </p>
                   {(txs[s.id] ?? []).map((t) => (
                     <p key={t.hash} className="flex items-center justify-between gap-1 text-[13px]">
-                      <span className="min-w-0 truncate text-muted-foreground">{t.label}</span>
+                      <span className="min-w-0 truncate text-muted-foreground">{txLabel(t.label, i18n.lang)}</span>
                       {explorer ? (
                         <a
                           href={explorer.tx(t.hash)}

@@ -1,0 +1,102 @@
+/** English UI strings for the subscription views and the listing page (see dictionaries/en.ts). JSON only. */
+export const body = {
+  /** components/subscriptions (subsCopyFor in components/subscriptions/copy.ts). */
+  subs: {
+    pageTitle: "Subscriptions",
+    pageIntro:
+      "Ride a scooter for weeks or months. You pay one period at a time (weekly, every 2 weeks or monthly); the deposit stays locked in the rental's own escrow, never your passport. Cancel any time by returning the scooter: the deposit comes back after the return check.",
+    gate: "subscribe to a scooter",
+    what: "your subscriptions",
+    rhythm: { d7: "Weekly", d14: "Every 2 weeks", d30: "Monthly" },
+    per: { d7: "week", d14: "2 weeks", d30: "month" },
+    rhythmLabel: "Payment rhythm",
+    rhythmHint: "The price is per month; each payment is the month's price x days / 30.",
+    perPeriod: "{amount} per {per}",
+    plans: {
+      empty: "No scooter is offered as a subscription on this network yet.",
+      deposit: "{thb} deposit in escrow, no passport",
+      term: "Up to {count} · cancel any time with a return check",
+      upfront: "To start: deposit + {first}",
+      subscribe: "Subscribe",
+      requested: "Requested. The shop now issues your contract.",
+      notAvailable: "Not available right now.",
+      connect: "Connect a wallet to subscribe.",
+    },
+    mine: {
+      empty: "No subscriptions for this wallet yet. Pick a plan above.",
+      nextPayment: "Next payment",
+      paidThrough: "{n} of {count} paid",
+      deposit: "Deposit (comes back after the return check)",
+      open: "Open rental",
+      loading: "Loading your wallet…",
+      getUsdt: "Get test USDT",
+      approve: "Approve USDT",
+      start: "Pay deposit + {first}",
+      pay: "Pay {nth}",
+      payHint: "Two wallet steps if needed: approve, then pay. Paid into escrow, paid out to the shop as each period comes due.",
+      notEnough: "Not enough USDT in your wallet yet. Get test USDT first.",
+      allPaid: "Every period of the term is paid.",
+      cancel: "Cancel subscription",
+      cancelTitle: "Cancel this subscription?",
+      cancelBody:
+        "Cancelling means returning the scooter. On the rental page you take the guided return photos, the AI inspection compares them with the pickup photos and proposes the deposit split, and you and the shop settle it. Your deposit comes back after that return check, minus only new damage. Rent periods you paid ahead and did not use come back too.",
+      cancelConfirm: "Start the return",
+    },
+    owner: {
+      mrr: "Monthly recurring revenue",
+      mrrHint: "{usdt} {symbol} a month from active subscriptions",
+      subscribers: "Active subscribers",
+      scooter: "Scooter",
+      price: "Price per month (THB)",
+      deposit: "Deposit (THB)",
+      depositShort: "{thb} deposit",
+      maxMonths: "Max rent periods",
+      maxMonthsHint: "The rental term, in payments of the chosen rhythm. The renter pays one period at a time and can cancel any time by returning the scooter.",
+      save: "Offer as subscription",
+      saved: "{name} is now offered as a subscription.",
+      noScooters: "Add a scooter first; then offer it as a subscription.",
+      plansEmpty: "No subscription plans yet.",
+      planCard: "up to {count}",
+      subscriberOf: { none: "no active subscriber", one: "{n} active subscriber", other: "{n} active subscribers" },
+    },
+    shareholders: {
+      mrr: "Subscription MRR",
+      hint: { one: "{n} active subscriber on vault scooters", other: "{n} active subscribers on vault scooters" },
+    },
+  },
+  /** The listing page (/app/listings/<slug>, components/stage/ListingView.tsx). */
+  listing: {
+    metaTitle: "Listing",
+    rent: "Rent",
+    perDay: "{amount} / day",
+    deposit: "Deposit",
+    where: "Where",
+    owner: "Owner",
+    demoOwner: "KeyEscrow demo owner",
+    body: "Rent and deposit go into this rental's own escrow on BNB Chain. The AI inspector compares pickup and return photos; both sides agree on the split.",
+    rentThis: "Rent this",
+    stage: "Open the stage view",
+    off: "Renting is switched off on this server (live stage demo not enabled).",
+  },
+};
+
+/** Headlines and the big status sentences: Chinese line under the English in EN+中文 (t.h). */
+export const head = {
+  subs: {
+    title: "Subscriptions",
+    mine: "My subscriptions",
+    plans: "Plans available",
+    offerTitle: "Offer as subscription",
+    state: {
+      requested: "Waiting for the shop to issue your subscription contract.",
+      issued: "Contract ready. Pay the deposit and the first period to start riding.",
+      active: "Active. Next payment {amount} on {due}.",
+      activePaid: "Active. Every period of the term is paid.",
+      overdue: "Payment of {amount} was due on {due}. Pay now to keep riding.",
+      cancelling: "Cancelling: return check in progress. The deposit comes back after it.",
+      disputed: "Cancelling: the dispute desk reviews the return photos.",
+      ended: "Ended. Deposit settled.",
+    },
+  },
+  listing: { rentTitle: "Rent this item" },
+};

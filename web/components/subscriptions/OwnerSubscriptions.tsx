@@ -10,13 +10,14 @@ import { postFleet, type Rhythm, type Scooter } from "@/lib/fleet";
 import { formatUsdt } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { DEFAULT_MAX_PERIODS, isActive, mrr } from "@/lib/subscriptions";
-import { copy } from "./copy";
+import { useSubsCopy } from "./copy";
 import { RhythmPicker, useSubscriptions } from "./Subscriptions";
 
 const thb = (n: number) => `฿${n.toLocaleString("en-US")}`;
 
 /** Shareholders: MRR of the active subscriptions whose income goes to `payee` (the Fleet Vault). */
 export function PayeeMrrKpi({ payee }: { payee: string }) {
+  const copy = useSubsCopy();
   const { subs, now } = useSubscriptions();
   const { mrr: total, subscribers } = mrr(subs.filter((s) => s.rental?.payee.toLowerCase() === payee.toLowerCase()), now);
   return (
@@ -29,6 +30,7 @@ export function PayeeMrrKpi({ payee }: { payee: string }) {
 /** Fleet owner: MRR from active subscriptions, plan cards, and "Offer as subscription" on a listed scooter. */
 export function OwnerSubscriptions() {
   const { address } = useAccount();
+  const copy = useSubsCopy();
   const { fleet, subs, now } = useSubscriptions();
   const me = address?.toLowerCase();
   const scooters = (fleet?.scooters ?? []).filter((s) => s.owner.toLowerCase() === me);
@@ -59,7 +61,7 @@ export function OwnerSubscriptions() {
                 <p className="text-xs text-subtle">{s.location}</p>
                 <p className="mt-2">
                   <span className="font-semibold">{thb(p.priceThb)}</span>
-                  <span className="text-subtle"> / month · {copy.rhythm[p.periodDays]} · {thb(p.depositThb)} deposit · {copy.owner.planCard(p.maxPeriods, p.periodDays)}</span>
+                  <span className="text-subtle"> / {copy.per[30]} · {copy.rhythm[p.periodDays]} · {copy.owner.depositShort(thb(p.depositThb))} · {copy.owner.planCard(p.maxPeriods, p.periodDays)}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{copy.owner.subscriberOf(active)}</p>
               </li>
@@ -86,6 +88,7 @@ export function OwnerSubscriptions() {
 function PlanForm({ scooter, scooters, onPick }: { scooter: Scooter; scooters: Scooter[]; onPick: (id: string) => void }) {
   const { chainId } = useDeployment();
   const queryClient = useQueryClient();
+  const copy = useSubsCopy();
   const [price, setPrice] = useState(String(scooter.plan?.priceThb ?? scooter.rentThb));
   const [deposit, setDeposit] = useState(String(scooter.plan?.depositThb ?? scooter.depositThb));
   const [months, setMonths] = useState(String(scooter.plan?.maxPeriods ?? DEFAULT_MAX_PERIODS));

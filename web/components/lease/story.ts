@@ -1,11 +1,12 @@
+import type { ReactNode } from "react";
 import { keccak256, toBytes, zeroHash } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
-import { oneTimeFee, periodCount, periodWord } from "@/lib/rentals";
-import { releasablePeriods, roleName, viewerRole, type Viewer } from "./model";
+import { oneTimeFee } from "@/lib/rentals";
+import { releasablePeriods, viewerRole, type Viewer } from "./model";
 
 /**
  * The rental page as plain sentences (pure, tests/lease-story.test.ts): what state it is in, the ONE thing the viewer
@@ -26,7 +27,8 @@ export type BannerAction =
   | { kind: "jump"; to: "fund" | "rent" | "return" | "rule"; label: string; note?: string }
   | { kind: "idle"; label: string };
 
-export type Banner = { tone: "ok" | "warn" | "danger" | "neutral"; pill: string; title: string; body: string; action: BannerAction };
+/** `title` is a headline (bilingual in EN+中文). */
+export type Banner = { tone: "ok" | "warn" | "danger" | "neutral"; pill: string; title: ReactNode; body: string; action: BannerAction };
 
 export const feeOf = (lease: Pick<LeaseData, "terms">) => oneTimeFee(lease.terms.rentAmount, lease.terms.rentPeriod, lease.terms.feeBps);
 const returnAt = (lease: LeaseData) => lease.startTime + BigInt(lease.terms.termPeriods) * BigInt(lease.terms.rentPeriod);
@@ -69,16 +71,15 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
   const deposit = fmt(t.depositAmount);
   const idle = (label = b.nothing): BannerAction => ({ kind: "idle", label });
   const m = Math.max(1, Math.min(lease.periodsDue, t.termPeriods));
-  const u = periodWord(t.rentPeriod);
 
   switch (lease.status) {
     case LeaseStatus.Created: {
       const total = fmt(t.depositAmount + t.rentAmount);
-      if (viewer === "tenant") return { tone: "neutral", pill: c.pill.created, title: b.fundTitle(total, u), body: b.fundBody, action: { kind: "jump", to: "fund", label: b.fundAction(total), note: b.fundNote } };
+      if (viewer === "tenant") return { tone: "neutral", pill: c.pill.created, title: b.fundTitle(total), body: b.fundBody, action: { kind: "jump", to: "fund", label: b.fundAction(total), note: b.fundNote } };
       return { tone: "neutral", pill: c.pill.created, title: b.waitFundTitle, body: viewer === "landlord" ? b.waitFundOwner : b.waitFundOther, action: idle() };
     }
     case LeaseStatus.Active: {
-      const pill = c.pill.month(m, t.termPeriods, u);
+      const pill = c.pill.month(m, t.termPeriods, t.rentPeriod);
       if (viewer === "tenant") {
         if (lease.checkOutHash !== zeroHash) return { tone: "ok", pill, title: b.returnedTitle, body: b.returnedBody(Math.round(t.responseWindow / 86400)), action: { kind: "jump", to: "return", label: b.proposeAction } };
         if (lease.periodsFunded < t.termPeriods) {
@@ -87,11 +88,11 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
             tone: "ok",
             pill,
             title: b.lockedTitle(deposit, true),
-            body: b.payBody(lease.periodsFunded, next, lease.startTime + BigInt(lease.periodsFunded) * BigInt(t.rentPeriod), u),
-            action: { kind: "jump", to: "rent", label: b.payAction(next, fmt(t.rentAmount), u), note: b.payNote },
+            body: b.payBody(lease.periodsFunded, next, lease.startTime + BigInt(lease.periodsFunded) * BigInt(t.rentPeriod), t.rentPeriod),
+            action: { kind: "jump", to: "rent", label: b.payAction(next, fmt(t.rentAmount), t.rentPeriod), note: b.payNote },
           };
         }
-        return { tone: "ok", pill, title: b.lockedTitle(deposit, true), body: b.allPaidBody(periodCount(t.termPeriods, t.rentPeriod)), action: idle() };
+        return { tone: "ok", pill, title: b.lockedTitle(deposit, true), body: b.allPaidBody(t.termPeriods, t.rentPeriod), action: idle() };
       }
       if (viewer === "landlord") {
         const r = releasablePeriods(lease, "landlord");
@@ -104,7 +105,7 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
             pill,
             title: b.collectTitle(amount),
             body: b.collectBody(fee > ZERO ? fmt(fee) : null),
-            action: { kind: "tx", tx: "releaseRent", label: b.collectAction(lease.periodsReleased + 1, amount, u), note: b.oneConfirmation },
+            action: { kind: "tx", tx: "releaseRent", label: b.collectAction(lease.periodsReleased + 1, amount, t.rentPeriod), note: b.oneConfirmation },
           };
         }
         const done = lease.periodsReleased >= t.termPeriods;
@@ -112,13 +113,13 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
         return {
           tone: "ok",
           pill,
-          title: lease.periodsReleased > 0 ? b.paidOwnerTitle(periodCount(lease.periodsReleased, t.rentPeriod), fmt(net)) : b.runningTitle,
+          title: lease.periodsReleased > 0 ? b.paidOwnerTitle(lease.periodsReleased, fmt(net)) : b.runningTitle,
           body: done ? b.allRentBody : b.nextDueBody(next),
           action: idle(done ? b.nothing : b.idleUntil(next)),
         };
       }
       if (viewer === "arbiter") return { tone: "ok", pill, title: b.noDisputeTitle, body: b.noDisputeBody, action: idle(b.nothingToRule) };
-      return { tone: "ok", pill, title: b.lockedTitle(deposit, false), body: b.monthOf(m, t.termPeriods, u), action: idle() };
+      return { tone: "ok", pill, title: b.lockedTitle(deposit, false), body: b.monthOf(m, t.termPeriods, t.rentPeriod), action: idle() };
     }
     case LeaseStatus.MoveOut: {
       const p = lease.proposal;
@@ -136,12 +137,12 @@ export function banner(lease: LeaseData, viewer: Viewer, events: TimelineEvent[]
         return {
           tone: "warn",
           pill,
-          title: b.proposedTitle(roleName(by), fmt(p.tenantRefund), fmt(p.landlordClaim)),
+          title: b.proposedTitle(by, fmt(p.tenantRefund), fmt(p.landlordClaim)),
           body: lease.timeoutAt > ZERO ? b.replyBy(lease.timeoutAt, viewer === "landlord") : b.replyAnytime,
           action: { kind: "jump", to: "return", label: b.replyAction },
         };
       if (viewer && viewer === by) return { tone: "neutral", pill, title: b.yourProposalTitle, body: lease.timeoutAt > ZERO ? b.theyHaveUntil(lease.timeoutAt) : b.theyDecide, action: idle() };
-      return { tone: "neutral", pill, title: b.proposalWaitingTitle, body: b.proposedTitle(roleName(by), fmt(p.tenantRefund), fmt(p.landlordClaim)), action: idle(viewer === "arbiter" ? b.nothingToRule : b.nothing) };
+      return { tone: "neutral", pill, title: b.proposalWaitingTitle, body: b.proposedBody(by, fmt(p.tenantRefund), fmt(p.landlordClaim)), action: idle(viewer === "arbiter" ? b.nothingToRule : b.nothing) };
     }
     case LeaseStatus.Disputed: {
       const pill = c.pill.disputed;

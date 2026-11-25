@@ -9,6 +9,7 @@ import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem"
 import { z } from "zod";
 import { targetChainId } from "../chains";
 import { TOKEN } from "../contracts";
+import type { T } from "@/lib/i18n/t";
 
 /** The target chain's stablecoin (decimals and symbol from its deployment file): MockUSDT (6) on testnets, BSC-USD (18) on 56. */
 export { TOKEN };
@@ -149,6 +150,21 @@ export function fieldError(schema: z.ZodObject, key: string, value: unknown): st
   if (!f) throw new Error(`no field ${key}`);
   const r = f.safeParse(value);
   return r.success ? undefined : r.error.issues[0]?.message;
+}
+
+/** fieldError for the web forms, in the active language (ui.field); the API and MCP tools keep the English. */
+export function fieldErrorIn(t: T, schema: z.ZodObject, key: string, value: unknown): string | undefined {
+  const msg = fieldError(schema, key, value);
+  if (!msg || t.lang === "en") return msg;
+  const range = /^(\d+) to (\d+)\.$/.exec(msg);
+  if (range) return t("ui.field.range", { min: range[1], max: range[2] });
+  if (msg.startsWith("Not a valid address")) return t("ui.field.address");
+  if (msg.startsWith("Enter an amount in")) return t("ui.field.amount", { symbol: TOKEN.symbol, decimals: TOKEN.decimals });
+  if (msg.startsWith("Enter a positive amount")) return t("ui.field.positive");
+  if (msg === "Must be more than 0.") return t("ui.field.moreThan0");
+  if (msg === "7, 14 or 30 days.") return t("ui.field.rentPeriod");
+  if (msg === "Enter a whole number.") return t("ui.field.whole");
+  return msg;
 }
 
 /** The label of one field (from its metadata). */

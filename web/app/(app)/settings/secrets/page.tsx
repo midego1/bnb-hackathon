@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { SecretsView } from "@/components/settings/SecretsView";
+import { getDictionary } from "@/lib/i18n/server";
 import { secretsPageAllowed } from "@/lib/server/secrets/page";
 
-export const metadata: Metadata = { title: "Secrets", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary())("secrets.metaTitle"), robots: { index: false, follow: false } };
+}
 
 /**
  * The write-only secrets page. Guarded here rather than in a proxy (a proxy makes the Cloudflare Worker bundle a second

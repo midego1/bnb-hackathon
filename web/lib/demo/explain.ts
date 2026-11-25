@@ -1,3 +1,5 @@
+import { localized, type Lang } from "../i18n/locales";
+import { zhExplain } from "./explain.zh";
 import type { DemoCtx } from "./script";
 
 /**
@@ -170,7 +172,10 @@ export const EXPLAIN: Record<string, Explain> = {
   },
 };
 
+/** The narration in a language (Chinese in explain.zh.ts). */
+export const explain = localized(EXPLAIN, zhExplain);
+
 /** The explanation for a step; a step without one (should not happen) falls back to its title. */
-export function explainFor(id: string): Explain {
-  return EXPLAIN[id] ?? { now: () => "", changed: () => "", to: [] };
+export function explainFor(id: string, lang: Lang = "en"): Explain {
+  return explain(lang)[id] ?? { now: () => "", changed: () => "", to: [] };
 }

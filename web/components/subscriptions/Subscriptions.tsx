@@ -15,13 +15,14 @@ import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { postFleet, scooterState, type Rhythm, type Scooter } from "@/lib/fleet";
 import { formatDate } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
+import { useT } from "@/lib/i18n/client";
 import { useRentals } from "@/lib/hooks/useRentals";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { usePrices } from "@/lib/usePrices";
 import { nextPayment, planRent, RHYTHMS, subState, subscriptionsOf, type Subscription } from "@/lib/subscriptions";
 import { cn } from "@/lib/utils";
-import { copy } from "./copy";
+import { useSubsCopy } from "./copy";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 const thb = (n: number) => `฿${n.toLocaleString("en-US")}`;
@@ -36,6 +37,7 @@ export function useSubscriptions() {
 
 /** The payment rhythm picker: weekly, every 2 weeks or monthly (the escrow's rent period). */
 export function RhythmPicker({ value, onChange }: { value: Rhythm; onChange?: (r: Rhythm) => void }) {
+  const copy = useSubsCopy();
   return (
     <div className="flex flex-col gap-1 text-sm">
       <span className="font-medium">{copy.rhythmLabel}</span>
@@ -61,6 +63,7 @@ export function RhythmPicker({ value, onChange }: { value: Rhythm; onChange?: (r
 /** Renter: subscription plans to pick from, and the wallet's own subscriptions with pay and cancel. */
 export function SubscriptionsView() {
   const { address } = useAccount();
+  const copy = useSubsCopy();
   const { fleet, rentals, subs, now } = useSubscriptions();
   const { data: index, error, refetch, isFetching } = rentals;
   const me = address?.toLowerCase();
@@ -70,7 +73,7 @@ export function SubscriptionsView() {
 
   return (
     <div className="space-y-8">
-      <ChainReadNotice error={error} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="your subscriptions" />
+      <ChainReadNotice error={error} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what={copy.what} />
       <section>
         <h2 className="mb-3 text-lg font-semibold">{copy.mine.title}</h2>
         {mine.length === 0 ? (
@@ -104,6 +107,7 @@ function PlanCard({ s, state, requested }: { s: Scooter; state: ReturnType<typeo
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const copy = useSubsCopy();
   const plan = s.plan!;
   const rate = prices?.rates.USDT.THB;
   const money = useMoney();
@@ -136,7 +140,7 @@ function PlanCard({ s, state, requested }: { s: Scooter; state: ReturnType<typeo
         </div>
         <p>
           <span className="text-lg font-semibold">{thb(plan.priceThb)}</span>
-          <span className="text-subtle"> / month · {copy.rhythm[plan.periodDays]}</span>
+          <span className="text-subtle"> / {copy.per[30]} · {copy.rhythm[plan.periodDays]}</span>
         </p>
         {plan.periodDays !== 30 && <p className="text-xs text-muted-foreground">{copy.perPeriod(money(planRent(thbToUsdt(plan.priceThb, rate), plan)), plan.periodDays)}</p>}
         <p className="text-xs text-muted-foreground">{copy.plans.deposit(thb(plan.depositThb))}</p>
@@ -162,6 +166,8 @@ function PlanCard({ s, state, requested }: { s: Scooter; state: ReturnType<typeo
 function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
   const { address } = useAccount();
   const router = useRouter();
+  const t = useT();
+  const copy = useSubsCopy();
   const money = useMoney();
   const { send, pending } = useTx();
   const usdt = useDeployment().deployment?.mockUsdt;
@@ -174,7 +180,7 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
   const sentence =
     state === "active"
       ? next
-        ? (next.overdue ? copy.state.overdue : copy.state.active)(formatDate(next.due), money(next.amount))
+        ? (next.overdue ? copy.state.overdue : copy.state.active)(formatDate(next.due, t.lang), money(next.amount))
         : copy.state.activePaid()
       : copy.state[state]();
 
@@ -186,7 +192,7 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
   async function pay() {
     if (!r || !token || !usdt) return;
     if (token.allowance < amount) {
-      const ok = await send("Approve USDT", { address: usdt!, abi: mockUsdtAbi, functionName: "approve", args: [r.address, amount] });
+      const ok = await send(copy.mine.approve, { address: usdt!, abi: mockUsdtAbi, functionName: "approve", args: [r.address, amount] });
       if (!ok) return;
     }
     if (state === "issued") await send(label, { address: r.address, abi: rentalEscrowAbi, functionName: "fund" });
@@ -223,7 +229,7 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
             {next || state === "issued" ? (
               <>
                 <Amount value={amount} />
-                {next && <p className="mt-1 text-xs text-subtle" data-testid="next-due">{formatDate(next.due)}</p>}
+                {next && <p className="mt-1 text-xs text-subtle" data-testid="next-due">{formatDate(next.due, t.lang)}</p>}
               </>
             ) : (
               <p className="text-subtle">—</p>
@@ -245,8 +251,8 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
           {short > BigInt(0) && (
             <ActionButton
               variant="secondary"
-              busy={pending === "Get test USDT"}
-              onClick={() => send("Get test USDT", { address: usdt!, abi: mockUsdtAbi, functionName: "faucet", args: [address!, short > FAUCET_LIMIT ? FAUCET_LIMIT : short] })}
+              busy={pending === copy.mine.getUsdt}
+              onClick={() => send(copy.mine.getUsdt, { address: usdt!, abi: mockUsdtAbi, functionName: "faucet", args: [address!, short > FAUCET_LIMIT ? FAUCET_LIMIT : short] })}
               data-testid="sub-faucet"
             >
               {copy.mine.getUsdt}
@@ -254,7 +260,7 @@ function MySubscription({ sub, now }: { sub: Subscription; now: bigint }) {
           )}
           {(state === "issued" || next) && (
             <ActionButton
-              busy={!!pending && pending !== "Get test USDT"}
+              busy={!!pending && pending !== copy.mine.getUsdt}
               disabledReason={!token ? copy.mine.loading : short > BigInt(0) ? copy.mine.notEnough : null}
               onClick={pay}
               data-testid="sub-pay"

@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { LiveScreen } from "@/components/stage/Live";
+import { getDictionary } from "@/lib/i18n/server";
 import { getListing } from "@/lib/listings";
 import { stageConfig } from "@/lib/server/stage/config";
 
-export const metadata: Metadata = { title: "Rent it live" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary())("stage.metaTitle") };
+}
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 async function Inner({ params }: { params: Promise<{ slug: string }> }) {

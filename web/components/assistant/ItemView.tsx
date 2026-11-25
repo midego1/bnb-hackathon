@@ -7,23 +7,24 @@ import { Tool, ToolContent, ToolHeader, type ToolState } from "@/components/ai-e
 import type { StepKind, StepState } from "@/lib/assistant/events";
 import type { Item } from "@/lib/assistant/items";
 import { safeAppPath } from "@/lib/assistant/paths";
+import { useT } from "@/lib/i18n/client";
 import { ApprovalCardView, CardView } from "./AssistantCards";
 import { Markdown } from "./Markdown";
 
-/** A step (a tool call: read, change or page) as an AI Elements Tool: state badge, then its detail and cards. */
-const STEP: Record<StepState, { state: ToolState; label?: string }> = {
-  running: { state: "input-available" },
-  done: { state: "output-available", label: "Done" },
-  failed: { state: "output-error", label: "Failed" },
-  waiting: { state: "approval-requested", label: "Needs approval" },
-  declined: { state: "output-denied", label: "Declined" },
-  expired: { state: "output-denied", label: "Expired" },
+/** A step (a tool call: read, change or page) as an AI Elements Tool: state badge (dictionary ai.step), then its detail and cards. */
+const STEP: Record<StepState, ToolState> = {
+  running: "input-available",
+  done: "output-available",
+  failed: "output-error",
+  waiting: "approval-requested",
+  declined: "output-denied",
+  expired: "output-denied",
 };
-const RUNNING_LABEL: Record<StepKind, string> = { read: "Reading", change: "Changing", page: "Opening" };
 const STEP_ICON: Record<StepKind, LucideIcon> = { read: Search, change: PenLine, page: Compass };
 
 /** One entry of a conversation: a message, an answer, a step with its cards, an approval, a notice. */
 export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
+  const t = useT();
   switch (item.kind) {
     case "user":
       return (
@@ -42,16 +43,15 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
         </Message>
       );
     case "step": {
-      const s = STEP[item.state];
       const hasBody = !!item.detail || item.cards.length > 0;
       return (
         <Tool defaultOpen className="mb-0 rounded-xl border-border bg-surface" data-testid="assistant-step" data-kind={item.stepKind} data-state={item.state}>
           <ToolHeader
             type={`tool-${item.stepKind}`}
-            state={s.state}
+            state={STEP[item.state]}
             title={item.label}
             icon={STEP_ICON[item.stepKind]}
-            statusLabel={s.label ?? RUNNING_LABEL[item.stepKind]}
+            statusLabel={t(`ai.step.${item.state === "running" ? item.stepKind : item.state}`)}
             static={!hasBody}
             className="gap-2 px-3 py-2"
           />
@@ -77,10 +77,10 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
           <span aria-hidden className="inline-flex size-5 items-center justify-center rounded-full text-(--assistant-waiting) ring-1 ring-border">
             <ArrowUpRight className="size-3" />
           </span>
-          {item.followed ? `Opened ${item.label}` : "Ready:"}
+          {item.followed ? t("ai.opened", { label: item.label }) : t("ai.ready")}
           {!item.followed && safe && (
             <Link href={safe} className="underline underline-offset-2" data-testid="assistant-go-there">
-              go there ({item.label})
+              {t("ai.goThere", { label: item.label })}
             </Link>
           )}
         </p>
@@ -100,7 +100,7 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
       return (
         <p className="flex items-center gap-2 rounded-lg bg-success-soft px-3 py-2 text-sm font-medium text-success-fg" data-testid="assistant-applied">
           <CircleCheck aria-hidden className="size-4 shrink-0" />
-          {item.count} change{item.count === 1 ? "" : "s"} applied
+          {t(item.count === 1 ? "ai.applied.one" : "ai.applied.other", { n: item.count })}
         </p>
       );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useT } from "@/lib/i18n/client";
 import { Icon } from "./icons";
 
 /** "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" -> "0x7099…79C8": always one line. */
@@ -14,6 +15,7 @@ const row =
  * icon rail). Not connected: one "Connect wallet" row. Connected: the network, then the address on a single line.
  */
 export function WalletButton() {
+  const t = useT();
   return (
     <ConnectButton.Custom>
       {({ account, chain, mounted, openAccountModal, openChainModal, openConnectModal }) => {
@@ -21,9 +23,9 @@ export function WalletButton() {
         if (!mounted) return <div className="h-9" aria-hidden />;
         if (!account || !chain) {
           return (
-            <button type="button" onClick={openConnectModal} className={`${row} bg-primary text-primary-foreground hover:bg-primary-hover`} title="Connect wallet" data-testid="wallet-connect">
+            <button type="button" onClick={openConnectModal} className={`${row} bg-primary text-primary-foreground hover:bg-primary-hover`} title={t("shell.connect")} data-testid="wallet-connect">
               <Icon name="wallet" />
-              <span className="truncate rail:sr-only">Connect wallet</span>
+              <span className="truncate rail:sr-only">{t("shell.connect")}</span>
             </button>
           );
         }
@@ -33,7 +35,7 @@ export function WalletButton() {
               type="button"
               onClick={openChainModal}
               className={`${row} ${chain.unsupported ? "text-danger" : "text-muted-foreground"}`}
-              title={chain.unsupported ? "Wrong network" : `Network: ${chain.name}`}
+              title={chain.unsupported ? t("shell.wrongNetwork") : t("shell.network", { name: chain.name ?? "" })}
               data-testid="wallet-network"
             >
               {chain.hasIcon && chain.iconUrl && !chain.unsupported ? (
@@ -42,7 +44,7 @@ export function WalletButton() {
               ) : (
                 <span aria-hidden className={`mx-[5px] h-2 w-2 shrink-0 rounded-full ${chain.unsupported ? "bg-danger" : "bg-success"}`} />
               )}
-              <span className="truncate rail:sr-only">{chain.unsupported ? "Wrong network" : chain.name}</span>
+              <span className="truncate rail:sr-only">{chain.unsupported ? t("shell.wrongNetwork") : chain.name}</span>
             </button>
             <button type="button" onClick={openAccountModal} className={row} title={account.address} data-testid="wallet-account">
               <Icon name="wallet" />

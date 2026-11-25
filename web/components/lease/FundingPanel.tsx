@@ -6,19 +6,22 @@ import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
 import { targetChainId } from "@/lib/chains";
 import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
+import { perIn } from "@/lib/rentals";
 import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
-import { periodName } from "@/lib/rentals";
+import { useT } from "@/lib/i18n/client";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
-/** Renter: get test USDT, approve, fund deposit + the first period's rent. */
+/** Renter: get test USDT, approve, fund deposit + first month. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {
   const { address } = useAccount();
   const { data: token } = useTokenState(address, lease.address);
   const { send, pending } = useTx();
+  const t = useT();
+  const tx = { faucet: t("rental.fund.faucetTx"), approve: t("rental.fund.approveTx"), fund: t("rental.fund.fundTx") };
   const need = lease.terms.depositAmount + lease.terms.rentAmount;
   const balance = token?.balance;
   const allowance = token?.allowance;
@@ -26,58 +29,57 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
   const faucetAmount = short > FAUCET_LIMIT ? FAUCET_LIMIT : short;
 
   return (
-    <Card title="Fund the escrow" aside={<PriceSourceBadge />}>
+    <Card title={t.h("rental.fund")} aside={<PriceSourceBadge />}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label="Deposit (stays locked)"><Amount value={lease.terms.depositAmount} /></Stat>
-        <Stat label={`First ${periodName(lease.terms.rentPeriod)}'s rent`}><Amount value={lease.terms.rentAmount} /></Stat>
-        <Stat label="Total to fund"><Amount value={need} /></Stat>
+        <Stat label={t("rental.fund.deposit")}><Amount value={lease.terms.depositAmount} /></Stat>
+        <Stat label={t("rental.fund.firstRent", { per: perIn(t, lease.terms.rentPeriod) })}><Amount value={lease.terms.rentAmount} /></Stat>
+        <Stat label={t("rental.fund.total")}><Amount value={need} /></Stat>
       </div>
       <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={(lease.terms.termPeriods * lease.terms.rentPeriod) / 86400} /></div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
-        The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
+        {t("rental.fund.wallet", { balance: balance === undefined ? "…" : t("rental.fund.walletAmount", { amount: formatUsdt(balance) }) })}
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         {/* BSC mainnet (56) has real USDT: no faucet. */}
         {targetChainId !== 56 && (
           <ActionButton
             variant="secondary"
-            busy={pending === "Get test USDT"}
-            disabledReason={balance === undefined ? "Loading your balance…" : short === BigInt(0) ? "You already have enough test USDT." : null}
-            onClick={() => send("Get test USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "faucet", args: [address!, faucetAmount] })}
+            busy={pending === tx.faucet}
+            disabledReason={balance === undefined ? t("rental.fund.loadingBalance") : short === BigInt(0) ? t("rental.fund.enough") : null}
+            onClick={() => send(tx.faucet, { address: lease.terms.token, abi: mockUsdtAbi, functionName: "faucet", args: [address!, faucetAmount] })}
             data-testid="faucet"
           >
-            Get {formatUsdt(faucetAmount || need)} test USDT
+            {t("rental.fund.faucet", { amount: formatUsdt(faucetAmount || need) })}
           </ActionButton>
         )}
         <ActionButton
           variant="secondary"
-          busy={pending === "Approve USDT"}
-          disabledReason={allowance === undefined ? "Loading your wallet…" : allowance >= need ? "Already approved. Now fund." : null}
-          onClick={() => send("Approve USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease.address, need] })}
+          busy={pending === tx.approve}
+          disabledReason={allowance === undefined ? t("rental.fund.loadingWallet") : allowance >= need ? t("rental.fund.approved") : null}
+          onClick={() => send(tx.approve, { address: lease.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease.address, need] })}
           data-testid="approve"
         >
-          Approve {formatUsdt(need)} USDT
+          {t("rental.fund.approve", { amount: formatUsdt(need) })}
         </ActionButton>
         <ActionButton
-          busy={pending === "Fund escrow"}
+          busy={pending === tx.fund}
           disabledReason={
             balance === undefined || allowance === undefined
-              ? "Loading your wallet…"
+              ? t("rental.fund.loadingWallet")
               : balance < need
-                ? "Not enough USDT in your wallet yet. Get test USDT first."
+                ? t("rental.fund.notEnough")
                 : allowance < need
-                  ? "Approve the USDT first (middle button)."
+                  ? t("rental.fund.approveFirst")
                   : null
           }
-          onClick={() => send("Fund escrow", { address: lease.address, abi: rentalEscrowAbi, functionName: "fund" })}
+          onClick={() => send(tx.fund, { address: lease.address, abi: rentalEscrowAbi, functionName: "fund" })}
           data-testid="fund"
         >
-          Fund deposit + rent
+          {t("rental.fund.fund")}
         </ActionButton>
       </div>
       <Link href={`/app/pay/${lease.address}`} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover" data-testid="pay-promptpay">
-        Pay with PromptPay (demo)
+        {t("rental.fund.promptpay")}
       </Link>
     </Card>
   );

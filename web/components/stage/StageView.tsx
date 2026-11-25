@@ -7,6 +7,8 @@ import { ActionButton, Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { evidenceUrl } from "@/lib/evidence";
 import { formatFiat } from "@/lib/fiat";
+import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n/t";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
 import { eventLabel, same, thbText, type StageStatus } from "@/lib/stage";
@@ -19,24 +21,24 @@ const Qr = dynamic(() => import("./Qr"), { ssr: false, loading: () => <div class
 const CODE_KEY = "keyescrow.stage.presenterCode";
 const big = (u: bigint, s?: StageStatus) => thbText(u, s?.price.thbPerUsdt ?? 33);
 
-/** What is happening now, in one line for the back of the room. */
-function headline(s: StageStatus): string {
+/** What is happening now, in one line for the back of the room (a headline: Chinese line under it in EN+中文). */
+function headline(s: StageStatus, t: T): ReactNode {
   const l = s.lease;
-  if (s.creating) return "The owner is creating the rental…";
-  if (!l || l.status === "Cancelled") return `Scan to rent the ${s.listing.name}`;
+  if (s.creating) return t.h("stage.creating");
+  if (!l || l.status === "Cancelled") return t.h("stage.scan", { name: s.listing.name });
   switch (l.status) {
     case "Created":
-      return "Rental offered: waiting for the renter to pay";
+      return t.h("stage.created");
     case "Active":
-      if (l.checkInHash === zeroHash) return `${big(l.terms.depositAmount + l.terms.rentAmount, s)} locked in escrow: pickup photos next`;
-      if (l.checkOutHash === zeroHash) return "Picked up: waiting for the return";
-      return "Returned: the AI inspector is comparing photos";
+      if (l.checkInHash === zeroHash) return t.h("stage.locked", { amount: big(l.terms.depositAmount + l.terms.rentAmount, s) });
+      if (l.checkOutHash === zeroHash) return t.h("stage.pickedUp");
+      return t.h("stage.returned");
     case "MoveOut":
-      return `AI split proposed: ${big(l.proposal.tenantRefund, s)} back, ${big(l.proposal.landlordClaim, s)} to the owner`;
+      return t.h("stage.proposed", { back: big(l.proposal.tenantRefund, s), kept: big(l.proposal.landlordClaim, s) });
     case "Disputed":
-      return "In dispute: the dispute desk decides";
+      return t.h("stage.disputed");
     case "Settled":
-      return "Settled: both sides agreed, the money is paid out";
+      return t.h("stage.settled");
   }
 }
 
@@ -46,15 +48,16 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
   const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
+  const t = useT();
 
   async function presenter(action: "accept" | "reset") {
-    if (action === "reset" && !window.confirm("Reset the stage? The current rental stays on-chain, but the next scan starts a fresh one.")) return;
+    if (action === "reset" && !window.confirm(t("stage.presenter.resetConfirm"))) return;
     let code: string | undefined;
     try {
       code = localStorage.getItem(CODE_KEY) ?? undefined;
     } catch {}
     if (s?.presenterLocked && !code) {
-      code = window.prompt("Presenter code") ?? undefined;
+      code = window.prompt(t("stage.presenter.code")) ?? undefined;
       try {
         if (code) localStorage.setItem(CODE_KEY, code);
       } catch {}
@@ -92,31 +95,31 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
         <img src={listing.photos[0]} alt={listing.name} className="aspect-[4/3] w-full max-w-sm rounded-2xl object-cover" />
         <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">{listing.name}</h1>
         <p className="text-2xl text-muted-foreground">
-          {formatFiat(listing.rentThb, "THB")} / day · {formatFiat(listing.depositThb, "THB")} deposit
+          {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
         </p>
-        <div className="aspect-square w-full max-w-[20rem] rounded-2xl bg-white p-3">{url && <Qr text={url} label={`QR code: ${url}`} />}</div>
+        <div className="aspect-square w-full max-w-[20rem] rounded-2xl bg-white p-3">{url && <Qr text={url} label={t("stage.qr", { url })} />}</div>
         <p className="break-all font-mono text-2xl" data-testid="stage-url">
           {url.replace(/^https?:\/\//, "")}
         </p>
       </section>
 
       <section className="flex min-w-0 flex-col gap-6">
-        {offline && <Notice kind="warn">Reconnecting… the rental is safe on-chain; this screen catches up when the network is back.</Notice>}
+        {offline && <Notice kind="warn">{t("stage.offline")}</Notice>}
         <h2 className="text-4xl font-semibold leading-tight lg:text-5xl" data-testid="stage-headline">
-          {s ? headline(s) : "Loading…"}
+          {s ? headline(s, t) : t("stage.loading")}
         </h2>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="stage-money">
-          <Money label="Renter paid" value={paid !== undefined ? big(paid, s) : "–"} sub={s?.rental && shortAddress(s.rental.renter)} href={s?.rental && link("address", s.rental.renter)} />
-          <Money label="In escrow" value={l ? big(l.balance, s) : "–"} sub={l && shortAddress(l.address)} href={l && link("address", l.address)} strong />
-          <Money label="Owner got" value={toOwner !== undefined ? big(toOwner, s) : "–"} sub={s && shortAddress(s.owner)} href={s && link("address", s.owner)} />
-          <Money label="Back to renter" value={back !== undefined ? big(back, s) : "–"} sub={fee !== undefined ? `fee ${big(fee, s)}` : undefined} />
+          <Money label={t("stage.money.paid")} value={paid !== undefined ? big(paid, s) : "–"} sub={s?.rental && shortAddress(s.rental.renter)} href={s?.rental && link("address", s.rental.renter)} />
+          <Money label={t("stage.money.escrow")} value={l ? big(l.balance, s) : "–"} sub={l && shortAddress(l.address)} href={l && link("address", l.address)} strong />
+          <Money label={t("stage.money.owner")} value={toOwner !== undefined ? big(toOwner, s) : "–"} sub={s && shortAddress(s.owner)} href={s && link("address", s.owner)} />
+          <Money label={t("stage.money.back")} value={back !== undefined ? big(back, s) : "–"} sub={fee !== undefined ? t("stage.money.fee", { fee: big(fee, s) }) : undefined} />
         </div>
 
         {(photos(0).length > 0 || photos(1).length > 0) && (
           <div className="flex flex-wrap gap-6">
-            <Photos title="Pickup" hashes={photos(0)} />
-            <Photos title="Return" hashes={photos(1)} />
+            <Photos title={t("stage.photos.pickup")} hashes={photos(0)} />
+            <Photos title={t("stage.photos.return")} hashes={photos(1)} />
           </div>
         )}
 
@@ -128,7 +131,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
               const href = link("tx", e.txHash);
               return (
                 <li key={`${e.txHash}:${e.logIndex}`} className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
-                  <span>{eventLabel(e)}</span>
+                  <span>{eventLabel(e, t)}</span>
                   {href ? (
                     <a href={href} target="_blank" rel="noreferrer" className="shrink-0 font-mono text-base text-info underline">
                       BscScan {e.txHash.slice(0, 8)}…
@@ -142,11 +145,11 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
         </ol>
 
         <div className="mt-auto flex flex-wrap items-start gap-3 [&_button]:min-h-14 [&_button]:px-6 [&_button]:text-lg">
-          <ActionButton busy={busy === "accept"} disabledReason={!canAccept ? "Accept appears once the renter proposes a split." : undefined} onClick={() => presenter("accept")} data-testid="stage-accept">
-            Accept the split (owner)
+          <ActionButton busy={busy === "accept"} disabledReason={!canAccept ? t("stage.presenter.acceptWhen") : undefined} onClick={() => presenter("accept")} data-testid="stage-accept">
+            {t("stage.presenter.accept")}
           </ActionButton>
           <ActionButton variant="secondary" busy={busy === "reset"} onClick={() => presenter("reset")} data-testid="stage-reset">
-            Reset stage
+            {t("stage.presenter.reset")}
           </ActionButton>
         </div>
         {error && <Notice kind="error">{error}</Notice>}
@@ -166,6 +169,7 @@ function Money({ label, value, sub, href, strong }: { label: string; value: stri
 }
 
 function Photos({ title, hashes }: { title: string; hashes: string[] }) {
+  const t = useT();
   if (!hashes.length) return null;
   return (
     <figure>
@@ -173,7 +177,7 @@ function Photos({ title, hashes }: { title: string; hashes: string[] }) {
       <div className="flex gap-2">
         {hashes.map((h) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={h} src={evidenceUrl(h)} alt={`${title} photo`} className="h-28 w-28 rounded-lg bg-muted object-cover" />
+          <img key={h} src={evidenceUrl(h)} alt={t("stage.photos.alt", { title })} className="h-28 w-28 rounded-lg bg-muted object-cover" />
         ))}
       </div>
     </figure>

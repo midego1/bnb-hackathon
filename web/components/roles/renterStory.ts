@@ -1,59 +1,50 @@
+import type { ReactNode } from "react";
 import { LeaseStatus } from "@/lib/contracts";
-import { periodName, periodWord, type RentalSummary } from "@/lib/rentals";
+import type { T } from "@/lib/i18n/t";
+import { nthIn, perIn, type RentalSummary } from "@/lib/rentals";
 
 /**
- * The renter page's words and its card sentence (English; a translation replaces `renterCopy` whole). Kept apart from
- * the rental page's copy so /tenant does not ship that page's code.
+ * The renter page's words and its card sentence, from the dictionary (lib/i18n/dictionaries/en/roles.ts). Kept apart
+ * from the rental page's copy so /tenant does not ship that page's code. The card sentences are headlines (bilingual
+ * in EN+中文), so they are ReactNodes.
  */
-export const renterCopy = {
-  fallbackTitle: "Scooter rental",
-  heroTitle: "Rent a scooter without leaving your passport.",
-  heroBody:
-    "Your deposit and rent go into a small smart contract made for your rental, not to the shop. The deposit comes back when you return the scooter: only you and the shop together, or a neutral dispute desk, can move it.",
-  connect: "Connect your wallet",
-  demo: "Open the live demo",
-  howItWorks: "How it works, explained simply",
-  devHint: "Local demo: pick Renter in the yellow “Demo accounts” bar to see a renter's rentals.",
-  sampleTitle: "A real rental, live on the chain",
-  sampleNone: "No rentals on this network yet.",
-  yours: "Your rentals",
-  noneYet: "No rentals for this wallet yet. Book a scooter below, or send the shop your wallet address.",
-  per: (rentPeriod: number) => `per ${periodName(rentPeriod)}`,
-  depositLabel: "deposit",
-  open: "Open rental",
-  pay: (total: string) => `Pay ${total} to start`,
-  payPeriod: (n: number, rentPeriod: number) => `Pay ${periodWord(rentPeriod)} ${n}`,
-  propose: "Propose the split",
-  claim: "Claim deposit",
-  seeWhat: "See what happened",
-  s: {
-    created: (you: boolean, rentPeriod: number) =>
-      you ? `Waiting for you to pay in the deposit and ${periodWord(rentPeriod)} 1.` : "Waiting for the renter to pay in.",
-    active: (deposit: string, paid: number, term: number, you: boolean, rentPeriod: number) =>
-      `${you ? "Your" : "The"} ${deposit} deposit is locked. Rent is paid through ${periodWord(rentPeriod)} ${paid} of ${term}.`,
-    returned: "Scooter returned. Next: propose how to split the deposit.",
-    proposal: (back: string) => `Return proposal open: ${back} back to the renter.`,
-    closed: (you: boolean) => (you ? "The owner did not reply in time. Claim your full deposit." : "The owner did not reply in time: the deposit goes back."),
-    disputed: "The dispute desk is deciding how to split the deposit.",
-    settled: (back: string, you: boolean) => `Closed. ${you ? "You" : "The renter"} got ${back} back.`,
-    cancelled: "The owner withdrew the offer.",
-  },
-};
+export function renterCopyFor(t: T) {
+  return {
+    fallbackTitle: t("renter.fallbackTitle"),
+    pay: (total: string) => t("renter.pay", { total }),
+    payPeriod: (n: number, rentPeriod: number) => t("renter.payPeriod", { nth: nthIn(t, n, rentPeriod) }),
+    per: (rentPeriod: number) => t("renter.perPeriod", { per: perIn(t, rentPeriod) }),
+    open: t("renter.open"),
+    propose: t("renter.propose"),
+    claim: t("renter.claim"),
+    seeWhat: t("renter.seeWhat"),
+    s: {
+      created: (you: boolean) => t.h(you ? "renter.s.createdYou" : "renter.s.createdOther"),
+      active: (deposit: string, paid: number, term: number, you: boolean) => t.h(you ? "renter.s.activeYou" : "renter.s.activeOther", { deposit, paid, term }),
+      returned: t.h("renter.s.returned"),
+      proposal: (back: string) => t.h("renter.s.proposal", { back }),
+      closed: (you: boolean) => t.h(you ? "renter.s.closedYou" : "renter.s.closedOther"),
+      disputed: t.h("renter.s.disputed"),
+      settled: (back: string, you: boolean) => t.h(you ? "renter.s.settledYou" : "renter.s.settledOther", { back }),
+      cancelled: t.h("renter.s.cancelled"),
+    },
+  };
+}
 
-export type RenterCopy = typeof renterCopy;
+export type RenterCopy = ReturnType<typeof renterCopyFor>;
 
 const ZERO = BigInt(0);
 
 /** The renter card's sentence and next action, from the chain-index summary (`you`: the viewer is this renter). */
-export function renterLine(rental: RentalSummary, now: bigint, fmt: (v: bigint) => string, c: RenterCopy, you: boolean): { sentence: string; action: string } {
+export function renterLine(rental: RentalSummary, now: bigint, fmt: (v: bigint) => string, c: RenterCopy, you: boolean): { sentence: ReactNode; action: string } {
   const s = c.s;
   switch (rental.status) {
     case LeaseStatus.Created:
-      return { sentence: s.created(you, rental.rentPeriod), action: c.pay(fmt(rental.depositAmount + rental.rentAmount)) };
+      return { sentence: s.created(you), action: c.pay(fmt(rental.depositAmount + rental.rentAmount)) };
     case LeaseStatus.Active:
       if (rental.returnPhotos.length > 0) return { sentence: s.returned, action: c.propose };
       return {
-        sentence: s.active(fmt(rental.depositAmount), rental.periodsFunded, rental.termPeriods, you, rental.rentPeriod),
+        sentence: s.active(fmt(rental.depositAmount), rental.periodsFunded, rental.termPeriods, you),
         action: rental.periodsFunded < rental.termPeriods ? c.payPeriod(rental.periodsFunded + 1, rental.rentPeriod) : c.open,
       };
     case LeaseStatus.MoveOut: {

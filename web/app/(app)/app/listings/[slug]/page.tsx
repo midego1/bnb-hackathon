@@ -3,10 +3,14 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ListingView } from "@/components/stage/ListingView";
+import { getDictionary } from "@/lib/i18n/server";
 import { getListing } from "@/lib/listings";
 import { stageConfig } from "@/lib/server/stage/config";
 
-export const metadata: Metadata = { title: "Listing" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionary();
+  return { title: t("listing.metaTitle") };
+}
 
 async function Inner({ params }: { params: Promise<{ slug: string }> }) {
   await connection(); // STAGE_DEMO is read at request time

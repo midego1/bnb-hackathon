@@ -36,8 +36,8 @@ export type LeaseCard = {
   rent: Money;
   deposit: Money;
   escrow: Money;
-  /** Rent periods; `per` is the period's name ("week", "2 weeks", "month"). */
-  periods: { term: number; funded: number; released: number; per: string };
+  /** Rent periods; `rentPeriod` in seconds (7, 14 or 30 days). */
+  periods: { term: number; funded: number; released: number; rentPeriod: number };
   next: { who: string; what: string; deadline?: string } | null;
   links: CardLink[];
 };
@@ -132,7 +132,7 @@ export function leaseCard(l: LeaseSnapshot, explanation: Explanation, rates: Rat
     rent: money(l.terms.rentAmount, rates),
     deposit: money(l.terms.depositAmount, rates),
     escrow: money(l.balance, rates),
-    periods: { term: l.terms.termPeriods, funded: l.periodsFunded, released: l.periodsReleased, per: periodName(l.terms.rentPeriod) },
+    periods: { term: l.terms.termPeriods, funded: l.periodsFunded, released: l.periodsReleased, rentPeriod: l.terms.rentPeriod },
     next: step ? { who: who[step.who], what: step.what, ...(step.deadline ? { deadline: step.deadline } : {}) } : null,
     links,
   };

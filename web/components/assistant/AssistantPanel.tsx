@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { interpret, matchCommands, suggestionsFor, type Suggestion as PromptSuggestion } from "@/lib/assistant/composer";
+import { composerLabel, interpret, matchCommands, suggestionsFor, type Suggestion as PromptSuggestion } from "@/lib/assistant/composer";
+import { useT } from "@/lib/i18n/client";
 import { HistoryView, ReadOnlyChat } from "./AssistantHistory";
 import { MIN_WIDTH } from "./constants";
 import { ItemView } from "./ItemView";
@@ -54,14 +55,15 @@ export function AssistantPanel({
   onClose: () => void;
 }) {
   const { run, send, stop, newChat, approve, decline, history, continueChat, renameChat, deleteChat, setModel, freshen } = assistant;
+  const t = useT();
   const [view, setView] = useState<"chat" | "history" | { read: string }>("chat");
   const [note, setNote] = useState<string | null>(null);
   const current = MODEL_CHOICES.find((m) => m.id === (run.model ?? run.defaultModel)) ?? MODEL_CHOICES[0];
-  const modelLabel = run.mock ? "Demo model" : current.short;
+  const modelLabel = run.mock ? t("ai.demoModel") : current.short;
   const pickModel = (id: ModelChoice) => {
     setModel(id);
     const m = MODEL_CHOICES.find((x) => x.id === id)!;
-    setNote(run.mock ? `${m.label} picked for this chat. This server has no Anthropic key, so the demo model answers.` : `${m.label} answers in this chat.`);
+    setNote(t(run.mock ? "ai.notePicked" : "ai.noteAnswers", { model: m.label }));
   };
   // The one-screen stages (/demo, /how-it-works: `data-demo-stage`) keep their full width while they are pinned to the
   // window (the `stage` variant: desktop, at least 720px tall): there the panel floats bottom right instead of taking a
@@ -89,8 +91,8 @@ export function AssistantPanel({
     if (what.kind === "new") newChat();
     else if (what.kind === "model") {
       if (what.pick) pickModel(what.pick === "haiku" ? "claude-haiku-5-5" : "claude-sonnet-5-5");
-      else if (what.unknown) setNote(`Ask AI only offers Claude Sonnet 5.5 and Claude Haiku 5.5 (/model sonnet, /model haiku).`);
-      else setNote(`Model for this chat: ${run.mock ? "Demo model (no Anthropic key)" : current.label}. Pick one with /model sonnet or /model haiku.`);
+      else if (what.unknown) setNote(t("ai.noteOnly"));
+      else setNote(t("ai.noteModel", { model: run.mock ? t("ai.demoModelNoKey") : current.label }));
     } else void send(what.prompt);
   };
 
@@ -121,7 +123,7 @@ export function AssistantPanel({
     <TooltipProvider delayDuration={300}>
       <aside
         ref={ref}
-        aria-label="Ask AI"
+        aria-label={t("ai.name")}
         data-testid="assistant-panel"
         data-assistant-state={run.state}
         data-floating={floating || undefined}
@@ -138,15 +140,15 @@ export function AssistantPanel({
         />
         <header className="flex min-w-0 items-center gap-1.5 border-b border-border py-2 pr-2 pl-3">
           <Sparkles aria-hidden className="size-4 text-(--assistant-waiting)" />
-          <h2 className="shrink-0 text-sm font-semibold whitespace-nowrap">Ask AI</h2>
+          <h2 className="shrink-0 text-sm font-semibold whitespace-nowrap">{t("ai.name")}</h2>
           {run.mock && (
             <Badge
               variant="secondary"
               data-testid="assistant-mock-badge"
-              title="No Anthropic key on this server: a scripted demo model answers."
+              title={t("ai.mockTitle")}
               className="h-auto rounded-full px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-border"
             >
-              Demo model
+              {t("ai.demoModel")}
             </Badge>
           )}
           <DropdownMenu>
@@ -157,7 +159,7 @@ export function AssistantPanel({
                 size="xs"
                 data-testid="assistant-model"
                 data-model={run.model ?? run.defaultModel}
-                title="Model for this chat"
+                title={t("ai.modelTitle")}
                 className="h-auto gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground ring-1 ring-border"
               >
                 {modelLabel}
@@ -172,23 +174,23 @@ export function AssistantPanel({
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
-              {run.mock && <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[11px] font-normal text-subtle">No Anthropic key on this server: the demo model answers.</DropdownMenuLabel>}
+              {run.mock && <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[11px] font-normal text-subtle">{t("ai.mockMenu")}</DropdownMenuLabel>}
             </DropdownMenuContent>
           </DropdownMenu>
           <span className="ml-auto flex items-center gap-0.5">
-            <IconButton label="History" pressed={view !== "chat"} onClick={() => setView(view === "chat" ? "history" : "chat")} testId="assistant-history">
+            <IconButton label={t("ai.history")} pressed={view !== "chat"} onClick={() => setView(view === "chat" ? "history" : "chat")} testId="assistant-history">
               <History />
             </IconButton>
-            <IconButton label={follow ? "Follow along is on: the page goes to what Ask AI changes or opens" : "Follow along is off"} pressed={follow} onClick={() => onFollow(!follow)} testId="assistant-follow">
+            <IconButton label={follow ? t("ai.followOn") : t("ai.followOff")} pressed={follow} onClick={() => onFollow(!follow)} testId="assistant-follow">
               {follow ? <Eye /> : <EyeOff />}
             </IconButton>
-            <IconButton label="New chat" onClick={() => (newChat(), setView("chat"), setNote(null))} testId="assistant-new">
+            <IconButton label={t("ai.newChat")} onClick={() => (newChat(), setView("chat"), setNote(null))} testId="assistant-new">
               <SquarePen />
             </IconButton>
-            <IconButton label={wide ? "Narrow the panel" : "Widen to half the window"} onClick={onWide} testId="assistant-widen" className="hidden md:inline-flex">
+            <IconButton label={wide ? t("ai.narrow") : t("ai.widen")} onClick={onWide} testId="assistant-widen" className="hidden md:inline-flex">
               {wide ? <PanelRightClose /> : <PanelRightOpen />}
             </IconButton>
-            <IconButton label="Close (Ctrl+J)" onClick={onClose} testId="assistant-close">
+            <IconButton label={t("ai.close")} onClick={onClose} testId="assistant-close">
               <X />
             </IconButton>
           </span>
@@ -200,7 +202,7 @@ export function AssistantPanel({
               <span aria-hidden className="inline-flex text-(--assistant-tone)" {...(run.state === "waiting" ? {} : { "data-assistant-pulse": "" })}>
                 {run.state === "waiting" ? <Hand className="size-3.5" /> : run.state === "changing" ? <Zap className="size-3.5" /> : <Circle className="size-2.5 fill-current" />}
               </span>
-              {run.statusText || (run.state === "waiting" ? "Waiting for your approval" : "Working…")}
+              {run.statusText || (run.state === "waiting" ? t("ai.waitingApproval") : t("ai.working"))}
             </p>
           </div>
         )}
@@ -228,7 +230,7 @@ export function AssistantPanel({
               <ConversationContent className="gap-3 px-3 py-3" scrollClassName="[scrollbar-gutter:stable]!">
                 {run.items.length === 0 ? (
                   <div className="space-y-3 pt-6">
-                    <p className="text-center text-sm text-muted-foreground">Ask about your rentals, or tell Ask AI what to do. Every change waits for your approval.</p>
+                    <p className="text-center text-sm text-muted-foreground">{t("ai.empty")}</p>
                     <div className="flex flex-col gap-2" data-testid="assistant-suggestions">
                       {suggestionsFor(path).map((s) => (
                         <Suggestion
@@ -237,7 +239,7 @@ export function AssistantPanel({
                           onClick={() => pick(s)}
                           className="h-auto justify-start rounded-xl border-border bg-surface px-3 py-2 text-left text-sm font-normal whitespace-normal hover:border-border-hover hover:bg-surface dark:border-border dark:bg-surface dark:hover:bg-surface"
                         >
-                          {s.label}
+                          {composerLabel(s.label, t.lang)}
                           {s.fill ? "…" : ""}
                         </Suggestion>
                       ))}
@@ -247,7 +249,7 @@ export function AssistantPanel({
                   run.items.map((item) => <ItemView key={item.id} item={item} onApprove={approve} onDecline={decline} />)
                 )}
               </ConversationContent>
-              <ConversationScrollButton aria-label="Scroll to the latest" className="bottom-3 size-8" />
+              <ConversationScrollButton aria-label={t("ai.scrollLatest")} className="bottom-3 size-8" />
             </Conversation>
 
             <form
@@ -273,9 +275,9 @@ export function AssistantPanel({
                   <CommandList data-testid="assistant-commands">
                     <CommandGroup className="p-1">
                       {commands.map((c) => (
-                        <CommandItem key={c.name} value={c.name} title={c.prompt ?? c.description} onSelect={() => submit(c.name)} className="gap-2 px-2 py-1.5">
+                        <CommandItem key={c.name} value={c.name} title={c.prompt ?? composerLabel(c.description, t.lang)} onSelect={() => submit(c.name)} className="gap-2 px-2 py-1.5">
                           <span className="font-mono">{c.name}</span>
-                          <span className="text-muted-foreground">{c.description}</span>
+                          <span className="text-muted-foreground">{composerLabel(c.description, t.lang)}</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -289,8 +291,8 @@ export function AssistantPanel({
                   rows={1}
                   maxLength={2000}
                   data-testid="assistant-input"
-                  aria-label="Message Ask AI"
-                  placeholder={waiting ? "Approve or decline the change first" : "Ask, or tell Ask AI what to do… ( / for commands)"}
+                  aria-label={t("ai.inputLabel")}
+                  placeholder={waiting ? t("ai.placeholderWaiting") : t("ai.placeholder")}
                   onChange={(e) => {
                     setDraft(e.target.value);
                     setCmdIndex(0);
@@ -313,18 +315,18 @@ export function AssistantPanel({
                 />
                 <InputGroupAddon align="inline-end" className="self-end pb-1.5">
                   {run.busy || run.state === "waiting" ? (
-                    <InputGroupButton type="button" variant="secondary" size="xs" onClick={stop} data-testid="assistant-stop" className="h-7 bg-surface-strong px-2.5 text-sm text-foreground" aria-label="Stop">
+                    <InputGroupButton type="button" variant="secondary" size="xs" onClick={stop} data-testid="assistant-stop" className="h-7 bg-surface-strong px-2.5 text-sm text-foreground" aria-label={t("ai.stop")}>
                       <Square aria-hidden className="size-3 fill-current" />
-                      Stop
+                      {t("ai.stop")}
                     </InputGroupButton>
                   ) : (
-                    <InputGroupButton type="submit" variant="default" size="icon-xs" data-testid="assistant-send" disabled={!draft.trim()} className="size-7 rounded-lg disabled:opacity-40" aria-label="Send">
+                    <InputGroupButton type="submit" variant="default" size="icon-xs" data-testid="assistant-send" disabled={!draft.trim()} className="size-7 rounded-lg disabled:opacity-40" aria-label={t("ai.send")}>
                       <ArrowUp aria-hidden className="size-4" />
                     </InputGroupButton>
                   )}
                 </InputGroupAddon>
               </InputGroup>
-              <p className="mt-1.5 text-center text-[11px] text-subtle">Changes wait for your approval and your wallet&apos;s signature. Answers can be wrong.</p>
+              <p className="mt-1.5 text-center text-[11px] text-subtle">{t("ai.footer")}</p>
             </form>
           </>
         )}

@@ -28,28 +28,40 @@ const plain: Record<string, string> = {
   ActiveValueAboveCap: "Pilot limit: KeyEscrow already holds as much as the pilot allows. Try again once other rentals have settled.",
 };
 
-/** Turns any wallet/RPC/contract error into a sentence a renter or owner can act on. */
-export function friendlyError(err: unknown): string {
+const general = {
+  cancelled: "You cancelled the request in your wallet.",
+  rejected: (what: string) => `The contract rejected this: ${what}`,
+  gas: "This wallet does not have enough gas (BNB) to send the transaction.",
+  rpc: "Could not reach the blockchain node. Check that the RPC is running.",
+  unknown: "Something went wrong.",
+};
+
+/** The sentences friendlyError picks from; Chinese in errors.zh.ts (client code only, so API routes stay English). */
+export const EN_ERRORS = { plain, general };
+export type ErrorText = typeof EN_ERRORS;
+
+/** Turns any wallet/RPC/contract error into a sentence a renter or owner can act on (English unless given `text`). */
+export function friendlyError(err: unknown, text: ErrorText = EN_ERRORS): string {
+  const { plain: named, general: g } = text;
   if (err instanceof BaseError) {
-    if (err.walk((e) => e instanceof UserRejectedRequestError)) return "You cancelled the request in your wallet.";
+    if (err.walk((e) => e instanceof UserRejectedRequestError)) return g.cancelled;
     const revert = err.walk((e) => e instanceof ContractFunctionRevertedError);
     if (revert instanceof ContractFunctionRevertedError) {
       const name = revert.data?.errorName;
-      if (name && plain[name]) return plain[name];
-      if (name) return `The contract rejected this: ${name}.`;
-      if (revert.reason) return `The contract rejected this: ${revert.reason}`;
+      if (name && named[name]) return named[name];
+      if (name) return g.rejected(`${name}.`);
+      if (revert.reason) return g.rejected(revert.reason);
     }
     const msg = err.shortMessage || err.message;
-    if (/insufficient funds/i.test(msg)) return "This wallet does not have enough gas (BNB) to send the transaction.";
-    if (/fetch|network|ECONNREFUSED|HTTP request failed/i.test(msg))
-      return "Could not reach the blockchain node. Check that the RPC is running.";
+    if (/insufficient funds/i.test(msg)) return g.gas;
+    if (/fetch|network|ECONNREFUSED|HTTP request failed/i.test(msg)) return g.rpc;
     return msg;
   }
   if (err instanceof Error) {
-    if (/user rejected|denied/i.test(err.message)) return "You cancelled the request in your wallet.";
+    if (/user rejected|denied/i.test(err.message)) return g.cancelled;
     return err.message;
   }
-  return "Something went wrong.";
+  return g.unknown;
 }
 
 /** The plain sentence for a contract custom error (by name), shared with the agent tools in lib/actions. */

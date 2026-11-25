@@ -1,12 +1,19 @@
+import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { zeroHash, type Address, type Hex } from "viem";
-import { rentalCopy } from "@/components/lease/copy";
+import { rentalCopyFor } from "@/components/lease/copy";
 import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, returnPlan } from "@/components/lease/story";
-import { renterCopy, renterLine } from "@/components/roles/renterStory";
+import { renterCopyFor, renterLine } from "@/components/roles/renterStory";
+import { en as enDictionary } from "@/lib/i18n/dictionaries/en";
+import { makeT as makeEnglishT } from "@/lib/i18n/t";
+import { stateFor } from "@/lib/i18n/server";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import type { RentalSummary } from "@/lib/rentals";
+
+const renterCopy = renterCopyFor(makeEnglishT({ mode: "en", dict: enDictionary }));
+const rentalCopy = rentalCopyFor(makeEnglishT({ mode: "en", dict: enDictionary }));
 
 const OWNER = "0x0000000000000000000000000000000000000001" as Address;
 const RENTER = "0x0000000000000000000000000000000000000002" as Address;
@@ -48,7 +55,7 @@ describe("rental page banner: one honest action per role", () => {
 
   it("owner with nothing due: idle until the next due date", () => {
     const b = banner(lease({ periodsReleased: 1, feeCharged: true }), "landlord", [ev("RentReleased", { toLandlord: BigInt(90_000_000) })], fmt, rentalCopy);
-    expect(b.title).toBe("1 month of rent paid: 90u is in your wallet.");
+    expect(b.title).toBe("1 rent period paid: 90u is in your wallet.");
     expect(b.action.kind).toBe("idle");
   });
 
@@ -74,6 +81,19 @@ describe("rental page banner: one honest action per role", () => {
 
   it("not yet funded: the renter pays in deposit + month 1", () => {
     expect(banner(lease({ status: LeaseStatus.Created, startTime: BigInt(0) }), "tenant", [], fmt, rentalCopy).action).toMatchObject({ kind: "jump", to: "fund", label: "Pay in 300u" });
+  });
+});
+
+describe("rental page in Chinese", () => {
+  it("banner and return plan read Chinese; EN+中文 keeps English body with a bilingual title", () => {
+    const zhCopy = rentalCopyFor(makeEnglishT(stateFor("zh")));
+    const b = banner(lease(), "tenant", [], fmt, zhCopy);
+    expect(b.title).toBe("你的 200u 押金已锁在托管合约中。");
+    expect(b.body).toMatch(/\p{Script=Han}/u);
+    expect(returnPlan(lease(), [], zhCopy).steps[0].title).toBe("还车照片");
+    const both = banner(lease(), "tenant", [], fmt, rentalCopyFor(makeEnglishT(stateFor("both"))));
+    expect(isValidElement(both.title)).toBe(true);
+    expect(both.body).toBe(banner(lease(), "tenant", [], fmt, rentalCopy).body);
   });
 });
 
@@ -109,9 +129,9 @@ describe("months, money and the return plan", () => {
 
 describe("renter card line", () => {
   const r = (p: Partial<RentalSummary>) => ({ status: LeaseStatus.Active, depositAmount: DEPOSIT, rentAmount: RENT, periodsFunded: 1, termPeriods: 3, rentPeriod: 30 * 86_400, returnPhotos: [], tenant: RENTER, responseWindow: 7 * 86_400, totals: { refunded: DEPOSIT }, ...p }) as unknown as RentalSummary;
-  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid through month 1 of 3.", action: "Pay month 2" }));
+  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid for 1 of 3 rent periods.", action: "Pay month 2" }));
   it("weekly rent: the card speaks in weeks", () =>
-    expect(renterLine(r({ rentPeriod: 7 * 86_400 }), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid through week 1 of 3.", action: "Pay week 2" }));
+    expect(renterLine(r({ rentPeriod: 7 * 86_400 }), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid for 1 of 3 rent periods.", action: "Pay week 2" }));
   it("owner silent past the window: claim", () => {
     const p = { proposer: RENTER, tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: zeroHash, proposedAt: T0, nonce: 1 };
     expect(renterLine(r({ status: LeaseStatus.MoveOut, proposal: p }), T0 + 8n * DAY, fmt, renterCopy, true).action).toBe("Claim deposit");

@@ -9,6 +9,8 @@ import { useToasts } from "@/components/Toasts";
 import { noteMinedBlock } from "../chainIndex";
 import { explorerLink } from "../chains";
 import { friendlyError } from "../errors";
+import { errorsIn } from "../errors.zh";
+import { useT } from "../i18n/client";
 
 type Call = {
   address: `0x${string}`;
@@ -29,29 +31,31 @@ export function useTx() {
   const toasts = useToasts();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
+  const t = useT();
+  const { lang } = t;
 
   const send = useCallback(
     async (label: string, call: Call, opts: { throwOnError?: boolean } = {}): Promise<TransactionReceipt | undefined> => {
       if (!account) {
-        toasts.push({ kind: "error", title: label, body: "Connect a wallet first." });
-        if (opts.throwOnError) throw new Error("No wallet is connected.");
+        toasts.push({ kind: "error", title: label, body: t("tx.connectFirst") });
+        if (opts.throwOnError) throw new Error(t("tx.noWallet"));
         return;
       }
       setPending(label);
-      const id = toasts.push({ kind: "pending", title: label, body: "Confirm in your wallet…" });
+      const id = toasts.push({ kind: "pending", title: label, body: t("tx.confirm") });
       try {
         const { request } = await simulateContract(config, { ...call, account, chainId } as never);
         const hash = await writeContract(config, request as never);
-        toasts.update(id, { body: "Waiting for the block…", href: chainId ? explorerLink(chainId, "tx", hash) : undefined });
+        toasts.update(id, { body: t("tx.waiting"), href: chainId ? explorerLink(chainId, "tx", hash) : undefined });
         const receipt = await waitForTransactionReceipt(config, { hash, chainId });
-        if (receipt.status !== "success") throw new Error("The transaction was reverted on-chain.");
-        toasts.update(id, { kind: "success", body: "Confirmed." });
+        if (receipt.status !== "success") throw new Error(t("tx.reverted"));
+        toasts.update(id, { kind: "success", body: t("tx.confirmed") });
         // The server-side chain index refreshes past its cache until it has this block.
         if (chainId) noteMinedBlock(chainId, receipt.blockNumber);
         await queryClient.invalidateQueries();
         return receipt;
       } catch (err) {
-        const message = friendlyError(err);
+        const message = friendlyError(err, errorsIn(lang));
         toasts.update(id, { kind: "error", body: message });
         if (opts.throwOnError) throw new Error(message);
         return undefined;
@@ -59,7 +63,7 @@ export function useTx() {
         setPending(null);
       }
     },
-    [account, chainId, config, queryClient, toasts],
+    [account, chainId, config, queryClient, toasts, lang, t],
   );
 
   return { send, pending };

@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { getAddress, isAddress } from "viem";
 import { LeaseDetail } from "@/components/lease/LeaseDetail";
 import { Notice } from "@/components/ui";
+import { getDictionary } from "@/lib/i18n/server";
 
 async function LeasePageInner({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
-  if (!isAddress(address)) return <Notice kind="error">&ldquo;{address}&rdquo; is not a valid rental address.</Notice>;
+  if (!isAddress(address)) return <Notice kind="error">{(await getDictionary())("rental.page.invalid", { address })}</Notice>;
   return <LeaseDetail address={getAddress(address)} />;
 }
 

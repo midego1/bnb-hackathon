@@ -5,7 +5,8 @@ import type { DemoActor } from "@/lib/demo/script";
 import { formatFiat, toFiat } from "@/lib/fiat";
 import { formatUsdt } from "@/lib/format";
 import { usePrices } from "@/lib/usePrices";
-import { actorCards, guidedCopy, panels } from "./copy";
+import { useT } from "@/lib/i18n/client";
+import { demoCopy, type DemoCopy } from "./copy";
 
 /** Live mUSDT balances of everyone the money can reach. `escrow` is unset until the demo rental exists. */
 export type Wallets = { landlord: bigint; tenant: bigint; treasury: bigint; escrow?: bigint };
@@ -97,12 +98,13 @@ const ring = (active: boolean, receiving = false) =>
     : receiving
       ? "border-settled-edge bg-settled-soft ring-2 ring-settled-edge"
       : "border-border bg-surface";
-const tag = (active: boolean, receiving: boolean) => (active ? guidedCopy.acting : receiving ? guidedCopy.receiving : undefined);
+const tag = (g: DemoCopy["guidedCopy"], active: boolean, receiving: boolean) => (active ? g.acting : receiving ? g.receiving : undefined);
 const tagTone = (active: boolean) => (active ? "font-semibold text-highlight-text" : "font-semibold text-settled-text");
 
 function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; value?: bigint; delta?: bigint; active: boolean; receiving: boolean }) {
   const { prices } = usePrices();
   const thb = useThb();
+  const { actorCards, guidedCopy } = useT().of(demoCopy);
   const copy = actorCards[id];
   const usd = value === undefined ? null : toFiat(value, "USDT", "USD", prices);
   return (
@@ -138,7 +140,7 @@ function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; val
           </span>
         )}
       </div>
-      <p className={`relative truncate text-[13px] hidden tall:block ${tag(active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(active, receiving) ?? copy.note}</p>
+      <p className={`relative truncate text-[13px] hidden tall:block ${tag(guidedCopy, active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(guidedCopy, active, receiving) ?? copy.note}</p>
       {value === undefined ? (
         <p className="relative mt-0.5 text-sm text-subtle">{"empty" in copy ? copy.empty : "…"}</p>
       ) : (
@@ -154,6 +156,7 @@ function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; val
 }
 
 function RefereeCard({ id, active, receiving }: { id: "arbiter" | "inspector"; active: boolean; receiving: boolean }) {
+  const { actorCards, guidedCopy } = useT().of(demoCopy);
   const copy = actorCards[id];
   return (
     <div
@@ -166,13 +169,14 @@ function RefereeCard({ id, active, receiving }: { id: "arbiter" | "inspector"; a
         <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone[id]}`} />
         {copy.name}
       </p>
-      <p className={`text-[13px] leading-snug ${tag(active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(active, receiving) ?? copy.note}</p>
+      <p className={`text-[13px] leading-snug ${tag(guidedCopy, active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(guidedCopy, active, receiving) ?? copy.note}</p>
     </div>
   );
 }
 
 /** "Renter −฿10,200 → Escrow contract +฿10,200": the money that moved in the current step. Mints come from the faucet. */
 export function FlowStrip({ base, wallets }: { base: Wallets | null; wallets: Wallets | null }) {
+  const { actorCards, panels } = useT().of(demoCopy);
   const thb = useThb();
   const d = deltas(base, wallets);
   const keys = Object.keys(d) as WalletKey[];

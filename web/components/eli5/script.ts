@@ -2,6 +2,8 @@ import { deskRuling, newContext } from "@/lib/demo/script";
 import { parseUnits } from "viem";
 import { TOKEN } from "@/lib/contracts";
 import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
+import { localized, type Lang } from "@/lib/i18n/locales";
+import { zhEli5 } from "./script.zh";
 
 /**
  * Every word and number of the animated "explain it like I'm 5" page (/how-it-works) in one place.
@@ -11,6 +13,7 @@ import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
  * scripted ruling. So the cartoon and the real run tell the same story with the same baht.
  *
  * The rented thing is a single variable (RENTAL below): switch it between the condo and a scooter in one place.
+ * Chinese: script.zh.ts, by scene id (`story(ending, lang)`, `sceneText`, `endingsText`, `eli5Copy`).
  */
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -275,8 +278,18 @@ export const ENDINGS: { id: Ending; label: string; short: string }[] = [
   { id: "silent", label: `${R.owner} goes silent`, short: "💤" },
 ];
 
+const ZH = zhEli5(RENTAL.kind, MONEY, baht);
+const SCENE_TEXT: Record<string, Pick<SceneDef, "text" | "detail" | "calendar">> = Object.fromEntries(
+  [...shared, ...Object.values(endings), recap].map((d) => [d.id, { text: d.text, detail: d.detail, calendar: d.calendar }]),
+);
+/** Each scene's words by scene id, in a language. */
+export const sceneText = localized(SCENE_TEXT, ZH.scenes);
+/** The ending picker in a language. */
+export const endingsText = localized(ENDINGS, ZH.endings);
+
 /** Scenes for one ending, with what everyone holds before and after each scene. */
-export function story(ending: Ending): Scene[] {
+export function story(ending: Ending, lang: Lang = "en"): Scene[] {
+  const text = sceneText(lang);
   const defs = [...shared, endings[ending], recap];
   const out: Scene[] = [];
   let h = START;
@@ -287,7 +300,7 @@ export function story(ending: Ending): Scene[] {
       after[f.from] -= f.amount;
       after[f.to] += f.amount;
     }
-    out.push({ ...d, index, before, after });
+    out.push({ ...d, ...text[d.id], index, before, after });
     h = after;
   });
   return out;
@@ -296,14 +309,10 @@ export function story(ending: Ending): Scene[] {
 export const totalDuration = (ending: Ending) => story(ending).reduce((s, x) => s + x.duration, 0);
 
 /** What the recap card says each one ended with. */
-export function recapLines(ending: Ending) {
+export function recapLines(ending: Ending, lang: Lang = "en") {
   const end = story(ending).at(-1)!.after;
-  return [
-    { who: R.renter, value: end.tenant, note: "got back" },
-    { who: R.owner, value: end.landlord, note: "rent + repairs" },
-    { who: "KeyEscrow jar", value: end.jar, note: "one-time fee" },
-    { who: "The safe", value: end.safe, note: "empty" },
-  ];
+  const n = lang === "zh" ? ZH.recapNotes : ({ tenant: [R.renter, "got back"], landlord: [R.owner, "rent + repairs"], jar: ["KeyEscrow jar", "one-time fee"], safe: ["The safe", "empty"] } as const);
+  return (["tenant", "landlord", "jar", "safe"] as const).map((k) => ({ who: n[k][0], value: end[k], note: n[k][1] }));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -353,3 +362,6 @@ export const copy = {
     contract: "Rental",
   },
 };
+
+/** The page's UI copy in a language: `useT().of(eli5Copy)`. */
+export const eli5Copy = localized(copy, ZH.ui);

@@ -8,11 +8,14 @@ import { explorerLink } from "@/lib/chains";
 import { fetchFleet } from "@/lib/fleet";
 import { formatDate, shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
-import type { FlagLevel, RentalFlag } from "@/lib/rentals";
+import { useT } from "@/lib/i18n/client";
+import type { T } from "@/lib/i18n/t";
+import { countIn, DEFAULT_RENT_PERIOD, type FlagLevel, type RentalFlag } from "@/lib/rentals";
 import { CopyButton } from "@/components/ui";
 
 /** A transaction hash: links to the block explorer on testnet; on local anvil, short hash + copy. */
 export function TxLink({ hash, chainId }: { hash: Hex; chainId: number }) {
+  const t = useT();
   const href = explorerLink(chainId, "tx", hash);
   const text = <span className="font-mono text-xs">{shortAddress(hash)}</span>;
   return href ? (
@@ -22,7 +25,7 @@ export function TxLink({ hash, chainId }: { hash: Hex; chainId: number }) {
   ) : (
     <span className="inline-flex items-center gap-1" data-testid="tx-link" title={hash}>
       {text}
-      <CopyButton value={hash} label="Copy transaction hash" />
+      <CopyButton value={hash} label={t("roles.copyTx")} />
     </span>
   );
 }
@@ -33,7 +36,37 @@ const flagStyle: Record<FlagLevel, string> = {
   info: "bg-info-soft text-info-fg ring-info-border",
 };
 
+/** A flag's sentence in the active language, from its code and numbers (lib/rentals.ts flagsFor). */
+function flagText({ code, text, vars = {} }: RentalFlag, t: T) {
+  const n = vars.n ?? 0;
+  const plural = (k: "roles.flag.failedTx") => t(`${k}.${n === 1 ? "one" : "other"}`, { n });
+  const secs = vars.secs ?? 0;
+  const d = Math.floor(secs / 86_400);
+  const left = d >= 1 ? t(`roles.flag.days.${d === 1 ? "one" : "other"}`, { n: d }) : t("roles.flag.hours", { n: Math.max(1, Math.round(secs / 3600)) });
+  switch (code) {
+    case "failed-tx":
+      return plural("roles.flag.failedTx");
+    case "rent-due":
+      return t("roles.flag.rentDue", { count: countIn(t, n, vars.period ?? DEFAULT_RENT_PERIOD) });
+    case "arbiter-overdue":
+      return t("roles.flag.arbiterOverdue");
+    case "disputed":
+      return t("roles.flag.disputed", { left });
+    case "owner-silent":
+      return t("roles.flag.ownerSilent");
+    case "proposal-open":
+      return t(vars.byRenter ? "roles.flag.proposalOwner" : "roles.flag.proposalRenter");
+    case "unfunded":
+      return t("roles.flag.unfunded", { left });
+    case "overdue-return":
+      return t("roles.flag.overdueReturn");
+    default:
+      return text;
+  }
+}
+
 export function FlagBadge({ flag }: { flag: RentalFlag }) {
+  const t = useT();
   return (
     <span
       data-testid="flag"
@@ -42,7 +75,7 @@ export function FlagBadge({ flag }: { flag: RentalFlag }) {
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${flagStyle[flag.level]}`}
     >
       {flag.level === "danger" && <TriangleAlert aria-hidden className="mr-1 size-3" />}
-      {flag.text}
+      {flagText(flag, t)}
     </span>
   );
 }
@@ -58,8 +91,9 @@ export function Kpi({ label, children, hint, testId }: { label: string; children
 }
 
 export function When({ ts }: { ts: bigint }) {
-  if (ts === BigInt(0)) return <span className="text-subtle">earlier</span>;
-  return <span className="tabular-nums">{formatDate(ts)}</span>;
+  const t = useT();
+  if (ts === BigInt(0)) return <span className="text-subtle">{t("roles.earlier")}</span>;
+  return <span className="tabular-nums">{formatDate(ts, t.lang)}</span>;
 }
 
 /** Scooter catalogue + bookings for the active chain (/api/fleet), polled like the chain data. */

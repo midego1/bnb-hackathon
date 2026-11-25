@@ -1,0 +1,115 @@
+import type { DeepPartial } from "../../locales";
+import type { body as enBody, head as enHead } from "../en/stage";
+
+/** Simplified Chinese for en/stage.ts. Terms: docs/i18n-glossary.md. */
+export const body: DeepPartial<typeof enBody> = {
+  stage: {
+    metaTitle: "现场租用",
+    loading: "加载中…",
+    disabled: "这台服务器没有开启现场演示。",
+    terms: "{rent} / 天 · 押金 {deposit}",
+    qr: "二维码：{url}",
+    offline: "正在重新连接… 租赁安全地记录在链上，网络恢复后这个屏幕会自动跟上。",
+    money: { paid: "租客已付", escrow: "托管中", owner: "车主收到", back: "退还租客", fee: "手续费 {fee}" },
+    photos: { pickup: "取件", return: "归还", alt: "{title}照片" },
+    event: {
+      LeaseCreated: "车主发出租赁：托管合约已创建",
+      Funded: "租客把押金和租金付入托管合约",
+      pickupPhoto: "取件照片已在链上存证",
+      returnPhoto: "归还照片已在链上存证",
+      evidence: "凭证已在链上存证",
+      SettlementProposed: "AI 押金分配已提出",
+      Settled: "双方同意：资金已结算",
+      RentReleased: "租金已发放给车主",
+      ProtocolFeePaid: "已付 KeyEscrow 手续费",
+      DisputeRaised: "已提出争议",
+      Cancelled: "报价已撤回",
+    },
+    presenter: {
+      accept: "接受分配（车主）",
+      acceptWhen: "租客提出分配后才能接受。",
+      reset: "重置现场",
+      resetConfirm: "要重置现场吗？当前租赁仍保留在链上，但下一次扫码会开始新的租赁。",
+      code: "演讲者口令",
+    },
+  },
+  judge: {
+    connectFirst: "请先连接钱包。",
+    offline: "网络不稳定。你的租赁安全地记录在链上，网络恢复后这个屏幕会自动跟上。",
+    guestWallet: "测试网临时钱包，不涉及真钱",
+    yourWallet: "你的钱包",
+    another: "换一个钱包",
+    money: {
+      body: "我们会给这个钱包转一点测试 BNB 作为 Gas 费，再转 {amount} 测试美元（mUSDT）用于租金和押金。仅限测试网，不涉及真钱。",
+      button: "领取测试资金",
+      sent: { one: "测试资金已发送（{n} 笔交易）。", other: "测试资金已发送（{n} 笔交易）。" },
+    },
+    rent: {
+      rent: "租金（1 天）",
+      deposit: "押金（会退还）",
+      body: "这笔钱进入这笔租赁专属的 BNB Chain 托管合约，不会付给车主。任何一方都不能单方面拿走押金。",
+      preparing: "车主正在准备你的租赁…",
+      paying: "正在付入托管合约…",
+      button: "付入托管合约",
+    },
+    busy: "一次只能有一笔租赁。请演讲者重置现场，然后刷新这个页面。",
+    waiting: {
+      body: "你的提议：{back} 退还给你，{kept} 给车主。车主会在大屏幕上接受。",
+      watching: "正在关注链上状态…",
+    },
+    settled: { body: "托管合约已付清并关闭。感谢你租用 {name}！", bscscan: "在 BscScan 上查看", escrow: "托管合约 {address}" },
+    wallet: {
+      guest: "使用临时钱包",
+      guestHint: "测试网临时钱包，不涉及真钱。新密钥在这部手机上生成，永远不会离开它。",
+      metamask: "连接 MetaMask",
+    },
+    photos: {
+      pickupBody: "拿到盒子时给它拍照（1 到 3 张）。照片指纹会上链，之后谁也无法调包。",
+      returnBody: "把盒子还给演讲者，再拍一次照（1 到 3 张）。AI 验车员会和取件照片做对比。",
+      alt: { pickup: "取件照片", return: "归还照片" },
+      reading: "正在读取照片…",
+      another: "再拍一张",
+      open: "打开相机",
+      atLeastOne: "请至少拍一张照片。",
+      uploadFailed: "照片上传失败，所以只有照片指纹上链。",
+      save: {
+        pickup: { zero: "把取件照片存证上链", one: "把 1 张取件照片存证上链", other: "把 {n} 张取件照片存证上链" },
+        return: { zero: "把归还照片存证上链", one: "把 1 张归还照片存证上链", other: "把 {n} 张归还照片存证上链" },
+      },
+    },
+    inspect: {
+      body: "AI 验车员会对比取件和归还照片，并提出押金分配方案。",
+      waitingPhotos: "等待照片出现在链上…",
+      run: "开始 AI 验车",
+      back: "退还给你",
+      owner: "给车主",
+      mock: "演示验车员（这台服务器没有视觉模型密钥）：结果固定，并没有真正查看照片。",
+      propose: "提出这个分配",
+    },
+  },
+};
+
+export const head: DeepPartial<typeof enHead> = {
+  stage: {
+    creating: "车主正在创建租赁…",
+    scan: "扫码租用 {name}",
+    created: "租赁已发出：等待租客付款",
+    locked: "{amount} 已锁入托管：下一步拍取件照片",
+    pickedUp: "已取走：等待归还",
+    returned: "已归还：AI 验车员正在对比照片",
+    proposed: "AI 分配方案：退还 {back}，{kept} 给车主",
+    disputed: "争议中：由争议处理台裁决",
+    settled: "已结算：双方同意，资金已发放",
+  },
+  judge: {
+    wallet: "一键租用",
+    money: "领取测试资金",
+    rent: "以 {amount} 租用",
+    busy: "现在有别人在租用",
+    pickup: "拍取件照片",
+    return: "先归还，再拍归还照片",
+    inspect: "AI 验车",
+    waiting: "等待车主",
+    settled: "你的 {amount} 已退还",
+  },
+};

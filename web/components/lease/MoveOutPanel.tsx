@@ -5,15 +5,17 @@ import type { Hex } from "viem";
 import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
 import { photosForHash } from "@/lib/demoEvidence";
 import { prepareProposeSettlement } from "@/lib/actions/definitions";
-import { fieldError } from "@/lib/actions/fields";
+import { fieldErrorIn } from "@/lib/actions/fields";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { responseWindow } from "@/lib/windows";
-import { formatDate, formatUsdt, parseUsdt } from "@/lib/format";
+import { formatUsdt, parseUsdt } from "@/lib/format";
 import { hashText } from "@/lib/hash";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
+import { useT } from "@/lib/i18n/client";
 import { runInspection, type InspectionResult } from "@/lib/settlement";
+import { dateTimeIn, utcDateTimeIn } from "./copy";
 import { evidenceFromEvents } from "./evidence";
 import { HashLink } from "./EvidencePanel";
 import { roleName, viewerRole, type Viewer } from "./model";
@@ -23,20 +25,25 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
   const isParty = viewer === "landlord" || viewer === "tenant";
   const canPropose = isParty && (lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut);
   const hasProposal = lease.status === LeaseStatus.MoveOut;
+  const t = useT();
 
   if (!hasProposal && !canPropose) return null;
   // KE-02: once the reply window has closed (chain time), propose / accept / dispute all revert; only the timeout claim works.
   const window = responseWindow({ ...lease, responseWindowSeconds: lease.terms.responseWindow });
+  // lib/windows.ts says it in English for the agent actions too; the same sentence in the visitor's language here.
+  const reason = window.closed
+    ? t("rental.move.windowClosed", { days: Math.round(lease.terms.responseWindow / 86400), date: utcDateTimeIn(t)(window.closesAt) })
+    : null;
 
   return (
-    <Card title="Return & deposit" aside={<PriceSourceBadge />}>
+    <Card title={t.h("rental.move")} aside={<PriceSourceBadge />}>
       <div className="space-y-6">
         {window.closed && (
           <div data-testid="response-window-closed">
-            <Notice kind="warn">{window.reason}</Notice>
+            <Notice kind="warn">{reason}</Notice>
           </div>
         )}
-        {hasProposal && <CurrentProposal lease={lease} viewer={viewer} windowClosed={window.closed} windowReason={window.reason} />}
+        {hasProposal && <CurrentProposal lease={lease} viewer={viewer} windowClosed={window.closed} windowReason={reason} />}
         {canPropose && !window.closed && <ProposeForms lease={lease} events={events} />}
         {canPropose && !window.closed && <DisputeButton lease={lease} />}
       </div>
@@ -46,6 +53,9 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
 
 function CurrentProposal({ lease, viewer, windowClosed, windowReason }: { lease: LeaseData; viewer: Viewer; windowClosed: boolean; windowReason: string | null }) {
   const { send, pending } = useTx();
+  const t = useT();
+  const date = dateTimeIn(t);
+  const tx = { accept: t("rental.move.acceptTx"), timeout: t("rental.move.timeoutTx") };
   const p = lease.proposal;
   const proposer = viewerRole(lease, p.proposer);
   const isCounterparty = (viewer === "landlord" || viewer === "tenant") && viewer !== proposer;
@@ -54,29 +64,31 @@ function CurrentProposal({ lease, viewer, windowClosed, windowReason }: { lease:
   return (
     <div className="rounded-xl border border-info-border bg-info-soft p-4" data-testid="current-proposal">
       <p className="text-sm font-medium">
-        Proposal #{p.nonce} by the {roleName(proposer)} · {formatDate(p.proposedAt)}
+        {t("rental.move.proposalBy", { n: p.nonce, role: roleName(proposer, t), date: date(p.proposedAt) })}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-xs text-subtle">Back to renter</p>
+          <p className="text-xs text-subtle">{t("rental.move.backToRenter")}</p>
           <Amount value={p.tenantRefund} />
         </div>
         <div>
-          <p className="text-xs text-subtle">Owner keeps (damages)</p>
+          <p className="text-xs text-subtle">{t("rental.move.ownerKeepsDamages")}</p>
           <Amount value={p.landlordClaim} />
         </div>
       </div>
       <p className="mt-3 text-xs text-subtle">
-        Inspection report fingerprint: <HashLink hash={p.reportHash} />
+        {t("rental.move.fingerprint")}
+        <HashLink hash={p.reportHash} />
       </p>
       {lease.timeoutAt > BigInt(0) && (
         <p className="mt-2 text-sm">
           {timeoutReached ? (
-            <>The owner did not answer in time. Anyone can now close the rental and return the full deposit to the renter.</>
+            <>{t("rental.move.ownerLate")}</>
           ) : (
             <>
-              The owner has until {formatDate(lease.timeoutAt)} (<Countdown target={lease.timeoutAt} clock={lease} />) to accept, counter
-              or open a dispute. After that, the full deposit goes back to the renter.
+              {t("rental.move.ownerHasUntil", { date: date(lease.timeoutAt) })}
+              <Countdown target={lease.timeoutAt} clock={lease} />
+              {t("rental.move.ownerHasUntilAfter")}
             </>
           )}
         </p>
@@ -84,31 +96,31 @@ function CurrentProposal({ lease, viewer, windowClosed, windowReason }: { lease:
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <ActionButton
           variant={timeoutReached ? "secondary" : "primary"}
-          busy={pending === "Accept proposal"}
+          busy={pending === tx.accept}
           disabledReason={
             windowClosed
               ? windowReason
               : isCounterparty
                 ? null
                 : proposer === viewer
-                  ? "You made this proposal, so the other side has to accept it."
-                  : "Only the owner or the renter can accept a proposal."
+                  ? t("rental.move.yourProposal")
+                  : t("rental.move.onlyParties")
           }
-          onClick={() => send("Accept proposal", { address: lease.address, abi: rentalEscrowAbi, functionName: "accept", args: [p.nonce] })}
+          onClick={() => send(tx.accept, { address: lease.address, abi: rentalEscrowAbi, functionName: "accept", args: [p.nonce] })}
           data-testid="accept-proposal"
         >
-          Accept & settle now
+          {t("rental.move.accept")}
         </ActionButton>
         {lease.timeoutAt > BigInt(0) && (
           <ActionButton
             variant={timeoutReached ? "primary" : "secondary"}
             className={timeoutReached ? "sm:order-first" : ""}
-            busy={pending === "Claim owner timeout"}
-            disabledReason={timeoutReached ? null : `Available after ${formatDate(lease.timeoutAt)}, if the owner has not answered.`}
-            onClick={() => send("Claim owner timeout", { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
+            busy={pending === tx.timeout}
+            disabledReason={timeoutReached ? null : t("rental.move.availableAfter", { date: date(lease.timeoutAt) })}
+            onClick={() => send(tx.timeout, { address: lease.address, abi: rentalEscrowAbi, functionName: "claimTimeout" })}
             data-testid="claim-timeout"
           >
-            {timeoutReached ? "Claim deposit" : "Return full deposit to renter"}
+            {timeoutReached ? t("rental.move.claim") : t("rental.move.returnAll")}
           </ActionButton>
         )}
       </div>
@@ -118,6 +130,8 @@ function CurrentProposal({ lease, viewer, windowClosed, windowReason }: { lease:
 
 function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEvent[] | undefined }) {
   const { send, pending } = useTx();
+  const t = useT();
+  const tx = { ai: t("rental.move.submitAiTx"), manual: t("rental.move.proposeTx") };
   const { checkIn, checkOut } = evidenceFromEvents(events);
   const money = useMoney();
   const photoCount = (hashes: Hex[]) => hashes.flatMap(photosForHash).length;
@@ -132,7 +146,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const refundAmount = parseUsdt(refund);
   // Same rule and message as the prepare_propose_settlement API / MCP tool (lib/actions).
   const refundError =
-    fieldError(prepareProposeSettlement.input, "toRenter", refund) ?? (refundAmount !== undefined && refundAmount > deposit ? "Cannot exceed the deposit." : undefined);
+    fieldErrorIn(t, prepareProposeSettlement.input, "toRenter", refund) ?? (refundAmount !== undefined && refundAmount > deposit ? t("rental.move.exceeds") : undefined);
 
   async function inspect() {
     setInspecting(true);
@@ -152,50 +166,50 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold">AI return inspection</h3>
+        <h3 className="text-sm font-semibold">{t.h("rental.aiInspection")}</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Compares the {photoCount(checkIn)} pickup and {photoCount(checkOut)} return photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
-          rental and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
+          {t(photoCount(checkOut) === 1 ? "rental.move.aiIntro.one" : "rental.move.aiIntro.other", { pickup: photoCount(checkIn), n: photoCount(checkOut) })}
         </p>
         <div className="mt-3 grid gap-3">
-          <Field label="Notes for the inspector (optional)">
-            <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. left mirror was already scratched at pickup" />
+          <Field label={t("rental.move.notes")}>
+            <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("rental.move.notesPlaceholder")} />
           </Field>
-          <Field label="Scooter plate or id (optional)" hint="Keys the inspector's memory of this scooter across rentals. Defaults to this rental's address.">
-            <input className={inputClass} value={scooterId} onChange={(e) => setScooterId(e.target.value)} placeholder="e.g. 1กข 1234 Bangkok" data-testid="scooter-id" />
+          <Field label={t("rental.move.scooterId")} hint={t("rental.move.scooterIdHint")}>
+            <input className={inputClass} value={scooterId} onChange={(e) => setScooterId(e.target.value)} placeholder={t("rental.move.scooterIdPlaceholder")} data-testid="scooter-id" />
           </Field>
           <ActionButton
             variant="secondary"
             busy={inspecting}
             disabledReason={
               checkIn.length === 0
-                ? "Needs at least one pickup photo. Add one under Documents & photos."
+                ? t("rental.move.needPickup")
                 : checkOut.length === 0
-                  ? "Needs at least one return photo. Add them under Documents & photos."
+                  ? t("rental.move.needReturn")
                   : null
             }
             onClick={inspect}
             data-testid="run-inspection"
           >
-            {inspecting ? "Inspecting photos…" : "Run AI inspection"}
+            {inspecting ? t("rental.move.inspecting") : t("rental.move.runAi")}
           </ActionButton>
         </div>
         {aiError && <div className="mt-3"><Notice kind="error">{aiError}</Notice></div>}
         {report && (
           <div className="mt-4 rounded-xl border border-border p-4" data-testid="inspection-result">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">AI inspection proposal</p>
+              <p className="text-sm font-medium">{t("rental.move.aiProposal")}</p>
               <span className="text-xs text-subtle">
-                confidence {(report.confidence * 100).toFixed(0)}% · {report.mock ? "demo inspector (no AI key configured)" : `vision model: ${report.provider}`}
+                {t("rental.move.confidence", { pct: (report.confidence * 100).toFixed(0) })}
+                {report.mock ? t("rental.move.demoInspector") : t("rental.move.visionModel", { provider: report.provider })}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-subtle">Back to renter</p>
+                <p className="text-xs text-subtle">{t("rental.move.backToRenter")}</p>
                 <Amount value={BigInt(report.tenantRefund)} />
               </div>
               <div>
-                <p className="text-xs text-subtle">Owner keeps</p>
+                <p className="text-xs text-subtle">{t("rental.move.ownerKeeps")}</p>
                 <Amount value={BigInt(report.landlordClaim)} />
               </div>
             </div>
@@ -208,46 +222,46 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
             )}
             {report.memory && <MemoryNote memory={report.memory} stored={report.memoryStored} />}
             {report.inspector && (
-              <p className="mt-3 text-xs text-subtle" data-testid="inspector-identity" title={`Signer ${report.inspector.address}`}>
-                Signed by {report.inspector.name}
-                {report.inspector.agentId !== undefined && <>, ERC-8004 agent #{report.inspector.agentId}</>}. Its identity is
-                registered on BNB Chain, so anyone can check this proposal came from it.
+              <p className="mt-3 text-xs text-subtle" data-testid="inspector-identity" title={t("rental.move.signer", { address: report.inspector.address })}>
+                {t("rental.move.signedBy", { name: report.inspector.name })}
+                {report.inspector.agentId !== undefined && t("rental.move.agentId", { id: String(report.inspector.agentId) })}
+                {t("rental.move.signedAfter")}
               </p>
             )}
             <ActionButton
               className="mt-4"
-              busy={pending === "Submit AI proposal"}
-              onClick={() => propose("Submit AI proposal", BigInt(report.tenantRefund), report.reportHash)}
+              busy={pending === tx.ai}
+              onClick={() => propose(tx.ai, BigInt(report.tenantRefund), report.reportHash)}
               data-testid="submit-ai-proposal"
             >
-              Propose this split on-chain
+              {t("rental.move.submitAi")}
             </ActionButton>
-            <p className="mt-2 text-xs text-subtle">The other side then accepts (paid out at once), counters, or opens a dispute.</p>
+            <p className="mt-2 text-xs text-subtle">{t("rental.move.afterSubmit")}</p>
           </div>
         )}
       </div>
 
       <div className="border-t border-border pt-5">
-        <h3 className="text-sm font-semibold">Propose a split yourself</h3>
+        <h3 className="text-sm font-semibold">{t.h("rental.proposeYourself")}</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Deposit back to renter (USDT)" error={refundError} hint={refundAmount !== undefined && !refundError ? <>Renter gets {money(refundAmount)}, owner keeps {money(deposit - refundAmount)}</> : undefined}>
+          <Field label={t("rental.move.refund")} error={refundError} hint={refundAmount !== undefined && !refundError ? t("rental.move.refundHint", { back: money(refundAmount), kept: money(deposit - refundAmount) }) : undefined}>
             <input name="tenantRefund" inputMode="decimal" className={inputClass} value={refund} onChange={(e) => setRefund(e.target.value)} />
           </Field>
-          <Field label="Reason (its fingerprint is stored on-chain)">
-            <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. full refund, scooter returned in good order" />
+          <Field label={t("rental.move.reason")}>
+            <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("rental.move.reasonPlaceholder")} />
           </Field>
         </div>
         <ActionButton
           className="mt-3"
           variant="secondary"
-          busy={pending === "Propose split"}
+          busy={pending === tx.manual}
           disabledReason={refundError}
           onClick={() =>
-            propose("Propose split", refundAmount!, hashText(JSON.stringify({ tenantRefund: refundAmount!.toString(), reason })))
+            propose(tx.manual, refundAmount!, hashText(JSON.stringify({ tenantRefund: refundAmount!.toString(), reason })))
           }
           data-testid="propose-manual"
         >
-          Propose split
+          {t("rental.move.propose")}
         </ActionButton>
       </div>
     </div>
@@ -257,30 +271,29 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
 function DisputeButton({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   const [confirming, setConfirming] = useState(false);
+  const t = useT();
+  const label = t("rental.move.disputeTx");
   return (
     <div className="border-t border-border pt-5">
-      <h3 className="text-sm font-semibold">Can&apos;t agree?</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Hand the deposit decision to the dispute desk ({lease.terms.arbiterWindow / 86400} days to rule, or the full deposit goes back to the
-        renter). Rent keeps being paid out as scheduled.
-      </p>
+      <h3 className="text-sm font-semibold">{t.h("rental.cantAgree")}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{t("rental.move.disputeBody", { days: lease.terms.arbiterWindow / 86400 })}</p>
       {confirming ? (
         <div className="mt-3 flex flex-wrap gap-3">
           <ActionButton
             variant="danger"
-            busy={pending === "Open dispute"}
-            onClick={() => send("Open dispute", { address: lease.address, abi: rentalEscrowAbi, functionName: "dispute" }).then(() => setConfirming(false))}
+            busy={pending === label}
+            onClick={() => send(label, { address: lease.address, abi: rentalEscrowAbi, functionName: "dispute" }).then(() => setConfirming(false))}
             data-testid="confirm-dispute"
           >
-            Yes, open a dispute
+            {t("rental.move.confirmDispute")}
           </ActionButton>
           <ActionButton variant="secondary" onClick={() => setConfirming(false)}>
-            Cancel
+            {t("rental.move.cancel")}
           </ActionButton>
         </div>
       ) : (
         <ActionButton className="mt-3" variant="danger" onClick={() => setConfirming(true)} data-testid="dispute">
-          Open a dispute
+          {t("rental.move.dispute")}
         </ActionButton>
       )}
     </div>
@@ -289,14 +302,15 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
 
 /** What the inspector remembered about this scooter before judging (Living Brain or local stand-in). */
 function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["memory"]>; stored?: boolean }) {
+  const t = useT();
   return (
     <div className="mt-3 rounded-lg bg-muted p-3 text-xs" data-testid="inspection-memory">
       <p className="font-semibold">
-        Scooter memory · {memory.provider === "living-brain" ? "Living Brain" : "local (Living Brain not configured)"}
+        {t("rental.move.memory", { provider: memory.provider === "living-brain" ? "Living Brain" : t("rental.move.memoryLocal") })}
       </p>
       {memory.recalled.length ? (
         <>
-          <p className="mt-1 text-muted-foreground">Earlier inspections of {memory.scooterId}. Damage listed here is pre-existing and is not charged again:</p>
+          <p className="mt-1 text-muted-foreground">{t("rental.move.memoryRecalled", { id: memory.scooterId })}</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
             {memory.recalled.map((r, i) => (
               <li key={i}>{r}</li>
@@ -304,10 +318,10 @@ function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["
           </ul>
         </>
       ) : (
-        <p className="mt-1 text-muted-foreground">No earlier inspections of {memory.scooterId} on record.</p>
+        <p className="mt-1 text-muted-foreground">{t("rental.move.memoryNone", { id: memory.scooterId })}</p>
       )}
-      {memory.error && <p className="mt-1 text-danger">Memory lookup failed: {memory.error}</p>}
-      <p className="mt-1 text-subtle">{stored ? "This inspection was saved to the scooter's memory." : "This inspection was not saved to memory."}</p>
+      {memory.error && <p className="mt-1 text-danger">{t("rental.move.memoryFailed", { error: memory.error })}</p>}
+      <p className="mt-1 text-subtle">{stored ? t("rental.move.memorySaved") : t("rental.move.memoryNotSaved")}</p>
     </div>
   );
 }
