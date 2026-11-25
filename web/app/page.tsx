@@ -58,6 +58,13 @@ export default function Home() {
           <Link href="/tenant" className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium hover:border-border-hover">
             I&apos;m renting a scooter
           </Link>
+          <Link
+            href="/how-it-works"
+            data-testid="home-eli5"
+            className="rounded-lg border border-amber-300 bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning-fg hover:border-amber-400 dark:border-amber-800"
+          >
+            ▶ Explain it simply
+          </Link>
           <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline">
             How the demo works →
           </a>
@@ -69,7 +76,12 @@ export default function Home() {
       </section>
 
       <section className="mt-12" aria-labelledby="how">
-        <h2 id="how" className="text-lg font-semibold">How it works</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="how" className="text-lg font-semibold">How it works</h2>
+          <Link href="/how-it-works" className="text-sm font-medium text-muted underline-offset-4 hover:underline">
+            Watch it as a 1-minute cartoon →
+          </Link>
+        </div>
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {steps.map((s, i) => (
             <li key={s.title} className="rounded-2xl border border-border bg-surface p-5">
