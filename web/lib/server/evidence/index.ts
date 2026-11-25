@@ -1,0 +1,62 @@
+import type { Env } from "../env";
+import { sha256Hex, type Bytes32Hex } from "../hash";
+import { GreenfieldEvidenceStore, greenfieldConfigFromEnv } from "./greenfield";
+import { LocalEvidenceStore } from "./local";
+import { maxEvidenceBytes, sniffContentType, type EvidenceContentType, type EvidenceStore } from "./types";
+
+export * from "./types";
+export { LocalEvidenceStore } from "./local";
+export { GreenfieldEvidenceStore } from "./greenfield";
+
+let cached: EvidenceStore | null = null;
+
+/** Greenfield when GREENFIELD_* is fully configured, otherwise the local filesystem fallback. */
+export function evidenceStoreFromEnv(env: Env = process.env): EvidenceStore {
+  const gf = greenfieldConfigFromEnv(env);
+  return gf ? new GreenfieldEvidenceStore(gf) : new LocalEvidenceStore();
+}
+
+export function getEvidenceStore(): EvidenceStore {
+  cached ??= evidenceStoreFromEnv();
+  return cached;
+}
+
+export class EvidenceRejectedError extends Error {
+  constructor(
+    message: string,
+    readonly status: 413 | 415 | 400,
+  ) {
+    super(message);
+    this.name = "EvidenceRejectedError";
+  }
+}
+
+export interface EvidenceRecord {
+  hash: Bytes32Hex;
+  size: number;
+  contentType: EvidenceContentType;
+  filename?: string;
+  storage: EvidenceStore["name"];
+  /** Relative URL that serves the bytes back. */
+  url: string;
+}
+
+/** Validate, hash and store one file. Throws EvidenceRejectedError on size/type violations. */
+export async function storeEvidence(
+  store: EvidenceStore,
+  bytes: Uint8Array,
+  filename?: string,
+  maxBytes = maxEvidenceBytes(),
+): Promise<EvidenceRecord> {
+  if (bytes.byteLength === 0) throw new EvidenceRejectedError(`${filename ?? "file"} is empty`, 400);
+  if (bytes.byteLength > maxBytes) {
+    throw new EvidenceRejectedError(`${filename ?? "file"} is ${bytes.byteLength} bytes; limit is ${maxBytes}`, 413);
+  }
+  const contentType = sniffContentType(bytes);
+  if (!contentType) {
+    throw new EvidenceRejectedError(`${filename ?? "file"} is not a PDF, JPEG, PNG or WebP`, 415);
+  }
+  const hash = sha256Hex(bytes);
+  await store.put(hash, bytes, contentType);
+  return { hash, size: bytes.byteLength, contentType, filename, storage: store.name, url: `/api/evidence/${hash}` };
+}

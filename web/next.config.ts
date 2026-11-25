@@ -13,6 +13,8 @@ const unusedOptionalDeps = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  // Greenfield SDK (cosmjs/protobuf) is loaded lazily on the server only; keep it out of the bundle.
+  serverExternalPackages: ["@bnb-chain/greenfield-js-sdk"],
   turbopack: {
     rules: {
       "*.css": {
