@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Notice } from "@/components/ui";
 import type { CournotStoredResult, CournotView } from "@/lib/risk";
 
@@ -13,10 +14,16 @@ export function CournotEvidence({ view, cmcBuffer, cournotBuffer }: { view: Cour
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const r = view.result;
+  const { confirm, dialog } = useConfirm();
 
   async function ask() {
     if (!view.claim) return;
-    if (!window.confirm(`Ask Cournot live?\n\n"${view.claim}"\n\nThis uses one of the 3 free Cournot calls for this server's IP.`)) return;
+    const ok = await confirm({
+      title: "Ask Cournot live?",
+      description: `"${view.claim}"\n\nThis uses one of the 3 free Cournot calls for this server's IP.`,
+      confirmLabel: "Ask Cournot",
+    });
+    if (!ok) return;
     setBusy(true);
     setError(null);
     try {
@@ -33,6 +40,7 @@ export function CournotEvidence({ view, cmcBuffer, cournotBuffer }: { view: Cour
 
   return (
     <div className="rounded-xl border border-border p-4 text-sm" data-testid="cournot-panel">
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium">Cournot Intelligence Oracle</p>
         <span className="text-xs text-subtle">{r ? `${r.source === "live" ? "live call" : "stored answer"} · ${new Date(r.at).toUTCString()}` : "no answer yet"}</span>

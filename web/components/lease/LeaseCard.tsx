@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -45,7 +46,7 @@ export function LeaseCard({ address }: { address: Address }) {
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{nextStep(lease, viewer)}</p>
-      <span className="text-xs font-medium text-subtle group-hover:text-foreground">Open rental →</span>
+      <span className="text-xs font-medium text-subtle group-hover:text-foreground">Open rental <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" /></span>
     </Link>
   );
 }

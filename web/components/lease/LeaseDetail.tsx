@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -39,8 +40,9 @@ export function LeaseDetail({ address }: { address: Address }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-subtle">
-            <Link href={viewer ? `/${viewer}` : "/"} className="hover:underline">
-              ← {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
+            <Link href={viewer ? `/${viewer}` : "/"} className="inline-flex items-center gap-1 hover:underline">
+              <ArrowLeft aria-hidden className="size-3.5" />
+              {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
             </Link>
           </p>
           <h1 className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">

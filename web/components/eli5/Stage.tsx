@@ -35,7 +35,7 @@ function HolderLabel({ x, name, value, show = 1, small }: { x: number; name: str
   if (show <= 0) return null;
   return (
     <g opacity={show} textAnchor="middle">
-      <text x={x} y={FLOOR + 30} fontSize={small ? 16 : 19} fontWeight={600} fill="var(--muted)">
+      <text x={x} y={FLOOR + 30} fontSize={small ? 16 : 19} fontWeight={600} fill="var(--muted-foreground)">
         {name}
       </text>
       <text x={x} y={FLOOR + 59} fontSize={small ? 22 : 28} fontWeight={800} fill="var(--foreground)" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -65,13 +65,13 @@ function SplitBubble({ x, y, title, split, p, reduced, tx, ty, testId }: { x: nu
   return (
     <Enter p={p} x={x} y={y} reduced={reduced} testId={testId}>
       <Bubble w={250} h={112} tx={tx} ty={ty}>
-        <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted)">
+        <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted-foreground)">
           {title}
         </text>
-        <text x={18} y={64} fontSize={21} fontWeight={800} className="fill-teal-700 dark:fill-teal-300">
+        <text x={18} y={64} fontSize={21} fontWeight={800} className="fill-split-owner-text">
           {copy.bubbles.toLandlord(baht(split[0]))}
         </text>
-        <text x={18} y={94} fontSize={21} fontWeight={800} className="fill-violet-700 dark:fill-violet-300">
+        <text x={18} y={94} fontSize={21} fontWeight={800} className="fill-split-renter-text">
           {copy.bubbles.toTenant(baht(split[1]))}
         </text>
       </Bubble>
@@ -268,13 +268,13 @@ function RecapCard({ ending }: { ending: Ending }) {
   const rows = recapLines(ending);
   return (
     <g>
-      <rect x={-300} y={-108} width={600} height={216} rx={22} fill="var(--surface-muted)" stroke="var(--border-strong)" strokeWidth={3} />
+      <rect x={-300} y={-108} width={600} height={216} rx={22} fill="var(--muted)" stroke="var(--border-strong)" strokeWidth={3} />
       <text x={0} y={-72} textAnchor="middle" fontSize={22} fontWeight={800} fill="var(--foreground)">
         {copy.recapTitle}
       </text>
       {rows.map((r, i) => (
         <g key={r.who} transform={`translate(0 ${-34 + i * 38})`}>
-          <text x={-270} y={0} fontSize={20} fontWeight={700} fill="var(--muted)">
+          <text x={-270} y={0} fontSize={20} fontWeight={700} fill="var(--muted-foreground)">
             {r.who}
           </text>
           <text x={40} y={0} textAnchor="end" fontSize={22} fontWeight={800} fill="var(--foreground)" style={{ fontVariantNumeric: "tabular-nums" }}>

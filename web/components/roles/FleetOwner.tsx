@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
@@ -152,7 +153,7 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
         </div>
         {current && (
           <Link href={`/lease/${current.address}`} className="block text-xs underline-offset-2 hover:underline">
-            Current rental {shortAddress(current.address)} →
+            Current rental {shortAddress(current.address)} <ArrowRight aria-hidden className="inline size-3 align-[-1px]" />
           </Link>
         )}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useReducer, useSyncExternalStore } from "react";
 import { baht, copy, dollars, ENDINGS, story, type Ending, type Scene } from "./script";
@@ -217,15 +218,18 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
             </button>
             {done ? (
               <button type="button" onClick={() => dispatch({ type: "replay" })} className={primaryBtn} data-testid="eli5-replay">
-                ↺ {copy.replay}
+                <RotateCcw aria-hidden className="size-4" />
+                {copy.replay}
               </button>
             ) : (
               <button type="button" onClick={() => dispatch({ type: "toggle" })} className={primaryBtn} data-testid="eli5-play" aria-pressed={s.playing}>
-                {s.playing ? `❚❚ ${copy.pause}` : `▶ ${copy.play}`}
+                {s.playing ? <Pause aria-hidden className="size-4 fill-current" /> : <Play aria-hidden className="size-4 fill-current" />}
+                {s.playing ? copy.pause : copy.play}
               </button>
             )}
             <button type="button" onClick={() => dispatch({ type: "next" })} disabled={s.index === last} className={secondaryBtn} data-testid="eli5-next" aria-label={copy.next}>
-              {copy.next} ▶
+              {copy.next}
+              <Play aria-hidden className="size-3.5 fill-current" />
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -238,9 +242,9 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                     aria-label={copy.goTo(i + 1)}
                     aria-current={i === s.index ? "step" : undefined}
                     data-testid="eli5-dot"
-                    className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-10 bg-surface-strong" : i < s.index ? "w-3 bg-amber-400" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
+                    className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-10 bg-surface-strong" : i < s.index ? "w-3 bg-highlight" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
                   >
-                    {i === s.index && <span className="absolute inset-y-0 left-0 bg-amber-400" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}
+                    {i === s.index && <span className="absolute inset-y-0 left-0 bg-highlight" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}
                   </button>
                 </li>
               ))}
@@ -257,4 +261,4 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
 const secondaryBtn =
   "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border-strong bg-surface px-4 py-2 text-base font-medium hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-40";
 const primaryBtn =
-  "inline-flex min-h-11 min-w-32 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-2 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300";
+  "inline-flex min-h-11 min-w-32 items-center justify-center gap-2 rounded-xl bg-highlight px-5 py-2 text-base font-semibold text-highlight-foreground shadow-sm transition hover:bg-highlight-hover";

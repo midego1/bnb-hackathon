@@ -1,3 +1,4 @@
+import { ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
 import { PlayDemoCta } from "@/components/demo/PlayDemoCta";
 import { REPO_URL, docsUrl } from "@/lib/links";
@@ -61,15 +62,16 @@ export default function Home() {
           <Link
             href="/how-it-works"
             data-testid="home-eli5"
-            className="rounded-lg border border-amber-300 bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning-fg hover:border-amber-400 dark:border-amber-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-highlight-edge bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning-fg hover:border-highlight"
           >
-            ▶ Explain it simply
+            <Play aria-hidden className="size-3.5 fill-current" />
+            Explain it simply
           </Link>
           <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
-            How the demo works →
+            How the demo works <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </a>
           <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline" data-testid="integrations-link">
-            Risk engine &amp; integrations →
+            Risk engine &amp; integrations <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
         <PlayDemoCta />
@@ -79,13 +81,13 @@ export default function Home() {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="how" className="text-lg font-semibold">How it works</h2>
           <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
-            Watch it as a 1-minute cartoon →
+            Watch it as a 1-minute cartoon <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {steps.map((s, i) => (
             <li key={s.title} className="rounded-2xl border border-border bg-surface p-5">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-amber-400 text-sm font-semibold text-slate-950">{i + 1}</span>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground">{i + 1}</span>
               <h3 className="mt-3 font-semibold">{s.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
             </li>
@@ -116,7 +118,7 @@ export default function Home() {
             >
               <h3 className="font-semibold">{role.title}</h3>
               <p className="mt-1 flex-1 text-sm text-muted-foreground">{role.body}</p>
-              <span className="mt-3 text-sm font-medium text-subtle group-hover:text-foreground">{role.cta} →</span>
+              <span className="mt-3 text-sm font-medium text-subtle group-hover:text-foreground">{role.cta} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" /></span>
             </Link>
           ))}
         </div>

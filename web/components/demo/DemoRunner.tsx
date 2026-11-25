@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -35,10 +36,10 @@ const BETWEEN_MS = 2600;
 const ROLE_SWITCH_TIMEOUT_MS = 10_000;
 
 const actorTone: Record<DemoStep["actor"], string> = {
-  landlord: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
+  landlord: "bg-actor-owner-soft text-actor-owner-fg",
   tenant: "bg-success-soft text-success-fg",
   arbiter: "bg-danger-soft text-danger-fg",
-  inspector: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200",
+  inspector: "bg-actor-inspector-soft text-actor-inspector-fg",
   investor: "bg-info-soft text-info-fg",
   anyone: "bg-muted text-muted-foreground",
 };
@@ -546,7 +547,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
             {!ready && <span className="text-sm text-subtle">{controls.connecting}</span>}
             {!running && phase !== "error" && (
               <BigButton onClick={() => start()} disabled={!ready} testId="demo-play">
-                ▶ {phase === "done" ? controls.playAgain : controls.play}
+                <Play aria-hidden className="size-4 fill-current" />
+                {phase === "done" ? controls.playAgain : controls.play}
               </BigButton>
             )}
             {phase === "waiting" && (
@@ -573,7 +575,7 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         </div>
         {phase !== "idle" && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-muted" aria-hidden>
-            <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+            <div className="h-full bg-highlight transition-all duration-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         )}
       </div>
@@ -674,7 +676,7 @@ function BigButton({ children, onClick, disabled, testId }: { children: ReactNod
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-2 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300"
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-highlight px-5 py-2 text-base font-semibold text-highlight-foreground shadow-sm transition hover:bg-highlight-hover disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}
     </button>
@@ -780,7 +782,7 @@ function Narration({
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold uppercase tracking-wide opacity-70">{panels.stepOf(index + 1, total)}</span>
         <span className={`rounded-full px-2.5 py-0.5 font-semibold ${actorTone[step.actor]}`}>{actorLabel[step.actor]}</span>
-        {step.demoOnly && <span className="rounded-full bg-amber-300 px-2.5 py-0.5 font-semibold text-amber-950 dark:bg-amber-400">{step.demoOnly}</span>}
+        {step.demoOnly && <span className="rounded-full bg-highlight-chip px-2.5 py-0.5 font-semibold text-highlight-foreground">{step.demoOnly}</span>}
         {status === "running" && (
           <span className="inline-flex items-center gap-1 opacity-70">
             <Spinner /> {panels.working}
@@ -824,7 +826,7 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
 function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
   const r = ctx.inspection!;
   return (
-    <section className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900 dark:bg-cyan-950/40" data-testid="demo-inspection">
+    <section className="rounded-xl border border-actor-inspector-border bg-actor-inspector-tint p-4" data-testid="demo-inspection">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold">{inspectionCopy.title}</h3>
         <PriceSourceBadge />
@@ -872,7 +874,7 @@ function Summary({
   const others = (Object.keys(PATHS) as DemoPath[]).filter((p) => p !== ctx.path && (!testnet || testnetPaths.includes(p)));
   return (
     <section
-      className="rounded-2xl border border-emerald-300 bg-surface p-4 shadow-lg dark:border-emerald-800 lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
+      className="rounded-2xl border border-success-border bg-surface p-4 shadow-lg lg:absolute lg:inset-0 lg:z-10 lg:flex lg:flex-col lg:overflow-y-auto tall:p-5 xl:tall:p-6"
       data-testid="demo-summary"
       data-path={ctx.path}
       data-status={settled ? "settled" : "open"}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -156,7 +157,7 @@ function RentalStory({ r, scooter }: { r: RentalSummary; scooter?: Scooter }) {
           </div>
         </div>
         <Link href={`/lease/${r.address}`} className="text-sm font-medium underline-offset-2 hover:underline" data-testid="open-rental">
-          {r.status === LeaseStatus.Created ? "Pay now →" : "Open rental →"}
+          {r.status === LeaseStatus.Created ? "Pay now" : "Open rental"} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
         </Link>
       </div>
       {next && <p className="mt-2 text-sm text-muted-foreground">{next}</p>}

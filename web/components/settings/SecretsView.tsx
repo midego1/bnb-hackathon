@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Card, Notice, PageTitle, Skeleton, inputClass } from "@/components/ui";
 
 /**
@@ -238,14 +239,22 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
     void send({ name: s.name, value }, "save");
   };
 
-  const clear = () => {
-    if (!window.confirm(`Clear ${s.name}? The current value is removed from ${s.files.map((f) => f.label).join(" and ")}.`)) return;
+  const { confirm, dialog } = useConfirm();
+  const clear = async () => {
+    const ok = await confirm({
+      title: `Clear ${s.name}?`,
+      description: `The current value is removed from ${s.files.map((f) => f.label).join(" and ")}.`,
+      confirmLabel: "Clear",
+      destructive: true,
+    });
+    if (!ok) return;
     void send({ name: s.name, action: "clear" }, "clear");
   };
 
   const id = `secret-${s.name}`;
   return (
     <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0" data-testid={id}>
+      {dialog}
       <div className="flex flex-wrap items-center gap-2">
         <code className="font-mono text-sm font-semibold">{s.name}</code>
         {s.files.length === 1 ? (
@@ -294,7 +303,7 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
           <ActionButton type="submit" busy={busy === "save"} disabled={busy !== null} data-testid="secret-save">
             Save
           </ActionButton>
-          <ActionButton type="button" variant="danger" busy={busy === "clear"} disabled={busy !== null || !s.files.some((f) => f.set)} onClick={clear} data-testid="secret-clear">
+          <ActionButton type="button" variant="danger" busy={busy === "clear"} disabled={busy !== null || !s.files.some((f) => f.set)} onClick={() => void clear()} data-testid="secret-clear">
             Clear
           </ActionButton>
         </div>
@@ -358,8 +367,16 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
   const [restarting, setRestarting] = useState<Record<string, "restarting" | "back" | "slow" | undefined>>({});
   const [error, setError] = useState<string | null>(null);
 
+  const { confirm, dialog } = useConfirm();
+
   const restart = async (u: Unit) => {
-    if (!window.confirm(`Restart ${u.unit} (${u.label})? The page there is unavailable for a few seconds.`)) return;
+    const ok = await confirm({
+      title: `Restart ${u.unit} (${u.label})?`,
+      description: "The page there is unavailable for a few seconds.",
+      confirmLabel: "Restart",
+      destructive: true,
+    });
+    if (!ok) return;
     setError(null);
     setRestarting((r) => ({ ...r, [u.unit]: "restarting" }));
     const before = u.since;
@@ -386,6 +403,7 @@ function Units({ units, reload }: { units: Unit[]; reload: () => Promise<Listing
 
   return (
     <Card title="Services">
+      {dialog}
       <p className="mb-3 text-sm text-muted-foreground">A new value is used after the service that reads it restarts.</p>
       <ul className="flex flex-col gap-2">
         {units.map((u) => {

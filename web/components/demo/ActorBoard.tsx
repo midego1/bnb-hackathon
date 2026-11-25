@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import type { DemoActor } from "@/lib/demo/script";
 import { formatFiat, toFiat } from "@/lib/fiat";
 import { formatUsdt } from "@/lib/format";
@@ -34,12 +35,12 @@ export function deltas(base: Wallets | null, now: Wallets | null): Partial<Recor
 }
 
 export const tone: Record<WalletKey | "arbiter" | "inspector", string> = {
-  landlord: "bg-violet-500",
-  tenant: "bg-emerald-500",
-  escrow: "bg-amber-500",
-  treasury: "bg-sky-500",
-  arbiter: "bg-rose-500",
-  inspector: "bg-cyan-500",
+  landlord: "bg-actor-owner",
+  tenant: "bg-actor-renter",
+  escrow: "bg-actor-escrow",
+  treasury: "bg-actor-treasury",
+  arbiter: "bg-actor-desk",
+  inspector: "bg-actor-inspector",
 };
 
 /** Which card lights up for the actor of the current step. */
@@ -87,12 +88,12 @@ const cardBase = "relative overflow-hidden rounded-xl border transition-shadow";
 /** The acting card: amber ring and tint. A receiving card: green ring and tint. */
 const ring = (active: boolean, receiving = false) =>
   active
-    ? "border-amber-400 bg-amber-50 ring-2 ring-amber-400 dark:border-amber-500 dark:bg-amber-950/40 dark:ring-amber-500"
+    ? "border-highlight-ring bg-highlight-soft ring-2 ring-highlight-ring"
     : receiving
-      ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500 dark:border-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-500"
+      ? "border-settled-edge bg-settled-soft ring-2 ring-settled-edge"
       : "border-border bg-surface";
 const tag = (active: boolean, receiving: boolean) => (active ? guidedCopy.acting : receiving ? guidedCopy.receiving : undefined);
-const tagTone = (active: boolean) => (active ? "font-semibold text-amber-800 dark:text-amber-300" : "font-semibold text-emerald-800 dark:text-emerald-300");
+const tagTone = (active: boolean) => (active ? "font-semibold text-highlight-text" : "font-semibold text-settled-text");
 
 function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; value?: bigint; delta?: bigint; active: boolean; receiving: boolean }) {
   const { prices } = usePrices();
@@ -111,7 +112,7 @@ function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; val
         <span
           key={`${value}`}
           aria-hidden
-          className={`demo-flash pointer-events-none absolute inset-0 ${delta > ZERO ? "bg-emerald-400/25 dark:bg-emerald-500/20" : "bg-rose-400/25 dark:bg-rose-500/20"}`}
+          className={`demo-flash pointer-events-none absolute inset-0 ${delta > ZERO ? "bg-flash-up" : "bg-flash-down"}`}
         />
       )}
       <div className="relative flex items-center justify-between gap-2">
@@ -174,7 +175,7 @@ export function FlowStrip({ base, wallets }: { base: Wallets | null; wallets: Wa
   const to = keys.filter((k) => d[k]! > ZERO);
   const minted = keys.reduce((s, k) => s + d[k]!, ZERO); // > 0 only when the faucet created tokens
   const chip = (label: string, v: bigint, k: string) => (
-    <span key={k} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-0.5 dark:bg-slate-900/60">
+    <span key={k} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface/70 px-2.5 py-0.5 dark:bg-surface/60">
       <span className="font-medium">{label}</span>
       <span className={`font-semibold tabular-nums ${v > ZERO ? "text-success" : "text-danger"}`}>
         {v > ZERO ? "+" : "−"}
@@ -191,9 +192,7 @@ export function FlowStrip({ base, wallets }: { base: Wallets | null; wallets: Wa
         <>
           {minted > ZERO && chip(actorCards.faucet, -minted, "faucet")}
           {from.map((k) => chip(actorCards[k].name, d[k]!, k))}
-          <span aria-hidden className="text-lg font-semibold">
-            →
-          </span>
+          <ArrowRight aria-hidden className="size-5 shrink-0" strokeWidth={2.5} />
           {to.map((k) => chip(actorCards[k].name, d[k]!, k))}
         </>
       )}

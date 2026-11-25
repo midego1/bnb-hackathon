@@ -89,7 +89,7 @@ export function EvidenceThumb({ photo }: { photo: EvidenceView }) {
           // eslint-disable-next-line @next/next/no-img-element -- content-addressed evidence (API) or bundled demo file
           <img src={photo.src} alt={photo.label ? `${photo.label} photo` : `Photo ${short}`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
         )}
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-slate-950/70 px-2 py-1 font-mono text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-overlay/70 px-2 py-1 font-mono text-[10px] text-overlay-foreground opacity-0 transition group-hover:opacity-100">
           {photo.hash}
         </span>
       </a>
