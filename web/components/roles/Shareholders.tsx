@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
+import { PayeeMrrKpi } from "@/components/subscriptions/OwnerSubscriptions";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
 import { fleetVaultAbi, mockUsdtAbi } from "@/lib/contracts";
@@ -51,7 +52,7 @@ export function Shareholders() {
         <AddressTag address={vault.address} chainId={chainId} label={vault.symbol} />
         <span>· operator fee {(vault.operatorFeeBps / 100).toFixed(0)}% for maintenance</span>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Vault TVL" testId="vault-tvl" hint="stablecoin held by the vault"><Amount value={vault.totalAssets} /></Kpi>
         <Kpi label="Income to shareholders" testId="vault-earned" hint="rent + damage payouts, after the operator fee"><Amount value={earned} /></Kpi>
         <Kpi label="Yield so far" testId="vault-yield" hint="income ÷ principal, not annualised">
@@ -60,6 +61,7 @@ export function Shareholders() {
         <Kpi label="Shares outstanding" testId="vault-supply" hint={`1 ${vault.symbol} = 1 USDT principal`}>
           {formatUsdt(vault.totalSupply)}
         </Kpi>
+        <PayeeMrrKpi payee={vault.address} />
       </div>
 
       <WalletGate what="buy fleet shares and claim income">

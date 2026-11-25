@@ -21,6 +21,21 @@ export type Scooter = {
   createdAt: string;
   /** On-chain rentals (escrow addresses) of this scooter, oldest first. */
   rentals: Address[];
+  /** Offered as a subscription (see lib/subscriptions.ts). */
+  plan?: Plan;
+};
+
+/** Rent rhythm in days. The escrow contract pays every 30 days; 7 and 14 arrive with contract v2. */
+export type Rhythm = 7 | 14 | 30;
+
+/** A subscription offer: a long rental paid per period, cancelled any time through the normal return check. */
+export type Plan = {
+  /** Price per period (a month while the rhythm is 30 days), in THB. */
+  priceThb: number;
+  depositThb: number;
+  /** Rental term in periods: the escrow's termMonths. */
+  maxPeriods: number;
+  periodDays: Rhythm;
 };
 
 export type BookingStatus = "requested" | "offered" | "declined";
@@ -32,6 +47,8 @@ export type Booking = {
   status: BookingStatus;
   /** Escrow the owner created for this booking. */
   lease?: Address;
+  /** Set when this is a subscription: the scooter's plan at the moment the renter subscribed. */
+  subscription?: Plan;
 };
 
 export type FleetData = { scooters: Scooter[]; bookings: Booking[] };
@@ -39,6 +56,8 @@ export type FleetData = { scooters: Scooter[]; bookings: Booking[] };
 export type FleetAction =
   | { action: "addScooter"; owner: Address; name: string; location: string; rentThb: number; depositThb: number; vault: boolean; photo?: string }
   | { action: "book"; scooterId: string; renter: Address }
+  | { action: "offerPlan"; scooterId: string; plan: Plan }
+  | { action: "subscribe"; scooterId: string; renter: Address }
   | { action: "offer"; bookingId: string; lease: Address }
   | { action: "decline"; bookingId: string }
   | { action: "linkRental"; scooterId: string; lease: Address };
