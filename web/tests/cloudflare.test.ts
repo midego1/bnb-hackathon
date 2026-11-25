@@ -257,6 +257,18 @@ describe("demo-testnet run store: SharedRunStore behaves like MemoryRunStore", (
     expect(await errOf(() => store.begin({ id: "c", owner: "browser-B", path: "happy", now: 4_000 }))).toMatchObject({ status: 429 });
   });
 
+  it.each(stores)("%s: one IP cannot use up the hourly cap with same-browser restarts", async (_n, make) => {
+    const store = make();
+    for (let i = 0; i < 4; i++) await store.begin({ id: `r${i}`, owner: "browser-A", ip: "203.0.113.7", path: "happy", now: i * 1_000 });
+    const e = await errOf(() => store.begin({ id: "r4", owner: "browser-A", ip: "203.0.113.7", path: "happy", now: 5_000 }));
+    expect(e).toMatchObject({ status: 429, code: "rate-limited" });
+    expect(e?.message).toContain("You started");
+    // Another visitor is not affected by that cap (only by the lock: the run is still live).
+    await store.end("r3");
+    const later = 61_000 + 3_000;
+    expect((await store.begin({ id: "o1", owner: "browser-B", ip: "198.51.100.1", path: "happy", now: later })).run.id).toBe("o1");
+  });
+
   it("SharedRunStore persists the runner's changes (bigint gas) and frees an idle run", async () => {
     const { ns, storage } = fakeNamespace();
     const store = new SharedRunStore(cfg, () => new DurableObjectState(ns));

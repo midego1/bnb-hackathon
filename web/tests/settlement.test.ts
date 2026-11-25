@@ -7,6 +7,7 @@ import { POST } from "@/app/api/settlement/route";
 import { LocalEvidenceStore, storeEvidence } from "@/lib/server/evidence";
 import { canonicalJson, sha256Hex } from "@/lib/server/hash";
 import { proposeSettlement, SettlementRequestSchema, visionProviderFromEnv, type VisionProvider } from "@/lib/server/settlement";
+import { getSharedState, hitRateLimit } from "@/lib/server/state";
 import type { VisionAssessmentInput } from "@/lib/server/settlement/vision";
 
 const h = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;
@@ -136,6 +137,9 @@ describe("POST /api/settlement", () => {
     expect(BigInt(body.tenantRefund) + BigInt(body.landlordClaim)).toBe(BigInt(1_000_000_000));
     expect(body.decimals).toBe(6);
     expect(body.currency).toBe("USDT");
+    // Notes steer the model, so they are inside the hashed (and signed) report.
+    const noted = await (await post({ deposit: "1000000000", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(9) }], notes: "renter admits a scratch" })).json();
+    expect(noted.notes).toBe("renter admits a scratch");
   });
 
   it("rejects invalid input", async () => {
@@ -149,5 +153,17 @@ describe("POST /api/settlement", () => {
     const res = await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(1) }], extra: true });
     expect(res.status).toBe(400);
     expect((await res.json()).details).toBeInstanceOf(Array);
+  });
+
+  it("limits live (paid) inspections per caller IP, before calling the model", async () => {
+    for (let i = 0; i < 10; i++) await hitRateLimit(getSharedState(), "settlement:local", { limit: 10, windowMs: 3_600_000 });
+    process.env.ANTHROPIC_API_KEY = "test";
+    try {
+      expect((await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(2) }] })).status).toBe(429);
+    } finally {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+    // The mock costs nothing and stays unlimited.
+    expect((await post({ deposit: "10", checkIn: [{ hash: h(1) }], checkOut: [{ hash: h(2) }] })).status).toBe(200);
   });
 });

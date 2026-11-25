@@ -123,6 +123,20 @@ vault. The operator takes 10 % (฿306) and shareholders share ฿2,754. A ฿1,
 | **4. Rental shops and partners** | 2027 → | Shop onboarding and multi-scooter tools (bulk listing, accounting exports) as a B2B subscription. Rental associations as named arbiters. Integrations with booking sites and AI travel agents through the MCP / REST actions. |
 | **5. Insurance** | after mainnet | Partner insurers cover damage above the deposit, priced from each scooter's inspection history. Insurers can also act as named arbiters. |
 
+### Fiat on-ramp via a licensed Thai partner
+
+Most renters in Thailand have no crypto. They should be able to pay the deposit and rent in baht with PromptPay, the
+national QR bank transfer, and never see a token. A licensed Thai partner (a regulated digital-asset or payment
+operator) takes the baht, converts it to the stablecoin and sends it to the renter's own wallet (an embedded wallet in
+phase 3); the renter's wallet then funds the escrow as today. KeyEscrow never holds the baht or the keys, and the
+partner handles KYC and the licence. Refunds go back out the same way (stablecoin to baht).
+
+The app already shows the flow as a clearly labelled **demo** (`/app/pay/<rental>`, "Pay with PromptPay (demo)" on a
+rental awaiting funding): the baht amount at the current USDT/THB rate, a PromptPay-style QR to a fake all-zero id, a
+countdown, and "I've paid", which mints test mUSDT to the renter on local anvil or BSC testnet. No real money moves and
+no payment provider is connected. Next steps: pick a partner, agree on the payment-confirmation webhook, and replace the
+test mint with the partner's stablecoin delivery.
+
 Other markets with the same passport-as-deposit problem (Bali, Vietnam) come after Thailand works.
 
 ## Risks and mitigations

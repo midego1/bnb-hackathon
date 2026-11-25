@@ -58,7 +58,7 @@ Line numbers refer to the fixed code on this branch.
 | KE-09 | Info | `RentalEscrow.sol` (whole contract) | Tokens sent to an escrow directly (not through `fund`/`payRent`) are never accounted for and stay stuck, also after settlement. | Acknowledged (no sweep on purpose: no admin over escrows). |
 | KE-10 | Info | `RentalEscrow.sol:435`, `FleetVault.sol:178-181` | **Rounding.** The fee rounds down (at most 1 base unit in the owner's favour; 0 for rent below 10 base units). The vault's per-share accumulator rounds down; the dust stays in `reservedIncome`, so claims can never exceed the balance. | By design; covered by `invariant_solvent` and the vault exit check. |
 | KE-11 | Info | `RentalEscrow.sol:378-383`, `:446-465` | Month 1 is due at funding, so every settlement pays it to the owner (non-refundable first month) and the one-time fee is always charged eventually. | By design; worth saying in the renter UI. |
-| KE-12 | Info | `FleetVault.sol:172-176` | Income that arrives while no shares exist goes to the first depositor(s) at the next sync. With KE-01 this can no longer be taken atomically. | By design (documented in the contract). |
+| KE-12 | High | `FleetVault.sol:173-180` | **Income in an empty vault could be taken.** Income that arrived while no shares existed waited for the next sync and was then credited to the first depositor(s). `claim` has no lock (KE-01 locks only redeem and transfer), so a 1-unit `deposit` followed by `claim` took all of it, e.g. 900 of 1,000 USDT of rent, or front-ran the first real investor. | Fixed (needs a vault redeploy): with no shares, `_sync` sends that income to the operator (`test_orphanIncome_cannotBeTakenByATinyDeposit`). |
 | KE-13 | Info | `EscrowFactory.sol:106` | A payee that cannot use the token (e.g. the escrow's own address, predictable from the factory nonce) only hurts the owner who chose it; renter funds are unaffected. | Acknowledged (self-harm only). |
 
 Checked and found sound (no finding):
@@ -163,6 +163,7 @@ fixes reach users only through new deployments. The ABI changes are additive (ne
 | KE-01 share lock | New `FleetVault` | The current vault keeps instant redeem. Rentals created with it as payee keep paying into it (payee is fixed per escrow). |
 | KE-02 hard response deadline | New `EscrowFactory` (deploys a new `RentalEscrow` implementation) | Existing rentals keep the old, raceable deadline. |
 | KE-03 payee check | New `EscrowFactory` | The current factory still accepts any non-zero payee. |
+| KE-12 empty-vault income to the operator | New `FleetVault` (no ABI change) | The current vault still credits income that reaches it with no shares to the next depositor, who can claim it at once. |
 
 After a redeploy: update `contracts/deployments/97.json`, run `pnpm -C web sync:contracts`, and re-seed the
 testnet demo.
