@@ -61,6 +61,9 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       ...Object.fromEntries(unusedOptionalDeps.map((dep) => [dep, "./lib/stubs/empty.js"])),
       ...(cloudflare ? { "@bnb-chain/greenfield-js-sdk": "./lib/stubs/greenfield-unavailable.js" } : {}),
+      // Base Account wallet SDK: wagmi imports it only inside connect() in the browser, yet the server bundle carried it
+      // (~95 KB gzip of the Cloudflare Worker). The server gets the empty stub; the browser keeps the real package.
+      "@base-org/account": { browser: "@base-org/account", default: "./lib/stubs/empty.js" },
     },
   },
 };
