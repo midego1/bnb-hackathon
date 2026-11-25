@@ -201,7 +201,7 @@ async function status(escrow: Address) {
   return Number(await read<number>(escrow, ctx.escrowAbi, "status"));
 }
 
-async function createLease(opts: { arbiter?: Address } = {}): Promise<Address> {
+async function createLease(opts: { arbiter?: Address; rentPeriod?: number } = {}): Promise<Address> {
   const r = await ok(landlord, ctx.factory, ctx.factoryAbi, "createLease", [
     {
       tenant: tenant.address,
@@ -209,7 +209,7 @@ async function createLease(opts: { arbiter?: Address } = {}): Promise<Address> {
       rentAmount: RENT,
       depositAmount: DEPOSIT,
       termPeriods: 12,
-      rentPeriod: 0,
+      rentPeriod: opts.rentPeriod ?? 0, // 0 = monthly (30 days)
       responseWindow: 0, // default 7 days
       arbiterWindow: 0, // default 14 days
       leaseHash: keccak256(toHex("e2e lease")),
@@ -313,6 +313,42 @@ async function happyPath() {
   );
   eq(await status(escrow), Status.Settled, "status after accept");
   return `landlord got 2 months - fee (${fmt(FEE)}) + ${fmt(claim)} claim; tenant got ${fmt(DEPOSIT - claim)} + prepaid month`;
+}
+
+/** Weekly rent: periods fall due every 7 days, the fee is 10% of the monthly equivalent, and the rent clock stops at the return. */
+async function weeklyPath() {
+  const WEEK = 7n * DAY;
+  const escrow = await createLease({ rentPeriod: Number(WEEK) });
+  await fund(escrow, 2n); // weeks 0..2 funded
+  const t0 = await read<bigint>(escrow, ctx.escrowAbi, "startTime");
+  const fee = (RENT * 30n * FEE_BPS) / (7n * 10_000n); // 10% of RENT x 30/7
+
+  let before = await balances(escrow);
+  await ok(keeper, escrow, ctx.escrowAbi, "releaseRent");
+  expectDeltas(before, await balances(escrow), { landlord: RENT - fee, treasury: fee, escrow: -RENT }, "week 1");
+  await setNextTimestamp(t0 + WEEK);
+  before = await balances(escrow);
+  await ok(keeper, escrow, ctx.escrowAbi, "releaseRent");
+  expectDeltas(before, await balances(escrow), { landlord: RENT, escrow: -RENT }, "week 2");
+
+  // Return on day 10; the owner stays silent for the whole 7-day window, past week 3's due date (day 14).
+  await setNextTimestamp(t0 + 10n * DAY);
+  await ok(tenant, escrow, ctx.escrowAbi, "propose", [DEPOSIT, keccak256(toHex("weekly report"))]);
+  await setNextTimestamp(t0 + 17n * DAY);
+  before = await balances(escrow);
+  await ok(keeper, escrow, ctx.escrowAbi, "claimTimeout");
+  // Week 3 fell due after the return: refunded with the full deposit.
+  expectDeltas(before, await balances(escrow), { tenant: DEPOSIT + RENT, escrow: -(DEPOSIT + RENT) }, "weekly settlement");
+  eq(await read<bigint>(ctx.factory, ctx.factoryAbi, "activeValue"), await liveValue(), "factory activeValue = funds still in escrows");
+  return `fee ${fmt(fee)} (10% of ${fmt((RENT * 30n) / 7n)}/month equivalent); week 3, due after the return, refunded`;
+}
+
+/** Everything still held by the escrows this run created (the factory's pilot-cap book must match it). */
+async function liveValue() {
+  const all = await read<Address[]>(ctx.factory, ctx.factoryAbi, "leases", [0n, 1000n]);
+  let sum = 0n;
+  for (const a of all) sum += await balance(a);
+  return sum;
 }
 
 async function disputePath() {
@@ -489,6 +525,7 @@ async function main() {
     const paths: [string, () => Promise<string>][] = [
       ["seed", checkSeed],
       ["happy", happyPath],
+      ["weekly", weeklyPath],
       ["dispute", disputePath],
       ["timeout", landlordTimeoutPath],
       ["fallback", arbiterFallbackPath],

@@ -101,7 +101,9 @@ Checked and found sound (no finding):
 
 Tested in `contracts/test/invariant/` (handlers drive real role addresses with random calls and time jumps
 of up to 45 days; 64 runs x 64 calls per suite) and in the fuzz tests of `RentalEscrow.t.sol` /
-`FleetVault.t.sol`.
+`FleetVault.t.sol`. Every escrow suite also runs with weekly rent and an 18-decimal token (`*Weekly18InvariantTest`),
+the vault suite with an 18-decimal asset (`FleetVault18DecimalsInvariantTest`); the KE-14 and KE-15 invariants were
+checked to fail with their fix removed.
 
 | Invariant | Where |
 | --- | --- |
@@ -115,6 +117,8 @@ of up to 45 days; 64 runs x 64 calls per suite) and in the fuzz tests of `Rental
 | **Vault solvency:** balance >= totalPrincipal + reservedIncome, and >= everything investors can claim now (incl. unsynced income). | `invariant_solvent` |
 | **Vault books:** totalSupply == totalPrincipal == deposits - redeems; income in == distributed + operator fees + unsynced; reservedIncome == distributed - claimed. | `invariant_principalBook`, `invariant_incomeBook` |
 | **Share lock:** no shares ever left an account within `SHARE_LOCK` of its deposit. | `invariant_shareLockHolds` |
+| **Rent clock stops at the move-out (KE-14):** once a propose/dispute started the move-out, rent that falls due later never goes to the owner (only the renter's own early release can pay out more). | `invariant_rentClockStopsAtMoveOut` |
+| **Transfers move no income (KE-15):** a share transfer never changes what the seller or the buyer can claim, unsynced income included. | `invariant_transferMovesNoIncome` |
 | **Everyone can exit:** after any history, all investors can claim and redeem everything; only rounding dust (< 1,000 base units) stays behind. | `afterInvariant` in `FleetVaultInvariantTest` |
 
 ## 5. Static analysis (Slither)

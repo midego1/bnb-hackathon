@@ -56,6 +56,7 @@ export const E2E_WEB_ENV: Record<string, string> = {
   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: "",
   NEXT_PUBLIC_BSC_TESTNET_RPC_URL: "",
   NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL: "",
+  NEXT_PUBLIC_BSC_RPC_URL: "",
 
   // --- Server-side: offline and deterministic. Blank every key so a local one can never call a paid API. ---
   VISION_LLM_PROVIDER: "mock",
