@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CurlExample } from "@/components/CurlExample";
 import { PageTitle } from "@/components/ui";
 import { ACTIONS, toolDescription, type Action } from "@/lib/actions/definitions";
 import { inputJsonSchema } from "@/lib/actions/openapi";
@@ -32,15 +33,6 @@ export default function DevelopersPage() {
       </div>
     </section>
   );
-}
-
-function curl(a: Action): string {
-  const path = `$BASE${API_BASE}/${a.name}`;
-  if (methodOf(a) === "GET") {
-    const qs = new URLSearchParams(Object.entries(a.example).map(([k, v]) => [k, String(v)])).toString();
-    return `curl -s "${path}?${qs}"`;
-  }
-  return `curl -s -X POST "${path}" \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify(a.example)}'`;
 }
 
 function ActionDoc({ action: a }: { action: Action }) {
@@ -80,7 +72,7 @@ function ActionDoc({ action: a }: { action: Action }) {
           ))}
         </tbody>
       </table>
-      <pre className="mt-3 overflow-x-auto rounded-xl bg-surface-muted p-3 text-xs">{curl(a)}</pre>
+      <CurlExample path={`$BASE${API_BASE}/${a.name}`} method={methodOf(a)} example={a.example} />
     </article>
   );
 }

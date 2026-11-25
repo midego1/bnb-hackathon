@@ -7,7 +7,9 @@ import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, PriceSourceBadge, Skeleton, StatusBadge, statusMeta, useMoney } from "@/components/ui";
 import { chainName, explorerLink } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
+import { latestLease, type ChainIndexResponse } from "@/lib/chainIndex";
 import { formatDate } from "@/lib/format";
+import { useChainIndex } from "@/lib/hooks/useChainIndex";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useLease, type LeaseData } from "@/lib/hooks/useLease";
 import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
@@ -20,14 +22,36 @@ import { RentPanel } from "./RentPanel";
 import { ResolvePanel } from "./ResolvePanel";
 import { Timeline } from "./Timeline";
 
+/** Every escrow of the deployment (lowercase) and the newest rental: tells a stale link from a busy RPC. */
+const knownLeases = (ix: ChainIndexResponse) => ({ escrows: new Set(ix.escrows.map((a) => a.toLowerCase())), latest: latestLease(ix)?.lease });
+
 export function LeaseDetail({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
   const { data: lease, error, isLoading, refetch, isFetching } = useLease(deployment ? address : undefined);
+  const { data: known } = useChainIndex(knownLeases);
   const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to the network this rental lives on.</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
+  // A link to a rental of an older deployment (the testnet contracts were redeployed): not an error, point to a live one.
+  if ((error || !lease) && known && !known.escrows.has(address.toLowerCase()))
+    return (
+      <Notice kind="info">
+        <span data-testid="lease-gone">
+          This demo rental no longer exists on {chainName(chainId)}.{" "}
+          {known.latest ? (
+            <Link href={`/lease/${known.latest}`} className="font-medium underline">
+              Open the latest one
+            </Link>
+          ) : (
+            <Link href="/app" className="font-medium underline">
+              Open the app
+            </Link>
+          )}
+        </span>
+      </Notice>
+    );
   if (error || !lease)
     return (
       <div className="space-y-3">
