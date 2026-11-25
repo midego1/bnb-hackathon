@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { handleRun } from "@/lib/assistant/http";
-import { isMocked, modelId } from "@/lib/assistant/model";
+import { ALLOWED_MODELS, isMocked, modelId } from "@/lib/assistant/model";
 import { MOCK_MODEL_ID } from "@/lib/assistant/mock";
 import { assistantDeps } from "@/lib/server/assistant";
 
@@ -13,5 +13,8 @@ export async function POST(req: Request) {
 export async function GET() {
   await connection();
   const mock = isMocked(process.env);
-  return Response.json({ mock, model: mock ? MOCK_MODEL_ID : modelId(process.env) }, { headers: { "cache-control": "no-store" } });
+  return Response.json(
+    { mock, model: mock ? MOCK_MODEL_ID : modelId(process.env), models: ALLOWED_MODELS, default: modelId(process.env) },
+    { headers: { "cache-control": "no-store" } },
+  );
 }

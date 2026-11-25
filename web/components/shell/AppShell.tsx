@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useAccount, useConnect } from "wagmi";
+import { AskAiEntry } from "@/components/assistant/AskAiEntry";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { LogoMark } from "@/components/LogoMark";
 import { ThemeCycleButton, ThemeSwitch } from "@/components/ThemeSwitch";
@@ -111,8 +112,10 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
         </button>
       </div>
 
-      {/* Ask AI (Cmd+J) mounts here; empty until that feature lands. */}
-      <div id="ask-ai-slot" data-ask-ai-slot className="shrink-0 px-3 empty:hidden" />
+      {/* Ask AI: opens the assistant panel (also Cmd+J / Ctrl+J); on a phone the drawer closes first. */}
+      <div id="ask-ai-slot" data-ask-ai-slot className="shrink-0 px-3 empty:hidden">
+        <AskAiEntry onOpen={closeDrawer} />
+      </div>
 
       <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((g) => (

@@ -9,13 +9,14 @@ Code: `web/lib/assistant/` (engine, tools, cards, approvals, limits, demo model)
 
 **Status:** on `main` after this branch: the panel, the demo model, Claude through `@anthropic-ai/sdk`, approvals
 signed by the connected wallet on anvil (31337) or BSC testnet (97), unit tests and a Playwright test with the demo
-model. The entry row for the left sidebar is `AskAiEntry`; until the sidebar shell lands, Ctrl+J / Cmd+J opens it.
+model. It opens from the **Ask AI** row at the top of the sidebar (expanded, icon rail and the phone drawer) or with
+Ctrl+J / Cmd+J.
 
 ## What it does
 
-- **Open / close:** Ctrl+J (Cmd+J on a Mac), or the **Ask AI** entry. On a desktop it is a column on the right and
-  the page reflows beside it (drag its left edge, or **Widen** to half the window); on `/demo` it floats bottom right
-  so the one-screen stage keeps its width; on a phone it is a bottom sheet.
+- **Open / close:** Ctrl+J (Cmd+J on a Mac), or the **Ask AI** row in the sidebar. On a desktop it is a column on the right and
+  the page reflows beside it (drag its left edge, or **Widen** to half the window); on the one-screen stages (`/demo`,
+  `/how-it-works`) it floats bottom right so the stage keeps its width; on a phone it is a bottom sheet.
 - **Reads** run at once: `get_lease`, `list_leases`, `explain_status`, `quote`, and `inspect_return` (the AI return
   inspection over the photos anchored on the rental).
 - **Changes** (`prepare_create_lease`, `prepare_fund`, `prepare_propose_settlement`, `prepare_accept`,
@@ -38,7 +39,19 @@ model. The entry row for the left sidebar is `AskAiEntry`; until the sidebar she
 - **Suggestions** per page (a rental: "Where is my deposit?", "What happens next?"; the renter page: "Find my rental";
   the owner page: "Create a rental"; the dispute desk: "What needs my decision?"; `/demo` and `/how-it-works`:
   "Explain KeyEscrow simply") and **slash commands** `/status`, `/explain`, `/next`, `/new`.
-- **Stop** ends the run at once (and expires a change that waits); **New chat** starts over.
+- **Stop** ends the run at once (and expires a change that waits); **New chat** starts over and keeps the old chat in
+  the history.
+- **History** (the clock button): earlier chats, newest first, with search on their titles. A title is the first
+  message (cut at 80 characters) until you rename it. Opening one shows it read-only with its steps and cards as they
+  were; **Continue this chat** makes it the open chat again; **Delete** asks for a confirmation. It lives in **this
+  browser only** (localStorage, every access guarded: private mode or a full quota just keep less), one list per
+  connected wallet and chain, at most 50 chats, each kept 30 days after its last use; it is never sent to the server
+  and never shared. A change that waited for approval in an earlier chat shows as "Expired, not done" and can never be
+  applied; continuing a chat only makes fresh approvals. After 6 hours without use the panel opens with a new chat.
+- **Model** (the menu next to the title, or `/model`, `/model sonnet`, `/model haiku`): Claude Sonnet 5.5 (default) or
+  Claude Haiku 5.5, per chat. Nothing else: the server allows exactly these two ids, refuses any other pick (Sonnet
+  answers and the panel says so), and `ASSISTANT_MODEL` can only choose between them. With the demo model the menu
+  still shows, labelled "Demo model".
 - Answers render as plain Markdown: no images, HTML or diagrams; an external link always shows its full URL.
 
 ## Safety model
@@ -69,32 +82,35 @@ model. The entry row for the left sidebar is `AskAiEntry`; until the sidebar she
   deposit?", "What should I do next?", "Explain this rental", "Create a rental for 3,400 baht a month with a 6,800
   deposit for 0x…", "Propose the AI split", "Open a dispute", "Go to the dispute desk", "Find my rental", "What needs
   my decision?", "Explain KeyEscrow simply". Offline, free; the panel shows a **Demo model** badge. All tests use it.
-- **Claude** (with a key): `claude-sonnet-5-5` by default, `claude-haiku-5-5` with `ASSISTANT_MODEL`. Streaming, low
-  effort, the system prompt and tool list as a cached prefix (`cache_control`), and the server-side refusal fallback
-  on Sonnet. Needs a real key: free-form questions, other wording, and every prompt the script does not know.
+- **Claude** (with a key): `claude-sonnet-5-5` by default, `claude-haiku-5-5` per chat or with `ASSISTANT_MODEL`.
+  Streaming, low effort, the system prompt and tool list as a cached prefix (`cache_control`). No server-side refusal
+  fallback: it could answer with a model outside the two allowed ones, so a refusal just says the model declined. Needs a real key: free-form questions, other wording, and every prompt the script does not know.
 
 ## Wire format
 
-`POST /api/assistant` `{chatId, message | resume: {approvalId, decision, txHashes?}, context: {path, address, chainId}}`
+`POST /api/assistant` `{chatId, message | resume: {approvalId, decision, txHashes?}, model?, context: {path, address, chainId}}`
 answers with Server-Sent Events, one JSON event per frame: `run_started`, `status` (reading / changing / waiting /
 idle), `step` (read, change, page), `card`, `approval_required` (the card and the exact unsigned steps), `text_delta`,
 `navigate`, `run_finished`, `error`. `POST /api/assistant/reset` `{chatId, approvalOnly?}` expires the waiting change
 (and drops the chat). `GET /api/assistant` says whether the demo model answers. Conversations and approvals live in
 the shared state (`lib/server/state`: memory under Node, the Durable Object on Workers) for 6 hours.
+`inspect_return` calls this app's own `POST /api/settlement`; on Workers through the `WORKER_SELF_REFERENCE` service
+binding (`web/wrangler.jsonc`), since a plain fetch to the Worker's own host is not allowed there.
 
 ## Environment
 
 | Name | Where | Default |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | server env (`web/.env.local`, `/settings/secrets`) | unset: demo model |
-| `ASSISTANT_MODEL` | server env | `claude-sonnet-5-5` (or `claude-haiku-5-5`) |
+| `ASSISTANT_MODEL` | server env | `claude-sonnet-5-5`; only `claude-haiku-5-5` is the other choice |
 | `ASSISTANT_DAILY_TOKENS` | server env | `1000000` |
 | `ASSISTANT_MOCK` | server env | unset; `1` forces the demo model |
 
 ## Tests
 
 `pnpm -C web test` (`tests/assistant.test.ts`: event encoder, approval store, card totals, limits, demo-model
-scripts, untrusted marking, the path allowlist, the engine offline) and `pnpm -C web test:e2e`
+scripts, untrusted marking, the path allowlist, the model allowlist, the history store, the engine offline) and `pnpm -C web test:e2e`
 (`e2e/assistant.spec.ts`: Ctrl+J, a rental card, create → approve → dev wallet signs on the e2e anvil → done card and
-follow along, decline, Stop, edge-light states, light and dark screenshots; `e2e/demo-viewport.spec.ts` with the panel
+follow along, decline, Stop, edge-light states, the sidebar row, the model picker, history open / rename / continue /
+delete, light and dark screenshots; `e2e/demo-viewport.spec.ts` with the panel
 open). Screenshots go to `ASSISTANT_SHOTS` (default `web/test-results/screenshots/ask-ai`).

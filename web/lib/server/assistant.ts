@@ -1,7 +1,7 @@
 import type { EngineDeps } from "@/lib/assistant/engine";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
 import { dailyTokenLimit, TokenBudget } from "@/lib/assistant/limits";
-import { modelFromEnv } from "@/lib/assistant/model";
+import { modelFromEnv, resolveModel } from "@/lib/assistant/model";
 import { casStore, type AssistantStore } from "@/lib/assistant/store";
 import { webActionHost } from "@/lib/server/actions";
 import { cloudflareBinding } from "@/lib/server/platform";
@@ -23,6 +23,7 @@ export function assistantDeps(origin: string, env: Record<string, string | undef
   return {
     store,
     model: modelFromEnv(env),
+    modelFor: (requested) => ({ model: modelFromEnv(env, requested), refused: resolveModel(requested, env).refused }),
     host: webActionHost(),
     budget: new TokenBudget(store, dailyTokenLimit(env)),
     inspect: async (lease: LeaseSnapshot) => {

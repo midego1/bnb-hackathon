@@ -11,7 +11,7 @@ export type StepKind = "read" | "change" | "page";
 export type StepState = "running" | "done" | "failed" | "waiting" | "declined" | "expired";
 
 export type AssistantEvent =
-  | { type: "run_started"; runId: string; chatId: string; model: string; mock: boolean }
+  | { type: "run_started"; runId: string; chatId: string; model: string; mock: boolean; refusedModel?: string }
   | { type: "status"; state: AssistantState; text: string }
   | { type: "step"; id: string; kind: StepKind; label: string; state: StepState; detail?: string }
   | { type: "card"; stepId?: string; card: Card }

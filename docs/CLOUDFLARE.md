@@ -87,6 +87,10 @@ Process memory is per isolate on Workers, so anything that must hold across requ
 - `DurableObjectState`, a client for the **`KeyEscrowState`** Durable Object (`web/cloudflare/state.ts`, binding
   `KEYESCROW_STATE`, one SQLite-backed instance). SQLite-backed Durable Objects are included in the Workers Free plan.
 
+A `WORKER_SELF_REFERENCE` service binding points the Worker at itself: Ask AI's `inspect_return` calls
+`POST /api/settlement` through it (docs/ASSISTANT.md), because `global_fetch_strictly_public` blocks a fetch to the
+Worker's own host.
+
 On top of it, `lib/server/state/index.ts` provides `update` (atomic read-modify-write), locks (`acquireLock`,
 `renewLock`, `releaseLock`, `readLock`: one holder, heartbeat, idle expiry, takeover by the same owner), rate limits
 (`hitRateLimit`, `peekRateLimit`: sliding window plus minimum gap) and small caches (`cacheGet`, `cachePut`).

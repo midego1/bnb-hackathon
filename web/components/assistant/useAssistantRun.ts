@@ -5,26 +5,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address, Hex } from "viem";
 import { useAccount, useConfig } from "wagmi";
 import { sendTransaction, switchChain, waitForTransactionReceipt } from "wagmi/actions";
-import type { ApprovalCard, Card } from "@/lib/assistant/cards";
-import { createEventParser, type AssistantEvent, type AssistantState, type StepKind, type StepState } from "@/lib/assistant/events";
+import { createEventParser, type AssistantEvent, type AssistantState } from "@/lib/assistant/events";
+import {
+  asReopened,
+  browserStorage,
+  CHAT_IDLE_MS,
+  deleteChat as removeStored,
+  historyKey,
+  loadHistory,
+  renameChat as renameStored,
+  upsertChat,
+  type StoredChat,
+} from "@/lib/assistant/history";
+import type { Item } from "@/lib/assistant/items";
 import { friendlyError } from "@/lib/errors";
 
-export type Item =
-  | { kind: "user"; id: string; text: string }
-  | { kind: "text"; id: string; text: string }
-  | { kind: "step"; id: string; stepKind: StepKind; label: string; state: StepState; detail?: string; cards: Card[] }
-  | { kind: "card"; id: string; card: Card }
-  | {
-      kind: "approval";
-      id: string;
-      card: ApprovalCard;
-      txs: { to: string; data: string; value: string }[];
-      state: "waiting" | "signing" | "approved" | "declined" | "expired" | "failed";
-      progress?: string;
-    }
-  | { kind: "navigate"; id: string; path: string; label: string; followed: boolean }
-  | { kind: "notice"; id: string; tone: "error" | "info"; text: string }
-  | { kind: "applied"; id: string; count: number };
+export type { Item };
+
+/** The two models a chat can pick (the server enforces the same list). */
+export const MODEL_CHOICES = [
+  { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", short: "Sonnet 5.5", word: "sonnet" },
+  { id: "claude-haiku-5-5", label: "Claude Haiku 5.5", short: "Haiku 5.5", word: "haiku" },
+] as const;
+export type ModelChoice = (typeof MODEL_CHOICES)[number]["id"];
 
 export type Run = {
   items: Item[];
@@ -32,6 +35,10 @@ export type Run = {
   statusText: string;
   busy: boolean;
   mock: boolean | null;
+  /** The chat's model pick (null = the server's default). */
+  model: ModelChoice | null;
+  defaultModel: ModelChoice;
+  chatId: string;
 };
 
 let seq = 0;
@@ -58,7 +65,13 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
   const [statusText, setStatusText] = useState("");
   const [busy, setBusy] = useState(false);
   const [mock, setMock] = useState<boolean | null>(null);
+  const [model, setModelState] = useState<ModelChoice | null>(null);
+  const [defaultModel, setDefaultModel] = useState<ModelChoice>("claude-sonnet-5-5");
+  const [chatKey, setChatKey] = useState("");
+  const [history, setHistory] = useState<StoredChat[]>([]);
   const chatId = useRef<string>("");
+  const chatCreated = useRef(0);
+  const lastActivity = useRef(0);
   const abort = useRef<AbortController | null>(null);
   const optsRef = useRef(opts);
   const pathRef = useRef(opts.path);
@@ -69,10 +82,16 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
 
   useEffect(() => {
     chatId.current = newChatId();
+    chatCreated.current = Date.now();
+    queueMicrotask(() => setChatKey(chatId.current));
     let alive = true;
     fetch("/api/assistant")
       .then((r) => r.json())
-      .then((b) => alive && setMock(Boolean(b.mock)))
+      .then((b) => {
+        if (!alive) return;
+        setMock(Boolean(b.mock));
+        if (MODEL_CHOICES.some((m) => m.id === b.default)) setDefaultModel(b.default);
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -81,10 +100,25 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
 
   const chainId = walletChain ?? config.chains[0].id;
 
+  // ---- History (this browser only, per wallet and chain) ----------------------------------------------------------
+  const storeKey = historyKey(address, chainId);
+  useEffect(() => {
+    queueMicrotask(() => setHistory(loadHistory(browserStorage(), storeKey)));
+  }, [storeKey]);
+  // Save the open chat after every finished run (never while one is in flight).
+  useEffect(() => {
+    if (busy || !chatKey || !items.some((i) => i.kind === "user")) return;
+    const list = upsertChat(browserStorage(), storeKey, { id: chatKey, items, model: model ?? undefined, createdAt: chatCreated.current || Date.now() });
+    queueMicrotask(() => setHistory(list));
+  }, [busy, items, chatKey, model, storeKey]);
+
   const apply = useCallback((e: AssistantEvent) => {
     switch (e.type) {
       case "run_started":
         setMock(e.mock);
+        if (e.refusedModel) {
+          setItems((xs) => [...xs, { kind: "notice", id: nid(), tone: "info", text: `${e.refusedModel} is not available in Ask AI; Claude Sonnet 5.5 answered.` }]);
+        }
         return;
       case "status":
         setState(e.state);
@@ -134,10 +168,16 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
     }
   }, []);
 
+  const modelRef = useRef<ModelChoice | null>(null);
+  useEffect(() => {
+    modelRef.current = model;
+  }, [model]);
+
   const stream = useCallback(
     async (body: Record<string, unknown>, initial: { state: AssistantState; text: string } = { state: "reading", text: "Thinking…" }) => {
       const ctl = new AbortController();
       abort.current = ctl;
+      lastActivity.current = Date.now();
       setBusy(true);
       setState(initial.state);
       setStatusText(initial.text);
@@ -145,7 +185,7 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
         const res = await fetch("/api/assistant", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ chatId: chatId.current, ...body, context: { path: pathRef.current, address: address ?? null, chainId } }),
+          body: JSON.stringify({ chatId: chatId.current, ...body, ...(modelRef.current ? { model: modelRef.current } : {}), context: { path: pathRef.current, address: address ?? null, chainId } }),
           signal: ctl.signal,
         });
         if (!res.ok || !res.body) {
@@ -199,15 +239,55 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
     setStatusText("");
   }, []);
 
+  /** New chat: the open one stays in the history (saved after its last run); what waited in it expires. */
   const newChat = useCallback(() => {
     abort.current?.abort();
     const old = chatId.current;
     chatId.current = newChatId();
-    void fetch("/api/assistant/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: old }) }).catch(() => {});
+    chatCreated.current = Date.now();
+    setChatKey(chatId.current);
+    void fetch("/api/assistant/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: old, approvalOnly: true }) }).catch(() => {});
     setItems([]);
+    setModelState(null);
     setState("idle");
     setStatusText("");
   }, []);
+
+  /** Continue an earlier chat: it becomes the open chat again; nothing that waited in it can be applied. */
+  const continueChat = useCallback(
+    (id: string) => {
+      const c = loadHistory(browserStorage(), storeKey).find((x) => x.id === id);
+      if (!c) return;
+      abort.current?.abort();
+      const old = chatId.current;
+      void fetch("/api/assistant/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: old, approvalOnly: true }) }).catch(() => {});
+      void fetch("/api/assistant/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: c.id, approvalOnly: true }) }).catch(() => {});
+      chatId.current = c.id;
+      chatCreated.current = c.createdAt;
+      lastActivity.current = Date.now();
+      setChatKey(c.id);
+      setItems(asReopened(c.items));
+      setModelState(MODEL_CHOICES.some((m) => m.id === c.model) ? (c.model as ModelChoice) : null);
+      setState("idle");
+      setStatusText("");
+    },
+    [storeKey],
+  );
+
+  const renameChat = useCallback((id: string, title: string) => setHistory(renameStored(browserStorage(), storeKey, id, title)), [storeKey]);
+  const deleteChat = useCallback(
+    (id: string) => {
+      setHistory(removeStored(browserStorage(), storeKey, id));
+      if (id === chatId.current) newChat();
+    },
+    [newChat, storeKey],
+  );
+  const setModel = useCallback((m: ModelChoice | null) => setModelState(m), []);
+
+  /** Opening the panel after 6 hours without use starts a new chat (the earlier one stays in the history). */
+  const freshen = useCallback(() => {
+    if (!busy && lastActivity.current && Date.now() - lastActivity.current > CHAT_IDLE_MS) newChat();
+  }, [busy, newChat]);
 
   const setApproval = (id: string, patch: Partial<Extract<Item, { kind: "approval" }>>) =>
     setItems((xs) => xs.map((x) => (x.kind === "approval" && x.id === id ? { ...x, ...patch } : x)));
@@ -277,6 +357,6 @@ export function useAssistantRun(opts: { path: string; onNavigate: (path: string,
     [address, config, items, queryClient, stream, walletChain],
   );
 
-  const run: Run = { items, state, statusText, busy, mock };
-  return { run, send, stop, newChat, approve, decline };
+  const run: Run = { items, state, statusText, busy, mock, model, defaultModel, chatId: chatKey };
+  return { run, send, stop, newChat, approve, decline, history, continueChat, renameChat, deleteChat, setModel, freshen };
 }

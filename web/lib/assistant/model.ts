@@ -9,10 +9,12 @@ import { mockModel } from "./mock";
 export type Env = Record<string, string | undefined>;
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
+/** The ONLY models Ask AI may use (server-enforced): no Opus, no Fable, nothing else. */
 export const ALLOWED_MODELS = ["claude-sonnet-5-5", "claude-haiku-5-5"] as const;
+export type AllowedModel = (typeof ALLOWED_MODELS)[number];
 
-/** Models that take the server-side refusal fallback ("default" routes by refusal category). */
-const FALLBACK_CAPABLE = new Set<string>(["claude-sonnet-5-5"]);
+export const isAllowedModel = (m: unknown): m is AllowedModel => typeof m === "string" && (ALLOWED_MODELS as readonly string[]).includes(m);
+
 
 export type ModelRequest = {
   system: string;
@@ -45,18 +47,29 @@ export class ModelError extends Error {
   }
 }
 
-export function modelId(env: Env): string {
+/** The server's default: ASSISTANT_MODEL when it is one of the two allowed models, else Sonnet 5.5. */
+export function modelId(env: Env): AllowedModel {
   const m = env.ASSISTANT_MODEL?.trim();
-  return m && (ALLOWED_MODELS as readonly string[]).includes(m) ? m : DEFAULT_MODEL;
+  return isAllowedModel(m) ? m : DEFAULT_MODEL;
+}
+
+/**
+ * The model for one request: the chat's pick when it is allowed, else the server default. `refused` is true when a
+ * pick was sent that is not on the allowlist (it is never used).
+ */
+export function resolveModel(requested: unknown, env: Env): { id: AllowedModel; refused: boolean } {
+  if (requested === undefined || requested === null || requested === "") return { id: modelId(env), refused: false };
+  if (isAllowedModel(requested)) return { id: requested, refused: false };
+  return { id: DEFAULT_MODEL, refused: true };
 }
 
 export function isMocked(env: Env): boolean {
   return env.ASSISTANT_MOCK === "1" || !env.ANTHROPIC_API_KEY;
 }
 
-export function modelFromEnv(env: Env): AssistantModel {
+export function modelFromEnv(env: Env, requested?: unknown): AssistantModel {
   if (isMocked(env)) return mockModel();
-  return new ClaudeModel(env.ANTHROPIC_API_KEY!, modelId(env));
+  return new ClaudeModel(env.ANTHROPIC_API_KEY!, resolveModel(requested, env).id);
 }
 
 export class ClaudeModel implements AssistantModel {
@@ -65,14 +78,14 @@ export class ClaudeModel implements AssistantModel {
 
   constructor(
     apiKey: string,
-    readonly id: string,
+    readonly id: AllowedModel,
   ) {
+    if (!isAllowedModel(id)) throw new Error("Ask AI only runs on Claude Sonnet 5.5 or Claude Haiku 5.5.");
     // fetch-based client: runs on Node and Workers alike.
     this.client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 1 });
   }
 
   async step(req: ModelRequest): Promise<ModelResponse> {
-    const fallbacks = FALLBACK_CAPABLE.has(this.id);
     const stream = this.client.beta.messages.stream(
       {
         model: this.id,
@@ -82,7 +95,7 @@ export class ClaudeModel implements AssistantModel {
         tools: req.tools as Anthropic.Beta.BetaTool[],
         messages: req.messages as Anthropic.Beta.BetaMessageParam[],
         output_config: { effort: "low" },
-        ...(fallbacks ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+        // No server-side refusal fallback: it could answer with a model outside the two allowed ones.
       },
       { signal: req.signal },
     );

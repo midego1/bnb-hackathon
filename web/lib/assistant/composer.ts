@@ -47,6 +47,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "/explain", description: "Explain this rental in plain words", prompt: "Explain this rental" },
   { name: "/next", description: "What happens next, and who must act?", prompt: "What happens next?" },
   { name: "/new", description: "Start a new chat" },
+  { name: "/model", description: "Pick the model: /model sonnet or /model haiku" },
 ];
 
 /** Commands matching what is typed so far ("/" at the start of the field). */
@@ -56,13 +57,23 @@ export function matchCommands(text: string): SlashCommand[] {
 }
 
 /** What sending `text` means: a new chat, a prompt (commands expand, extra text is appended), or nothing. */
-export function interpret(text: string): { kind: "new" } | { kind: "send"; prompt: string } | { kind: "none" } {
+export function interpret(
+  text: string,
+): { kind: "new" } | { kind: "send"; prompt: string } | { kind: "model"; pick?: "sonnet" | "haiku"; unknown?: string } | { kind: "none" } {
   const t = text.trim();
   if (!t) return { kind: "none" };
   const m = /^(\/[a-z]+)\b\s*(.*)$/is.exec(t);
   if (m) {
     const cmd = SLASH_COMMANDS.find((c) => c.name === m[1].toLowerCase());
     if (cmd?.name === "/new") return { kind: "new" };
+    if (cmd?.name === "/model") {
+      // Only two models; anything else is not a pick (it is never sent anywhere).
+      const arg = m[2].trim().toLowerCase();
+      if (!arg) return { kind: "model" };
+      if (/^(claude[- ])?sonnet( 5\.5| 5-5)?$/.test(arg) || arg === "claude-sonnet-5-5") return { kind: "model", pick: "sonnet" };
+      if (/^(claude[- ])?haiku( 5\.5| 5-5)?$/.test(arg) || arg === "claude-haiku-5-5") return { kind: "model", pick: "haiku" };
+      return { kind: "model", unknown: arg.slice(0, 40) };
+    }
     if (cmd?.prompt) return { kind: "send", prompt: m[2] ? `${cmd.prompt} ${m[2]}` : cmd.prompt };
   }
   return { kind: "send", prompt: t };

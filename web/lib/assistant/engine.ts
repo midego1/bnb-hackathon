@@ -44,6 +44,10 @@ export type EngineDeps = {
   inspect?: (lease: LeaseSnapshot) => Promise<unknown>;
   now?: () => number;
   newId?: () => string;
+  /** Picks the model for a request from the chat's pick (allowlisted); set by the web host. */
+  modelFor?: (requested: unknown) => { model: AssistantModel; refused: boolean };
+  /** A pick that was refused for this run (shown to the person; the default model answered). */
+  refusedModel?: string;
 };
 
 type Emit = (e: AssistantEvent) => void;
@@ -58,7 +62,7 @@ export async function runAssistant(req: RunRequest, deps: EngineDeps, emit: Emit
   const stepId = () => `${runId.slice(0, 8)}-${++stepNo}`;
   const status = (state: AssistantState, text: string) => emit({ type: "status", state, text });
 
-  emit({ type: "run_started", runId, chatId: req.chatId, model: deps.model.id, mock: deps.model.mock });
+  emit({ type: "run_started", runId, chatId: req.chatId, model: deps.model.id, mock: deps.model.mock, ...(deps.refusedModel ? { refusedModel: deps.refusedModel } : {}) });
 
   const chat = await loadChat(deps.store, req.chatId, now());
   let changesApplied = 0;

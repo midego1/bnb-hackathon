@@ -200,3 +200,127 @@ test("light + dark: a rental card and the panel on the renter's rental", async (
   }
   await setTheme(page, "light");
 });
+
+test("the Ask AI row in the sidebar opens the panel: expanded, icon rail and the phone drawer", async ({ page }) => {
+  await page.goto("/tenant");
+  const entry = page.getByTestId("ask-ai-entry");
+  await expect(entry).toBeVisible();
+  await expect(entry).toContainText("Ask AI");
+  await entry.click();
+  await expect(page.getByTestId("assistant-panel")).toBeVisible();
+  await expect(entry).toHaveAttribute("aria-pressed", "true");
+  await entry.click();
+  await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
+
+  // Icon rail: the row is an icon, still named "Ask AI".
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-sidebar", "collapsed");
+  await expect(page.getByRole("button", { name: "Ask AI" })).toBeVisible();
+  await page.getByRole("button", { name: "Ask AI" }).click();
+  await expect(page.getByTestId("assistant-panel")).toBeVisible();
+  await page.screenshot({ path: path.join(SHOTS, "rail-panel-open-light.png") });
+  await page.keyboard.press("ControlOrMeta+j");
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+
+  // Phone: the drawer closes and the panel opens as a bottom sheet.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId("menu-open").click();
+  await page.getByTestId("ask-ai-entry").click();
+  await expect(page.getByTestId("menu-open")).toHaveAttribute("aria-expanded", "false");
+  const sheet = page.getByTestId("assistant-panel");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await page.screenshot({ path: path.join(SHOTS, "mobile-sheet-light.png") });
+});
+
+test("model picker: only Sonnet 5.5 and Haiku 5.5, per chat; /model; the server refuses anything else", async ({ page }) => {
+  await page.goto("/tenant");
+  await openPanel(page);
+  const picker = page.getByTestId("assistant-model");
+  await expect(picker).toContainText("Demo model");
+  await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
+  await picker.click();
+  const menu = page.getByTestId("assistant-model-menu");
+  await expect(menu.getByRole("menuitemradio")).toHaveText(["✓Claude Sonnet 5.5", "Claude Haiku 5.5"]);
+  await page.getByTestId("assistant-model-haiku").click();
+  await expect(picker).toHaveAttribute("data-model", "claude-haiku-5-5");
+  await expect(page.getByTestId("assistant-note")).toContainText("demo model answers");
+  await ask(page, "/model sonnet");
+  await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
+  await ask(page, "/model opus");
+  await expect(page.getByTestId("assistant-note")).toContainText("only offers Claude Sonnet 5.5 and Claude Haiku 5.5");
+  await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
+  // New chat: back to the default.
+  await ask(page, "/model haiku");
+  await page.getByTestId("assistant-new").click();
+  await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
+
+  // The server never uses a model outside the allowlist (here: says so in run_started).
+  const res = await page.request.post("/api/assistant", {
+    data: { chatId: "e2emodelcheck01", message: "Explain KeyEscrow simply", model: "claude-opus-5-5", context: { path: "/", address: null, chainId: 31337 } },
+  });
+  const body = await res.text();
+  expect(body).toContain('"refusedModel":"claude-opus-5-5"');
+  expect(body).not.toContain('"model":"claude-opus-5-5"');
+});
+
+test("history: New chat keeps the chat; open it read-only, rename, continue, delete; old approvals are expired", async ({ page }) => {
+  await page.goto("/landlord");
+  await actAs(page, "landlord");
+  await openPanel(page);
+  await ask(page, CREATE);
+  await expect(page.getByTestId("assistant-approval")).toHaveAttribute("data-state", "waiting");
+  // New chat instead of answering: the old chat goes to the history; its change can never be applied.
+  await page.getByTestId("assistant-new").click();
+  await expect(page.getByTestId("assistant-suggestions")).toBeVisible();
+  await expect(edge(page)).toHaveAttribute("data-assistant-state", "idle");
+  await ask(page, "Explain KeyEscrow simply");
+  await expect(page.getByTestId("assistant-answer").last()).toContainText("Nobody can take the deposit alone");
+
+  await page.getByTestId("assistant-history").click();
+  const items = page.getByTestId("assistant-history-item");
+  await expect(items).toHaveCount(2);
+  await expect(items.first()).toContainText("Explain KeyEscrow simply");
+  await expect(items.nth(1)).toContainText("Create a rental for 3,400 baht");
+  await page.getByTestId("assistant-history-search").fill("rental 3,400");
+  await expect(items).toHaveCount(1);
+  await page.getByTestId("assistant-history-search").fill("");
+
+  // Open read-only: steps and cards as they were, the approval expired, no Approve button, no composer.
+  await items.nth(1).getByTestId("assistant-history-open").click();
+  const ro = page.getByTestId("assistant-panel");
+  await expect(page.getByTestId("assistant-readonly")).toBeVisible();
+  await expect(ro.getByTestId("assistant-approval")).toHaveAttribute("data-state", "expired");
+  await expect(ro.getByTestId("assistant-approval-outcome")).toHaveText("Expired, not done");
+  await expect(ro.getByTestId("assistant-approve")).toHaveCount(0);
+  await expect(page.getByTestId("assistant-input")).toHaveCount(0);
+  await page.screenshot({ path: path.join(SHOTS, "history-readonly-light.png") });
+  await page.getByRole("button", { name: "Back to the history" }).click();
+
+  // Rename, then continue that chat: it becomes the open chat with fresh approvals only.
+  await items.nth(1).getByTestId("assistant-history-rename").click();
+  await page.getByTestId("assistant-history-title-input").fill("Rental for the demo renter");
+  await page.getByTestId("assistant-history-title-input").press("Enter");
+  await expect(items.filter({ hasText: "Rental for the demo renter" })).toHaveCount(1);
+  await page.screenshot({ path: path.join(SHOTS, "history-list-light.png") });
+  await items.filter({ hasText: "Rental for the demo renter" }).getByTestId("assistant-history-open").click();
+  await page.getByTestId("assistant-continue").click();
+  await expect(page.getByTestId("assistant-user").first()).toContainText("Create a rental for 3,400 baht");
+  await expect(page.getByTestId("assistant-approval")).toHaveAttribute("data-state", "expired");
+  await ask(page, CREATE);
+  await expect(page.getByTestId("assistant-approval").last()).toHaveAttribute("data-state", "waiting");
+  await page.getByTestId("assistant-approval").last().getByTestId("assistant-decline").click();
+  await expect(page.getByTestId("assistant-answer").last()).toContainText("did not create the rental");
+
+  // Delete with a confirmation; history is per wallet (the renter's list is separate).
+  await page.getByTestId("assistant-history").click();
+  await expect(items).toHaveCount(2);
+  await items.first().getByTestId("assistant-history-delete").click();
+  await items.first().getByTestId("assistant-history-confirm-delete").click();
+  await expect(items).toHaveCount(1);
+  await actAs(page, "tenant");
+  await expect(page.getByText("No earlier chats in this browser yet.")).toBeVisible();
+  await actAs(page, "landlord");
+  await expect(items).toHaveCount(1);
+});

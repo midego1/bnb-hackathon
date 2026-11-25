@@ -26,9 +26,11 @@ const ContextSchema = z
   .strict();
 
 const chatId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
+/** The chat's model pick; the server only ever uses an allowed one (lib/assistant/model.ts resolveModel). */
+const model = z.string().max(64).optional();
 
 export const RunBodySchema = z.union([
-  z.object({ chatId, message: z.string().trim().min(1).max(LIMITS.maxMessageChars), context: ContextSchema }).strict(),
+  z.object({ chatId, message: z.string().trim().min(1).max(LIMITS.maxMessageChars), model, context: ContextSchema }).strict(),
   z
     .object({
       chatId,
@@ -40,6 +42,7 @@ export const RunBodySchema = z.union([
           error: z.string().max(300).optional(),
         })
         .strict(),
+      model,
       context: ContextSchema,
     })
     .strict(),
@@ -82,9 +85,13 @@ export async function handleRun(req: Request, deps: EngineDeps): Promise<Respons
       ? { chatId: body.chatId, message: body.message, context }
       : { chatId: body.chatId, resume: { ...body.resume, txHashes: body.resume.txHashes as Hex[] | undefined }, context };
 
+  // The chat's model pick, checked against the allowlist; a refused pick is never used (the default answers).
+  const picked = deps.modelFor?.(body.model);
+  const runDeps: EngineDeps = picked ? { ...deps, model: picked.model, refusedModel: picked.refused ? String(body.model).slice(0, 64) : undefined } : deps;
+
   const { stream, emit, close } = eventStream();
   // The run stops when the person presses Stop or closes the tab (the request is aborted).
-  void runAssistant(request, deps, emit, req.signal)
+  void runAssistant(request, runDeps, emit, req.signal)
     .catch((err) => {
       console.error("assistant run crashed", (err as Error)?.message);
       emit({ type: "error", code: "internal_error", message: "Ask AI ran into a problem. Try again." });

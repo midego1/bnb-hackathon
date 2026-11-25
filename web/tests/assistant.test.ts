@@ -8,7 +8,9 @@ import { runAssistant, type EngineDeps } from "@/lib/assistant/engine";
 import { createEventParser, encodeEvent, type AssistantEvent } from "@/lib/assistant/events";
 import { allowRequest, dailyTokenLimit, DEFAULT_DAILY_TOKENS, LIMITS, TokenBudget, usageTokens } from "@/lib/assistant/limits";
 import { mockModel, nextReply, parseIntent } from "@/lib/assistant/mock";
-import { isMocked, modelId, type AssistantModel } from "@/lib/assistant/model";
+import { ClaudeModel, isMocked, modelId, resolveModel, type AssistantModel } from "@/lib/assistant/model";
+import { asReopened, deleteChat, historyKey, HISTORY_MAX_CHATS, HISTORY_TTL_MS, loadHistory, renameChat, searchChats, titleFrom, upsertChat, type StorageLike } from "@/lib/assistant/history";
+import type { Item } from "@/lib/assistant/items";
 import { leaseInView, safeAppPath } from "@/lib/assistant/paths";
 import { SYSTEM_PROMPT } from "@/lib/assistant/prompt";
 import { casStore, memoryStore } from "@/lib/assistant/store";
@@ -216,6 +218,113 @@ describe("model selection", () => {
   });
 });
 
+describe("model allowlist (server-enforced)", () => {
+  it("only Sonnet 5.5 and Haiku 5.5; anything else is refused and Sonnet answers", () => {
+    expect(resolveModel(undefined, {})).toEqual({ id: "claude-sonnet-5-5", refused: false });
+    expect(resolveModel("claude-haiku-5-5", {})).toEqual({ id: "claude-haiku-5-5", refused: false });
+    expect(resolveModel(undefined, { ASSISTANT_MODEL: "claude-haiku-5-5" })).toEqual({ id: "claude-haiku-5-5", refused: false });
+    for (const bad of ["claude-opus-5-5", "claude-fable-5-2", "claude-mythos-5-2", "claude-sonnet-5", "gpt-9", "CLAUDE-SONNET-5-5", 42, {}]) {
+      expect(resolveModel(bad, { ASSISTANT_MODEL: "claude-haiku-5-5" }), String(bad)).toEqual({ id: "claude-sonnet-5-5", refused: true });
+    }
+    // ASSISTANT_MODEL can only choose between the two.
+    expect(modelId({ ASSISTANT_MODEL: "claude-opus-5-5" })).toBe("claude-sonnet-5-5");
+    expect(modelId({ ASSISTANT_MODEL: "claude-fable-5-2" })).toBe("claude-sonnet-5-5");
+    expect(() => new ClaudeModel("k", "claude-opus-5-5" as never)).toThrow(/only runs on/);
+  });
+});
+
+describe("chat history (browser storage)", () => {
+  const mem = (): StorageLike & { data: Map<string, string> } => {
+    const data = new Map<string, string>();
+    return { data, getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v), removeItem: (k) => void data.delete(k) };
+  };
+  const user = (text: string): Item => ({ kind: "user", id: `u-${text}`, text });
+  const T0 = Date.parse("2026-11-25T12:00:00Z");
+
+  it("one list per wallet and chain; titles from the first message, cut at 80", () => {
+    expect(historyKey(OWNER, 97)).toBe(`keyescrow.askai.history.v1:97:${OWNER.toLowerCase()}`);
+    expect(historyKey(undefined, 31337)).toBe("keyescrow.askai.history.v1:31337:none");
+    const st = mem();
+    upsertChat(st, historyKey(OWNER, 97), { id: "a", createdAt: T0, items: [user("x".repeat(120))] }, T0);
+    upsertChat(st, historyKey(RENTER, 97), { id: "b", createdAt: T0, items: [user("renter chat")] }, T0);
+    expect(loadHistory(st, historyKey(OWNER, 97), T0).map((c) => c.id)).toEqual(["a"]);
+    expect(loadHistory(st, historyKey(RENTER, 97), T0).map((c) => c.id)).toEqual(["b"]);
+    expect(loadHistory(st, historyKey(OWNER, 31337), T0)).toEqual([]);
+    expect(loadHistory(st, historyKey(OWNER, 97), T0)[0].title).toHaveLength(80);
+    expect(titleFrom([])).toBe("New chat");
+  });
+
+  it("keeps at most 50 chats, newest first, and drops chats after 30 days", () => {
+    const st = mem();
+    const key = historyKey(OWNER, 97);
+    for (let i = 0; i < 60; i++) upsertChat(st, key, { id: `c${i}`, createdAt: T0, items: [user(`chat ${i}`)] }, T0 + i);
+    const list = loadHistory(st, key, T0 + 100);
+    expect(list).toHaveLength(HISTORY_MAX_CHATS);
+    expect(list[0].id).toBe("c59");
+    expect(list.at(-1)!.id).toBe("c10");
+    expect(loadHistory(st, key, T0 + 59 + HISTORY_TTL_MS)).toEqual([]); // all older than 30 days
+    expect(loadHistory(st, key, T0 + 30 + HISTORY_TTL_MS).map((c) => c.id)).toEqual(Array.from({ length: 29 }, (_, i) => `c${59 - i}`));
+  });
+
+  it("a chat without a message is not stored; rename sticks; delete; search", () => {
+    const st = mem();
+    const key = historyKey(OWNER, 97);
+    expect(upsertChat(st, key, { id: "e", createdAt: T0, items: [] }, T0)).toEqual([]);
+    upsertChat(st, key, { id: "a", createdAt: T0, items: [user("Where is my deposit?")] }, T0);
+    upsertChat(st, key, { id: "b", createdAt: T0, items: [user("Create a rental")] }, T0 + 1);
+    renameChat(st, key, "a", "  My   scooter  deposit ", T0 + 2);
+    upsertChat(st, key, { id: "a", createdAt: T0, items: [user("Where is my deposit?"), user("more")] }, T0 + 3);
+    const list = loadHistory(st, key, T0 + 4);
+    expect(list.map((c) => [c.id, c.title])).toEqual([["a", "My scooter deposit"], ["b", "Create a rental"]]);
+    expect(searchChats(list, "SCOOTER dep").map((c) => c.id)).toEqual(["a"]);
+    expect(searchChats(list, "").map((c) => c.id)).toEqual(["a", "b"]);
+    expect(deleteChat(st, key, "a", T0 + 5).map((c) => c.id)).toEqual(["b"]);
+    deleteChat(st, key, "b", T0 + 6);
+    expect(st.data.has(key)).toBe(false);
+  });
+
+  it("corrupted or unavailable storage gives an empty list, never an error", () => {
+    const st = mem();
+    const key = historyKey(OWNER, 97);
+    for (const bad of ["{not json", "42", '{"a":1}', '[{"id":1},null,"x"]']) {
+      st.data.set(key, bad);
+      expect(loadHistory(st, key, T0)).toEqual([]);
+    }
+    const broken: StorageLike = {
+      getItem: () => {
+        throw new Error("SecurityError");
+      },
+      setItem: () => {
+        throw new Error("QuotaExceededError");
+      },
+      removeItem: () => {
+        throw new Error("SecurityError");
+      },
+    };
+    expect(loadHistory(broken, key, T0)).toEqual([]);
+    expect(() => upsertChat(broken, key, { id: "a", createdAt: T0, items: [user("hi")] }, T0)).not.toThrow();
+    expect(() => deleteChat(broken, key, "a", T0)).not.toThrow();
+    expect(loadHistory(undefined, key, T0)).toEqual([]);
+  });
+
+  it("a full quota drops the oldest chats until it fits", () => {
+    const st = mem();
+    const key = historyKey(OWNER, 97);
+    for (let i = 0; i < 10; i++) upsertChat(st, key, { id: `c${i}`, createdAt: T0, items: [user(`chat ${i}`)] }, T0 + i);
+    const small: StorageLike = { ...st, setItem: (k, v) => (v.length > 1000 ? (() => { throw new Error("QuotaExceededError"); })() : st.setItem(k, v)) };
+    upsertChat(small, key, { id: "new", createdAt: T0, items: [user("new one")] }, T0 + 20);
+    const list = loadHistory(st, key, T0 + 21);
+    expect(list[0].id).toBe("new");
+    expect(list.length).toBeLessThan(11);
+  });
+
+  it("reopened chats show changes that waited as expired: they can never be applied", () => {
+    const approval = (state: "waiting" | "signing" | "approved") => ({ kind: "approval" as const, id: state, card: {} as never, txs: [], state, progress: "x" });
+    const out = asReopened([approval("waiting"), approval("signing"), approval("approved")]);
+    expect(out.map((i) => (i as { state: string }).state)).toEqual(["expired", "expired", "approved"]);
+  });
+});
+
 describe("mock model scripts", () => {
   it("recognises the demo prompts", () => {
     expect(parseIntent("Where is my deposit?").kind).toBe("deposit");
@@ -311,7 +420,11 @@ describe("composer", () => {
     expect(interpret("/new")).toEqual({ kind: "new" });
     expect(interpret("  ")).toEqual({ kind: "none" });
     expect(interpret("/unknown x")).toEqual({ kind: "send", prompt: "/unknown x" });
-    expect(matchCommands("/").map((c) => c.name)).toEqual(["/status", "/explain", "/next", "/new"]);
+    expect(matchCommands("/").map((c) => c.name)).toEqual(["/status", "/explain", "/next", "/new", "/model"]);
+    expect(interpret("/model")).toEqual({ kind: "model" });
+    expect(interpret("/model haiku")).toEqual({ kind: "model", pick: "haiku" });
+    expect(interpret("/model Claude Sonnet 5.5")).toEqual({ kind: "model", pick: "sonnet" });
+    expect(interpret("/model opus")).toEqual({ kind: "model", unknown: "opus" });
     expect(matchCommands("/ne").map((c) => c.name)).toEqual(["/next", "/new"]);
     expect(matchCommands("hello")).toEqual([]);
   });

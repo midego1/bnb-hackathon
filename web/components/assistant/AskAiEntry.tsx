@@ -1,27 +1,33 @@
 "use client";
 
+import { Icon } from "@/components/shell/icons";
 import { useAssistantPanel } from "./AssistantProvider";
 
 /**
- * The "Ask AI" entry: a row for the app shell's sidebar (or anywhere else). Opens and closes the panel, like Cmd+J /
- * Ctrl+J. Kept as one small component so the shell decides where it goes.
+ * The "Ask AI" row of the sidebar (expanded, icon rail and the phone drawer). Opens and closes the panel, like
+ * Cmd+J / Ctrl+J. `onOpen` lets the drawer close itself when the panel opens.
  */
-export function AskAiEntry({ className = "" }: { className?: string }) {
+export function AskAiEntry({ onOpen }: { onOpen?: () => void }) {
   const { open, toggle } = useAssistantPanel();
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => {
+        if (!open) onOpen?.();
+        toggle();
+      }}
       aria-pressed={open}
       data-testid="ask-ai-entry"
       title="Ask AI (Ctrl+J / ⌘J)"
-      className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap text-muted transition hover:bg-surface-muted ${open ? "bg-surface-muted text-foreground" : ""} ${className}`}
+      className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent rail:justify-center rail:px-0 ${
+        open ? "bg-surface-muted text-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground"
+      }`}
     >
-      <span aria-hidden className="text-[var(--assistant-waiting)]">
-        ✦
+      <span className="text-[var(--assistant-waiting)]">
+        <Icon name="ask" />
       </span>
-      Ask AI
-      <kbd className="ml-auto hidden rounded border border-border px-1 font-sans text-[10px] text-subtle sm:inline">⌘J</kbd>
+      <span className="truncate rail:sr-only">Ask AI</span>
+      <kbd className="ml-auto rounded border border-border px-1 font-sans text-[10px] font-normal text-subtle rail:hidden max-lg:hidden">⌘J</kbd>
     </button>
   );
 }
