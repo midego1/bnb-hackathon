@@ -51,7 +51,8 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
   vars and secrets.
 - Two Next settings differ from the Node build: `cacheComponents` / `partialPrefetching` are off (with them every page
   render hangs under workerd; nothing uses `"use cache"`), and the BNB Greenfield SDK is replaced by a stub (it adds
-  ~5 MiB and evidence goes to R2 on Workers).
+  ~5 MiB and evidence goes to R2 on Workers). Without `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (only injected wallets)
+  the MetaMask and Base Account SDKs, which wagmi's connectors import lazily, are stubbed too (~0.38 MiB gzip).
 
 `cf:build` ends by copying the prerendered pages into the static assets (`opennextjs-cloudflare populateCache local`,
 which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the
@@ -155,12 +156,12 @@ Measured on the bundles wrangler built for the local previews (gzip level 9 of t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 13.90 MiB | **2.81 MiB** | fits Free (3 MiB), 0.19 MiB headroom |
+| `keyescrow-web` | 12.93 MiB | **2.59 MiB** | fits Free (3 MiB), 0.41 MiB headroom |
 | `keyescrow-agent` | 4.3 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
-time (`Total Upload ... gzip`) may differ slightly; the margin to 3 MiB is about 0.19 MiB (after the server-side chain
-index, `GET /api/chain/index`, which moved log scanning out of the browser). The merges since the first build added
+time (`Total Upload ... gzip`) may differ slightly. It reached 2.97 MiB (3043 KiB) before the MetaMask and Base
+Account SDKs were stubbed (-393 KiB, `Total Upload` 2650 KiB). The merges since the first build added
 0.43 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
 `pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
 ($5/month, 10 MiB limit), or a trim of the server bundle.

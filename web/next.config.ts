@@ -61,6 +61,11 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       ...Object.fromEntries(unusedOptionalDeps.map((dep) => [dep, "./lib/stubs/empty.js"])),
       ...(cloudflare ? { "@bnb-chain/greenfield-js-sdk": "./lib/stubs/greenfield-unavailable.js" } : {}),
+      // wagmi's MetaMask and Base Account connectors import these SDKs lazily. Without a WalletConnect id only injected
+      // wallets are offered, so they never load; stubbing them keeps ~390 KiB gzip out of the Worker (3 MiB Free limit).
+      ...(cloudflare && !process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+        ? { "@metamask/sdk": "./lib/stubs/empty.js", "@base-org/account": "./lib/stubs/empty.js" }
+        : {}),
     },
   },
 };
