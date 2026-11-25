@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { encodeAbiParameters, encodeEventTopics, getAbiItem, getAddress, HttpRequestError, pad, type Abi, type AbiEvent, type Address, type Hex } from "viem";
-import { decodeJson, encodeJson, eventsOfLease, type ChainIndexSnapshot } from "@/lib/chainIndex";
+import { decodeJson, encodeJson, eventsOfLease, latestLease, type ChainIndexSnapshot } from "@/lib/chainIndex";
+import { EX, withSample } from "@/lib/actions/definitions";
 import { escrowFactoryAbi, fleetVaultAbi, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import {
   backoffMs,
@@ -413,5 +414,22 @@ describe("GET /api/chain/index", () => {
     expect((await GET(new Request("http://x/api/chain/index"))).status).toBe(400);
     expect((await GET(new Request("http://x/api/chain/index?chainId=97&minBlock=-1"))).status).toBe(400);
     expect((await GET(new Request("http://x/api/chain/index?chainId=97&minBlock=0x10"))).status).toBe(400);
+  });
+});
+
+describe("demo samples from the index (no hard-coded rentals off anvil)", () => {
+  const created = (escrow: string, landlord: string) =>
+    ({ address: "0x0000000000000000000000000000000000000f00", name: "LeaseCreated", args: { escrow, landlord, tenant: "0xb", arbiter: "0xc" } }) as never;
+
+  it("latestLease is the newest LeaseCreated, undefined without rentals", () => {
+    expect(latestLease({ events: [] })).toBeUndefined();
+    expect(latestLease({ events: [created("0x1", "0xa"), created("0x2", "0xd")] })).toEqual({ lease: "0x2", owner: "0xd", renter: "0xb", arbiter: "0xc" });
+  });
+
+  it("withSample swaps the anvil example values and keeps the rest", () => {
+    const sample = { lease: "0x2", owner: "0xd", renter: "0xb", arbiter: "0xc" };
+    expect(withSample({ lease: EX.lease, from: EX.owner, toRenter: "800" }, sample)).toEqual({ lease: "0x2", from: "0xd", toRenter: "800" });
+    expect(withSample({ party: EX.renter, role: "renter" }, sample)).toEqual({ party: "0xb", role: "renter" });
+    expect(withSample({ lease: EX.lease }, undefined)).toEqual({ lease: EX.lease });
   });
 });
