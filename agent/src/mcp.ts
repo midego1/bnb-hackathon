@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { AGENT_NAME, AGENT_VERSION } from "./config.ts";
+import { AGENT_NAME, AGENT_VERSION } from "./identity.ts";
 import { SKILL_ID } from "./card.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
 import {

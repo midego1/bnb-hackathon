@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   EvidenceRejectedError,
+  EvidenceUploadsDisabledError,
   getEvidenceStore,
   MAX_FILES_PER_REQUEST,
   maxEvidenceBytes,
@@ -15,6 +16,9 @@ import { jsonError } from "@/lib/server/http";
  * on-chain and the key to fetch it back from GET /api/evidence/<hash>.
  */
 export async function POST(request: NextRequest) {
+  const store = getEvidenceStore();
+  // A Worker without the EVIDENCE R2 bucket: say so before reading the body (the browser falls back to hashing).
+  if (store.name === "disabled") return jsonError(503, new EvidenceUploadsDisabledError().message);
   const maxBytes = maxEvidenceBytes();
   const declared = Number(request.headers.get("content-length"));
   // Multipart overhead is small; reject obviously oversized bodies before buffering them.
@@ -35,7 +39,6 @@ export async function POST(request: NextRequest) {
   if (files.length === 0) return jsonError(400, "no `file` field in the form");
   if (files.length > MAX_FILES_PER_REQUEST) return jsonError(413, `at most ${MAX_FILES_PER_REQUEST} files per request`);
 
-  const store = getEvidenceStore();
   const items: EvidenceRecord[] = [];
   try {
     for (const f of files) {
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
       items.push(await storeEvidence(store, new Uint8Array(await f.arrayBuffer()), f.name || undefined, maxBytes));
     }
   } catch (err) {
-    if (err instanceof EvidenceRejectedError) return jsonError(err.status, err.message);
+    if (err instanceof EvidenceRejectedError || err instanceof EvidenceUploadsDisabledError) return jsonError(err.status, err.message);
     console.error("evidence store failed", (err as Error).message);
     return jsonError(502, `evidence storage (${store.name}) failed`);
   }

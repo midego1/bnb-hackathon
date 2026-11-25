@@ -1,3 +1,5 @@
 # esbuild ships its binary as an optional dependency; its postinstall check is not needed.
 allowBuilds:
   esbuild: false
+  # workerd (wrangler's local runtime) ships its binary as an optional platform dependency, like esbuild.
+  workerd: false

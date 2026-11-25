@@ -1,6 +1,4 @@
-import path from "node:path";
 import type { InspectionMemory } from "../../web/lib/server/sponsors/livingbrain.ts";
-import { REPO_DIR } from "./config.ts";
 import {
   PhotoResolutionError,
   ProposalRepairError,
@@ -38,26 +36,19 @@ export interface InspectDeps {
   /** Defaults to visionProviderFromEnv(): Anthropic with ANTHROPIC_API_KEY, otherwise the deterministic mock. */
   provider?: VisionProvider | null;
   store?: EvidenceStore;
-  /** Per-scooter inspection memory; defaults to Living Brain (LIVING_BRAIN_*) or the web app's local stand-in. */
+  /**
+   * Where photo hashes are resolved for a live provider when `store` is unset, loaded lazily (mock mode never touches
+   * it): the web app's store on disk under Node (src/node-deps.ts), the R2 bucket on Workers. None -> photos need urls.
+   */
+  loadStore?: () => Promise<EvidenceStore | undefined>;
+  /** Per-scooter inspection memory; null = none. Defaults to `loadMemory()` when the request names a scooterId. */
   memory?: InspectionMemory | null;
+  /**
+   * Living Brain (LIVING_BRAIN_*) or the web app's local stand-in under Node (src/node-deps.ts); on Workers only
+   * Living Brain (no disk). Loaded lazily, only for requests with a scooterId.
+   */
+  loadMemory?: () => Promise<InspectionMemory | null>;
   now?: Date;
-}
-
-/** Living Brain when configured, else web/.sponsor-logs/inspections.jsonl (shared with the web app). */
-async function inspectionMemory(): Promise<InspectionMemory> {
-  process.env.SPONSOR_LOG_DIR ??= path.join(REPO_DIR, "web", ".sponsor-logs");
-  const m = await import("../../web/lib/server/sponsors/livingbrain.ts");
-  return m.inspectionMemoryFromEnv();
-}
-
-let storePromise: Promise<EvidenceStore> | null = null;
-
-/** The web app's evidence store (Greenfield or local disk). Loaded lazily: mock mode never touches it. */
-function evidenceStore(): Promise<EvidenceStore> {
-  // Share the web app's local fallback directory unless told otherwise.
-  process.env.EVIDENCE_DIR ??= path.join(REPO_DIR, "web", ".evidence");
-  storePromise ??= import("../../web/lib/server/evidence/index.ts").then((m) => m.getEvidenceStore());
-  return storePromise;
 }
 
 /**
@@ -76,9 +67,9 @@ export async function inspectMoveOut(input: unknown, deps: InspectDeps): Promise
   try {
     return await proposeSettlement(parsed.data, {
       provider,
-      store: deps.store ?? (provider ? await evidenceStore() : undefined),
+      store: deps.store ?? (provider ? await deps.loadStore?.() : undefined),
       inspector: deps.inspector,
-      memory: deps.memory !== undefined ? deps.memory : parsed.data.scooterId ? await inspectionMemory() : null,
+      memory: deps.memory !== undefined ? deps.memory : parsed.data.scooterId ? ((await deps.loadMemory?.()) ?? null) : null,
       now: deps.now,
     });
   } catch (err) {

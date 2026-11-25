@@ -1,0 +1,29 @@
+// KeyEscrow Inspector (ERC-8004 agent #2921) on Cloudflare Workers. See docs/CLOUDFLARE.md and docs/AGENT.md.
+//
+// Preview: pnpm -C agent cf:preview   (wrangler dev, local workerd; never talks to the Cloudflare API)
+// Deploy:  pnpm cf:agent:deploy       (needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID; refuses without them)
+//
+// Secrets (`wrangler secret put <NAME> -c agent/wrangler.jsonc`): INSPECTOR_PRIVATE_KEY, ANTHROPIC_API_KEY (both
+// optional). Nothing secret goes in this file: it is committed and the repo is public.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "keyescrow-agent",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Public URL: https://keyescrow-agent.<account-subdomain>.workers.dev. The agent card and the ERC-8004
+  // registration file use the URL each request came in on unless AGENT_PUBLIC_URL is set.
+  "workers_dev": true,
+  "preview_urls": false,
+  "send_metrics": false,
+  "observability": { "enabled": true },
+  "vars": {
+    "INSPECTOR_CHAIN_ID": "97",
+    // No disk here: the shared web code (sponsor call log) keeps to memory instead of writing files.
+    "KEYESCROW_PLATFORM": "cloudflare",
+    "VISION_LLM_PROVIDER": "anthropic"
+  }
+  // Optional: the web app's evidence bucket, so a live vision model can read photos by hash (otherwise callers send
+  // photo urls). Same bucket as web/wrangler.jsonc:
+  // , "r2_buckets": [{ "binding": "EVIDENCE", "bucket_name": "keyescrow-evidence" }]
+}

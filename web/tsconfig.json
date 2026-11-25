@@ -44,6 +44,9 @@
     ".next-sponsors/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "cloudflare",
+    ".open-next",
+    ".wrangler"
   ]
 }

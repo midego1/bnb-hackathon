@@ -10,16 +10,32 @@ const unusedOptionalDeps = [
   "@x402/svm/exact/client",
 ];
 
+// The Cloudflare Workers build (scripts/cf.mjs, docs/CLOUDFLARE.md) is public: chain 97 only and never the anvil
+// dev-account switcher. Checked here as well as in the wrapper, so no other way of building can skip it.
+if (process.env.KEYESCROW_BUILD_TARGET === "cloudflare") {
+  if (process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1") {
+    throw new Error("Cloudflare build refused: NEXT_PUBLIC_DEV_ACCOUNTS=1 (the anvil dev accounts) must be off on a public build.");
+  }
+  if (process.env.NEXT_PUBLIC_CHAIN_ID !== "97") {
+    throw new Error(`Cloudflare build refused: NEXT_PUBLIC_CHAIN_ID is "${process.env.NEXT_PUBLIC_CHAIN_ID ?? ""}", not 97 (BSC testnet).`);
+  }
+}
+
+const cloudflare = process.env.KEYESCROW_BUILD_TARGET === "cloudflare";
+
 const nextConfig: NextConfig = {
   // The Playwright run builds into its own directory (with dev accounts on) so it never clobbers `next build`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Always define the dev-accounts flag so Next inlines it and production bundles drop the anvil switcher
   // (an unset NEXT_PUBLIC_ var is left as a runtime lookup and nothing gets tree-shaken).
   env: { NEXT_PUBLIC_DEV_ACCOUNTS: process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ? "1" : "0" },
-  cacheComponents: true,
-  partialPrefetching: true,
-  // Greenfield SDK (cosmjs/protobuf) is loaded lazily on the server only; keep it out of the bundle.
-  serverExternalPackages: ["@bnb-chain/greenfield-js-sdk"],
+  // Off on Cloudflare Workers: Cache Components' render staging relies on Node's setTimeout ordering, and under workerd
+  // every page render hangs ("code had hung and would never generate a response"). Nothing here uses "use cache".
+  cacheComponents: !cloudflare,
+  partialPrefetching: !cloudflare,
+  // Greenfield SDK (cosmjs/protobuf) is loaded lazily on the server only; keep it out of the bundle. The Workers build
+  // stubs it instead (it would add ~5 MiB; evidence lives in R2 there).
+  serverExternalPackages: cloudflare ? [] : ["@bnb-chain/greenfield-js-sdk"],
   turbopack: {
     rules: {
       "*.css": {
@@ -27,7 +43,10 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
-    resolveAlias: Object.fromEntries(unusedOptionalDeps.map((dep) => [dep, "./lib/stubs/empty.js"])),
+    resolveAlias: {
+      ...Object.fromEntries(unusedOptionalDeps.map((dep) => [dep, "./lib/stubs/empty.js"])),
+      ...(cloudflare ? { "@bnb-chain/greenfield-js-sdk": "./lib/stubs/greenfield-unavailable.js" } : {}),
+    },
   },
 };
 

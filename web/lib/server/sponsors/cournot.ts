@@ -3,6 +3,9 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Env } from "../env";
 import type { CournotStoredResult } from "@/lib/risk";
+import committedResults from "@/data/cournot-results.json";
+import { onCloudflare } from "../platform";
+import { getSharedState, update } from "../state";
 import { logSponsorCall, sponsorLogDir } from "./log";
 
 /**
@@ -153,12 +156,22 @@ async function readJson(file: string): Promise<CournotStoredResult[]> {
   }
 }
 
+/** On Cloudflare Workers (no disk) runtime answers live in the KeyEscrowState Durable Object, newest 100 kept. */
+const SHARED_RESULTS = "cournot:results";
+
 export async function storedResults(env: Env = process.env): Promise<CournotStoredResult[]> {
-  const all = [...(await readJson(committedResultsFile())), ...(await readJson(runtimeResultsFile(env)))];
+  const all = onCloudflare()
+    ? // The committed answers are bundled into the Worker; runtime ones come from the Durable Object.
+      [...(committedResults as CournotStoredResult[]), ...((await getSharedState().get<CournotStoredResult[]>(SHARED_RESULTS))?.value ?? [])]
+    : [...(await readJson(committedResultsFile())), ...(await readJson(runtimeResultsFile(env)))];
   return all.filter((r) => typeof r?.probability === "number" && typeof r.claim === "string").sort((a, b) => b.at.localeCompare(a.at));
 }
 
 export async function saveResult(r: CournotStoredResult, env: Env = process.env) {
+  if (onCloudflare()) {
+    await update<CournotStoredResult[], void>(getSharedState(), SHARED_RESULTS, (cur) => ({ value: [...(cur ?? []), r].slice(-100), result: undefined }));
+    return;
+  }
   const file = runtimeResultsFile(env);
   const list = await readJson(file);
   list.push(r);
