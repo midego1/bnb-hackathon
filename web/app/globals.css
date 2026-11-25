@@ -11,6 +11,15 @@
 /* Taller than a projector (1280x720 minus the browser chrome): room for the roomier type of the /demo stage. */
 @custom-variant tall (@media (min-height: 761px));
 
+/* Desktop sidebar collapsed to an icon rail: <html data-sidebar="collapsed"> (lib/sidebar.ts). Below lg it is a drawer. */
+@custom-variant rail {
+  @media (min-width: 1024px) {
+    :where([data-sidebar="collapsed"]) & {
+      @slot;
+    }
+  }
+}
+
 /* Semantic color tokens. Text pairs are WCAG AA (>= 4.5:1) on background, surface and surface-muted. */
 :root {
   color-scheme: light;
@@ -124,21 +133,21 @@ body {
 }
 
 /*
- * /demo is a one-screen stage on desktop: the page is pinned to the viewport and never scrolls; the demo's own
- * panels (timeline, live lease page) scroll inside. The site footer is dropped there. Below lg it scrolls as usual.
+ * /demo and /how-it-works are one-screen stages on desktop: the shell is pinned to the viewport and the page column
+ * is a flex column (demo-accounts strip, then <main>), so the stage gets exactly the height that is left, whatever the
+ * strip above it measures. The stage's own panels (timeline, live rental page) scroll inside. The site footer is
+ * dropped there. Below lg it scrolls as usual.
  */
 @media (min-width: 1024px) {
   body:has([data-demo-stage]) {
     height: 100dvh;
     overflow: hidden;
   }
-  /* RainbowKit wraps header, main and footer in a plain div: it has to pass the height on. */
-  body:has([data-demo-stage]) div:has(> main) {
-    display: flex;
-    flex: 1 1 0%;
-    flex-direction: column;
+  body:has([data-demo-stage]) [data-app-shell] {
+    height: 100dvh;
     min-height: 0;
   }
+  body:has([data-demo-stage]) [data-app-content],
   body:has([data-demo-stage]) main {
     min-height: 0;
   }

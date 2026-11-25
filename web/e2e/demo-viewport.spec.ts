@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { restoreChainAfterEachTest } from "./chain";
 
 /**
  * /demo is one screen on a laptop or projector: at these viewports the page never scrolls (not during play, not on
@@ -7,6 +8,9 @@ import path from "node:path";
  *
  * Screenshots of every size go to DEMO_VIEWPORT_SHOTS (default test-results/screenshots/viewport).
  */
+
+// The "owner ignores it" story fast-forwards the shared anvil 7 days: undo it after each test (e2e/chain.ts).
+restoreChainAfterEachTest();
 
 const VIEWPORTS = [
   { width: 1470, height: 830 }, // MacBook Air 13"/15", Pro 14" at default scaling, minus the browser chrome

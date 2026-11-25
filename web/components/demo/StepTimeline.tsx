@@ -33,15 +33,23 @@ export function StepTimeline({
   const list = useRef<HTMLOListElement>(null);
   const txCount = Object.values(txs).reduce((n, t) => n + t.length, 0);
 
-  // Scroll the panel (never the page) so the current step and its latest transaction are visible.
+  // Scroll the panel (never the page) so the current step and its latest transaction are visible: when the step or its
+  // transactions change, and when the panel itself is resized (e.g. the controls above wrap or the window shrinks).
   useEffect(() => {
     const box = list.current;
-    const item = box?.querySelector<HTMLElement>('[data-current="true"]');
-    if (!box || !item || box.scrollHeight <= box.clientHeight) return;
-    const top = item.offsetTop; // the list is `relative`, so this is relative to it
-    const bottom = top + item.offsetHeight;
-    if (top < box.scrollTop) box.scrollTop = top - 8;
-    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight + 8;
+    if (!box) return;
+    const reveal = () => {
+      const item = box.querySelector<HTMLElement>('[data-current="true"]');
+      if (!item || box.scrollHeight <= box.clientHeight) return;
+      const top = item.offsetTop; // the list is `relative`, so this is relative to it
+      const bottom = top + item.offsetHeight;
+      if (top < box.scrollTop) box.scrollTop = top - 8;
+      else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight + 8;
+    };
+    reveal();
+    const ro = new ResizeObserver(reveal);
+    ro.observe(box);
+    return () => ro.disconnect();
   }, [current, txCount]);
 
   return (

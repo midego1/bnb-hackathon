@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { restoreChainAfterEachTest } from "./chain";
 
 /**
  * Guided speed (the default) on /demo: an intro card, then three beats per step ("What happens now", the
@@ -9,6 +10,9 @@ import path from "node:path";
  * Screenshots of every beat go to GUIDED_SHOTS (default test-results/screenshots/guided). With MEASURE_GUIDED=1 the
  * last test plays all three stories at the real pace and writes their durations to GUIDED_SHOTS/durations.json.
  */
+
+// The "owner ignores it" story fast-forwards the shared anvil 7 days: undo it after each test (e2e/chain.ts).
+restoreChainAfterEachTest();
 
 const SHOTS = process.env.GUIDED_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/guided");
 const VP = { width: 1470, height: 830 };

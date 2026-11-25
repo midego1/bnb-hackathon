@@ -1,11 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { restoreChainAfterEachTest } from "./chain";
 
 /**
  * The one-click guided demo (/demo) on the hermetic e2e anvil: click "Play the demo" in fast mode and check the end
  * summary (lease settled, balances add up) for the happy path and the dispute path, plus the "owner ignores it"
  * timeout path (fast-forwards the throwaway anvil by 7 days).
  */
+
+// The "owner ignores it" story fast-forwards the shared anvil 7 days: undo it after each test (e2e/chain.ts).
+restoreChainAfterEachTest();
 
 const SHOTS = path.resolve(__dirname, "../test-results/screenshots");
 const shot = (page: Page, name: string) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });

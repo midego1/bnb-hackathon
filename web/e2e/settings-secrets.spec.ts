@@ -51,9 +51,15 @@ test("secrets page: set shows SET, never the value; clear empties it", async ({ 
   const bodies = recordBodies(page);
   await page.goto("/");
   await expect(page.getByTestId("footer-settings")).toBeVisible();
-  await expect(page.getByTestId("header-settings")).toBeHidden(); // no room in the header at 1280 (projector)
+  // The sidebar's Settings row: in the expanded sidebar at 1280 (projector) and in the icon rail on /demo.
+  const settings = page.getByTestId("sidebar-settings");
+  await expect(settings).toBeVisible();
+  await expect(settings).toHaveAttribute("href", "/settings/secrets");
+  await page.goto("/demo");
+  await expect(page.locator("html")).toHaveAttribute("data-sidebar", "collapsed");
+  await expect(settings).toBeVisible();
+  await expect(settings).toHaveAccessibleName("Settings");
   await page.setViewportSize({ width: 1470, height: 900 });
-  await expect(page.getByTestId("header-settings")).toBeVisible();
   const passcode = await unlock(page);
 
   const row = page.getByTestId("secret-CMC_API_KEY");

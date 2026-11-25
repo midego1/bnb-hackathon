@@ -142,7 +142,7 @@ test("it is linked from the home page, the footer and /demo", async ({ page }) =
   await expect(page.getByTestId("footer-eli5")).toHaveAttribute("href", "/how-it-works");
   await page.getByTestId("home-eli5").click();
   await expect(root(page)).toBeVisible();
-  await page.goto("/demo"); // the link shows from 1400 px wide; at 1280 the header's "How it works" covers it
+  await page.goto("/demo"); // the link shows from 1400 px wide; below that the sidebar's "How it works" covers it
   await expect(page.getByTestId("demo-eli5")).toBeVisible();
   await expect(page.getByTestId("demo-eli5")).toHaveAttribute("href", "/how-it-works");
 });
