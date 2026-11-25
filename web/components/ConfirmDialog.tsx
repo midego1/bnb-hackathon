@@ -1,16 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState, type ReactNode } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import dynamic from "next/dynamic";
+
+const ConfirmDialogView = dynamic(() => import("./ConfirmDialogView").then((m) => m.ConfirmDialogView), { ssr: false });
 
 export type ConfirmOptions = {
   title: string;
@@ -46,29 +39,8 @@ export function useConfirm() {
     });
   }, []);
 
-  const dialog = (
-    <AlertDialog open={!!opts} onOpenChange={(open) => !open && settle(false)}>
-      <AlertDialogContent data-testid="confirm-dialog">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{opts?.title}</AlertDialogTitle>
-          {opts?.description && <AlertDialogDescription className="whitespace-pre-line">{opts.description}</AlertDialogDescription>}
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel data-testid="confirm-cancel">Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            data-testid="confirm-ok"
-            variant={opts?.destructive ? "destructive" : "default"}
-            onClick={(e) => {
-              e.preventDefault();
-              settle(true);
-            }}
-          >
-            {opts?.confirmLabel ?? "Continue"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+  // The AlertDialog itself loads on first use (client only): it stays out of the server bundle and the first load.
+  const dialog = opts ? <ConfirmDialogView opts={opts} settle={settle} /> : null;
 
   return { confirm, dialog };
 }

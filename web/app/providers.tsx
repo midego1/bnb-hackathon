@@ -7,7 +7,6 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { AssistantProvider } from "@/components/assistant/AssistantProvider";
 import { ToastProvider } from "@/components/Toasts";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { getResolvedThemeSnapshot, subscribeTheme } from "@/lib/theme";
 import { wagmiConfig } from "@/lib/wagmi";
 
@@ -22,11 +21,9 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={theme === "dark" ? rkDark : rkLight}>
-          <TooltipProvider delayDuration={300}>
-            <ToastProvider>
-              <AssistantProvider>{children}</AssistantProvider>
-            </ToastProvider>
-          </TooltipProvider>
+          <ToastProvider>
+            <AssistantProvider>{children}</AssistantProvider>
+          </ToastProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

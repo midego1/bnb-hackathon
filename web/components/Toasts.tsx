@@ -1,10 +1,11 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Info, Loader2, X } from "lucide-react";
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
-import { toast as sonner } from "sonner";
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Toaster } from "./ui/sonner";
+
+const ToastHost = dynamic(() => import("./ToastHost").then((m) => m.ToastHost), { ssr: false });
 
 export type ToastKind = "pending" | "success" | "error" | "info";
 export type Toast = { id: number; kind: ToastKind; title: string; body?: string; href?: string };
@@ -30,67 +31,42 @@ const ToastContext = createContext<Ctx | null>(null);
 let nextId = 1;
 
 /**
- * Transaction toasts, rendered by sonner (components/ui/sonner.tsx) with our own content: each toast is a
- * role="status" box with data-kind, so tests and screen readers see the same thing as before.
+ * Transaction toasts. The state, limits and timers live here; components/ToastHost.tsx renders them with sonner
+ * (components/ui/sonner.tsx). The host loads on the client only, so sonner stays out of the server bundle. Each toast
+ * is a role="status" box with data-kind, for tests and screen readers.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  // The toasts on screen, oldest first (sonner keeps the DOM; this keeps what we need to trim and update them).
-  const live = useRef(new Map<number, Toast>());
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const mode = useRef(DEFAULTS);
 
-  const dismiss = useCallback((id: number) => {
-    live.current.delete(id);
-    sonner.dismiss(id);
+  const dismiss = useCallback((id: number) => setToasts((ts) => ts.filter((t) => t.id !== id)), []);
+  const clearSettled = useCallback(() => setToasts((ts) => ts.filter((t) => t.kind === "error")), []);
+  const setCompact = useCallback((opts?: { max: number; successMs: number }) => {
+    mode.current = opts ?? DEFAULTS;
+    setToasts((ts) => (mode.current.max > 0 ? ts.slice(-mode.current.max) : []));
   }, []);
-
-  const show = useCallback(
-    (t: Toast) => {
-      live.current.set(t.id, t);
-      const settles = t.kind === "success" || t.kind === "info";
-      sonner.custom(() => <ToastView toast={t} onDismiss={() => dismiss(t.id)} />, {
-        id: t.id,
-        duration: settles ? mode.current.successMs : Infinity,
-        onAutoClose: () => live.current.delete(t.id),
-        onDismiss: () => live.current.delete(t.id),
-      });
+  const autoDismiss = useCallback(
+    (id: number, kind: ToastKind) => {
+      if (kind === "success" || kind === "info") setTimeout(() => dismiss(id), mode.current.successMs);
     },
     [dismiss],
   );
-
-  const trim = useCallback(() => {
-    const ids = [...live.current.keys()];
-    for (const id of ids.slice(0, Math.max(0, ids.length - mode.current.max))) dismiss(id);
-  }, [dismiss]);
-
-  const clearSettled = useCallback(() => {
-    for (const [id, t] of live.current) if (t.kind !== "error") dismiss(id);
-  }, [dismiss]);
-
-  const setCompact = useCallback(
-    (opts?: { max: number; successMs: number }) => {
-      mode.current = opts ?? DEFAULTS;
-      trim();
-    },
-    [trim],
-  );
-
   const push = useCallback(
     (t: Omit<Toast, "id">) => {
       const id = nextId++;
       if (mode.current.max <= 0) return id;
-      show({ ...t, id });
-      trim();
+      setToasts((ts) => [...ts.slice(-(mode.current.max - 1)), { ...t, id }]);
+      autoDismiss(id, t.kind);
       return id;
     },
-    [show, trim],
+    [autoDismiss],
   );
-
   const update = useCallback(
     (id: number, patch: Partial<Omit<Toast, "id">>) => {
-      const t = live.current.get(id);
-      if (t) show({ ...t, ...patch });
+      setToasts((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+      if (patch.kind) autoDismiss(id, patch.kind);
     },
-    [show],
+    [autoDismiss],
   );
 
   const value = useMemo(() => ({ push, update, dismiss, clearSettled, setCompact }), [push, update, dismiss, clearSettled, setCompact]);
@@ -98,45 +74,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <Toaster position="bottom-right" visibleToasts={DEFAULTS.max} gap={8} style={{ "--width": "384px" } as React.CSSProperties} />
+      <ToastHost toasts={toasts} onDismiss={dismiss} />
     </ToastContext.Provider>
-  );
-}
-
-const toastStyle: Record<ToastKind, string> = {
-  pending: "border-info-border bg-surface text-foreground",
-  success: "border-success-border bg-success-soft text-success-fg",
-  error: "border-danger-border bg-danger-soft text-danger-fg",
-  info: "border-border bg-surface text-foreground",
-};
-const toastIcon: Record<ToastKind, ReactNode> = {
-  pending: <Spinner />,
-  success: <CircleCheck className="size-4" />,
-  error: <CircleAlert className="size-4" />,
-  info: <Info className="size-4" />,
-};
-
-function ToastView({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  return (
-    <div role="status" data-kind={t.kind} className={cn("w-(--width) max-w-full rounded-xl border px-4 py-3 text-sm shadow-lg", toastStyle[t.kind])}>
-      <div className="flex items-start gap-3">
-        <span aria-hidden className="mt-0.5 shrink-0">
-          {toastIcon[t.kind]}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-medium">{t.title}</p>
-          {t.body && <p className="mt-0.5 break-words opacity-80">{t.body}</p>}
-          {t.href && (
-            <a href={t.href} target="_blank" rel="noreferrer" className="mt-1 inline-block underline">
-              View on BscScan
-            </a>
-          )}
-        </div>
-        <button type="button" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100" aria-label="Dismiss">
-          <X aria-hidden className="size-4" />
-        </button>
-      </div>
-    </div>
   );
 }
 
