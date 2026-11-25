@@ -57,7 +57,7 @@ export function ResolvePanel({ lease }: { lease: LeaseData }) {
       }
     >
       {p.nonce > 0 && (
-        <div className="mb-4 text-sm text-muted">
+        <div className="mb-4 text-sm text-muted-foreground">
           Last proposal, by the {roleName(viewerRole(lease, p.proposer))}: renter gets {money(p.tenantRefund)}, owner keeps {money(p.landlordClaim)}.
         </div>
       )}

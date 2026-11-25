@@ -31,7 +31,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
         <Stat label="Total to fund"><Amount value={need} /></Stat>
       </div>
       <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={Number(lease.terms.termMonths) * 30} /></div>
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-sm text-muted-foreground">
         Your wallet holds {balance === undefined ? "…" : `${formatUsdt(balance)} USDT`}. Funding takes two wallet steps: approve, then fund.
         The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
       </p>
@@ -80,7 +80,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
 
 export function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-surface-muted p-3">
+    <div className="rounded-xl bg-muted p-3">
       <p className="text-xs text-subtle">{label}</p>
       <div className="mt-1">{children}</div>
     </div>

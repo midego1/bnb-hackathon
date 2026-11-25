@@ -98,3 +98,11 @@ async function fetchOnce(chainId: number, min: bigint | undefined, signal?: Abor
   }
   return decodeJson<ChainIndexResponse>(text);
 }
+
+/** The newest rental of a deployment and its parties (from its LeaseCreated event), e.g. for demo links and examples. */
+export function latestLease(index: Pick<ChainIndexSnapshot, "events">): { lease: Address; owner: Address; renter: Address; arbiter: Address } | undefined {
+  const e = index.events.findLast((x) => x.name === "LeaseCreated");
+  if (!e) return undefined;
+  const a = e.args as Record<string, Address>;
+  return { lease: a.escrow, owner: a.landlord, renter: a.tenant, arbiter: a.arbiter };
+}

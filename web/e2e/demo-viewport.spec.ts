@@ -194,7 +194,12 @@ for (const vp of VIEWPORTS) {
     await page.setViewportSize(vp);
     await page.goto("/demo");
     await expect(page.getByTestId("demo-play")).toBeEnabled();
-    await page.keyboard.press("ControlOrMeta+j");
+    // Ctrl/Cmd+J, again until it lands: the shortcut listener only exists once the page has hydrated.
+    const opened = page.locator("html[data-assistant-open]");
+    await expect(async () => {
+      if ((await opened.count()) === 0) await page.keyboard.press("ControlOrMeta+j");
+      await expect(opened).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
     const panel = page.getByTestId("assistant-panel");
     await expect(panel).toBeVisible();
     await expect(panel).toBeInViewport({ ratio: 1 });

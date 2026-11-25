@@ -59,9 +59,9 @@ html:has(.mk) {
 .mk-night {
   --background: #0d0b2a;
   --surface: #17143f;
-  --surface-muted: #201c55;
+  --muted: #201c55;
   --foreground: #f4f4ff;
-  --muted: #cfd0ee;
+  --muted-foreground: #cfd0ee;
   --subtle: #a9abd6;
   --border: #2f2b68;
   --border-strong: #454092;
@@ -75,7 +75,7 @@ html:has(.mk) {
   --background: #fbbf24;
   --surface: #fcd34d;
   --foreground: #1b1236;
-  --muted: #3a2a0a;
+  --muted-foreground: #3a2a0a;
   --subtle: #4a370d;
   --border: #c98f0c;
   --border-strong: #8a6208;
@@ -347,7 +347,7 @@ html:has(.mk) {
   position: relative;
   height: 0.75rem;
   border-radius: 999px;
-  background: var(--surface-muted);
+  background: var(--muted);
 }
 .mk-lane-fill {
   position: absolute;

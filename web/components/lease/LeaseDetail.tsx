@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -7,7 +8,9 @@ import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, PriceSourceBadge, Skeleton, StatusBadge, statusMeta, useMoney } from "@/components/ui";
 import { chainName, explorerLink } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
+import { latestLease, type ChainIndexResponse } from "@/lib/chainIndex";
 import { formatDate } from "@/lib/format";
+import { useChainIndex } from "@/lib/hooks/useChainIndex";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useLease, type LeaseData } from "@/lib/hooks/useLease";
 import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
@@ -20,14 +23,36 @@ import { RentPanel } from "./RentPanel";
 import { ResolvePanel } from "./ResolvePanel";
 import { Timeline } from "./Timeline";
 
+/** Every escrow of the deployment (lowercase) and the newest rental: tells a stale link from a busy RPC. */
+const knownLeases = (ix: ChainIndexResponse) => ({ escrows: new Set(ix.escrows.map((a) => a.toLowerCase())), latest: latestLease(ix)?.lease });
+
 export function LeaseDetail({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
   const { data: lease, error, isLoading, refetch, isFetching } = useLease(deployment ? address : undefined);
+  const { data: known } = useChainIndex(knownLeases);
   const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
 
   if (!deployment) return <Notice kind="warn">KeyEscrow is not deployed on {chainName(chainId)}. Switch your wallet to the network this rental lives on.</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
+  // A link to a rental of an older deployment (the testnet contracts were redeployed): not an error, point to a live one.
+  if ((error || !lease) && known && !known.escrows.has(address.toLowerCase()))
+    return (
+      <Notice kind="info">
+        <span data-testid="lease-gone">
+          This demo rental no longer exists on {chainName(chainId)}.{" "}
+          {known.latest ? (
+            <Link href={`/lease/${known.latest}`} className="font-medium underline">
+              Open the latest one
+            </Link>
+          ) : (
+            <Link href="/app" className="font-medium underline">
+              Open the app
+            </Link>
+          )}
+        </span>
+      </Notice>
+    );
   if (error || !lease)
     return (
       <div className="space-y-3">
@@ -50,21 +75,22 @@ export function LeaseDetail({ address }: { address: Address }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-subtle">
-            <Link href={viewer ? `/${viewer}` : "/app"} className="hover:underline">
-              ← {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
+            <Link href={viewer ? `/${viewer}` : "/app"} className="inline-flex items-center gap-1 hover:underline">
+              <ArrowLeft aria-hidden className="size-3.5" />
+              {viewer === "arbiter" ? "Dispute desk" : viewer === "landlord" ? "Owner: my rentals" : viewer === "tenant" ? "Renter: my rentals" : "Home"}
             </Link>
           </p>
           <h1 className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
             Rental <span className="font-mono text-lg">{address.slice(0, 10)}…</span>
             <StatusBadge status={lease.status} />
           </h1>
-          <p className="mt-1 text-sm text-muted" data-testid="next-step">
+          <p className="mt-1 text-sm text-muted-foreground" data-testid="next-step">
             {nextStep(lease, viewer)}
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 text-sm sm:items-end">
           {viewer ? (
-            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">You are the {roleName(viewer)}</span>
           ) : (
             <span className="text-xs text-subtle">
               {me ? "This wallet is not part of this rental, so the page is read-only." : "Connect a wallet to act on this rental. Until then it is read-only."}
@@ -159,7 +185,7 @@ function ArbiterDeadline({ lease, viewer }: { lease: LeaseData; viewer: Viewer }
   const passed = lease.chainNow >= lease.arbiterDeadline;
   return (
     <Card title={viewer === "arbiter" ? "Your deadline" : "Waiting for the dispute desk"}>
-      <p className="text-sm text-muted">
+      <p className="text-sm text-muted-foreground">
         {statusMeta[LeaseStatus.Disputed].hint} Rent is still paid out as it comes due.{" "}
         {passed ? (
           <>The dispute desk missed its deadline ({formatDate(lease.arbiterDeadline)}). Anyone can now close the dispute and return the full deposit to the renter.</>
@@ -188,7 +214,7 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   const { send, pending } = useTx();
   return (
     <Card title="Waiting for the renter">
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-sm text-muted-foreground">
         Send this page&apos;s link to your renter. Once they fund the deposit and first month&apos;s rent, the rental starts and rent is paid
         out to you every month. You can withdraw the offer until then; nothing has been paid yet.
       </p>

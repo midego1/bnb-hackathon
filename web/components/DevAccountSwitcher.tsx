@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "lucide-react";
 import Link from "next/link";
 import { useAccount, useConnect } from "wagmi";
 import { DEV_CONNECTOR_ID, devAccounts, setDevRole, type DevRole } from "@/lib/devAccounts";
@@ -47,8 +48,8 @@ function Switcher() {
               data-testid={`dev-role-${r}`}
               aria-pressed={active === r}
               onClick={() => pick(r)}
-              className={`rounded-md px-2.5 py-1 font-medium ring-1 ring-inset ring-amber-300 transition dark:ring-amber-800 ${
-                active === r ? "bg-amber-900 text-amber-50 dark:bg-amber-200 dark:text-amber-950" : "hover:bg-amber-100 dark:hover:bg-amber-900"
+              className={`rounded-md px-2.5 py-1 font-medium ring-1 ring-inset ring-highlight-edge transition ${
+                active === r ? "bg-highlight-pressed text-highlight-pressed-foreground" : "hover:bg-highlight-hover-soft"
               }`}
             >
               {roleLabel[r]}
@@ -56,8 +57,9 @@ function Switcher() {
           ))}
         </div>
         {!active && <span className="opacity-70">Pick a role to start</span>}
-        <Link href="/demo" className="ml-auto font-semibold underline-offset-2 hover:underline" data-testid="dev-play-demo">
-          ▶ Play the demo
+        <Link href="/demo" className="ml-auto inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline" data-testid="dev-play-demo">
+          <Play aria-hidden className="size-3 fill-current" />
+          Play the demo
         </Link>
       </div>
     </div>

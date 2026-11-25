@@ -1,0 +1,249 @@
+<!doctype html>
+<!-- KeyEscrow pitch deck: 10 slides at 1920x1080. Render: see docs/submission/README.md -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KeyEscrow pitch deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: Kanit; font-weight: 800; src: url("../../web/app/(marketing)/fonts/kanit-800-latin.woff2") format("woff2"); }
+@font-face { font-family: Kanit; font-weight: 500; src: url("../../web/app/(marketing)/fonts/kanit-500-latin.woff2") format("woff2"); }
+:root { --ink: #0f1430; --ink2: #1c2350; --paper: #f7f7fb; --muted: #5b6079; --line: #dcdfea; --yellow: #f8b91c; --teal: #13b5a0; --violet: #8b5cf6; --red: #e5484d; }
+@page { size: 1920px 1080px; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, "Noto Sans", "DejaVu Sans", sans-serif; color: var(--ink); background: #888; }
+.slide { width: 1920px; height: 1080px; position: relative; overflow: hidden; background: var(--paper); padding: 96px 120px 110px; page-break-after: always; display: flex; flex-direction: column; }
+.slide.dark { background: var(--ink); color: #fff; }
+.kicker { font: 600 26px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 22px; }
+.dark .kicker { color: var(--yellow); }
+h1 { font: 800 112px/1.02 Kanit, Inter, sans-serif; letter-spacing: -.01em; }
+h2 { font: 800 76px/1.08 Kanit, Inter, sans-serif; margin-bottom: 44px; }
+h3 { font: 700 34px/1.2 Inter, sans-serif; margin-bottom: 12px; }
+p, li { font-size: 32px; line-height: 1.42; }
+.muted { color: var(--muted); }
+.dark .muted { color: #b8bdd8; }
+.foot { position: absolute; left: 120px; right: 120px; bottom: 40px; display: flex; justify-content: space-between; font-size: 22px; color: var(--muted); }
+.dark .foot { color: #8f95b8; }
+.foot b { color: var(--ink); } .dark .foot b { color: #fff; }
+.grid { display: grid; gap: 36px; }
+.g2 { grid-template-columns: 1fr 1fr; } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+.card { background: #fff; border: 2px solid var(--line); border-radius: 24px; padding: 36px 38px; }
+.dark .card { background: var(--ink2); border-color: #2d3670; }
+.card p { font-size: 28px; }
+.num { display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--yellow); color: var(--ink); font: 800 30px Kanit, sans-serif; margin-bottom: 20px; }
+.shot { border-radius: 18px; border: 2px solid var(--line); box-shadow: 0 18px 50px rgba(15, 20, 48, .18); width: 100%; display: block; }
+.pill { display: inline-block; padding: 8px 20px; border-radius: 999px; font-size: 24px; font-weight: 600; background: #fff3cf; color: #7a5600; margin-right: 10px; }
+.pill.ok { background: #d8f5ef; color: #0b6b5e; } .pill.no { background: #eceef5; color: var(--muted); }
+code, .mono { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: .82em; }
+table { border-collapse: collapse; width: 100%; font-size: 29px; }
+td, th { padding: 14px 18px; border-bottom: 2px solid var(--line); text-align: left; }
+th { font-size: 22px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+td.r, th.r { text-align: right; }
+tr.hl td { background: #fff3cf; font-weight: 700; }
+.big { font: 800 64px Kanit, Inter, sans-serif; color: var(--yellow); }
+ul { padding-left: 34px; } li { margin-bottom: 12px; }
+.flow { display: flex; align-items: stretch; gap: 0; }
+.flow .step { flex: 1; background: #fff; border: 2px solid var(--line); border-radius: 22px; padding: 28px 26px; }
+.flow .arrow { width: 54px; display: grid; place-items: center; font-size: 44px; color: var(--yellow); font-weight: 800; }
+.flow .step p { font-size: 25px; }
+.flow .step h3 { font-size: 29px; }
+.who { font-size: 21px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Problem -->
+<section class="slide dark" style="background: linear-gradient(90deg, rgba(15,20,48,1) 42%, rgba(15,20,48,.55)), url('screenshots/1-landing.png') right center / cover;">
+  <div class="kicker">KeyEscrow · BNB Bangkok 2026</div>
+  <h1>Rent the scooter.<br>Keep your passport.</h1>
+  <div style="margin-top: 70px; max-width: 1050px;">
+    <h3 style="color: var(--yellow);">The problem</h3>
+    <ul>
+      <li>Scooter shops in Thailand usually keep the tourist's <b>passport</b> (or a stack of cash) as the deposit.</li>
+      <li>At return the shop alone decides what each scratch costs. Renters fear <b>bogus damage claims</b>.</li>
+      <li>Shops face <b>real damage with no proof</b>: a few chat photos, if any.</li>
+      <li>Nobody neutral in between, and nobody goes to court over a few thousand baht.</li>
+    </ul>
+  </div>
+  <div class="foot"><span>Developer Track · CoinMarketCap x Atlas</span><span>1 / 10</span></div>
+</section>
+
+<!-- 2. Solution -->
+<section class="slide">
+  <div class="kicker">Solution</div>
+  <h2 style="font-size: 62px;">The deposit sits in a smart contract made for this one rental. Neither side can move it alone.</h2>
+  <div class="grid g3" style="margin-top: 10px;">
+    <div class="card"><div class="num">1</div><h3>The shop offers the scooter</h3><p class="muted">Rent, deposit and period in baht. Agreement and guided pickup photos stay off-chain; only their SHA-256 fingerprints go on-chain.</p></div>
+    <div class="card"><div class="num">2</div><h3>The renter funds the escrow</h3><p class="muted">Deposit + month 1 go into the rental's own contract instead of a passport at the counter. Rent is paid out to the shop month by month.</p></div>
+    <div class="card"><div class="num">3</div><h3>Return and settle in minutes</h3><p class="muted">An AI inspection drafts the split. One side proposes, the other accepts, the money moves at once. Disagree? The dispute desk rules.</p></div>
+  </div>
+  <p style="margin-top: 50px;"><b>Timeouts protect the renter:</b> owner silent for 7 days, or the desk misses its 14-day deadline → full deposit back. Every amount is shown in <b>baht first</b>.</p>
+  <div class="foot"><span><b>KeyEscrow</b> · keyescrow-web.mdgooijer.workers.dev</span><span>2 / 10</span></div>
+</section>
+
+<!-- 3. Demo -->
+<section class="slide">
+  <div class="kicker">Live demo · no wallet needed</div>
+  <div class="grid" style="grid-template-columns: 1.55fr 1fr; gap: 60px; align-items: start;">
+    <img class="shot" src="screenshots/5-demo-summary.png" alt="Demo end screen: final balances">
+    <div>
+      <h2 style="font-size: 64px;">One click plays a whole rental on BSC testnet</h2>
+      <p>Create → fund → month-1 payout → return photos → AI inspection → propose → accept. <b>Real testnet transactions</b>, each one opens on BscScan.</p>
+      <p style="margin-top: 26px;" class="muted">Recorded 25 Nov 2026: rental <span class="mono">0x09adDfd6…ebA6</span> settled. Renter ฿5,513 back, owner ฿4,347, KeyEscrow ฿340, escrow ฿0.</p>
+      <p style="margin-top: 26px;"><b>/demo</b> · <b>/how-it-works</b> (1-minute cartoon)</p>
+    </div>
+  </div>
+  <div class="foot"><span><b>KeyEscrow</b> · keyescrow-web.mdgooijer.workers.dev/demo</span><span>3 / 10</span></div>
+</section>
+
+<!-- 4. How it works -->
+<section class="slide">
+  <div class="kicker">How it works</div>
+  <h2>One rental, one contract, three ways out</h2>
+  <div class="flow">
+    <div class="step"><div class="who" style="color: var(--violet);">Owner</div><h3>createLease</h3><p class="muted">Factory deploys an EIP-1167 clone with the terms and evidence hashes.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="who" style="color: var(--teal);">Renter</div><h3>fund</h3><p class="muted">Deposit + month 1 in mUSDT, locked in the clone.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="who" style="color: var(--muted);">Anyone</div><h3>releaseRent</h3><p class="muted">Every 30 days. Month 1 pays the one-time 10% fee.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="who" style="color: #0891b2;">AI inspector</div><h3>Draft split</h3><p class="muted">Compares pickup vs return photos. Report hash names agent #2921.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="who" style="color: var(--teal);">One party</div><h3>propose</h3><p class="muted">The split + report hash, on-chain.</p></div>
+  </div>
+  <div class="grid g3" style="margin-top: 46px;">
+    <div class="card"><h3 style="color: var(--teal);">✓ Agree</h3><p class="muted">The other side calls <code>accept</code>: one transaction pays renter, owner and treasury.</p></div>
+    <div class="card"><h3 style="color: var(--red);">⚖ Dispute</h3><p class="muted"><code>dispute</code> → the named dispute desk calls <code>resolve</code> with a split, within 14 days.</p></div>
+    <div class="card"><h3 style="color: var(--violet);">⏱ Silence</h3><p class="muted"><code>claimTimeout</code> / <code>claimArbiterTimeout</code>: the full deposit goes back to the renter.</p></div>
+  </div>
+  <div class="foot"><span><b>KeyEscrow</b> · docs/ARCHITECTURE.md</span><span>4 / 10</span></div>
+</section>
+
+<!-- 5. BNB-native -->
+<section class="slide dark">
+  <div class="kicker">BNB-native</div>
+  <h2>Built on BNB Chain, not just deployed there</h2>
+  <div class="grid g2">
+    <div class="card"><h3>One escrow clone per rental</h3><p class="muted"><code>EscrowFactory</code> deploys a 45-byte EIP-1167 proxy of <code>RentalEscrow</code> per rental. Funds isolated per rental, no admin key, not upgradeable. On-chain indexes by owner, renter and desk: no backend database.</p></div>
+    <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyEscrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A and MCP (17 tools).</p></div>
+    <div class="card"><h3>Evidence on BNB Greenfield</h3><p class="muted">Agreement and photos off-chain, SHA-256 on-chain. Greenfield store (delegated upload) when configured; the Workers deploy uses R2 or hashes in the browser.</p></div>
+    <div class="card"><h3>opBNB-ready</h3><p class="muted">Plain Solidity, no BSC-specific opcodes. Deploy guard accepts opBNB testnet (5611). Monthly rent releases are cheap on an L2. <i>Not deployed on opBNB yet.</i></p></div>
+  </div>
+  <div class="foot"><span>BSC testnet (chain 97) · mainnets refused by the deploy scripts</span><span>5 / 10</span></div>
+</section>
+
+<!-- 6. AI inspection + dispute desk -->
+<section class="slide">
+  <div class="kicker">AI inspection + dispute desk</div>
+  <div class="grid" style="grid-template-columns: 1.45fr 1fr; gap: 60px; align-items: start;">
+    <img class="shot" src="screenshots/4-demo-mid-run.png" alt="Demo step 7: AI inspection drafts a split">
+    <div>
+      <h2 style="font-size: 62px;">The AI drafts. People decide.</h2>
+      <ul>
+        <li>Structured result: refund, claim, reasons, confidence. Bounded by the deposit.</li>
+        <li>Recalls each scooter's earlier inspections (Living Brain), so old damage is not charged twice.</li>
+        <li>A party submits it with their own wallet; the other accepts or disputes.</li>
+        <li>Dispute desk: a queue with photos, proposals and the AI report; a hard 14-day deadline.</li>
+      </ul>
+      <p class="muted" style="font-size: 24px; margin-top: 18px;">On the live site today the deterministic <i>demo inspector</i> answers (no model key set); with a key, a vision LLM returns the same JSON.</p>
+    </div>
+  </div>
+  <div class="foot"><span><b>KeyEscrow</b> · docs/AGENT.md</span><span>6 / 10</span></div>
+</section>
+
+<!-- 7. Business model -->
+<section class="slide">
+  <div class="kicker">Business model</div>
+  <h2 style="font-size: 64px; margin-bottom: 36px;">10% of one month's rent, once. Never from the deposit.</h2>
+  <div class="grid" style="grid-template-columns: 1.25fr 1fr; gap: 70px;">
+    <div><table>
+      <tr><th>Honda Click 125i, 3 months</th><th class="r">mUSDT</th><th class="r">≈ THB</th></tr>
+      <tr><td>Monthly rent</td><td class="r">100</td><td class="r">3,400</td></tr>
+      <tr><td>Deposit (instead of the passport)</td><td class="r">200</td><td class="r">6,800</td></tr>
+      <tr class="hl"><td>KeyEscrow fee, once</td><td class="r">10</td><td class="r">340</td></tr>
+      <tr><td>Owner gets for month 1</td><td class="r">90</td><td class="r">3,060</td></tr>
+      <tr><td>Fee as share of total rent</td><td class="r" colspan="2">≈ 3.3%</td></tr>
+    </table>
+    <p class="muted" style="font-size: 24px; margin-top: 24px;">Illustrative rate 1 USDT = 34 THB. No yield on deposits. No token.</p></div>
+    <div>
+      <div class="card" style="margin-bottom: 20px; padding: 26px 32px;"><h3>Protocol fee <span class="pill ok">live</span></h3><p class="muted">From the owner's first payout. Hard-capped at 10% in the factory, copied per rental.</p></div>
+      <div class="card" style="margin-bottom: 20px; padding: 26px 32px;"><h3>FleetVault operator fee <span class="pill ok">testnet</span></h3><p class="muted">Rentals can pay a vault; the operator takes 10% (cap 30%) for maintenance, BKK-FLEET-1 holders share the rest.</p></div>
+      <div class="card" style="padding: 26px 32px;"><h3>Dispute desk as a service <span class="pill no">planned</span></h3><p class="muted">Per-dispute fee and paid tooling for insurers and associations as named arbiters.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span><b>KeyEscrow</b> · docs/BUSINESS.md</span><span>7 / 10</span></div>
+</section>
+
+<!-- 8. Traction / testnet proof -->
+<section class="slide">
+  <div class="kicker">Testnet proof</div>
+  <h2>Live on BSC testnet, open source, tested</h2>
+  <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap: 60px;">
+    <table style="font-size: 26px;">
+      <tr><th>Contract (chain 97)</th><th>Address</th></tr>
+      <tr><td>EscrowFactory</td><td class="mono">0xd33b4dfF…5F1363D8</td></tr>
+      <tr><td>RentalEscrow implementation</td><td class="mono">0x63f174fE…f34D2314</td></tr>
+      <tr><td>FleetVault (BKK-FLEET-1)</td><td class="mono">0xd046308B…6a824ecB</td></tr>
+      <tr><td>MockUSDT (test stablecoin)</td><td class="mono">0x46e69984…e4c8fE37</td></tr>
+      <tr><td>ERC-8004 Identity Registry</td><td class="mono">agent #2921</td></tr>
+    </table>
+    <div>
+      <ul>
+        <li>Contracts verified on BscScan</li>
+        <li>Web app + agent live on Cloudflare Workers</li>
+        <li>REST + OpenAPI 3.1, MCP, A2A: one action layer</li>
+        <li><b>105</b> Foundry tests (incl. fuzz) · <b>241</b> web unit · <b>20</b> agent · <b>50</b> Playwright</li>
+        <li>CI on every push, no secrets · MIT</li>
+        <li>Internal pre-audit security review</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted" style="font-size: 25px; margin-top: 34px;"><b>Honest status:</b> testnet only, no real users yet, no token. CoinMarketCap and Atlas integrations are built and tested; the live site shows labelled <i>Demo rates</i> until a CMC key is set, and Atlas publishes no BSC testnet feed addresses yet.</p>
+  <div class="foot"><span><b>KeyEscrow</b> · github.com/midego1/bnb-hackathon</span><span>8 / 10</span></div>
+</section>
+
+<!-- 9. Roadmap -->
+<section class="slide">
+  <div class="kicker">Roadmap</div>
+  <h2>From a Bangkok hackathon to the islands</h2>
+  <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 24px;">
+    <div class="card" style="border-color: var(--yellow);"><div class="num">1</div><h3>MVP</h3><p class="muted"><b>Nov 2026, done.</b> Contracts, app, agent, live demo on BSC testnet.</p></div>
+    <div class="card"><div class="num">2</div><h3>Pilot</h3><p class="muted"><b>Q1 2027.</b> 10–20 rentals with shops in Chiang Mai and Phuket. Tune the inspector. External audit.</p></div>
+    <div class="card"><div class="num">3</div><h3>Mainnet</h3><p class="muted"><b>Q2–Q3 2027.</b> BSC + opBNB, real stablecoin, embedded wallets, Thai legal review, rent keeper.</p></div>
+    <div class="card"><div class="num">4</div><h3>Shops</h3><p class="muted"><b>2027 →</b> Fleet tools as B2B subscription, associations as arbiters, booking sites and AI agents via MCP.</p></div>
+    <div class="card"><div class="num">5</div><h3>Insurance</h3><p class="muted"><b>After mainnet.</b> Damage above the deposit, priced from inspection history.</p></div>
+  </div>
+  <p style="margin-top: 50px;" class="muted">Then the same passport-as-deposit problem in Bali and Vietnam.</p>
+  <div class="foot"><span><b>KeyEscrow</b> · docs/BUSINESS.md#roadmap</span><span>9 / 10</span></div>
+</section>
+
+<!-- 10. Team / ask -->
+<section class="slide dark">
+  <div class="kicker">Team and ask</div>
+  <h2>Keep your passport.</h2>
+  <div class="grid g2" style="gap: 60px;">
+    <div>
+      <h3 style="color: var(--yellow);">Team</h3>
+      <p>KeyEscrow · built at BNB Bangkok 2026</p>
+      <p class="muted">Contact: hackathon@vanpeltventures.org</p>
+      <p class="muted">github.com/midego1/bnb-hackathon (MIT)</p>
+    </div>
+    <div>
+      <h3 style="color: var(--yellow);">What we ask for</h3>
+      <ul>
+        <li>Intros to scooter shops in Chiang Mai and Phuket for the testnet pilot</li>
+        <li>Atlas BSC feed onboarding; a CoinMarketCap API key</li>
+        <li>BNB Chain ecosystem support for the audit and opBNB launch</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top: 60px;">
+    <span class="big">keyescrow-web.mdgooijer.workers.dev</span>
+    <p class="muted" style="margin-top: 10px;">/demo · /how-it-works · /developers · agent: keyescrow-agent.mdgooijer.workers.dev</p>
+  </div>
+  <div class="foot"><span>Testnet prototype · no token · not an offer of securities</span><span>10 / 10</span></div>
+</section>
+
+</body>
+</html>
