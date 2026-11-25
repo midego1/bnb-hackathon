@@ -152,7 +152,7 @@ function MoneyStrip({ lease, viewer, events }: { lease: LeaseData; viewer: Viewe
   return (
     <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm" data-testid="money-strip">
       <div className="grid gap-3 @3xl:grid-cols-[1fr_auto_1.15fr_auto_1fr] @3xl:items-center">
-        <Node icon={<UserRound aria-hidden className="size-4" />} who={s.paidIn(viewer === "tenant")} value={f.paidIn} note={settled ? s.gotBack(baht(f.backToRenter)) : toPay > BigInt(0) ? s.stillToPay(baht(toPay)) : s.allPaidIn} />
+        <Node icon={<UserRound aria-hidden className="size-4" />} who={s.paidIn(viewer === "tenant")} value={f.paidIn} note={settled ? s.gotBack(baht(f.backToRenter)) : lease.status !== LeaseStatus.Active ? "" : toPay > BigInt(0) ? s.stillToPay(baht(toPay)) : s.allPaidIn} />
         <Arrow />
         <Node
           icon={<Lock aria-hidden className="size-4" />}
