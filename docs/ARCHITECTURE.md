@@ -275,10 +275,15 @@ Design rules:
   - For the MVP, the factory keeps on-chain indexes (`leasesByLandlord`, `leasesByTenant`,
     `leasesByArbiter`, and paginated `leases(offset, limit)`), so the frontend needs no backend to list a
     user's rentals.
-  - At scale, every state change emits an event (`LeaseCreated`, `Funded`, `RentReleased`,
-    `SettlementProposed`, `DisputeRaised`, `Settled`, and so on). A standard indexer such as a subgraph,
-    or a small event-sourced worker, can serve dashboards, the dispute-desk queue and analytics. Nothing
-    would change on-chain.
+  - Every state change emits an event (`LeaseCreated`, `Funded`, `RentReleased`, `SettlementProposed`,
+    `DisputeRaised`, `Settled`, and so on). The web app reads them through one small server-side indexer
+    (`web/lib/server/chainIndex`, served as `GET /api/chain/index`, see [API.md](API.md#get-apichainindex)): it scans the
+    factory, every escrow and the Fleet Vault once from the deployment's start block in 5,000-block windows with
+    retry and backoff, then only the new blocks, and caches the result (memory under Node, the Durable Object on
+    Workers). Browsers therefore send no `eth_getLogs` at all, which a public RPC such as PublicNode would
+    rate-limit (HTTP 403/429); their remaining `eth_call`s are batched into Multicall3 by wagmi.
+  - At scale, a standard indexer such as a subgraph can replace it for dashboards, the dispute-desk queue and
+    analytics. Nothing would change on-chain.
 - **Keeper-friendly.** `releaseRent()`, `claimTimeout()` and `claimArbiterTimeout()` are permissionless and
   can only move funds to the parties. Rent and timeouts can therefore be automated by any keeper, or by a
   KeyEscrow cron, without trusting it.

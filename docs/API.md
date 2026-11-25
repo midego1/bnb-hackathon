@@ -155,6 +155,28 @@ last calls (endpoint, time, status, duration, note). Never returns key values.
 (Living Brain, or the local stand-in) before judging, returns them under `memory`, and stores the new inspection
 (`memoryStored`).
 
+## GET /api/chain/index
+
+`?chainId=97` (or 31337), optional `&minBlock=<n>`. Every factory (`LeaseCreated`, `PayeeSet`), rental escrow and
+Fleet Vault event of the deployment, plus the stablecoin transfers from escrows into the vault, oldest first. This is
+what the back office, Fleet owner, Renter, Shareholders and rental pages read instead of calling `eth_getLogs` from the
+browser (`web/lib/server/chainIndex`).
+
+- The server scans from the deployment's `fromBlock` in windows of `CHAIN_INDEX_BLOCK_RANGE` blocks (default 5,000;
+  a window the node still refuses is split in half), at most `CHAIN_INDEX_CONCURRENCY` (2) queries at a time, each retried
+  with exponential backoff on 429 / 403 / 5xx / timeouts. Later refreshes scan only the new blocks (plus a 12-block reorg
+  tail). Local anvil (31337) is rescanned in full each time, so `evm_revert` cannot leave stale events behind.
+- Cached in the shared state (memory under Node, the `KEYESCROW_STATE` Durable Object on Workers) and served without
+  any RPC call for `CHAIN_INDEX_TTL_MS` (default 4,000 on 97, 0 on anvil). `minBlock` (the block of a transaction the
+  caller just sent) forces a refresh until the index reaches it.
+- Bigints are encoded as `{"$n": "123"}` (`web/lib/chainIndex.ts` has the codec). Fields: `chainId`, `factory`,
+  `vault`, `fromBlock`, `scannedTo`, `latestBlock`, `chainNow` (timestamp of `latestBlock`), `escrows`, `events`
+  (`address`, `name`, `args`, `txHash`, `blockNumber`, `logIndex`, `timestamp`), `failed` (reverted escrow
+  transactions, anvil only), `scannedFailures`, `updatedAt`.
+- RPC failure: with an earlier snapshot the answer is still 200, with `stale: {error, since}` (the UI shows a "last good
+  read" warning with a Retry button); without one it is 503 with `Retry-After: 5`. 400 for an unsupported `chainId` or a
+  malformed `minBlock`, 404 when KeyEscrow is not deployed on that chain.
+
 ## /api/v1: rental actions (unsigned transactions)
 
 One endpoint per rental action, generated from `web/lib/actions/definitions.ts` (the same definitions the agent serves
