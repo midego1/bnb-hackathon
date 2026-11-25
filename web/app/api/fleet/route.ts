@@ -17,13 +17,13 @@ function chainOf(request: Request) {
 
 export async function GET(request: Request) {
   const chainId = chainOf(request);
-  if (!chainId) return jsonError(400, "chainId must be 31337 or 97");
+  if (!chainId) return jsonError(400, `chainId must be one of ${SUPPORTED_CHAIN_IDS.join(", ")}`);
   return NextResponse.json(await getFleetStore().read(chainId), { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
   const chainId = chainOf(request);
-  if (!chainId) return jsonError(400, "chainId must be 31337 or 97");
+  if (!chainId) return jsonError(400, `chainId must be one of ${SUPPORTED_CHAIN_IDS.join(", ")}`);
   const parsed = fleetActionSchema.safeParse(await request.json().catch(() => undefined));
   if (!parsed.success) return jsonError(400, "invalid fleet action", zodIssues(parsed.error));
   try {

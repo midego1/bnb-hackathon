@@ -3,6 +3,7 @@
 import { useAccount } from "wagmi";
 import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
+import { targetChainId } from "@/lib/chains";
 import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
@@ -36,15 +37,18 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
         The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
-        <ActionButton
-          variant="secondary"
-          busy={pending === "Get test USDT"}
-          disabledReason={balance === undefined ? "Loading your balance…" : short === BigInt(0) ? "You already have enough test USDT." : null}
-          onClick={() => send("Get test USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "faucet", args: [address!, faucetAmount] })}
-          data-testid="faucet"
-        >
-          Get {formatUsdt(faucetAmount || need)} test USDT
-        </ActionButton>
+        {/* BSC mainnet (56) has real USDT: no faucet. */}
+        {targetChainId !== 56 && (
+          <ActionButton
+            variant="secondary"
+            busy={pending === "Get test USDT"}
+            disabledReason={balance === undefined ? "Loading your balance…" : short === BigInt(0) ? "You already have enough test USDT." : null}
+            onClick={() => send("Get test USDT", { address: lease.terms.token, abi: mockUsdtAbi, functionName: "faucet", args: [address!, faucetAmount] })}
+            data-testid="faucet"
+          >
+            Get {formatUsdt(faucetAmount || need)} test USDT
+          </ActionButton>
+        )}
         <ActionButton
           variant="secondary"
           busy={pending === "Approve USDT"}

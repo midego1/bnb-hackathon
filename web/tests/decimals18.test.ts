@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-// A build for an 18-decimal stablecoin (BSC-USD on BSC mainnet): every amount helper follows the deployment's decimals.
+// A BSC mainnet build (NEXT_PUBLIC_CHAIN_ID=56, 18-decimal BSC-USD): amounts follow the token, only chain 56 is served.
 vi.stubEnv("NEXT_PUBLIC_CHAIN_ID", "56");
 vi.mock("@/lib/contracts/deployments.generated.json", () => ({
   default: {
@@ -28,5 +28,16 @@ describe("18-decimal token", () => {
     expect(usdtNumber(hundred)).toBe(100);
     const prices = { rates: { USDT: { THB: 33, USD: 1 }, BNB: { THB: 0, USD: 0 } } } as never;
     expect(toFiat(hundred, "USDT", "THB", prices)).toBe(3300);
+  });
+
+  it("serves BSC mainnet only, with BscScan links", async () => {
+    const { SUPPORTED_CHAIN_IDS } = await import("@/lib/actions/fields");
+    const { rpcUrl, defaultChainId } = await import("@/lib/actions/context");
+    const { explorerLink, supportedChains } = await import("@/lib/chains");
+    expect(SUPPORTED_CHAIN_IDS).toEqual([56]);
+    expect(supportedChains.map((c) => c.id)).toEqual([56]);
+    expect(defaultChainId({})).toBe(56);
+    expect(rpcUrl(56, {})).toBe("https://bsc-rpc.publicnode.com");
+    expect(explorerLink(56, "tx", "0xabc")).toBe("https://bscscan.com/tx/0xabc");
   });
 });

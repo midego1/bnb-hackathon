@@ -1,7 +1,7 @@
 /** OpenAPI 3.1 document for /api/v1, generated from the action definitions (no hand-written paths). */
 import { z } from "zod";
 import { ACTIONS, toolDescription } from "./definitions";
-import { TOKEN } from "./fields";
+import { SUPPORTED_CHAIN_IDS, TOKEN } from "./fields";
 import { API_BASE, methodOf } from "./rest";
 
 type JsonSchema = Record<string, unknown> & { properties?: Record<string, JsonSchema>; required?: string[] };
@@ -30,7 +30,7 @@ const PREPARED = {
   type: "object",
   required: ["chainId", "from", "steps", "summary", "simulation", "unsigned"],
   properties: {
-    chainId: { type: "integer", enum: [31337, 97] },
+    chainId: { type: "integer", enum: [...SUPPORTED_CHAIN_IDS] },
     from: { type: "string", description: "The address that must sign every step." },
     steps: {
       type: "array",

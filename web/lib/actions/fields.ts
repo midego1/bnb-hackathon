@@ -7,14 +7,15 @@
  */
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { z } from "zod";
+import { targetChainId } from "../chains";
 import { TOKEN } from "../contracts";
 
 /** The target chain's stablecoin (decimals and symbol from its deployment file): MockUSDT (6) on testnets, BSC-USD (18) on 56. */
 export { TOKEN };
 
-/** Chains with a KeyEscrow deployment (contracts/deployments/*.json). Never a mainnet. */
-export const SUPPORTED_CHAIN_IDS = [31337, 97, 5611] as const;
-export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number];
+export type SupportedChainId = 31337 | 97 | 5611 | 56;
+/** Chains this server serves: BSC mainnet (56) only in a mainnet build, else the testnets and anvil, never both. */
+export const SUPPORTED_CHAIN_IDS: readonly SupportedChainId[] = targetChainId === 56 ? [56] : [31337, 97, 5611];
 
 /** Lease status names, index = RentalEscrow.Status. */
 export const STATUS_NAMES = ["Created", "Active", "MoveOut", "Disputed", "Settled", "Cancelled"] as const;
@@ -107,11 +108,14 @@ export const field = {
 
   chainId: () =>
     z
-      .preprocess((v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v), z.union([z.literal(31337), z.literal(97)]))
+      .preprocess(
+        (v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v),
+        z.number().refine((id) => SUPPORTED_CHAIN_IDS.includes(id as SupportedChainId), `One of ${SUPPORTED_CHAIN_IDS.join(", ")}.`),
+      )
       .optional()
       .meta({
         title: "Chain",
-        description: "31337 = local anvil, 97 = BSC testnet. Defaults to the chain this server is configured for.",
+        description: `${SUPPORTED_CHAIN_IDS.join(", ")} (31337 = local anvil, 97 = BSC testnet, 5611 = opBNB testnet, 56 = BSC mainnet). Defaults to the chain this server is configured for.`,
       }),
 };
 

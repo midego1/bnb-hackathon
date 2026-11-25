@@ -23,6 +23,8 @@ abstract contract ScriptBase is Script {
     uint256 internal constant BSC_TESTNET_CHAIN_ID = 97;
     uint256 internal constant OPBNB_TESTNET_CHAIN_ID = 5611;
     uint256 internal constant BSC_MAINNET_CHAIN_ID = 56;
+    /// @dev BSC-USD (Tether USD on BNB Smart Chain, 18 decimals): the only token a mainnet deployment may use.
+    address internal constant BSC_USD = 0x55d398326f99059fF775485246999027B3197955;
 
     error RefusingNonLocalChain(uint256 chainId);
     error RefusingMainnet(uint256 chainId);
@@ -32,17 +34,25 @@ abstract contract ScriptBase is Script {
     error DeployerMismatch(address expected, address actual);
     error MissingRoleAddress(string envName);
     error RefusingAnvilAccount(string role, address account);
+    error MainnetNotConfirmed();
 
     /// @dev Local anvil always passes. BSC testnet (97) and opBNB testnet (5611) need ALLOW_NON_LOCAL_BROADCAST=true.
-    /// Known mainnets are refused unconditionally (MockUSDT and the demo setup are testnet-only), and so is any
-    /// other chain id.
+    /// BSC mainnet (56, the capped pilot) needs that AND MAINNET_I_UNDERSTAND=yes. Ethereum and opBNB mainnets are
+    /// refused unconditionally, and so is any other chain id.
     function _requireAllowedChain() internal view {
         uint256 id = block.chainid;
         if (id == ANVIL_CHAIN_ID) return;
-        // Ethereum, BNB Smart Chain, opBNB mainnets.
-        if (id == 1 || id == 56 || id == 204) revert RefusingMainnet(id);
-        if (id != BSC_TESTNET_CHAIN_ID && id != OPBNB_TESTNET_CHAIN_ID) revert RefusingUnknownChain(id);
+        if (id == 1 || id == 204) revert RefusingMainnet(id);
+        if (id != BSC_TESTNET_CHAIN_ID && id != OPBNB_TESTNET_CHAIN_ID && id != BSC_MAINNET_CHAIN_ID) {
+            revert RefusingUnknownChain(id);
+        }
         if (!vm.envOr("ALLOW_NON_LOCAL_BROADCAST", false)) revert RefusingNonLocalChain(id);
+        if (
+            id == BSC_MAINNET_CHAIN_ID
+                && keccak256(bytes(vm.envOr("MAINNET_I_UNDERSTAND", string("")))) != keccak256("yes")
+        ) {
+            revert MainnetNotConfirmed();
+        }
     }
 
     function _isLocal() internal view returns (bool) {
