@@ -1,25 +1,21 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
-import { EvidenceThumb } from "@/components/lease/EvidencePanel";
+import { rentalCopy as c } from "@/components/lease/copy";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, Amount, Notice, StatusBadge } from "@/components/ui";
-import { LeaseStatus } from "@/lib/contracts";
-import { photosForHash } from "@/lib/demoEvidence";
+import { ActionButton, Amount, Notice } from "@/components/ui";
 import { postFleet, scooterState, type Scooter } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useRentals } from "@/lib/hooks/useRentals";
-import type { RentalSummary } from "@/lib/rentals";
 import { usePrices } from "@/lib/usePrices";
-import { FlagBadge, useFleet } from "./shared";
+import { RentalCard } from "./RentalCard";
+import { useFleet } from "./shared";
 import { ScooterStateBadge, thbToUsdt } from "./FleetOwner";
 
-/** Renter: browse and book scooters, then follow each rental (photos, AI inspection, deposit outcome). */
+/** Renter with a wallet: their rentals as big cards first, then the scooters they can book. */
 export function Renter() {
   const { address } = useAccount();
   const { chainId } = useDeployment();
@@ -37,8 +33,21 @@ export function Renter() {
     .sort((a, b) => Number(b.state === "available") - Number(a.state === "available"));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <ChainReadNotice error={indexError} hasData={!!index} stale={index?.stale} block={index?.latestBlock} onRetry={() => refetch()} retrying={isFetching} what="your rentals" />
+      <section>
+        <h1 className="mb-4 text-3xl font-semibold tracking-tight">{c.renter.yours}</h1>
+        {myRentals.length === 0 ? (
+          <p className="text-base text-muted-foreground">{c.renter.noneYet}</p>
+        ) : (
+          <ul className="space-y-4" data-testid="renter-rentals">
+            {myRentals.map((r) => (
+              <RentalCard key={r.address} r={r} scooter={scooterOf.get(r.address.toLowerCase())} now={index!.chainNow} you />
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section>
         <h2 className="mb-3 text-lg font-semibold">Find a scooter</h2>
         {scooters.length === 0 ? (
@@ -59,18 +68,6 @@ export function Renter() {
         </Notice>
       )}
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">My rentals</h2>
-        {myRentals.length === 0 ? (
-          <p className="text-sm text-subtle">No rentals for this wallet yet. Book a scooter above.</p>
-        ) : (
-          <ul className="space-y-3" data-testid="renter-rentals">
-            {myRentals.map((r) => (
-              <RentalStory key={r.address} r={r} scooter={scooterOf.get(r.address.toLowerCase())} />
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }
@@ -131,98 +128,3 @@ function BookCard({ s, state, chainId, mine }: { s: Scooter; state: ReturnType<t
     </li>
   );
 }
-
-/** One rental from the renter's side: what to do next, photos, AI inspection, and where the deposit went. */
-function RentalStory({ r, scooter }: { r: RentalSummary; scooter?: Scooter }) {
-  const pickup = r.pickupPhotos.flatMap(photosForHash);
-  const ret = r.returnPhotos.flatMap(photosForHash);
-  const next =
-    r.status === LeaseStatus.Created
-      ? "Pay deposit + first month into the escrow"
-      : r.status === LeaseStatus.Active
-        ? r.returnPhotos.length
-          ? "Run the AI return inspection and propose the split"
-          : "Ride safe. At return, take the guided return photos"
-        : r.status === LeaseStatus.MoveOut
-          ? "Return proposal open"
-          : r.status === LeaseStatus.Disputed
-            ? "The dispute desk is reviewing the photos"
-            : undefined;
-  return (
-    <li className="rounded-2xl border border-border p-4" data-testid="renter-rental" data-address={r.address} data-status={r.status}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold">{scooter ? `${scooter.name} · ${scooter.location}` : `Rental ${shortAddress(r.address)}`}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <StatusBadge status={r.status} />
-            {r.flags.map((f) => <FlagBadge key={f.code} flag={f} />)}
-          </div>
-        </div>
-        <Link href={`/lease/${r.address}`} className="text-sm font-medium underline-offset-2 hover:underline" data-testid="open-rental">
-          {r.status === LeaseStatus.Created ? "Pay now" : "Open rental"} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
-        </Link>
-      </div>
-      {next && <p className="mt-2 text-sm text-muted-foreground">{next}</p>}
-
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-muted p-3 text-sm">
-          <p className="text-xs text-subtle">Deposit</p>
-          <Amount value={r.depositAmount} />
-          {r.settled ? (
-            <p className="mt-1 text-xs" data-testid="deposit-outcome">
-              {r.settled.landlordClaim > BigInt(0) ? (
-                <>
-                  <span className="text-success-fg">Returned</span> <Amount value={r.settled.tenantRefund} className="inline-flex" /> ·{" "}
-                  <span className="text-danger">slashed</span> <Amount value={r.settled.landlordClaim} className="inline-flex" /> for damage
-                </>
-              ) : (
-                <span className="text-success-fg">Fully returned</span>
-              )}
-            </p>
-          ) : r.totals.depositLocked > BigInt(0) ? (
-            <p className="mt-1 text-xs text-subtle">Locked in escrow. The shop can never take it alone.</p>
-          ) : null}
-        </div>
-        <div className="rounded-xl bg-muted p-3 text-sm sm:col-span-2">
-          <p className="text-xs text-subtle">AI inspection</p>
-          {r.proposal ? (
-            <p data-testid="inspection-outcome">
-              Back to you <Amount value={r.proposal.tenantRefund} className="inline-flex" /> · for damage <Amount value={r.proposal.landlordClaim} className="inline-flex" />
-              <span className="block text-xs text-subtle">
-                proposed by the {r.proposal.proposer.toLowerCase() === r.tenant.toLowerCase() ? "renter" : "owner"} · report{" "}
-                <span className="font-mono">{r.proposal.reportHash.slice(0, 10)}…</span>
-              </span>
-            </p>
-          ) : (
-            <p className="text-subtle">Runs at return: it compares pickup and return photos.</p>
-          )}
-        </div>
-      </div>
-
-      {(pickup.length > 0 || ret.length > 0) && (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <PhotoStrip title="Pickup photos" photos={pickup} />
-          <PhotoStrip title="Return photos" photos={ret} />
-        </div>
-      )}
-    </li>
-  );
-}
-
-function PhotoStrip({ title, photos }: { title: string; photos: ReturnType<typeof photosForHash> }) {
-  return (
-    <div>
-      <p className="mb-1 text-xs text-subtle">{title}</p>
-      {photos.length === 0 ? (
-        <p className="text-xs text-subtle">None yet.</p>
-      ) : (
-        <ul className="grid grid-cols-3 gap-2">
-          {photos.slice(0, 6).map((p) => (
-            <EvidenceThumb key={p.hash} photo={p} />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
