@@ -73,6 +73,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-          cache-dependency-path: agent/pnpm-lock.yaml
+          cache-dependency-path: |
+            agent/pnpm-lock.yaml
+            web/pnpm-lock.yaml
+      # The agent imports web/lib/server/* (evidence store, Living Brain, settlement), whose packages resolve from
+      # web/node_modules: install both.
       - run: pnpm -C agent install --frozen-lockfile
+      - run: pnpm -C web install --frozen-lockfile
       - run: pnpm agent:test

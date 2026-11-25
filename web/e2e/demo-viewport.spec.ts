@@ -321,3 +321,48 @@ for (const vp of SHORT) {
     await page.screenshot({ path: path.join(SHOTS, `${name}-short-summary.png`) });
   });
 }
+
+// With the Ask AI panel open on a short window the stage is not pinned, so the panel takes its column on the right and
+// the page reflows beside it (a float would sit on the last rows for good): nothing is under the panel, the page
+// scrolls, and the summary buttons and the last timeline step are still reachable. The sidebar row stays on screen.
+for (const vp of [
+  { width: 1280, height: 600 },
+  { width: 1440, height: 700 },
+]) {
+  const name = `${vp.width}x${vp.height}`;
+  test(`short window ${name} with the Ask AI panel open: a column beside the page, nothing under it`, async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize(vp);
+    await page.goto("/demo");
+    await expect(page.getByTestId("demo-play")).toBeEnabled();
+    await expect(page.getByTestId("ask-ai-entry")).toBeInViewport({ ratio: 1 });
+    await page.getByTestId("ask-ai-entry").click();
+    const panel = page.getByTestId("assistant-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId("assistant-input")).toBeInViewport({ ratio: 1 });
+    const side = (await panel.boundingBox())!;
+    expect(side.y, "panel is a full-height column").toBeLessThanOrEqual(1);
+    expect(Math.round(side.x + side.width), "panel sits on the right edge").toBe(vp.width);
+    const runner = (await page.getByTestId("demo-runner").boundingBox())!;
+    expect(runner.x + runner.width, "the stage reflows beside the panel").toBeLessThanOrEqual(side.x + 1);
+    const sw = await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth);
+    expect(sw, "page scrolls sideways").toBeLessThanOrEqual(0);
+
+    await page.getByTestId("demo-speed-fast").click();
+    await page.getByTestId("demo-play").click();
+    const summary = page.getByTestId("demo-summary");
+    await expect(summary).toBeVisible({ timeout: 90_000 });
+    await expect(summary).toHaveAttribute("data-balanced", "true");
+    expect(await page.evaluate(() => document.scrollingElement!.scrollHeight > window.innerHeight), "page scrolls").toBe(true);
+    await wheelUntilVisible(page, summary, page.getByTestId("demo-run-again"), "Run again with the panel open");
+    const again = (await page.getByTestId("demo-run-again").boundingBox())!;
+    expect(again.x + again.width, "Run again is not under the panel").toBeLessThanOrEqual(side.x + 1);
+    const lastStep = page.locator('[data-testid="demo-step"]').last();
+    await wheelUntilVisible(page, page.getByTestId("demo-rail"), lastStep, "last timeline step with the panel open");
+    const last = (await lastStep.boundingBox())!;
+    expect(last.x + last.width, "last timeline step is not under the panel").toBeLessThanOrEqual(side.x + 1);
+    await expect(panel).toBeInViewport({ ratio: 1 }); // fixed: scrolling the page never moves it off screen
+    await page.screenshot({ path: path.join(SHOTS, `${name}-short-panel-open-summary.png`) });
+  });
+}
