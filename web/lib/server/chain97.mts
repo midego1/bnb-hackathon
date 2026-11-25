@@ -16,6 +16,7 @@ import {
   parseGwei,
   type Abi,
   type Address,
+  type Chain,
   type Hash,
   type PublicClient,
   type TransactionReceipt,
@@ -64,8 +65,9 @@ export type Chain97 = ReturnType<typeof createChain97>;
  * Public client plus a sender for chain 97. `send` simulates first (a revert is caught for free instead of burning
  * gas), estimates gas, refuses anything over `maxGas`, then signs a legacy tx at the explicit gas price.
  */
-export function createChain97(opts: { rpc: string; gasPrice: bigint; receiptTimeoutMs?: number }) {
-  const chain = { ...bscTestnet, rpcUrls: { default: { http: [opts.rpc] } } };
+export function createChain97(opts: { rpc: string; gasPrice: bigint; receiptTimeoutMs?: number; chain?: Chain }) {
+  // `chain` = the local anvil for the stage demo on 31337 (lib/server/stage); everything else is chain 97.
+  const chain = { ...(opts.chain ?? bscTestnet), rpcUrls: { default: { http: [opts.rpc] } } };
   const transport = http(opts.rpc, { retryCount: 5, retryDelay: 750, timeout: 30_000 });
   const pub = createPublicClient({ chain, transport, pollingInterval: 1_500 }) as PublicClient;
   const nonces = new Map<string, number>();

@@ -27,6 +27,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Roles",
     items: [
       { href: "/tenant", label: "Renter", icon: "renter", testId: "view-tenant", role: "tenant" },
+      { href: "/app/subscriptions", label: "Subscriptions", icon: "subscriptions", testId: "view-subscriptions", role: "tenant" },
       { href: "/landlord", label: "Fleet owner", icon: "owner", testId: "view-landlord", role: "landlord" },
       { href: "/shareholders", label: "Shareholders", icon: "shareholders", testId: "view-shareholders", role: "investor" },
       { href: "/backoffice", label: "Back office", icon: "backoffice", testId: "view-backoffice" },

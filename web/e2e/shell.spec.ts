@@ -46,7 +46,7 @@ for (const vp of [
 test("roles group is the role switcher: active item, demo account follows, keyboard reachable", async ({ page }) => {
   await page.goto("/app");
   const roles = page.getByTestId("role-switcher");
-  await expect(roles.getByRole("link")).toHaveText(["Renter", "Fleet owner", "Shareholders", "Back office", "Dispute desk"]);
+  await expect(roles.getByRole("link")).toHaveText(["Renter", "Subscriptions", "Fleet owner", "Shareholders", "Back office", "Dispute desk"]);
   await roles.getByRole("link", { name: "Fleet owner" }).click();
   await page.waitForURL(/\/landlord$/);
   await expect(page.getByTestId("view-landlord")).toHaveAttribute("aria-current", "page");

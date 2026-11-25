@@ -77,6 +77,8 @@
   --info-soft: #f0f9ff;
   --info-fg: #0c4a6e;
   --info-border: #bae6fd;
+  /* The floating desktop sidebar's lift off the page (bg-sidebar + shadow-sidebar, components/shell/AppShell.tsx). */
+  --sidebar-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
 }
 
 :root.dark {
@@ -113,6 +115,7 @@
   --info-soft: #082f49;
   --info-fg: #bae6fd;
   --info-border: #075985;
+  --sidebar-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.4);
 }
 
 /* shadcn/ui's variables, mapped onto the tokens above (both themes follow automatically). */
@@ -145,6 +148,7 @@
 }
 
 @theme inline {
+  --shadow-sidebar: var(--sidebar-shadow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -333,6 +337,30 @@
   --color-actor-inspector-fg: var(--actor-inspector-fg);
   --color-actor-inspector-border: var(--actor-inspector-border);
   --color-actor-inspector-tint: var(--actor-inspector-tint);
+}
+
+/* The rental page's status banner: dark in both themes (lifted a step in dark so it still reads as a block). */
+:root {
+  --banner: #0f172a;
+  --banner-foreground: #f8fafc;
+  --banner-muted: #cbd5e1;
+  --banner-line: #334155;
+  --banner-ok: #6ee7b7;
+  --banner-warn: #fcd34d;
+  --banner-danger: #fda4af;
+}
+:root.dark {
+  --banner: #1e293b;
+  --banner-line: #475569;
+}
+@theme inline {
+  --color-banner: var(--banner);
+  --color-banner-foreground: var(--banner-foreground);
+  --color-banner-muted: var(--banner-muted);
+  --color-banner-line: var(--banner-line);
+  --color-banner-ok: var(--banner-ok);
+  --color-banner-warn: var(--banner-warn);
+  --color-banner-danger: var(--banner-danger);
 }
 
 body {

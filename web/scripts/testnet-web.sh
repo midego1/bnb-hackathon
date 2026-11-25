@@ -49,6 +49,8 @@ ENV_VARS=(
 )
 # Server-only (runtime) settings of the live demo runner: a flag and two paths.
 RUNTIME_VARS=(DEMO_TESTNET_RUNNER="$DEMO_RUNNER" DEMO_TESTNET_SECRETS_DIR="$DEMO_SECRETS" DEMO_TESTNET_ENV_FILE="$DEMO_ENV_FILE")
+# The live judge demo (/stage, /r) signs with the same demo wallets; STAGE_DEMO=0 switches it off.
+RUNTIME_VARS+=(STAGE_DEMO="${STAGE_DEMO:-1}")
 # Write-only secrets page: a flag and three paths, never a value.
 RUNTIME_VARS+=(
   SETTINGS_SECRETS_ENABLED="${SETTINGS_SECRETS:-1}"

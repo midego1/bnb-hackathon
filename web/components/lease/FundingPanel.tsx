@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAccount } from "wagmi";
 import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
 import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
@@ -75,6 +76,9 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
           Fund deposit + rent
         </ActionButton>
       </div>
+      <Link href={`/app/pay/${lease.address}`} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover" data-testid="pay-promptpay">
+        Pay with PromptPay (demo)
+      </Link>
     </Card>
   );
 }

@@ -15,7 +15,7 @@ export interface StoredEvidence {
 
 /** Where evidence bytes live. Content-addressed: the sha256 hash is the key. */
 export interface EvidenceStore {
-  readonly name: "local" | "greenfield" | "r2" | "disabled";
+  readonly name: "local" | "greenfield" | "r2" | "state" | "disabled";
   /** Store bytes under their hash. Idempotent: storing the same bytes twice is a no-op. */
   put(hash: Bytes32Hex, bytes: Uint8Array, contentType: EvidenceContentType): Promise<void>;
   /** Fetch bytes by hash, or null when unknown. */
