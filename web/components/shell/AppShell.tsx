@@ -58,9 +58,13 @@ export function AppShell({ children, footer, settings }: { children: ReactNode; 
 /** On every client-side navigation: close the phone drawer and give the sidebar the state of the new page. */
 function RouteSync({ setDrawerOpen }: { setDrawerOpen: (open: boolean) => void }) {
   const pathname = usePathname();
+  const shownPath = useRef<string | null>(null);
   useEffect(() => {
     syncSidebarToRoute(pathname);
-    setDrawerOpen(false);
+    // Close the drawer on navigation only: this boundary can hydrate after the menu button, and closing on its first
+    // run would shut a drawer the visitor has just opened.
+    if (shownPath.current !== null && shownPath.current !== pathname) setDrawerOpen(false);
+    shownPath.current = pathname;
   }, [pathname, setDrawerOpen]);
   return null;
 }
