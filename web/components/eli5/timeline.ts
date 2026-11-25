@@ -17,13 +17,13 @@ export const easeOutBack = (p: number) => {
 };
 
 /** 0 before the cue, rising to 1 over `span` ms after it. A cue at 0 is there from the start (already 1). */
-export function cue(scene: Scene, name: Cue, t: number, span = ENTER): number {
+export function cue<C extends string = Cue>(scene: { cues: Partial<Record<C, number>> }, name: C, t: number, span = ENTER): number {
   const at = scene.cues[name];
   if (at === undefined) return 0;
   if (at === 0) return 1;
   return clamp01((t - at) / span);
 }
-export const has = (scene: Scene, name: Cue) => scene.cues[name] !== undefined;
+export const has = <C extends string = Cue>(scene: { cues: Partial<Record<C, number>> }, name: C) => scene.cues[name] !== undefined;
 
 /** Where each holder's coins leave from and land, in stage units (viewBox 1200 x 560). */
 export const ANCHORS: Record<Holder, { x: number; y: number }> = {
@@ -36,7 +36,7 @@ export const ANCHORS: Record<Holder, { x: number; y: number }> = {
 export type FlyingCoin = { key: string; x: number; y: number; opacity: number; r: number };
 
 /** Coins in the air at t. Reduced motion: each coin fades out at the start and fades in at the end, no travel. */
-export function coinsAt(scene: Scene, t: number, reduced: boolean): FlyingCoin[] {
+export function coinsAt(scene: Pick<Scene, "flows">, t: number, reduced: boolean): FlyingCoin[] {
   const out: FlyingCoin[] = [];
   (scene.flows ?? []).forEach((f, fi) => {
     const a = ANCHORS[f.from];
@@ -64,7 +64,7 @@ export function coinsAt(scene: Scene, t: number, reduced: boolean): FlyingCoin[]
 }
 
 /** What everyone holds at t: a holder pays a coin's share when it leaves and receives it when it lands. */
-export function holdingsAt(scene: Scene, t: number): Holdings {
+export function holdingsAt(scene: Pick<Scene, "flows" | "before">, t: number): Holdings {
   const h = { ...scene.before };
   for (const f of scene.flows ?? []) {
     let left = 0;

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /*
  * Theme: <html> carries class "light" or "dark", set before first paint by the inline script in
@@ -28,23 +30,36 @@
   }
 }
 
-/* Semantic color tokens. Text pairs are WCAG AA (>= 4.5:1) on background, surface and surface-muted. */
+/*
+ * Colour tokens. One set of names for our own markup and for shadcn/ui (components/ui/*, components.json): the
+ * shadcn variables (background, card, popover, primary, secondary, muted, accent, destructive, border, input, ring,
+ * sidebar-*) are defined here on our palette, so a component added with `npx shadcn add` picks up these colours as is.
+ *
+ *   primary            the dark (light theme) / light (dark theme) action colour; primary-hover is its hover
+ *   muted              quiet surface (code blocks, chips, segmented controls); muted-foreground is secondary text
+ *   accent             shadcn's hover / highlighted-item surface (menu items, ghost buttons) = muted
+ *   surface, surface-strong, field, subtle, border-strong, border-hover: ours, no shadcn equivalent
+ *   success / warning / danger / info: status colours, each with -soft (background), -fg (text on -soft), -border
+ *
+ * Text pairs are WCAG AA (>= 4.5:1) on background, surface and muted.
+ */
 :root {
   color-scheme: light;
   --background: #f8fafc;
+  --foreground: #0f172a;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
   --surface-strong: #e2e8f0;
   --field: #ffffff;
-  --foreground: #0f172a;
-  --muted: #475569;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
   --subtle: #556274;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
   --border-hover: #64748b;
-  --accent: #0f172a;
-  --accent-hover: #334155;
-  --accent-foreground: #ffffff;
+  --primary: #0f172a;
+  --primary-hover: #334155;
+  --primary-foreground: #ffffff;
+  --ring: var(--primary);
 
   --success: #047857;
   --success-soft: #ecfdf5;
@@ -62,24 +77,27 @@
   --info-soft: #f0f9ff;
   --info-fg: #0c4a6e;
   --info-border: #bae6fd;
+  /* The floating desktop sidebar's lift off the page (bg-sidebar + shadow-sidebar, components/shell/AppShell.tsx). */
+  --sidebar-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
 }
 
 :root.dark {
   color-scheme: dark;
   --background: #020617;
+  --foreground: #f1f5f9;
   --surface: #0f172a;
-  --surface-muted: #1e293b;
   --surface-strong: #334155;
   --field: #020617;
-  --foreground: #f1f5f9;
-  --muted: #b4c0d0;
+  --muted: #1e293b;
+  --muted-foreground: #b4c0d0;
   --subtle: #93a1b5;
   --border: #1e293b;
   --border-strong: #334155;
   --border-hover: #64748b;
-  --accent: #f8fafc;
-  --accent-hover: #e2e8f0;
-  --accent-foreground: #0f172a;
+  --primary: #f8fafc;
+  --primary-hover: #e2e8f0;
+  --primary-foreground: #0f172a;
+  --ring: var(--primary);
 
   --success: #34d399;
   --success-soft: #022c22;
@@ -97,23 +115,78 @@
   --info-soft: #082f49;
   --info-fg: #bae6fd;
   --info-border: #075985;
+  --sidebar-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.4);
+}
+
+/* shadcn/ui's variables, mapped onto the tokens above (both themes follow automatically). */
+:root {
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --chart-1: var(--info);
+  --chart-2: var(--success);
+  --chart-3: var(--warning);
+  --chart-4: var(--danger);
+  --chart-5: var(--muted-foreground);
+  /* Tailwind's own radius scale (rounded-lg = 0.5rem), so shadcn components match the existing corners. */
+  --radius: 0.5rem;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @theme inline {
+  --shadow-sidebar: var(--sidebar-shadow);
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
   --color-surface-strong: var(--surface-strong);
   --color-field: var(--field);
-  --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-subtle: var(--subtle);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-border-hover: var(--border-hover);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-fg: var(--success-fg);
@@ -132,6 +205,162 @@
   --color-info-border: var(--info-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+}
+
+@layer base {
+  /* shadcn/ui's base: an unstyled border takes the border token, not currentColor. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+}
+
+/*
+ * Demo and illustration colours (pages): the amber "highlight" of the guided demo (play buttons, progress, the
+ * current step), the fixed actor colours (owner, renter, escrow, treasury, dispute desk, inspector), timeline dots
+ * and the photo-caption overlay. Same values as the Tailwind palette colours they replace.
+ */
+:root {
+  --highlight: #fbbf24;
+  --highlight-hover: #fcd34d;
+  --highlight-strong: #f59e0b;
+  --highlight-foreground: #020617;
+  --highlight-chip: #fcd34d;
+  --highlight-edge: #fcd34d;
+  --highlight-ring: #fbbf24;
+  --highlight-soft: #fffbeb;
+  --highlight-text: #92400e;
+  --highlight-pressed: #78350f;
+  --highlight-pressed-foreground: #fffbeb;
+  --highlight-hover-soft: #fef3c7;
+
+  --settled-edge: #10b981;
+  --settled-soft: #ecfdf5;
+  --settled-text: #065f46;
+  --flash-up: rgb(52 211 153 / 25%);
+  --flash-down: rgb(251 113 133 / 25%);
+
+  --status-done: #059669; /* emerald-600: the white check on it is >= 3:1 (emerald-500 was 2.5:1) */
+  --status-failed: #f43f5e;
+  --on-status: #ffffff;
+
+  --dot-neutral: #94a3b8;
+  --dot-success: #10b981;
+  --dot-info: #0ea5e9;
+
+  --overlay: #020617;
+  --overlay-foreground: #ffffff;
+
+  --actor-owner: #8b5cf6;
+  --actor-owner-soft: #ede9fe;
+  --actor-owner-fg: #4c1d95;
+  --split-renter-text: #6d28d9;
+  --actor-renter: #10b981;
+  --split-owner-text: #0f766e;
+  --actor-escrow: #f59e0b;
+  --actor-treasury: #0ea5e9;
+  --actor-desk: #f43f5e;
+  --actor-inspector: #06b6d4;
+  --actor-inspector-soft: #cffafe;
+  --actor-inspector-fg: #164e63;
+  --actor-inspector-border: #a5f3fc;
+  --actor-inspector-tint: rgb(236 254 255 / 60%);
+}
+
+:root.dark {
+  --highlight-chip: #fbbf24;
+  --highlight-edge: #92400e;
+  --highlight-ring: #f59e0b;
+  --highlight-soft: rgb(69 26 3 / 40%);
+  --highlight-text: #fcd34d;
+  --highlight-pressed: #fde68a;
+  --highlight-pressed-foreground: #451a03;
+  --highlight-hover-soft: #78350f;
+
+  --settled-soft: rgb(2 44 34 / 40%);
+  --settled-text: #6ee7b7;
+  --flash-up: rgb(16 185 129 / 20%);
+  --flash-down: rgb(244 63 94 / 20%);
+
+  --status-done: #059669;
+  --status-failed: #e11d48;
+
+  --actor-owner-soft: #2e1065;
+  --actor-owner-fg: #ddd6fe;
+  --split-renter-text: #c4b5fd;
+  --split-owner-text: #5eead4;
+  --actor-inspector-soft: #083344;
+  --actor-inspector-fg: #a5f3fc;
+  --actor-inspector-border: #164e63;
+  --actor-inspector-tint: rgb(8 51 68 / 40%);
+}
+
+@theme inline {
+  --color-highlight: var(--highlight);
+  --color-highlight-hover: var(--highlight-hover);
+  --color-highlight-strong: var(--highlight-strong);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-chip: var(--highlight-chip);
+  --color-highlight-edge: var(--highlight-edge);
+  --color-highlight-ring: var(--highlight-ring);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-text: var(--highlight-text);
+  --color-highlight-pressed: var(--highlight-pressed);
+  --color-highlight-pressed-foreground: var(--highlight-pressed-foreground);
+  --color-highlight-hover-soft: var(--highlight-hover-soft);
+  --color-settled-edge: var(--settled-edge);
+  --color-settled-soft: var(--settled-soft);
+  --color-settled-text: var(--settled-text);
+  --color-flash-up: var(--flash-up);
+  --color-flash-down: var(--flash-down);
+  --color-status-done: var(--status-done);
+  --color-status-failed: var(--status-failed);
+  --color-on-status: var(--on-status);
+  --color-dot-neutral: var(--dot-neutral);
+  --color-dot-success: var(--dot-success);
+  --color-dot-info: var(--dot-info);
+  --color-overlay: var(--overlay);
+  --color-overlay-foreground: var(--overlay-foreground);
+  --color-actor-owner: var(--actor-owner);
+  --color-actor-owner-soft: var(--actor-owner-soft);
+  --color-actor-owner-fg: var(--actor-owner-fg);
+  --color-split-renter-text: var(--split-renter-text);
+  --color-actor-renter: var(--actor-renter);
+  --color-split-owner-text: var(--split-owner-text);
+  --color-actor-escrow: var(--actor-escrow);
+  --color-actor-treasury: var(--actor-treasury);
+  --color-actor-desk: var(--actor-desk);
+  --color-actor-inspector: var(--actor-inspector);
+  --color-actor-inspector-soft: var(--actor-inspector-soft);
+  --color-actor-inspector-fg: var(--actor-inspector-fg);
+  --color-actor-inspector-border: var(--actor-inspector-border);
+  --color-actor-inspector-tint: var(--actor-inspector-tint);
+}
+
+/* The rental page's status banner: dark in both themes (lifted a step in dark so it still reads as a block). */
+:root {
+  --banner: #0f172a;
+  --banner-foreground: #f8fafc;
+  --banner-muted: #cbd5e1;
+  --banner-line: #334155;
+  --banner-ok: #6ee7b7;
+  --banner-warn: #fcd34d;
+  --banner-danger: #fda4af;
+}
+:root.dark {
+  --banner: #1e293b;
+  --banner-line: #475569;
+}
+@theme inline {
+  --color-banner: var(--banner);
+  --color-banner-foreground: var(--banner-foreground);
+  --color-banner-muted: var(--banner-muted);
+  --color-banner-line: var(--banner-line);
+  --color-banner-ok: var(--banner-ok);
+  --color-banner-warn: var(--banner-warn);
+  --color-banner-danger: var(--banner-danger);
 }
 
 body {
@@ -215,6 +444,8 @@ body {
   --assistant-changing: #d97706;
   --assistant-waiting: #7c3aed;
   --assistant-waiting-soft: #f5f3ff;
+  /* Text on a --assistant-waiting fill (the Approve button): AA in both themes. */
+  --assistant-waiting-foreground: #ffffff;
   --assistant-dim: rgb(15 23 42 / 6%);
   --assistant-edge-line: 3px;
   --assistant-edge-glow: 28px;
@@ -232,6 +463,7 @@ body {
   --assistant-changing: #fbbf24;
   --assistant-waiting: #a78bfa;
   --assistant-waiting-soft: #1e1533;
+  --assistant-waiting-foreground: #0f172a;
   --assistant-dim: rgb(0 0 0 / 28%);
   --assistant-edge-floor: 30%;
 }
@@ -354,8 +586,9 @@ body {
   html[data-assistant-open] body:not(:has([data-demo-stage])) {
     padding-right: var(--assistant-width);
   }
-  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-toasts] {
-    right: var(--assistant-width);
+  /* Toasts (sonner, components/Toasts.tsx) stay clear of the panel. */
+  html[data-assistant-open] body:not(:has([data-demo-stage])) [data-sonner-toaster][data-x-position="right"] {
+    right: calc(var(--assistant-width) + var(--offset-right));
   }
   /* The page dims while a change waits; the panel does not. */
   html[data-assistant-open] body:not(:has([data-demo-stage])) [data-assistant-dim] {
@@ -367,9 +600,11 @@ body {
   html[data-assistant-open] body:has([data-demo-stage]) {
     padding-right: var(--assistant-width);
   }
-  html[data-assistant-open] body:has([data-demo-stage]) [data-toasts],
   html[data-assistant-open] body:has([data-demo-stage]) [data-assistant-dim] {
     right: var(--assistant-width);
+  }
+  html[data-assistant-open] body:has([data-demo-stage]) [data-sonner-toaster][data-x-position="right"] {
+    right: calc(var(--assistant-width) + var(--offset-right));
   }
 }
 

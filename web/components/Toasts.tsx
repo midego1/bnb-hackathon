@@ -1,6 +1,11 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+const ToastHost = dynamic(() => import("./ToastHost").then((m) => m.ToastHost), { ssr: false });
 
 export type ToastKind = "pending" | "success" | "error" | "info";
 export type Toast = { id: number; kind: ToastKind; title: string; body?: string; href?: string };
@@ -25,6 +30,11 @@ const ToastContext = createContext<Ctx | null>(null);
 
 let nextId = 1;
 
+/**
+ * Transaction toasts. The state, limits and timers live here; components/ToastHost.tsx renders them with sonner
+ * (components/ui/sonner.tsx). The host loads on the client only, so sonner stays out of the server bundle. Each toast
+ * is a role="status" box with data-kind, for tests and screen readers.
+ */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const mode = useRef(DEFAULTS);
@@ -64,56 +74,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div
-        aria-live="polite"
-        data-toasts=""
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 sm:items-end"
-      >
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            role="status"
-            data-kind={t.kind}
-            className={`pointer-events-auto w-full max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${toastStyle[t.kind]}`}
-          >
-            <div className="flex items-start gap-3">
-              <span aria-hidden className="mt-0.5">
-                {t.kind === "pending" ? <Spinner /> : toastIcon[t.kind]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{t.title}</p>
-                {t.body && <p className="mt-0.5 break-words opacity-80">{t.body}</p>}
-                {t.href && (
-                  <a href={t.href} target="_blank" rel="noreferrer" className="mt-1 inline-block underline">
-                    View on BscScan
-                  </a>
-                )}
-              </div>
-              <button onClick={() => dismiss(t.id)} className="opacity-60 hover:opacity-100" aria-label="Dismiss">
-                ×
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ToastHost toasts={toasts} onDismiss={dismiss} />
     </ToastContext.Provider>
   );
 }
 
-const toastStyle: Record<ToastKind, string> = {
-  pending: "border-info-border bg-surface text-foreground",
-  success: "border-success-border bg-success-soft text-success-fg",
-  error: "border-danger-border bg-danger-soft text-danger-fg",
-  info: "border-border bg-surface text-foreground",
-};
-const toastIcon: Record<Exclude<ToastKind, "pending">, string> = { success: "✓", error: "!", info: "i" };
-
+/** Inline busy indicator (buttons, pending toasts): sized like the text around it. */
 export function Spinner({ className = "" }: { className?: string }) {
-  return (
-    <span
-      className={`inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent align-[-2px] ${className}`}
-    />
-  );
+  return <Loader2 aria-hidden className={cn("inline-block size-4 animate-spin align-[-2px]", className)} />;
 }
 
 export function useToasts() {

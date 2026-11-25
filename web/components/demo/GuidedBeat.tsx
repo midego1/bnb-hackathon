@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { Spinner } from "@/components/Toasts";
 import type { Activity, Beat, Pacer } from "@/lib/demo/pacing";
@@ -87,7 +88,7 @@ export function GuidedStep({
       <Header>
         <span className="font-semibold uppercase tracking-wide opacity-70">{panels.stepOf(index + 1, total)}</span>
         <span className={`rounded-full px-2.5 py-0.5 font-semibold ${actorTone}`}>{actorLabel[step.actor]}</span>
-        {step.demoOnly && <span className="rounded-full bg-amber-300 px-2.5 py-0.5 font-semibold text-amber-950 dark:bg-amber-400">{step.demoOnly}</span>}
+        {step.demoOnly && <span className="rounded-full bg-highlight-chip px-2.5 py-0.5 font-semibold text-highlight-foreground">{step.demoOnly}</span>}
         <span className="ml-auto flex flex-wrap gap-1" data-testid="demo-beats">
           {STEP_BEATS.map((b, i) => (
             <BeatChip key={b} active={b === beat}>
@@ -133,7 +134,7 @@ function BeatChip({ active, children }: { active?: boolean; children: ReactNode 
     <span
       data-active={active ? "true" : "false"}
       className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${
-        active ? "bg-amber-400 text-amber-950 dark:bg-amber-400 dark:text-amber-950" : "bg-surface/60 opacity-60"
+        active ? "bg-highlight text-highlight-foreground" : "bg-surface/60 opacity-60"
       }`}
     >
       {children}
@@ -164,7 +165,7 @@ function ActivityList({ activities }: { activities: Activity[] }) {
       {activities.map((a) => (
         <li key={a.id} className="flex items-start gap-2 text-base leading-snug" data-testid="demo-activity" data-status={a.status} data-kind={a.kind}>
           <span className="mt-0.5 inline-flex w-5 shrink-0 justify-center" aria-hidden>
-            {a.status === "running" ? <Spinner /> : a.status === "done" ? <span className="font-bold text-success">✓</span> : <span className="font-bold text-danger">✗</span>}
+            {a.status === "running" ? <Spinner /> : a.status === "done" ? <Check className="size-4 text-success" strokeWidth={3} /> : <X className="size-4 text-danger" strokeWidth={3} />}
           </span>
           <span className="min-w-0">
             {a.kind === "tx" ? (
@@ -211,7 +212,7 @@ function Footer({ pacer, nav }: { pacer: Pacer | null; nav: BeatNav }) {
         type="button"
         onClick={nav.onNext}
         data-testid="demo-beat-next"
-        className="inline-flex min-h-9 items-center rounded-lg bg-amber-400 px-4 py-1.5 text-sm font-semibold text-slate-950 hover:bg-amber-300 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300"
+        className="inline-flex min-h-9 items-center rounded-lg bg-highlight px-4 py-1.5 text-sm font-semibold text-highlight-foreground hover:bg-highlight-hover"
       >
         {guidedCopy.next}
       </button>
@@ -235,7 +236,7 @@ function BeatBar({ pacer }: { pacer: Pacer }) {
         aria-valuemax={100}
         aria-valuenow={Math.round(pct)}
       >
-        <div className="h-full rounded-full bg-amber-500 transition-[width] duration-100 ease-linear" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-highlight-strong transition-[width] duration-100 ease-linear" style={{ width: `${pct}%` }} />
       </div>
       {clock.frozen && <span className="whitespace-nowrap text-sm font-medium">{guidedCopy.paused}</span>}
     </div>

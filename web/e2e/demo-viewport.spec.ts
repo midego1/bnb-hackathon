@@ -194,7 +194,12 @@ for (const vp of VIEWPORTS) {
     await page.setViewportSize(vp);
     await page.goto("/demo");
     await expect(page.getByTestId("demo-play")).toBeEnabled();
-    await page.keyboard.press("ControlOrMeta+j");
+    // Ctrl/Cmd+J, again until it lands: the shortcut listener only exists once the page has hydrated.
+    const opened = page.locator("html[data-assistant-open]");
+    await expect(async () => {
+      if ((await opened.count()) === 0) await page.keyboard.press("ControlOrMeta+j");
+      await expect(opened).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
     const panel = page.getByTestId("assistant-panel");
     await expect(panel).toBeVisible();
     await expect(panel).toBeInViewport({ ratio: 1 });
@@ -258,7 +263,9 @@ async function wheelUntilVisible(page: Page, over: Locator, target: Locator, wha
     const x = Math.min(Math.max(b.x + b.width / 2, 1), vp.width - 1);
     const y = Math.min(Math.max(b.y + Math.min(b.height / 2, 40), 1), vp.height - 1);
     await page.mouse.move(x, y);
-    await page.mouse.wheel(0, 250);
+    const t = await target.boundingBox();
+    // Scroll toward the target: up when it sits above the viewport (a narrower layout can wrap the page taller).
+    await page.mouse.wheel(0, t && t.y < 0 ? -250 : 250);
     await page.waitForTimeout(50);
   }
   await expect(target, `${what} reachable with the mouse wheel`).toBeInViewport({ ratio: 1 });

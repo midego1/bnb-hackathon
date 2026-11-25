@@ -21,7 +21,8 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 ///
 /// Out of scope (pitch only, see docs/PRODUCT.md): deploying the principal into new scooters, secondary
 /// trading, compliant issuance. Principal sits in the vault and can be redeemed 1:1.
-/// @dev Income that arrives while no shares exist waits until the first deposit and is then credited to it.
+/// @dev Income that arrives while no shares exist goes to the operator at the next sync: nobody earned it, and
+/// crediting it to the next depositor would let a 1-unit deposit plus a claim take all of it.
 contract FleetVault is ERC20, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
@@ -170,15 +171,15 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
     // ---------------------------------------------------------------------------------------------
 
     function _sync() internal returns (uint256 toShareholders) {
-        uint256 supply = totalSupply();
-        if (supply == 0) return 0;
         uint256 income = unsyncedIncome();
         if (income == 0) return 0;
+        uint256 supply = totalSupply();
 
-        uint256 fee = (income * operatorFeeBps) / BPS;
+        // No shares: all of it goes to the operator (see the contract's @dev).
+        uint256 fee = supply == 0 ? income : (income * operatorFeeBps) / BPS;
         toShareholders = income - fee;
         // Per-share rounding leaves a few base units unclaimable; they stay reserved so the vault is always solvent.
-        accIncomePerShare += (toShareholders * PRECISION) / supply;
+        if (supply > 0) accIncomePerShare += (toShareholders * PRECISION) / supply;
         reservedIncome += toShareholders;
         totalDistributed += toShareholders;
         totalOperatorFees += fee;

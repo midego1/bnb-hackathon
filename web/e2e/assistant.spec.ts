@@ -23,12 +23,18 @@ async function actAs(page: Page, role: "landlord" | "tenant" | "arbiter") {
   await expect(page.getByTestId(`dev-role-${role}`)).toHaveAttribute("aria-pressed", "true");
 }
 
-async function openPanel(page: Page) {
-  // A key pressed before the page has hydrated is lost (right after goto, since the app shell is a nested layout): retry.
+/** Ctrl/Cmd+J, again until it lands: the shortcut listener only exists once the page has hydrated. */
+async function pressOpen(page: Page) {
+  const opened = page.locator("html[data-assistant-open]");
   await expect(async () => {
-    await page.keyboard.press("ControlOrMeta+j");
-    await expect(page.getByTestId("assistant-panel")).toBeVisible({ timeout: 1000 });
-  }).toPass();
+    if ((await opened.count()) === 0) await page.keyboard.press("ControlOrMeta+j");
+    await expect(opened).toHaveCount(1, { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+}
+
+async function openPanel(page: Page) {
+  await pressOpen(page);
+  await expect(page.getByTestId("assistant-panel")).toBeVisible();
   await expect(page.getByTestId("assistant-mock-badge")).toBeVisible();
 }
 
@@ -245,7 +251,9 @@ test("model picker: only Sonnet 5.5 and Haiku 5.5, per chat; /model; the server 
   await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
   await picker.click();
   const menu = page.getByTestId("assistant-model-menu");
-  await expect(menu.getByRole("menuitemradio")).toHaveText(["✓Claude Sonnet 5.5", "Claude Haiku 5.5"]);
+  // shadcn DropdownMenu radio items: the check mark is an icon, the current model is aria-checked.
+  await expect(menu.getByRole("menuitemradio")).toHaveText(["Claude Sonnet 5.5", "Claude Haiku 5.5"]);
+  await expect(menu.getByRole("menuitemradio").first()).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("assistant-model-haiku").click();
   await expect(picker).toHaveAttribute("data-model", "claude-haiku-5-5");
   await expect(page.getByTestId("assistant-note")).toContainText("demo model answers");

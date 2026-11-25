@@ -25,7 +25,7 @@ export async function SiteHeader() {
           <LogoMark className="h-8 w-8" />
           <span className="mk-display">KeyEscrow</span>
         </Link>
-        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] text-muted lg:flex">
+        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] text-muted-foreground lg:flex">
           {c.nav.map(([href, label]) => (
             <li key={href}>
               <a href={href} className="transition-colors hover:text-foreground">
@@ -106,7 +106,7 @@ export async function Hero({ demo }: { demo: boolean }) {
                 {c.how}
               </Link>
             </div>
-            <p className="mk-hero-copy mt-3.5 flex items-center gap-2 text-sm text-muted md:mt-5">
+            <p className="mk-hero-copy mt-3.5 flex items-center gap-2 text-sm text-muted-foreground md:mt-5">
               <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--mk-teal)]" aria-hidden />
               <span>
                 {c.testnet}

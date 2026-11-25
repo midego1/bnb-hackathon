@@ -1,5 +1,6 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { Hex } from "viem";
@@ -40,7 +41,7 @@ export function FlagBadge({ flag }: { flag: RentalFlag }) {
       data-code={flag.code}
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${flagStyle[flag.level]}`}
     >
-      {flag.level === "danger" ? "⚠ " : ""}
+      {flag.level === "danger" && <TriangleAlert aria-hidden className="mr-1 size-3" />}
       {flag.text}
     </span>
   );

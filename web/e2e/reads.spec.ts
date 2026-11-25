@@ -91,3 +91,15 @@ test("back office shows a retry state when the chain cannot be read, and recover
   await expect(page.getByTestId("rental-row").first()).toBeVisible();
   await expect(page.getByTestId("chain-read-error")).toHaveCount(0);
 });
+
+test("a link to a rental that no longer exists points to the latest one instead of a red error", async ({ page }) => {
+  await page.goto("/lease/0x000000000000000000000000000000000000dEaD");
+  const gone = page.getByTestId("lease-gone");
+  await expect(gone).toContainText("This demo rental no longer exists");
+  await expect(page.getByTestId("chain-retry")).toHaveCount(0);
+  const link = gone.getByRole("link", { name: "Open the latest one" });
+  await expect(link).toHaveAttribute("href", /^\/lease\/0x[0-9a-fA-F]{40}$/);
+  await link.click();
+  await expect(page.getByTestId("rental-title")).toBeVisible();
+  await expect(page.getByTestId("lease-gone")).toBeHidden();
+});

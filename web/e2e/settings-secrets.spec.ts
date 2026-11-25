@@ -112,8 +112,10 @@ test("secrets page: set shows SET, never the value; clear empties it", async ({ 
   }
   await page.evaluate(() => localStorage.removeItem("keyescrow-theme"));
 
-  page.once("dialog", (d) => void d.accept());
   await page.getByTestId("secret-CMC_API_KEY").getByTestId("secret-clear").click();
+  // An in-app confirm dialog (shadcn AlertDialog), not window.confirm.
+  await expect(page.getByRole("alertdialog")).toContainText("Clear CMC_API_KEY?");
+  await page.getByRole("alertdialog").getByRole("button", { name: "Clear" }).click();
   await expect(page.getByTestId("secret-CMC_API_KEY").getByTestId("secret-status")).toHaveText("NOT SET");
   expect(readFileSync(E2E_SECRETS.web, "utf8")).toBe(WEB_TEXT);
 

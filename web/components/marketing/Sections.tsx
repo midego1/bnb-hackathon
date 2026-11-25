@@ -11,7 +11,7 @@ import { ArrowIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon } from "./icons
 
 const WRAP = "mx-auto w-full max-w-7xl px-5 sm:px-8";
 const H2 = "mk-display text-[clamp(2rem,1.3rem+2.6vw,3.25rem)]";
-const LEAD = "mt-4 max-w-[62ch] text-lg leading-relaxed text-muted";
+const LEAD = "mt-4 max-w-[62ch] text-lg leading-relaxed text-muted-foreground";
 
 /** The section's copy in the visitor's language, and its headlines (bilingual in EN+中文). */
 async function copyFor<K extends keyof LandingCopy>(key: K) {
@@ -48,7 +48,7 @@ export async function Counter() {
         {c.rows.map(([what, today, ours], i) => (
           <div key={what} className="grid gap-x-10 gap-y-2 border-b border-border py-5 md:col-span-3 md:grid-cols-subgrid">
             <h3 className="font-medium">{h((s) => s.rows[i][0])}</h3>
-            <p className="flex gap-2.5 text-muted">
+            <p className="flex gap-2.5 text-muted-foreground">
               <span className="mt-0.5 shrink-0 text-danger">
                 <CrossIcon />
               </span>
@@ -92,7 +92,7 @@ export async function HowItWorks() {
           {c.steps.map((s, i) => (
             <li key={i} className="mk-stop flex flex-col">
               <h3 className="mk-h3 mt-2 text-2xl">{h((x) => x.steps[i].title)}</h3>
-              <p className="mt-3 flex-1 leading-relaxed text-muted">{s.body}</p>
+              <p className="mt-3 flex-1 leading-relaxed text-muted-foreground">{s.body}</p>
               <dl className="mk-num mt-5 space-y-1.5 border-t border-border pt-4 text-sm">
                 {s.money.map(([k, v]) => (
                   <div key={k} className="flex items-baseline justify-between gap-3">
@@ -130,7 +130,7 @@ export async function Inspection() {
                   <CheckIcon />
                 </span>
                 <span>
-                  <strong className="font-semibold">{lead}</strong> <span className="text-muted">{rest}</span>
+                  <strong className="font-semibold">{lead}</strong> <span className="text-muted-foreground">{rest}</span>
                 </span>
               </li>
             ))}
@@ -186,7 +186,7 @@ export async function Deadlines() {
             <li key={i} className="grid gap-x-10 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center">
               <div>
                 <h3 className="mk-h3 text-2xl">{h((s) => s.lanes[i].title)}</h3>
-                <p className="mt-2 max-w-[48ch] leading-relaxed text-muted">{l.body}</p>
+                <p className="mt-2 max-w-[48ch] leading-relaxed text-muted-foreground">{l.body}</p>
               </div>
               <div>
                 <div className="mk-lane-track" aria-hidden>
@@ -220,14 +220,14 @@ export async function FleetVault() {
       <div className="mt-12 grid gap-x-16 gap-y-12 lg:grid-cols-2">
         <div>
           <h3 className="mk-h3 text-2xl">{h((s) => s.owners)}</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted">{c.ownersBody}</p>
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">{c.ownersBody}</p>
           <Link prefetch={false} href="/landlord" className="mk-link mt-4 inline-flex items-center gap-2 font-medium">
             {c.ownersLink} <ArrowIcon />
           </Link>
         </div>
         <div>
           <h3 className="mk-h3 text-2xl">{h((s) => s.holders)}</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted">{c.holdersBody}</p>
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">{c.holdersBody}</p>
           <Link prefetch={false} href="/shareholders" className="mk-link mt-4 inline-flex items-center gap-2 font-medium">
             {c.holdersLink} <ArrowIcon />
           </Link>
@@ -263,7 +263,7 @@ export async function Agents() {
             <code className="mk-code">prepare_*</code>
             {c.lead[1]}
           </p>
-          <p className="mt-5 max-w-[62ch] leading-relaxed text-muted">
+          <p className="mt-5 max-w-[62ch] leading-relaxed text-muted-foreground">
             {c.inspector[0]}
             <Ext href={explorerTx(INSPECTOR_AGENT.registerTx)}>{c.inspector[1]}</Ext>
             {c.inspector[2]}
@@ -285,7 +285,7 @@ export async function Agents() {
           <h3 className="mt-8 text-sm text-subtle">
             {c.tools(ACTIONS.length, INSPECTOR_TOOLS.length)}
           </h3>
-          <ul className="mk-code mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-muted">
+          <ul className="mk-code mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-muted-foreground">
             {[...ACTIONS.map((a) => a.name), ...INSPECTOR_TOOLS].map((name) => (
               <li key={name}>{name}</li>
             ))}
@@ -325,7 +325,7 @@ export async function Live() {
               <th scope="row" className="mk-h3 block text-lg whitespace-nowrap md:table-cell md:py-4 md:pr-6">
                 {k.name}
               </th>
-              <td className="block pt-1 text-muted md:table-cell md:py-4 md:pr-6">{c.roles[k.name]}</td>
+              <td className="block pt-1 text-muted-foreground md:table-cell md:py-4 md:pr-6">{c.roles[k.name]}</td>
               <td className="block pt-2 md:table-cell md:py-4">
                 <a href={explorerAddress(k.address)} className="mk-link mk-code inline-flex items-center gap-1.5 whitespace-nowrap" data-testid="mk-contract">
                   {k.address.slice(0, 10)}…{k.address.slice(-8)}
@@ -339,11 +339,11 @@ export async function Live() {
       <div className="mt-14 grid gap-x-16 gap-y-10 lg:grid-cols-2">
         <div>
           <h3 className="mk-h3 text-2xl">{h((s) => s.prices)}</h3>
-          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted">{c.pricesBody}</p>
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">{c.pricesBody}</p>
         </div>
         <div>
           <h3 className="mk-h3 text-2xl">{h((s) => s.risk)}</h3>
-          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted">
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">
             {c.riskBody[0]}
             <Link prefetch={false} href="/integrations" className="mk-link" data-testid="mk-integrations">
               {c.riskBody[1]}
@@ -366,7 +366,7 @@ export async function Fee() {
         <h2 id="fee-h" className="mk-display text-[clamp(2.4rem,1.2rem+5vw,5.5rem)] leading-[0.98] lg:col-span-2">
           {h((s) => s.title)}
         </h2>
-        <p className="max-w-[46ch] text-lg leading-relaxed text-muted">{c.body}</p>
+        <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">{c.body}</p>
         <div>
           <table className="mk-num w-full border-collapse text-left">
             <caption className="pb-3 text-left text-sm text-subtle">{c.caption}</caption>
@@ -403,7 +403,7 @@ export async function Roadmap() {
           <li key={i} className="grid gap-x-10 gap-y-1 border-b border-border py-6 md:grid-cols-[10rem_14rem_minmax(0,1fr)] md:items-baseline">
             <p className="mk-num text-sm text-subtle">{when}</p>
             <h3 className="mk-h3 text-xl">{h((s) => s.phases[i][1])}</h3>
-            <p className="max-w-[68ch] leading-relaxed text-muted">{body}</p>
+            <p className="max-w-[68ch] leading-relaxed text-muted-foreground">{body}</p>
           </li>
         ))}
       </ol>
@@ -498,11 +498,11 @@ export async function SiteFooter({ demo }: { demo: boolean }) {
                 {links.map(([href, label, external]) => (
                   <li key={href}>
                     {external ? (
-                      <a href={href} className="text-muted transition-colors hover:text-foreground">
+                      <a href={href} className="text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </a>
                     ) : (
-                      <Link prefetch={false} href={href} className="text-muted transition-colors hover:text-foreground">
+                      <Link prefetch={false} href={href} className="text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </Link>
                     )}

@@ -117,7 +117,7 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   await page.goto("/tenant");
   await actAs(page, "tenant");
   const address = leaseUrl.split("/").pop()!;
-  const card = page.locator(`[data-testid="lease-card"][data-address="${address}"]`);
+  const card = page.locator(`[data-testid="renter-rental"][data-address="${address}"]`);
   await expect(card.getByTestId("status-badge")).toHaveText("Settled");
   await shot(page, "05-tenant-leases");
 

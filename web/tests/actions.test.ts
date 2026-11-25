@@ -13,6 +13,7 @@ import { ActionError, actionContext, rpcUrl, type ActionHost } from "@/lib/actio
 import { ACTIONS, findAction, prepareCreateLease, prepareProposeSettlement, prepareResolve, toolDescription } from "@/lib/actions/definitions";
 import { explainLease } from "@/lib/actions/explain";
 import { fieldError, fieldLabel, formatToken, parseTokenAmount } from "@/lib/actions/fields";
+import { parseUsdt } from "@/lib/format";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
 import { buildOpenApi } from "@/lib/actions/openapi";
 import { handleActionRequest, ROUTES } from "@/lib/actions/rest";
@@ -175,6 +176,9 @@ describe("action definitions", () => {
     expect(parseTokenAmount("-1")).toBeUndefined();
     expect(formatToken(DEPOSIT)).toBe("882.36 mUSDT");
     expect(formatToken(BigInt(44_118_000))).toBe("44.118 mUSDT");
+    // The panels send parseUsdt's value after fieldError said OK: both must read "1 000" the same way.
+    expect(parseUsdt("1 000")).toBe(BigInt(1_000_000_000));
+    expect(parseUsdt("")).toBeUndefined();
   });
 
   it("picks the server RPC per chain (PublicNode for 97)", () => {

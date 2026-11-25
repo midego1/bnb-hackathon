@@ -45,7 +45,7 @@ const controls = {
   next: "Next step →",
   pause: "❚❚ Pause",
   resume: "▶ Resume",
-  restart: "↺ Restart",
+  restart: "Restart",
   connecting: "Connecting to the local chain…",
   paused: "Paused. Press Resume to continue.",
   pausing: "Pausing before the next transaction…",
@@ -120,9 +120,9 @@ const summaryCopy = {
   escrow: "Escrow contract",
   escrowNote: "left in escrow",
   balanced: (paidIn: string, tenant: string, landlord: string, treasury: string) =>
-    `✓ Balances add up: the renter's ${paidIn} went back to the renter (${tenant}), to the owner (${landlord}) and to the treasury (${treasury}). The escrow holds nothing.`,
+    `Balances add up: the renter's ${paidIn} went back to the renter (${tenant}), to the owner (${landlord}) and to the treasury (${treasury}). The escrow holds nothing.`,
   unbalanced: "✗ The balances do not add up. Open the rental page to inspect the timeline.",
-  again: "↺ Run again",
+  again: "Run again",
   openLease: "Open the rental page ↗",
   hide: "Hide ✕",
 };
