@@ -31,7 +31,10 @@
     "VISION_LLM_PROVIDER": "anthropic",
     "PRICE_CACHE_TTL_SECONDS": "300",
     // The live testnet /demo runner: on, but it stays off (404) until the DEMO_TESTNET_KEYS secret is set.
-    "DEMO_TESTNET_RUNNER": "1"
+    "DEMO_TESTNET_RUNNER": "1",
+    // Judging: 30 live runs an hour instead of 12 (at most 2.5M gas at 1 gwei each, ~0.075 tBNB an hour). Each caller
+    // IP may start 4 an hour (lib/server/demoTestnet/store.ts), so one visitor cannot use them all up.
+    "DEMO_TESTNET_RUNS_PER_HOUR": "30"
   },
   // This Worker as a service: Ask AI's inspect_return calls POST /api/settlement through it (a plain fetch to the own
   // workers.dev host is not allowed with global_fetch_strictly_public). lib/server/assistant.ts.

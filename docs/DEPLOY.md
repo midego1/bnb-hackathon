@@ -214,7 +214,8 @@ step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with
   (up to 10 minutes). A run whose lock lapsed mid-story resumes its demo rental. The stage's contract reads go through
   `/api/demo-testnet/read` (this run's factory, token and rental escrow only) on the server's RPC, at the run's latest
   receipt block, so a viewer's slow route to a public RPC cannot stall a step.
-- **Limits.** At most one run per 60 s and 12 per hour (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`); 2.5M gas and 20 transactions per run
+- **Limits.** At most one run per 60 s and 12 per hour (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`; the
+  Cloudflare Worker sets 30), and 4 starts per hour per caller IP, restarts included; 2.5M gas and 20 transactions per run
   (`DEMO_TESTNET_MAX_GAS_PER_RUN`); 1 gwei legacy gas price; a 45 s receipt timeout (`DEMO_TESTNET_TX_TIMEOUT_S`) after
   which Retry waits for the same transaction instead of sending it again. Only the story's own calls are signed: an
   allowlist checks the contract, function, role and arguments (`guards.ts`, unit-tested).
