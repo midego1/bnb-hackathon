@@ -52,7 +52,17 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   await page.getByTestId("lease-pdf").setInputFiles(LEASE_PDF);
   await page.getByTestId("checkin-photos").setInputFiles(CHECKIN_PNG);
   await shot(page, "01-landlord-create");
-  await form.getByRole("button", { name: "Create rental" }).click();
+  // The page above and inside the form (fleet dashboard, risk panel) loads async: click once the button stops moving.
+  const create = form.getByRole("button", { name: "Create rental" });
+  await expect
+    .poll(async () => {
+      const a = await create.boundingBox();
+      await page.waitForTimeout(700);
+      const b = await create.boundingBox();
+      return a && b && a.y === b.y && a.x === b.x;
+    }, { timeout: 30_000 })
+    .toBe(true);
+  await create.click();
 
   await page.waitForURL(/\/lease\/0x[0-9a-fA-F]{40}$/, { timeout: 60_000 });
   const leaseUrl = page.url();
