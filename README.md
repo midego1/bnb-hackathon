@@ -27,6 +27,7 @@ Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas). Open source
 | Agent card (A2A) | [/.well-known/agent-card.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json) · ERC-8004 registration file: [/.well-known/agent-registration.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-registration.json) |
 | MCP server (Streamable HTTP, 17 tools) | `POST https://keyescrow-agent.mdgooijer.workers.dev/mcp` |
 | 3-minute pitch script | [docs/DEMO.md](docs/DEMO.md) |
+| Submission kit: videos, pitch deck, HackQuest fields, screenshots | [docs/submission](docs/submission/README.md) |
 
 The live `/demo` runs on throwaway demo wallets whose keys stay on the server: it creates a fresh rental, funds it,
 pays out month 1, runs the AI inspection and settles. You can open every step on BscScan. It allows one run at a
