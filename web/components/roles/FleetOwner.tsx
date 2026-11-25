@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
@@ -142,7 +143,7 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
   return (
     <li className="overflow-hidden rounded-xl border border-border" data-testid="scooter-card" data-scooter={s.id}>
       {/* eslint-disable-next-line @next/next/no-img-element -- bundled demo photo or content-addressed evidence */}
-      <img src={s.photo} alt={s.name} className="aspect-[16/9] w-full bg-surface-muted object-cover" loading="lazy" />
+      <img src={s.photo} alt={s.name} className="aspect-[16/9] w-full bg-muted object-cover" loading="lazy" />
       <div className="space-y-2 p-3 text-sm">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -151,9 +152,9 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
           </div>
           <ScooterStateBadge state={state} />
         </div>
-        <p className="text-xs text-muted">
+        <p className="text-xs text-muted-foreground">
           ฿{s.rentThb.toLocaleString("en-US")}/month · ฿{s.depositThb.toLocaleString("en-US")} deposit
-          {s.vault && <span className="ml-1 rounded bg-accent/10 px-1.5 py-0.5 font-medium text-foreground">income → Fleet Vault</span>}
+          {s.vault && <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 font-medium text-foreground">income → Fleet Vault</span>}
         </p>
         <div className="flex items-center justify-between text-xs">
           <span className="text-subtle">{rentals.length} rental{rentals.length === 1 ? "" : "s"} · earned</span>
@@ -161,7 +162,7 @@ function ScooterCard({ s, state, current, rentals }: { s: Scooter; state: Scoote
         </div>
         {current && (
           <Link href={`/lease/${current.address}`} className="block text-xs underline-offset-2 hover:underline">
-            Current rental {shortAddress(current.address)} →
+            Current rental {shortAddress(current.address)} <ArrowRight aria-hidden className="inline size-3 align-[-1px]" />
           </Link>
         )}
       </div>

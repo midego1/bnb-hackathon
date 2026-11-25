@@ -6,19 +6,32 @@ import { explorerLink } from "@/lib/chains";
 import { formatDuration, formatUsdt, shortAddress } from "@/lib/format";
 import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
 import { usePrices } from "@/lib/usePrices";
+import { cn } from "@/lib/utils";
+import { Check, Copy } from "lucide-react";
+import { Alert } from "./ui/alert";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card as UiCard, CardHeader } from "./ui/card";
+import { Label } from "./ui/label";
+import { Skeleton as UiSkeleton } from "./ui/skeleton";
 import { Spinner } from "./Toasts";
 
+/** A titled panel (shadcn Card): `title` renders as an h2, `aside` sits at the right of the title row. */
 export function Card({ children, className = "", title, aside }: { children: ReactNode; className?: string; title?: ReactNode; aside?: ReactNode }) {
   return (
-    <section className={`rounded-2xl border border-border bg-surface p-5 shadow-sm ${className}`}>
+    <UiCard className={cn("block gap-0 overflow-visible rounded-2xl border border-border p-5 text-[length:inherit] shadow-sm ring-0", className)}>
       {(title || aside) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          {title && <h2 className="text-base font-semibold">{title}</h2>}
+        <CardHeader className="mb-4 flex flex-wrap items-center justify-between gap-2 px-0">
+          {title && (
+            <h2 data-slot="card-title" className="text-base leading-snug font-semibold">
+              {title}
+            </h2>
+          )}
           {aside}
-        </div>
+        </CardHeader>
       )}
       {children}
-    </section>
+    </UiCard>
   );
 }
 
@@ -26,7 +39,7 @@ export function PageTitle({ title, children }: { title: string; children?: React
   return (
     <div className="mb-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
-      {children && <p className="mt-2 max-w-2xl text-muted">{children}</p>}
+      {children && <p className="mt-2 max-w-2xl text-muted-foreground">{children}</p>}
     </div>
   );
 }
@@ -35,12 +48,12 @@ export const statusMeta: Record<LeaseStatus, { label: string; hint: string; clas
   [LeaseStatus.Created]: {
     label: "Awaiting funding",
     hint: "The renter still has to fund the deposit and first month's rent.",
-    className: "bg-amber-100 text-amber-900 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-900",
+    className: "bg-warning-soft text-warning-fg ring-warning-border",
   },
   [LeaseStatus.Active]: {
     label: "Active",
     hint: "The deposit is locked in escrow; rent is paid out to the owner month by month.",
-    className: "bg-emerald-100 text-emerald-900 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900",
+    className: "bg-success-soft text-success-fg ring-success-border",
   },
   [LeaseStatus.MoveOut]: {
     label: "Return proposal",
@@ -55,26 +68,26 @@ export const statusMeta: Record<LeaseStatus, { label: string; hint: string; clas
   [LeaseStatus.Settled]: {
     label: "Settled",
     hint: "All funds have been paid out. This rental is closed.",
-    className: "bg-slate-200 text-slate-800 ring-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700",
+    className: "bg-surface-strong text-foreground ring-border-strong",
   },
   [LeaseStatus.Cancelled]: {
     label: "Cancelled",
     hint: "The owner withdrew this offer before it was funded.",
-    className: "bg-zinc-100 text-zinc-600 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800",
+    className: "bg-muted text-muted-foreground ring-border",
   },
 };
 
 export function StatusBadge({ status }: { status: LeaseStatus }) {
   const m = statusMeta[status];
   return (
-    <span
+    <Badge
       data-testid="status-badge"
       data-status={status}
       title={m.hint}
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${m.className}`}
+      className={cn("h-auto rounded-full border-0 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset", m.className)}
     >
       {m.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -85,24 +98,24 @@ type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "danger";
 };
 
+const BUTTON_VARIANT = { primary: "default", secondary: "outline", danger: "outline" } as const;
+/** Our size and colours on top of the shadcn Button (same look as before the move to shadcn/ui). */
+const ACTION_BUTTON_CLASS = {
+  primary: "h-auto min-h-10 gap-2 whitespace-normal px-4 py-2 hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-45",
+  secondary:
+    "h-auto min-h-10 gap-2 whitespace-normal border-border-strong bg-surface px-4 py-2 text-foreground hover:border-border-hover hover:bg-surface disabled:cursor-not-allowed disabled:opacity-45 dark:border-border-strong dark:bg-surface dark:hover:bg-surface",
+  danger:
+    "h-auto min-h-10 gap-2 whitespace-normal border-danger-border bg-surface px-4 py-2 text-danger hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-45 dark:border-danger-border dark:bg-surface dark:hover:bg-danger-soft",
+} as const;
+
 export function ActionButton({ disabledReason, busy, variant = "primary", children, className = "", ...rest }: ActionButtonProps) {
   const disabled = !!disabledReason || busy || rest.disabled;
-  const styles = {
-    primary: "bg-accent text-accent-foreground hover:bg-accent-hover",
-    secondary:
-      "border border-border-strong bg-surface text-foreground hover:border-border-hover",
-    danger: "border border-danger-border bg-surface text-danger hover:bg-danger-soft",
-  }[variant];
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <button
-        {...rest}
-        disabled={disabled}
-        className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-45 ${styles}`}
-      >
+    <div className={cn("flex flex-col gap-1", className)}>
+      <Button {...rest} disabled={disabled} variant={BUTTON_VARIANT[variant]} className={ACTION_BUTTON_CLASS[variant]}>
         {busy && <Spinner />}
         {children}
-      </button>
+      </Button>
       {disabledReason && <p className="text-xs text-subtle">{disabledReason}</p>}
     </div>
   );
@@ -110,16 +123,20 @@ export function ActionButton({ disabledReason, busy, variant = "primary", childr
 
 export function Field({ label, hint, children, error }: { label: string; hint?: ReactNode; children: ReactNode; error?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <Label className="flex flex-col items-stretch gap-1 text-sm leading-normal font-normal select-auto">
       <span className="font-medium">{label}</span>
       {children}
       {error ? <span className="text-xs text-danger">{error}</span> : hint && <span className="text-xs text-subtle">{hint}</span>}
-    </label>
+    </Label>
   );
 }
 
+/**
+ * For native <input>, <select> and <textarea>: the shadcn Input look (components/ui/input.tsx) at our field size.
+ * Prefer <Input> / <Textarea> from components/ui for new forms.
+ */
 export const inputClass =
-  "w-full rounded-lg border border-border-strong bg-field px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15";
+  "w-full min-w-0 rounded-lg border border-input bg-field px-3 py-2 text-sm transition-colors outline-none placeholder:text-subtle focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20";
 
 const SOURCE_LABEL: Record<PriceResponse["source"], { text: string; hint: string; className: string }> = {
   mock: {
@@ -146,16 +163,16 @@ export function PriceSourceBadge({ className = "" }: { className?: string }) {
   const m = SOURCE_LABEL[prices.source];
   const updated = new Date(prices.updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   return (
-    <span
+    <Badge
       data-testid="price-source"
       data-source={prices.source}
       title={`${m.hint}${prices.warning ? ` Note: ${prices.warning}` : ""} Updated ${updated}.`}
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${m.className} ${className}`}
+      className={cn("h-auto rounded-full border-0 px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset", m.className, className)}
     >
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
       {m.text}
       {prices.warning && " · stale"}
-    </span>
+    </Badge>
   );
 }
 
@@ -211,7 +228,7 @@ export function AddressTag({ address, chainId, label }: { address: string; chain
   );
   return (
     <span className="inline-flex items-center gap-1.5">
-      {label && <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] font-medium text-muted">{label}</span>}
+      {label && <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">{label}</span>}
       {href ? (
         <a href={href} target="_blank" rel="noreferrer" className="underline decoration-dotted underline-offset-2">
           {text}
@@ -227,9 +244,12 @@ export function AddressTag({ address, chainId, label }: { address: string; chain
 export function CopyButton({ value, label }: { value: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
-    <button
+    <Button
       type="button"
-      className="text-xs text-subtle hover:text-foreground"
+      variant="ghost"
+      size="xs"
+      title={done ? "Copied" : (label ?? "Copy address")}
+      className="h-auto px-1 py-0.5 text-subtle hover:bg-transparent hover:text-foreground dark:hover:bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
       onClick={() => {
         navigator.clipboard?.writeText(value).then(() => {
           setDone(true);
@@ -238,8 +258,8 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
       }}
       aria-label={label ?? "Copy address"}
     >
-      {done ? "copied" : "copy"}
-    </button>
+      {done ? <Check aria-hidden /> : <Copy aria-hidden />}
+    </Button>
   );
 }
 
@@ -264,9 +284,14 @@ export function Notice({ kind = "info", children }: { kind?: "info" | "warn" | "
     warn: "border-warning-border bg-warning-soft text-warning-fg",
     error: "border-danger-border bg-danger-soft text-danger-fg",
   }[kind];
-  return <div className={`rounded-xl border px-4 py-3 text-sm ${style}`}>{children}</div>;
+  // shadcn Alert, kept a block (its grid would split inline text and links) and only announced for errors.
+  return (
+    <Alert role={kind === "error" ? "alert" : undefined} data-kind={kind} className={cn("block rounded-xl px-4 py-3 text-sm", style)}>
+      {children}
+    </Alert>
+  );
 }
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-surface-strong ${className}`} />;
+  return <UiSkeleton className={cn("rounded-lg bg-surface-strong", className)} />;
 }

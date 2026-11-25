@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# KeyEscrow: BSC testnet (chainId 97) deploy helper. See docs/DEPLOY.md.
+# KeyEscrow: BSC testnet (chainId 97) and opBNB testnet (chainId 5611) deploy helper. See docs/DEPLOY.md.
+# DEPLOY_CHAIN_ID picks the network: 97 (default, pnpm deploy:testnet*) or 5611 (pnpm deploy:opbnb*). Same rules on both.
 #
 #   contracts/script/testnet.sh check      preflight; NEVER sends a transaction       (pnpm deploy:testnet:check)
 #   contracts/script/testnet.sh deploy     the one broadcast; needs ALLOW_NON_LOCAL_BROADCAST=true and a typed
 #                                          confirmation (--yes skips the prompt)       (pnpm deploy:testnet)
-#   contracts/script/testnet.sh verify     verify on BscScan testnet (Etherscan API V2) (pnpm deploy:testnet:verify)
+#   contracts/script/testnet.sh verify     verify via Etherscan API V2 (BscScan testnet / opBNB testnet BscScan)
+#                                                                                       (pnpm deploy:testnet:verify)
 #   contracts/script/testnet.sh rehearse   whole path against a throwaway LOCAL anvil started with --chain-id 97
-#                                          (and one with --chain-id 56 for the refusal check)
+#                                          or 5611 (and one with the matching mainnet id, 56 / 204, for the refusal check)
 #                                                                                       (pnpm deploy:testnet:rehearse)
 #
 # Env (repo-root .env is loaded for names that are not already set; KEYESCROW_NO_DOTENV=1 skips it):
-#   BSC_TESTNET_RPC_URL        required. Must answer chainId 97.
+#   DEPLOY_CHAIN_ID            97 (default) or 5611. Taken from the command line only, never from .env.
+#   BSC_TESTNET_RPC_URL        required for 97. Must answer chainId 97.
+#   OPBNB_TESTNET_RPC_URL      required for 5611. Must answer chainId 5611 (e.g. https://opbnb-testnet-rpc.bnbchain.org).
 #   DEPLOYER_ADDRESS           required. Public address of the deployer; cross-checked against the wallet.
 #   one deployer wallet:
 #     DEPLOYER_ACCOUNT         preferred: name of a `cast wallet import` keystore (~/.foundry/keystores/<name>)
@@ -19,16 +23,22 @@
 #   DEPLOYER_PASSWORD_FILE     optional keystore password file (otherwise forge prompts)
 #   FACTORY_OWNER, FEE_RECIPIENT, DEFAULT_ARBITER   required; no defaults off anvil, anvil accounts refused
 #   FEE_BPS                    optional, 0-1000 (default 1000 = 10% of one month's rent, once per lease)
-#   BSCSCAN_API_KEY            needed for verify (an Etherscan API V2 key; forge sends it as ETHERSCAN_API_KEY)
-#   VERIFIER_URL               optional verifier API override (default: forge's Etherscan V2 endpoint for chain 97)
+#   BSCSCAN_API_KEY            needed for verify (an Etherscan API V2 key, valid for 97 and 5611; forge sends it as
+#                              ETHERSCAN_API_KEY)
+#   VERIFIER_URL               optional verifier API override (default: forge's Etherscan V2 endpoint for the chain)
 #   ALLOW_NON_LOCAL_BROADCAST  must be `true` for `deploy`
 #   FLEET_OPERATOR             optional: Fleet Vault operator (maintenance fee); defaults to FEE_RECIPIENT
 #   FLEET_OPERATOR_FEE_BPS     optional: operator fee in bps of vault income (default 1000, max 3000)
-#   FORCE_REDEPLOY             `true` to overwrite an existing deployments/97.json
+#   FORCE_REDEPLOY             `true` to overwrite an existing deployments/<chainId>.json
 #   DEPLOYMENTS_DIR            relative to contracts/ (default `deployments`)
 set -euo pipefail
 
-CHAIN_ID=97
+CHAIN_ID="${DEPLOY_CHAIN_ID:-97}"
+case "$CHAIN_ID" in
+  97) NET="BSC testnet" RPC_VAR=BSC_TESTNET_RPC_URL PNPM=deploy:testnet ;;
+  5611) NET="opBNB testnet" RPC_VAR=OPBNB_TESTNET_RPC_URL PNPM=deploy:opbnb ;;
+  *) echo "DEPLOY_CHAIN_ID must be 97 (BSC testnet) or 5611 (opBNB testnet), got '$CHAIN_ID'" >&2; exit 64 ;;
+esac
 CONTRACTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT="$(cd "$CONTRACTS/.." && pwd)"
 cd "$CONTRACTS"
@@ -101,19 +111,19 @@ resolve_wallet() {
 # Preflight. Never sends a transaction: the only forge invocation below has no --broadcast.
 preflight() {
   FAILS=0
-  echo "${B}KeyEscrow preflight: BSC testnet (chainId $CHAIN_ID). No transaction is sent.${N}"
+  echo "${B}KeyEscrow preflight: $NET (chainId $CHAIN_ID). No transaction is sent.${N}"
   local t
   for t in forge cast node; do command -v "$t" >/dev/null || die "missing tool: $t" 2; done
 
-  if [[ -z "${BSC_TESTNET_RPC_URL:-}" ]]; then
-    die "BSC_TESTNET_RPC_URL is not set. Put a BSC testnet RPC URL in .env (see docs/DEPLOY.md, step 3)." 2
+  if [[ -z "$RPC" ]]; then
+    die "$RPC_VAR is not set. Put a $NET RPC URL in .env (see docs/DEPLOY.md, step 3)." 2
   fi
   local rpc_chain
-  if ! rpc_chain="$(timeout 20 cast chain-id --rpc-url "$BSC_TESTNET_RPC_URL" 2>/dev/null)"; then
-    die "RPC at BSC_TESTNET_RPC_URL did not answer eth_chainId (unreachable, wrong URL, or rate limited)." 2
+  if ! rpc_chain="$(timeout 20 cast chain-id --rpc-url "$RPC" 2>/dev/null)"; then
+    die "RPC at $RPC_VAR did not answer eth_chainId (unreachable, wrong URL, or rate limited)." 2
   fi
   if [[ "$rpc_chain" != "$CHAIN_ID" ]]; then
-    die "RPC at BSC_TESTNET_RPC_URL reports chainId $rpc_chain, expected $CHAIN_ID (BSC testnet). Refusing." 3
+    die "RPC at $RPC_VAR reports chainId $rpc_chain, expected $CHAIN_ID ($NET). Refusing." 3
   fi
   ok "RPC reachable, chainId $rpc_chain"
 
@@ -153,7 +163,7 @@ preflight() {
   # this process so the script's chain guard lets the dry run through; output goes to <chainId>.dry-run.json.
   echo "  … simulating Deploy.s.sol against the RPC (forge script, no --broadcast)"
   local out
-  if ! out="$(ALLOW_NON_LOCAL_BROADCAST=true forge script script/Deploy.s.sol --rpc-url "$BSC_TESTNET_RPC_URL" \
+  if ! out="$(ALLOW_NON_LOCAL_BROADCAST=true forge script script/Deploy.s.sol --rpc-url "$RPC" \
     --sender "$DEPLOYER_ADDRESS" 2>&1)"; then
     bad "simulation failed:"
     grep -E "Error|revert|error" <<<"$out" | head -8 | sed 's/^/      /'
@@ -170,17 +180,23 @@ preflight() {
   ESTIMATE_WEI="$(cast to-wei "$est_bnb" ether)"
   ok "simulation OK: MockUSDT + EscrowFactory (+ RentalEscrow implementation)"
   ok "estimate: ${B}$est_bnb tBNB${N} ($gas gas at ${price:-?}; includes forge's 130% gas margin)"
+  if [[ "$CHAIN_ID" == 5611 ]]; then
+    # forge prices L2 execution gas only; opBNB adds an L1 data fee (about 0.000002 tBNB for this deploy, Nov 2026).
+    ESTIMATE_WEI="$(node -e 'console.log(String(BigInt(process.argv[1]) + 10n ** 14n))' "$ESTIMATE_WEI")"
+    est_bnb="$(fmt_bnb "$ESTIMATE_WEI")"
+    ok "plus 0.0001 tBNB headroom for opBNB's L1 data fee (not in forge's estimate): $est_bnb tBNB"
+  fi
 
   local bal
-  bal="$(cast balance "$DEPLOYER_ADDRESS" --rpc-url "$BSC_TESTNET_RPC_URL")"
+  bal="$(cast balance "$DEPLOYER_ADDRESS" --rpc-url "$RPC")"
   if wei_gte "$bal" "$ESTIMATE_WEI"; then
     ok "deployer balance $(fmt_bnb "$bal") tBNB >= estimate"
   else
-    bad "deployer balance $(fmt_bnb "$bal") tBNB < estimate $est_bnb tBNB: use the faucet (docs/DEPLOY.md, step 1)"
+    bad "deployer balance $(fmt_bnb "$bal") tBNB < estimate $est_bnb tBNB: fund it (docs/DEPLOY.md, step 1; opBNB: bridge)"
   fi
 
   if ((FAILS > 0)); then echo "${R}Preflight failed ($FAILS problem(s)).${N}"; return 1; fi
-  echo "${G}Preflight passed.${N} Nothing was sent. The broadcast is: pnpm deploy:testnet (only after OK)."
+  echo "${G}Preflight passed.${N} Nothing was sent. The broadcast is: pnpm $PNPM (only after OK)."
 }
 
 cmd_check() { preflight; }
@@ -205,15 +221,15 @@ cmd_deploy() {
   fi
 
   echo "${B}Broadcasting Deploy.s.sol to chainId $CHAIN_ID …${N}"
-  forge script script/Deploy.s.sol --rpc-url "$BSC_TESTNET_RPC_URL" --sender "$DEPLOYER_ADDRESS" \
+  forge script script/Deploy.s.sol --rpc-url "$RPC" --sender "$DEPLOYER_ADDRESS" \
     "${WALLET_ARGS[@]}" --broadcast --slow
 
   post_check
   print_web_env
   if [[ -n "${BSCSCAN_API_KEY:-}" ]]; then
-    cmd_verify || warn "verification failed; the deploy itself is fine. Retry: pnpm deploy:testnet:verify"
+    cmd_verify || warn "verification failed; the deploy itself is fine. Retry: pnpm $PNPM:verify"
   else
-    warn "BSCSCAN_API_KEY not set: skipped verification (pnpm deploy:testnet:verify later)"
+    warn "BSCSCAN_API_KEY not set: skipped verification (pnpm $PNPM:verify later)"
   fi
 }
 
@@ -228,19 +244,19 @@ post_check() {
   [[ "$(jq -r .chainId "$f")" == "$CHAIN_ID" ]] && ok "chainId $CHAIN_ID" || bad "chainId in $f is not $CHAIN_ID"
   for k in token escrowFactory rentalEscrowImplementation fleetVault; do
     a="$(jq -r ".$k" "$f")"
-    if [[ "$(cast code "$a" --rpc-url "$BSC_TESTNET_RPC_URL")" != 0x ]]; then ok "$k $a has code"; else bad "$k $a has no code"; fi
+    if [[ "$(cast code "$a" --rpc-url "$RPC")" != 0x ]]; then ok "$k $a has code"; else bad "$k $a has no code"; fi
   done
   local factory
   factory="$(jq -r .escrowFactory "$f")"
   check_eq() { # label, call result, expected
     if [[ "$(tr 'A-F' 'a-f' <<<"$2")" == "$(tr 'A-F' 'a-f' <<<"$3")" ]]; then ok "$1 $2"; else bad "$1 is $2, expected $3"; fi
   }
-  check_eq "factory.owner()" "$(cast call "$factory" 'owner()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .factoryOwner "$f")"
-  check_eq "factory.feeRecipient()" "$(cast call "$factory" 'feeRecipient()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .feeRecipient "$f")"
-  check_eq "factory.defaultArbiter()" "$(cast call "$factory" 'defaultArbiter()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .defaultArbiter "$f")"
-  check_eq "factory.token()" "$(cast call "$factory" 'token()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .token "$f")"
-  check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$BSC_TESTNET_RPC_URL")" "$(jq -r .token "$f")"
-  check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$BSC_TESTNET_RPC_URL" | tr -d '"')" "mUSDT"
+  check_eq "factory.owner()" "$(cast call "$factory" 'owner()(address)' --rpc-url "$RPC")" "$(jq -r .factoryOwner "$f")"
+  check_eq "factory.feeRecipient()" "$(cast call "$factory" 'feeRecipient()(address)' --rpc-url "$RPC")" "$(jq -r .feeRecipient "$f")"
+  check_eq "factory.defaultArbiter()" "$(cast call "$factory" 'defaultArbiter()(address)' --rpc-url "$RPC")" "$(jq -r .defaultArbiter "$f")"
+  check_eq "factory.token()" "$(cast call "$factory" 'token()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
+  check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
+  check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$RPC" | tr -d '"')" "mUSDT"
   ((FAILS == 0)) || die "post-deploy check failed ($FAILS problem(s))" 1
 }
 
@@ -256,7 +272,7 @@ NEXT_PUBLIC_FLEET_VAULT_ADDRESS=$(jq -r .fleetVault "$f")
 EOF
 }
 
-# Verify MockUSDT, EscrowFactory and the RentalEscrow implementation from deployments/97.json.
+# Verify MockUSDT, EscrowFactory, the RentalEscrow implementation and FleetVault from deployments/<chainId>.json.
 # VERIFY_DRY_RUN=1 prints the commands and builds each standard-JSON input locally without contacting any API.
 cmd_verify() {
   local f
@@ -282,7 +298,7 @@ cmd_verify() {
   )
   local extra=()
   [[ -n "${VERIFIER_URL:-}" ]] && extra=(--verifier-url "$VERIFIER_URL")
-  echo "${B}Verifying on BscScan testnet (chainId $CHAIN_ID)${N}$([[ "$dry" == 1 ]] && echo ' [dry run: nothing is submitted]')"
+  echo "${B}Verifying on $NET (chainId $CHAIN_ID, Etherscan API V2)${N}$([[ "$dry" == 1 ]] && echo ' [dry run: nothing is submitted]')"
   local t addr id args fails=0
   for t in "${targets[@]}"; do
     IFS='|' read -r addr id args <<<"$t"
@@ -310,6 +326,7 @@ main() {
   shift || true
   [[ "$sub" == rehearse ]] && cmd_rehearse "$@"
   load_dotenv
+  RPC="${!RPC_VAR:-}"
   case "$sub" in
     check) cmd_check ;;
     deploy) cmd_deploy "$@" ;;

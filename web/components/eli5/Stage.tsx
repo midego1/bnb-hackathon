@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Bubble, Calendar, Coin, COLORS, Jar, Key, Padlock, Paper, Person, Photo, RefereeDesk, RentalArt, Robot, Safe, Stamp, type Mood } from "./Drawings";
-import { baht, copy, dollars, MONEY, RENTAL, recapLines, type Ending, type Scene } from "./script";
+import { baht, copy, dollars, MONEY, RENTAL, recapLines, type Cue, type Ending, type Scene } from "./script";
 import { clamp01, coinsAt, cue, easeInOut, easeOutBack, has, holdingsAt, pageAt } from "./timeline";
 
 /**
@@ -11,7 +11,7 @@ import { clamp01, coinsAt, cue, easeInOut, easeOutBack, has, holdingsAt, pageAt 
 
 const W = 1200;
 const H = 560;
-const FLOOR = 468;
+export const FLOOR = 468;
 const LOCKS = [
   { x: 545, y: 322, color: COLORS.landlord, dark: COLORS.landlordDark, rest: { x: 48, y: 330 } },
   { x: 655, y: 322, color: COLORS.tenant, dark: COLORS.tenantDark, rest: { x: 1112, y: 330 } },
@@ -21,7 +21,7 @@ const PHOTOS = { before: { x: 540, y: 108 }, after: { x: 715, y: 108 } };
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
 
 /** Appear: pop (scale with a little overshoot) or, with reduced motion, fade. */
-function Enter({ p, x, y, reduced, children, testId }: { p: number; x: number; y: number; reduced: boolean; children: ReactNode; testId?: string }) {
+export function Enter({ p, x, y, reduced, children, testId }: { p: number; x: number; y: number; reduced: boolean; children: ReactNode; testId?: string }) {
   if (p <= 0) return null;
   const s = reduced ? 1 : Math.max(0.01, easeOutBack(p));
   return (
@@ -31,11 +31,11 @@ function Enter({ p, x, y, reduced, children, testId }: { p: number; x: number; y
   );
 }
 
-function HolderLabel({ x, name, value, show = 1, small }: { x: number; name: string; value: bigint; show?: number; small?: boolean }) {
+export function HolderLabel({ x, name, value, show = 1, small }: { x: number; name: string; value: bigint; show?: number; small?: boolean }) {
   if (show <= 0) return null;
   return (
     <g opacity={show} textAnchor="middle">
-      <text x={x} y={FLOOR + 30} fontSize={small ? 16 : 19} fontWeight={600} fill="var(--muted)">
+      <text x={x} y={FLOOR + 30} fontSize={small ? 16 : 19} fontWeight={600} fill="var(--muted-foreground)">
         {name}
       </text>
       <text x={x} y={FLOOR + 59} fontSize={small ? 22 : 28} fontWeight={800} fill="var(--foreground)" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -48,7 +48,7 @@ function HolderLabel({ x, name, value, show = 1, small }: { x: number; name: str
   );
 }
 
-function Say({ x, y, w, text, tx, ty, think, p, reduced, testId }: { x: number; y: number; w: number; text: string; tx: number; ty: number; think?: boolean; p: number; reduced: boolean; testId?: string }) {
+export function Say({ x, y, w, text, tx, ty, think, p, reduced, testId }: { x: number; y: number; w: number; text: string; tx: number; ty: number; think?: boolean; p: number; reduced: boolean; testId?: string }) {
   if (p <= 0) return null;
   return (
     <Enter p={p} x={x} y={y} reduced={reduced} testId={testId}>
@@ -65,13 +65,13 @@ function SplitBubble({ x, y, title, split, p, reduced, tx, ty, testId }: { x: nu
   return (
     <Enter p={p} x={x} y={y} reduced={reduced} testId={testId}>
       <Bubble w={250} h={112} tx={tx} ty={ty}>
-        <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted)">
+        <text x={18} y={32} fontSize={19} fontWeight={700} fill="var(--muted-foreground)">
           {title}
         </text>
-        <text x={18} y={64} fontSize={21} fontWeight={800} className="fill-teal-700 dark:fill-teal-300">
+        <text x={18} y={64} fontSize={21} fontWeight={800} className="fill-split-owner-text">
           {copy.bubbles.toLandlord(baht(split[0]))}
         </text>
-        <text x={18} y={94} fontSize={21} fontWeight={800} className="fill-violet-700 dark:fill-violet-300">
+        <text x={18} y={94} fontSize={21} fontWeight={800} className="fill-split-renter-text">
           {copy.bubbles.toTenant(baht(split[1]))}
         </text>
       </Bubble>
@@ -81,7 +81,7 @@ function SplitBubble({ x, y, title, split, p, reduced, tx, ty, testId }: { x: nu
 
 export function Stage({ scene, t, reduced, ending }: { scene: Scene; t: number; reduced: boolean; ending: Ending }) {
   const held = holdingsAt(scene, t);
-  const c = (name: Parameters<typeof cue>[1], span?: number) => cue(scene, name, t, span);
+  const c = (name: Cue, span?: number) => cue(scene, name, t, span);
   const safeShown = c("safe", 600);
   const jarShown = c("jar");
 
@@ -268,13 +268,13 @@ function RecapCard({ ending }: { ending: Ending }) {
   const rows = recapLines(ending);
   return (
     <g>
-      <rect x={-300} y={-108} width={600} height={216} rx={22} fill="var(--surface-muted)" stroke="var(--border-strong)" strokeWidth={3} />
+      <rect x={-300} y={-108} width={600} height={216} rx={22} fill="var(--muted)" stroke="var(--border-strong)" strokeWidth={3} />
       <text x={0} y={-72} textAnchor="middle" fontSize={22} fontWeight={800} fill="var(--foreground)">
         {copy.recapTitle}
       </text>
       {rows.map((r, i) => (
         <g key={r.who} transform={`translate(0 ${-34 + i * 38})`}>
-          <text x={-270} y={0} fontSize={20} fontWeight={700} fill="var(--muted)">
+          <text x={-270} y={0} fontSize={20} fontWeight={700} fill="var(--muted-foreground)">
             {r.who}
           </text>
           <text x={40} y={0} textAnchor="end" fontSize={22} fontWeight={800} fill="var(--foreground)" style={{ fontVariantNumeric: "tabular-nums" }}>

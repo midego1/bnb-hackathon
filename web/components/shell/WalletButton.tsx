@@ -7,7 +7,7 @@ import { Icon } from "./icons";
 export const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const row =
-  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent rail:justify-center rail:px-0";
+  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium whitespace-nowrap transition hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sidebar-ring rail:justify-center rail:px-0";
 
 /**
  * The sidebar's network and wallet rows (RainbowKit's modals behind our own buttons, so they fit the sidebar and the
@@ -21,7 +21,7 @@ export function WalletButton() {
         if (!mounted) return <div className="h-9" aria-hidden />;
         if (!account || !chain) {
           return (
-            <button type="button" onClick={openConnectModal} className={`${row} bg-accent text-accent-foreground hover:bg-accent-hover`} title="Connect wallet" data-testid="wallet-connect">
+            <button type="button" onClick={openConnectModal} className={`${row} bg-primary text-primary-foreground hover:bg-primary-hover`} title="Connect wallet" data-testid="wallet-connect">
               <Icon name="wallet" />
               <span className="truncate rail:sr-only">Connect wallet</span>
             </button>
@@ -32,7 +32,7 @@ export function WalletButton() {
             <button
               type="button"
               onClick={openChainModal}
-              className={`${row} ${chain.unsupported ? "text-danger" : "text-muted"}`}
+              className={`${row} ${chain.unsupported ? "text-danger" : "text-muted-foreground"}`}
               title={chain.unsupported ? "Wrong network" : `Network: ${chain.name}`}
               data-testid="wallet-network"
             >

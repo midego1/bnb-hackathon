@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRight, Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { Address } from "viem";
@@ -66,7 +67,7 @@ export function StepTimeline({
       </div>
       <ol
         ref={list}
-        className="relative space-y-0.5 p-2 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        className="relative space-y-0.5 p-2 stage:min-h-0 stage:flex-1 stage:overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
         aria-labelledby="demo-story"
         tabIndex={0}
         data-testid="demo-rail"
@@ -81,7 +82,7 @@ export function StepTimeline({
               data-step={s.id}
               data-status={st}
               data-current={isCurrent ? "true" : "false"}
-              className={`rounded-xl px-2 py-1.5 transition ${isCurrent ? "bg-warning-soft ring-1 ring-amber-300 dark:ring-amber-800" : ""}`}
+              className={`rounded-xl px-2 py-1.5 transition ${isCurrent ? "bg-warning-soft ring-1 ring-highlight-edge" : ""}`}
             >
               <div className="flex items-start gap-2">
                 <StepIcon status={st} n={i + 1} />
@@ -90,12 +91,12 @@ export function StepTimeline({
                   <p className="text-[13px] text-subtle">
                     {actorLabel[s.actor]}
                     {s.demoOnly && (
-                      <span className="ml-1 rounded bg-amber-200 px-1 font-medium text-amber-950 dark:bg-amber-400 dark:text-amber-950">{s.demoOnly}</span>
+                      <span className="ml-1 rounded bg-highlight-chip px-1 font-medium text-highlight-foreground">{s.demoOnly}</span>
                     )}
                   </p>
                   {(txs[s.id] ?? []).map((t) => (
                     <p key={t.hash} className="flex items-center justify-between gap-1 text-[13px]">
-                      <span className="min-w-0 truncate text-muted">{t.label}</span>
+                      <span className="min-w-0 truncate text-muted-foreground">{t.label}</span>
                       {explorer ? (
                         <a
                           href={explorer.tx(t.hash)}
@@ -105,7 +106,7 @@ export function StepTimeline({
                           className="shrink-0 whitespace-nowrap font-mono underline decoration-dotted"
                           data-testid="demo-tx"
                         >
-                          {t.hash.slice(0, 6)}…{t.hash.slice(-4)} ↗
+                          {t.hash.slice(0, 6)}…{t.hash.slice(-4)} <ArrowUpRight aria-hidden className="inline size-3.5 align-[-2px]" />
                         </a>
                       ) : (
                         <Link
@@ -134,21 +135,21 @@ function StepIcon({ status, n }: { status: StepStatus; n: number }) {
   const base = "grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold";
   if (status === "done")
     return (
-      <span className={`${base} bg-emerald-500 text-white dark:bg-emerald-600`} aria-label="done">
-        ✓
+      <span className={`${base} bg-status-done text-on-status`} aria-label="done">
+        <Check aria-hidden className="size-3.5" strokeWidth={3} />
       </span>
     );
   if (status === "error")
     return (
-      <span className={`${base} bg-rose-500 text-white dark:bg-rose-600`} aria-label="failed">
+      <span className={`${base} bg-status-failed text-on-status`} aria-label="failed">
         !
       </span>
     );
   if (status === "running")
     return (
-      <span className={`${base} bg-amber-400 text-slate-950`} aria-label="running">
+      <span className={`${base} bg-highlight text-highlight-foreground`} aria-label="running">
         <Spinner />
       </span>
     );
-  return <span className={`${base} bg-surface-strong text-muted`}>{n}</span>;
+  return <span className={`${base} bg-surface-strong text-muted-foreground`}>{n}</span>;
 }

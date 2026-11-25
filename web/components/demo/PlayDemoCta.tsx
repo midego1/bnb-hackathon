@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchTestnetInfo } from "@/lib/demo/testnet";
@@ -46,17 +47,18 @@ function Cta() {
 
 function CtaCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-amber-300 bg-warning-soft p-5 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800" data-testid="play-demo-cta">
+    <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-highlight-edge bg-warning-soft p-5 sm:flex-row sm:items-center sm:justify-between" data-testid="play-demo-cta">
       <div>
         <p className="font-semibold text-warning-fg">{title}</p>
-        <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-200/80">{body}</p>
+        <p className="mt-1 text-sm text-warning-fg/80">{body}</p>
       </div>
       <Link
         href="/demo?autoplay=1"
         data-testid="play-demo"
-        className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-amber-300"
+        className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-highlight px-6 py-3 text-base font-semibold text-highlight-foreground shadow-sm transition hover:bg-highlight-hover"
       >
-        ▶ Play the demo
+        <Play aria-hidden className="size-4 fill-current" />
+        Play the demo
       </Link>
     </div>
   );
