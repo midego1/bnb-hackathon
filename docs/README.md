@@ -2,6 +2,9 @@
 
 | Document | What it covers |
 | --- | --- |
+| [PRODUCT.md](PRODUCT.md) | Product spec and case study: scooter rental in Thailand. Source of truth for scope. |
+| [ACCEPTANCE.md](ACCEPTANCE.md) | Definition of done for every feature. |
+| [SPONSORS.md](SPONSORS.md) | Sponsor tracks we enter and what each requires. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The components, the lease state machine, money flows, off-chain services and scalability. Includes mermaid diagrams. |
 | [BUSINESS.md](BUSINESS.md) | The problem, users, the fee model with a THB example, dispute-desk revenue, the roadmap and risks. |
 | [WRITEUP.md](WRITEUP.md) | The CoinMarketCap x Atlas track: how KeyEscrow uses price data (server-side, cached, with fallbacks). |
