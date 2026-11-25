@@ -183,7 +183,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       </div>
 
       {/* The cartoon. */}
-      <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="eli5-stage">
+      <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="eli5-cartoon">
         <div className="absolute inset-0 p-2">
           <Stage scene={scene} t={s.t} reduced={reduced} ending={s.ending} />
         </div>

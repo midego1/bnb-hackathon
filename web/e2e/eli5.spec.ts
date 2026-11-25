@@ -197,7 +197,7 @@ for (const vp of [
     await page.goto("/how-it-works?ending=happy&speed=25&autoplay=0");
     await expect(root(page)).toHaveAttribute("data-playing", "false");
     expect(await page.evaluate(() => getComputedStyle(document.body).overflowY), "stage pinned on a short window").not.toBe("hidden");
-    const cartoon = (await page.getByTestId("eli5-stage").boundingBox())!;
+    const cartoon = (await page.getByTestId("eli5-cartoon").boundingBox())!;
     expect(cartoon.height, "cartoon height").toBeGreaterThan(cartoon.width * 0.4); // its 1200:560 aspect ratio
     const m = await page.evaluate(() => ({ sh: document.scrollingElement!.scrollHeight, ih: window.innerHeight, sw: document.scrollingElement!.scrollWidth, iw: window.innerWidth }));
     expect(m.sh, "page scrolls").toBeGreaterThan(m.ih);
