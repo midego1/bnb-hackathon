@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { hydrated } from "./hydrated";
 
 /**
  * The app shell: a left sidebar (role switcher, demo, build links, theme, network, wallet) that collapses to an icon
@@ -34,6 +35,7 @@ for (const vp of [
   test(`sidebar at ${vp.width}x${vp.height}: single-line rows, the page never scrolls sideways`, async ({ page }) => {
     await page.setViewportSize(vp);
     await page.goto("/tenant");
+    await hydrated(page.getByTestId("dev-role-tenant"));
     await page.getByTestId("dev-role-tenant").click();
     await expect(page.getByTestId("wallet-address")).toBeVisible();
     await expect(state(page)).toHaveAttribute("data-sidebar", "expanded");
@@ -77,6 +79,7 @@ test("collapse to an icon rail: remembered across reloads; /demo and /how-it-wor
   await page.goto("/app");
   await expect(state(page)).toHaveAttribute("data-sidebar", "expanded");
   const wide = (await sidebar(page).boundingBox())!.width;
+  await hydrated(toggle(page));
   await toggle(page).click();
   await expect(state(page)).toHaveAttribute("data-sidebar", "collapsed");
   await expect(toggle(page)).toHaveAttribute("aria-expanded", "false");
@@ -87,12 +90,14 @@ test("collapse to an icon rail: remembered across reloads; /demo and /how-it-wor
   await page.reload();
   await expect(state(page)).toHaveAttribute("data-sidebar", "collapsed");
   await page.screenshot({ path: path.join(SHOTS, "rail-1470x830-light.png") });
+  await hydrated(toggle(page));
   await toggle(page).click();
   await expect(state(page)).toHaveAttribute("data-sidebar", "expanded");
 
   // The stages open collapsed, by URL and by client-side navigation, without changing the remembered choice.
   await page.goto("/demo");
   await expect(state(page)).toHaveAttribute("data-sidebar", "collapsed");
+  await hydrated(toggle(page));
   await toggle(page).click();
   await expect(state(page)).toHaveAttribute("data-sidebar", "expanded");
   await page.getByTestId("nav-eli5").click();
@@ -109,6 +114,7 @@ test("phone: a top bar with a menu button opens the sidebar as a drawer", async 
   await page.goto("/app");
   await expect(sidebar(page)).toBeHidden();
   const open = page.getByTestId("menu-open");
+  await hydrated(open);
   await open.click();
   await expect(sidebar(page)).toBeVisible();
   await expect(open).toHaveAttribute("aria-expanded", "true");

@@ -49,6 +49,8 @@ Run the gates for the parts you touched before you open a pull request; CI runs 
 Playwright runs two workers: the specs that use the shared anvil form the `chain` project and run one at a time,
 the front-end-only ones run beside them in `ui` (see `web/playwright.config.ts`). A new spec is in `chain` by
 default; add it to `UI_SPECS` only if it sends no transaction and asserts nothing about chain state.
+Pages are server-rendered, so a click right after `page.goto` can land before React is ready: `await
+hydrated(locator)` (`web/e2e/hydrated.ts`) first.
 
 Tests never call a real API or a public chain: provider keys are blanked in the test setups, and the e2e web server
 gets a complete, hermetic environment (`web/e2e/env.ts`).
