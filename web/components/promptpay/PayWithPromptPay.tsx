@@ -125,10 +125,10 @@ export function PayWithPromptPay({ address }: { address: Address }) {
         <p className="text-3xl font-semibold tabular-nums" data-testid="promptpay-thb">
           {thb === undefined ? "…" : formatFiat(thb, "THB")}
         </p>
-        <p className="mt-1 text-sm text-muted" data-testid="promptpay-usdt">
+        <p className="mt-1 text-sm text-muted-foreground" data-testid="promptpay-usdt">
           = {formatUsdt(due.amount)} mUSDT on-chain
         </p>
-        <p className="mt-4 text-sm text-muted">
+        <p className="mt-4 text-sm text-muted-foreground">
           With a licensed Thai partner, the renter would pay this in baht from any banking app, and the partner would deliver the stablecoin to the
           renter&rsquo;s wallet. The escrow itself is unchanged: the renter&rsquo;s own wallet funds it.
         </p>
@@ -139,7 +139,7 @@ export function PayWithPromptPay({ address }: { address: Address }) {
           <div className="flex flex-col items-center gap-3">
             {thb === undefined ? <Skeleton className="h-56 w-56" /> : left > 0 ? <PromptPayQr payload={promptPayPayload(thb)} /> : null}
             {left > 0 ? (
-              <p className="text-sm text-muted" data-testid="promptpay-countdown">
+              <p className="text-sm text-muted-foreground" data-testid="promptpay-countdown">
                 QR valid for <span className="tabular-nums">{`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`}</span>
               </p>
             ) : (
