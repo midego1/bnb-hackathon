@@ -129,6 +129,31 @@ curl -F file=@lease.pdf -F file=@left-side.png http://localhost:3000/api/evidenc
 - `GET /api/evidence/<hash>` returns the bytes with the sniffed content type, `nosniff`, a sandbox CSP and an immutable
   cache header. It returns 400 for a malformed hash and 404 for an unknown one.
 
+## GET /api/risk
+
+`?depositThb=3000&days=30`. Deposit risk buffer per payment token (USDT, BNB) from live CoinMarketCap quotes
+(`quotes/latest`, USD for volatility, THB for conversion; cached `RISK_CACHE_TTL_SECONDS`, default 120 s) and the latest
+stored Cournot probability. Returns `cmc` (`{configured: false, reason}` without `CMC_API_KEY`, never fake numbers),
+`options.USDT` / `options.BNB` (`buffer`, `cmcBuffer`, `cournotBuffer`, `tier`, `depositThb`, `depositTokens`,
+`explanation[]`), and `cournot` (`claim` for this rental, latest stored `result`, `live`). 400 on a bad amount or length.
+
+## GET / POST /api/cournot
+
+`GET` lists stored Cournot answers and the call log; it never calls Cournot. `POST {claim, confirm: true}` returns the
+stored answer for that exact claim, or, only with `COURNOT_LIVE=1` and under `COURNOT_MAX_LIVE_CALLS`, calls
+`/intelligence/v1/resolve` + `/intelligence/v1/probability` and stores the answer. 409 when live calls are off, 402
+when Cournot asks for payment (never paid), 422 when no market matches. The claim must name BNB, a `$` threshold and
+a `YYYY-MM-DD` date.
+
+## GET /api/integrations
+
+State of each sponsor integration (`live`, `not-configured`, `blocked`, `off`), the env var names it needs, and its
+last calls (endpoint, time, status, duration, note). Never returns key values.
+
+`POST /api/settlement` also takes an optional `scooterId`: the inspector then reads that scooter's earlier inspections
+(Living Brain, or the local stand-in) before judging, returns them under `memory`, and stores the new inspection
+(`memoryStored`).
+
 ## Tests
 
 ```bash
