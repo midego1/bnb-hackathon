@@ -1,6 +1,9 @@
 "use client";
 
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { asReopened, searchChats, type StoredChat } from "@/lib/assistant/history";
 import { ItemView } from "./ItemView";
 
@@ -33,13 +36,13 @@ export function HistoryView({
   const list = searchChats(chats, q);
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3" data-testid="assistant-history-view">
-      <input
+      <Input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search chats"
         aria-label="Search chats"
         data-testid="assistant-history-search"
-        className="mb-3 w-full rounded-lg border border-border-strong bg-field px-3 py-1.5 text-sm outline-none focus:border-border-hover"
+        className="mb-3 h-8 border-border-strong bg-field text-sm placeholder:text-subtle dark:bg-field"
       />
       {list.length === 0 ? (
         <p className="pt-6 text-center text-sm text-muted-foreground">{chats.length ? "No chat matches." : "No earlier chats in this browser yet."}</p>
@@ -56,7 +59,7 @@ export function HistoryView({
                     setEditing(null);
                   }}
                 >
-                  <input
+                  <Input
                     autoFocus
                     value={title}
                     maxLength={80}
@@ -64,11 +67,11 @@ export function HistoryView({
                     onKeyDown={(e) => e.key === "Escape" && setEditing(null)}
                     aria-label="Chat title"
                     data-testid="assistant-history-title-input"
-                    className="min-w-0 flex-1 rounded border border-border-strong bg-field px-2 py-1 text-sm outline-none"
+                    className="h-8 min-w-0 flex-1 border-border-strong bg-field text-sm dark:bg-field"
                   />
-                  <button type="submit" className="rounded px-2 text-sm font-medium hover:bg-surface-strong">
+                  <Button type="submit" variant="ghost" size="sm" className="h-8 hover:bg-surface-strong">
                     Save
-                  </button>
+                  </Button>
                 </form>
               ) : (
                 <div className="flex items-center gap-1 px-2 py-1.5">
@@ -81,35 +84,46 @@ export function HistoryView({
                   </button>
                   {confirm === c.id ? (
                     <span className="flex shrink-0 items-center gap-1 text-xs">
-                      <button type="button" onClick={() => (onDelete(c.id), setConfirm(null))} className="rounded bg-danger-soft px-2 py-1 font-medium text-danger-fg" data-testid="assistant-history-confirm-delete">
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="destructive"
+                        onClick={() => (onDelete(c.id), setConfirm(null))}
+                        className="bg-danger-soft text-danger-fg hover:bg-danger-soft hover:opacity-90 dark:bg-danger-soft dark:hover:bg-danger-soft"
+                        data-testid="assistant-history-confirm-delete"
+                      >
                         Delete
-                      </button>
-                      <button type="button" onClick={() => setConfirm(null)} className="rounded px-2 py-1 hover:bg-surface-strong">
+                      </Button>
+                      <Button type="button" size="xs" variant="ghost" onClick={() => setConfirm(null)} className="hover:bg-surface-strong">
                         Keep
-                      </button>
+                      </Button>
                     </span>
                   ) : (
                     <span className="flex shrink-0 gap-0.5 opacity-70 group-hover:opacity-100">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={`Rename "${c.title}"`}
                         title="Rename"
                         onClick={() => (setEditing(c.id), setTitle(c.title))}
-                        className="h-7 w-7 rounded text-sm hover:bg-surface-strong"
+                        className="text-muted-foreground hover:bg-surface-strong hover:text-foreground"
                         data-testid="assistant-history-rename"
                       >
-                        ✎
-                      </button>
-                      <button
+                        <Pencil aria-hidden className="size-3.5" />
+                      </Button>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={`Delete "${c.title}"`}
                         title="Delete"
                         onClick={() => setConfirm(c.id)}
-                        className="h-7 w-7 rounded text-sm hover:bg-surface-strong"
+                        className="text-muted-foreground hover:bg-surface-strong hover:text-danger"
                         data-testid="assistant-history-delete"
                       >
-                        🗑
-                      </button>
+                        <Trash2 aria-hidden className="size-3.5" />
+                      </Button>
                     </span>
                   )}
                 </div>
@@ -128,9 +142,9 @@ export function ReadOnlyChat({ chat, onBack, onContinue }: { chat: StoredChat; o
   return (
     <>
       <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm" data-testid="assistant-readonly">
-        <button type="button" onClick={onBack} className="rounded px-1.5 py-0.5 text-muted-foreground hover:bg-muted" aria-label="Back to the history">
-          ←
-        </button>
+        <Button type="button" variant="ghost" size="icon-xs" onClick={onBack} className="text-muted-foreground" aria-label="Back to the history">
+          <ArrowLeft aria-hidden />
+        </Button>
         <span className="min-w-0 flex-1 truncate font-medium">{chat.title}</span>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
@@ -139,9 +153,9 @@ export function ReadOnlyChat({ chat, onBack, onContinue }: { chat: StoredChat; o
         ))}
       </div>
       <div className="border-t border-border p-3">
-        <button type="button" onClick={onContinue} data-testid="assistant-continue" className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
+        <Button type="button" onClick={onContinue} data-testid="assistant-continue" className="h-9 w-full hover:bg-primary-hover">
           Continue this chat
-        </button>
+        </Button>
         <p className="mt-1.5 text-center text-[11px] text-subtle">Read-only. Changes that waited for approval here have expired.</p>
       </div>
     </>

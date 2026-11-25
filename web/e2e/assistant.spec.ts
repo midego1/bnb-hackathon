@@ -242,7 +242,9 @@ test("model picker: only Sonnet 5.5 and Haiku 5.5, per chat; /model; the server 
   await expect(picker).toHaveAttribute("data-model", "claude-sonnet-5-5");
   await picker.click();
   const menu = page.getByTestId("assistant-model-menu");
-  await expect(menu.getByRole("menuitemradio")).toHaveText(["✓Claude Sonnet 5.5", "Claude Haiku 5.5"]);
+  // shadcn DropdownMenu radio items: the check mark is an icon, the current model is aria-checked.
+  await expect(menu.getByRole("menuitemradio")).toHaveText(["Claude Sonnet 5.5", "Claude Haiku 5.5"]);
+  await expect(menu.getByRole("menuitemradio").first()).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("assistant-model-haiku").click();
   await expect(picker).toHaveAttribute("data-model", "claude-haiku-5-5");
   await expect(page.getByTestId("assistant-note")).toContainText("demo model answers");

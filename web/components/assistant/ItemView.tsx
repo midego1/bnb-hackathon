@@ -1,51 +1,71 @@
 "use client";
 
+import { ArrowUpRight, CircleAlert, CircleCheck, Compass, PenLine, Search, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Tool, ToolContent, ToolHeader, type ToolState } from "@/components/ai-elements/tool";
+import type { StepKind, StepState } from "@/lib/assistant/events";
 import type { Item } from "@/lib/assistant/items";
 import { safeAppPath } from "@/lib/assistant/paths";
 import { ApprovalCardView, CardView } from "./AssistantCards";
 import { Markdown } from "./Markdown";
 
-/** One entry of a conversation: a message, an answer, a step with its cards, an approval, a notice. */
-const STEP_ICON: Record<string, string> = { running: "◌", done: "✓", failed: "✕", waiting: "✋", declined: "–", expired: "–" };
+/** A step (a tool call: read, change or page) as an AI Elements Tool: state badge, then its detail and cards. */
+const STEP: Record<StepState, { state: ToolState; label?: string }> = {
+  running: { state: "input-available" },
+  done: { state: "output-available", label: "Done" },
+  failed: { state: "output-error", label: "Failed" },
+  waiting: { state: "approval-requested", label: "Needs approval" },
+  declined: { state: "output-denied", label: "Declined" },
+  expired: { state: "output-denied", label: "Expired" },
+};
+const RUNNING_LABEL: Record<StepKind, string> = { read: "Reading", change: "Changing", page: "Opening" };
+const STEP_ICON: Record<StepKind, LucideIcon> = { read: Search, change: PenLine, page: Compass };
 
+/** One entry of a conversation: a message, an answer, a step with its cards, an approval, a notice. */
 export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
   switch (item.kind) {
     case "user":
       return (
-        <div className="flex justify-end">
-          <p className="max-w-[85%] rounded-2xl bg-muted px-3 py-2 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="assistant-user">
+        <Message from="user" className="max-w-[85%]">
+          <MessageContent className="whitespace-pre-wrap [overflow-wrap:anywhere] group-[.is-user]:rounded-2xl group-[.is-user]:bg-muted group-[.is-user]:px-3 group-[.is-user]:py-2" data-testid="assistant-user">
             {item.text}
-          </p>
-        </div>
+          </MessageContent>
+        </Message>
       );
     case "text":
       return (
-        <div data-testid="assistant-answer">
-          <Markdown text={item.text} />
-        </div>
+        <Message from="assistant" className="max-w-full">
+          <MessageContent className="w-full overflow-visible" data-testid="assistant-answer">
+            <Markdown text={item.text} />
+          </MessageContent>
+        </Message>
       );
-    case "step":
+    case "step": {
+      const s = STEP[item.state];
+      const hasBody = !!item.detail || item.cards.length > 0;
       return (
-        <div className="space-y-2" data-testid="assistant-step" data-kind={item.stepKind} data-state={item.state}>
-          <p className="flex items-center gap-2 text-sm">
-            <span
-              aria-hidden
-              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ring-1 ${item.state === "failed" ? "text-danger ring-danger-border" : item.state === "running" ? "ring-[var(--assistant-reading)]" : "text-[var(--assistant-waiting)] ring-border"}`}
-              {...(item.state === "running" ? { "data-assistant-pulse": "" } : {})}
-            >
-              {STEP_ICON[item.state]}
-            </span>
-            <span className={item.state === "failed" ? "text-danger" : ""}>{item.label}</span>
-          </p>
-          {item.detail && <p className="pl-7 text-xs text-muted-foreground">{item.detail}</p>}
-          {item.cards.map((c, i) => (
-            <div key={i} className="pl-7">
-              <CardView card={c} />
-            </div>
-          ))}
-        </div>
+        <Tool defaultOpen className="mb-0 rounded-xl border-border bg-surface" data-testid="assistant-step" data-kind={item.stepKind} data-state={item.state}>
+          <ToolHeader
+            type={`tool-${item.stepKind}`}
+            state={s.state}
+            title={item.label}
+            icon={STEP_ICON[item.stepKind]}
+            statusLabel={s.label ?? RUNNING_LABEL[item.stepKind]}
+            static={!hasBody}
+            className="gap-2 px-3 py-2"
+          />
+          {hasBody && (
+            <ToolContent className="space-y-2 px-3 pt-0 pb-3">
+              {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
+              {item.cards.map((c, i) => (
+                <CardView key={i} card={c} />
+              ))}
+            </ToolContent>
+          )}
+        </Tool>
       );
+    }
     case "card":
       return <CardView card={item.card} />;
     case "approval":
@@ -54,8 +74,8 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
       const safe = safeAppPath(item.path);
       return (
         <p className="flex items-center gap-2 text-sm" data-testid="assistant-navigate" data-followed={item.followed}>
-          <span aria-hidden className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-[var(--assistant-waiting)] ring-1 ring-border">
-            ↗
+          <span aria-hidden className="inline-flex size-5 items-center justify-center rounded-full text-(--assistant-waiting) ring-1 ring-border">
+            <ArrowUpRight className="size-3" />
           </span>
           {item.followed ? `Opened ${item.label}` : "Ready:"}
           {!item.followed && safe && (
@@ -68,13 +88,18 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
     }
     case "notice":
       return (
-        <p className={`rounded-lg px-3 py-2 text-sm ${item.tone === "error" ? "bg-danger-soft text-danger-fg" : "text-muted-foreground"}`} data-testid="assistant-notice">
+        <p
+          className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${item.tone === "error" ? "bg-danger-soft text-danger-fg" : "text-muted-foreground"}`}
+          data-testid="assistant-notice"
+        >
+          {item.tone === "error" && <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />}
           {item.text}
         </p>
       );
     case "applied":
       return (
-        <p className="rounded-lg bg-success-soft px-3 py-2 text-sm font-medium text-success-fg" data-testid="assistant-applied">
+        <p className="flex items-center gap-2 rounded-lg bg-success-soft px-3 py-2 text-sm font-medium text-success-fg" data-testid="assistant-applied">
+          <CircleCheck aria-hidden className="size-4 shrink-0" />
           {item.count} change{item.count === 1 ? "" : "s"} applied
         </p>
       );

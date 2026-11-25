@@ -407,6 +407,8 @@ body {
   --assistant-changing: #d97706;
   --assistant-waiting: #7c3aed;
   --assistant-waiting-soft: #f5f3ff;
+  /* Text on a --assistant-waiting fill (the Approve button): AA in both themes. */
+  --assistant-waiting-foreground: #ffffff;
   --assistant-dim: rgb(15 23 42 / 6%);
   --assistant-edge-line: 3px;
   --assistant-edge-glow: 28px;
@@ -424,6 +426,7 @@ body {
   --assistant-changing: #fbbf24;
   --assistant-waiting: #a78bfa;
   --assistant-waiting-soft: #1e1533;
+  --assistant-waiting-foreground: #0f172a;
   --assistant-dim: rgb(0 0 0 / 28%);
   --assistant-edge-floor: 30%;
 }
