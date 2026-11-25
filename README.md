@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](https://testnet.bscscan.com/address/0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa)
+[![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8)
 
 **Rent a scooter in Thailand without leaving your passport.**
 
@@ -47,10 +47,10 @@ From [contracts/deployments/97.json](contracts/deployments/97.json) (start block
 
 | Contract | Address |
 | --- | --- |
-| `EscrowFactory` | [`0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa`](https://testnet.bscscan.com/address/0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa) |
-| `RentalEscrow` implementation (cloned per rental) | [`0x04150B5Bd1DcECa61C37703f5E4D23Ba64aD36D3`](https://testnet.bscscan.com/address/0x04150B5Bd1DcECa61C37703f5E4D23Ba64aD36D3) |
-| `FleetVault` (`BKK-FLEET-1` shares, 10 % operator fee) | [`0xc69A8020fC090911922dD44cc83eA4a31BDff52b`](https://testnet.bscscan.com/address/0xc69A8020fC090911922dD44cc83eA4a31BDff52b) |
-| `MockUSDT` (mUSDT, 6 decimals, test stablecoin) | [`0x88EC944a272A79caf78099DD8db6d15829254Ee5`](https://testnet.bscscan.com/address/0x88EC944a272A79caf78099DD8db6d15829254Ee5) |
+| `EscrowFactory` | [`0xd33b4dfF8C09e0079918fD987953c8f65F1363D8`](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8) |
+| `RentalEscrow` implementation (cloned per rental) | [`0x63f174fE3E80442c95b82a811a7D0d13f34D2314`](https://testnet.bscscan.com/address/0x63f174fE3E80442c95b82a811a7D0d13f34D2314) |
+| `FleetVault` (`BKK-FLEET-1` shares, 10 % operator fee) | [`0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB`](https://testnet.bscscan.com/address/0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB) |
+| `MockUSDT` (mUSDT, 6 decimals, test stablecoin) | [`0x46e69984A52233980F1CAeABB4571555e4c8fE37`](https://testnet.bscscan.com/address/0x46e69984A52233980F1CAeABB4571555e4c8fE37) |
 | ERC-8004 Identity Registry (agent #2921, the KeyEscrow Inspector) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
 | Deployer, factory owner, fee recipient and default dispute desk | [`0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D`](https://testnet.bscscan.com/address/0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D) |
 

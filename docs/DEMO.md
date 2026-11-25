@@ -20,7 +20,7 @@ needed for the demo: `/demo` signs with throwaway demo wallets on the server. If
    5. Shareholders, local build: `http://localhost:3000/shareholders` (Demo accounts bar on *Shareholder*), or
       [shareholders.png](screenshots/shareholders.png). The live testnet vault has no deposits yet, so it shows ฿0.
    6. <https://keyescrow-web.mdgooijer.workers.dev/developers>
-   7. BscScan, the factory: <https://testnet.bscscan.com/address/0x95820Ec4d48deCF8bEb017ecA85Ca758D93D71fa>
+   7. BscScan, the factory: <https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8>
 2. Check that the live demo is free: <https://keyescrow-web.mdgooijer.workers.dev/api/demo-testnet> should say
    `"enabled":true,"busy":false`. Only one live run is allowed at a time, with a 60-second gap between runs by default.
 3. Know the controls: **→** (or a presenter clicker) = *Next*, **Space** = pause, **←** = back one caption.
