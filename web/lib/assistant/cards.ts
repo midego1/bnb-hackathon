@@ -8,6 +8,7 @@
 import type { Explanation } from "../actions/explain";
 import { formatToken, type StatusName } from "../actions/fields";
 import type { LeaseSnapshot } from "../actions/lease";
+import { explorerLink, explorerName } from "../chains";
 import { formatFiat } from "../fiat";
 import { leasePath } from "./paths";
 
@@ -105,13 +106,6 @@ export function moneyText(m: Money): string {
   return [m.thb, m.usd, m.token].filter(Boolean).join(" · ");
 }
 
-/** Block explorer link for 97 (BscScan testnet); a local anvil has none. */
-export function explorerTx(chainId: number, hash: string): string | undefined {
-  return chainId === 97 ? `https://testnet.bscscan.com/tx/${hash}` : undefined;
-}
-export function explorerAddress(chainId: number, address: string): string | undefined {
-  return chainId === 97 ? `https://testnet.bscscan.com/address/${address}` : undefined;
-}
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -119,8 +113,8 @@ export function leaseCard(l: LeaseSnapshot, explanation: Explanation, rates: Rat
   const step = explanation.next.find((n) => n.deadline) ?? explanation.next[0];
   const who = { owner: "Owner", renter: "Renter", arbiter: "Dispute desk", anyone: "Anyone" } as const;
   const links: CardLink[] = [{ label: "Open rental", href: leasePath(l.address)! }];
-  const ex = explorerAddress(l.chainId, l.address);
-  if (ex) links.push({ label: "BscScan", href: ex, external: true });
+  const ex = explorerLink(l.chainId, "address", l.address);
+  if (ex) links.push({ label: explorerName(l.chainId)!, href: ex, external: true });
   return {
     kind: "lease",
     address: l.address,
@@ -318,7 +312,7 @@ export function doneCard(chainId: number, title: string, txs: { hash: string; de
     title,
     applied: txs.length,
     chainId,
-    txs: txs.map((t) => ({ ...t, ...(explorerTx(chainId, t.hash) ? { href: explorerTx(chainId, t.hash) } : {}) })),
+    txs: txs.map((t) => ({ ...t, ...(explorerLink(chainId, "tx", t.hash) ? { href: explorerLink(chainId, "tx", t.hash) } : {}) })),
     ...(lease && href ? { lease: { address: lease, href } } : {}),
   };
 }

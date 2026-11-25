@@ -12,7 +12,7 @@ import { z } from "zod";
 export const TOKEN = { symbol: "mUSDT", decimals: 6 } as const;
 
 /** Chains with a KeyEscrow deployment (contracts/deployments/*.json). Never a mainnet. */
-export const SUPPORTED_CHAIN_IDS = [31337, 97] as const;
+export const SUPPORTED_CHAIN_IDS = [31337, 97, 5611] as const;
 export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number];
 
 /** Lease status names, index = RentalEscrow.Status. */

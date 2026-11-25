@@ -231,22 +231,54 @@ step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with
 - **Cost.** About 0.0012 tBNB of gas per run. "Owner ignores it" is disabled on testnet (it needs 7 days of real
   time); play it on the local demo.
 
-## opBNB testnet (chainId 5611)
+## opBNB testnet (chainId 5611): prepared, not deployed
 
-The chain guard already accepts 5611 with `ALLOW_NON_LOCAL_BROADCAST=true`, and the web app lists opBNB testnet. The
-wrapper targets chainId 97 only. For opBNB, run the same steps by hand with `OPBNB_TESTNET_RPC_URL`
-(e.g. `https://opbnb-testnet-rpc.bnbchain.org`):
+opBNB is BNB Chain's L2. The contracts are plain Solidity, so the same bytecode and the same wrapper deploy there:
+`contracts/script/testnet.sh` takes `DEPLOY_CHAIN_ID=5611` and applies exactly the rules above (opt-in flag, typed
+confirmation `deploy 5611`, no anvil accounts, no overwrite, post-deploy checks). Nothing has been broadcast to opBNB:
+there is no deployer key for it and the deploy needs an explicit OK, like step 6.
 
-```bash
-cd contracts
-forge script script/Deploy.s.sol --rpc-url "$OPBNB_TESTNET_RPC_URL" --sender "$DEPLOYER_ADDRESS"   # simulate
-ALLOW_NON_LOCAL_BROADCAST=true forge script script/Deploy.s.sol --rpc-url "$OPBNB_TESTNET_RPC_URL" \
-  --sender "$DEPLOYER_ADDRESS" --account keyescrow-deployer --broadcast --slow     # ONLY AFTER OK
-```
+| Command | What it does | Sends a transaction? |
+| --- | --- | --- |
+| `pnpm deploy:opbnb:check` | preflight against `OPBNB_TESTNET_RPC_URL` (must answer chainId 5611) | **never** |
+| `pnpm deploy:opbnb` | the broadcast, writes `contracts/deployments/5611.json` (same keys as `97.json`) | **yes (only after OK)** |
+| `pnpm deploy:opbnb:verify` | verify the four contracts from `deployments/5611.json` | no (calls the verifier API) |
+| `pnpm deploy:opbnb:rehearse` | the whole path against local anvil nodes with `--chain-id 5611` / `204` | local only |
 
-This writes `deployments/5611.json`. opBNB gas is much cheaper, and tBNB has to be bridged from BSC testnet first
-(<https://opbnb-testnet-bridge.bnbchain.org>). Verification uses `--chain 5611` (opBNBScan via Etherscan V2, or
-Sourcify). Making the wrapper chain-agnostic is a small change if opBNB becomes the main target.
+Differences from BSC testnet:
+
+- **RPC:** `OPBNB_TESTNET_RPC_URL=https://opbnb-testnet-rpc.bnbchain.org` in `.env` (the same variable with a
+  `NEXT_PUBLIC_` prefix sets the browser's RPC; that is also the default).
+- **Funds:** tBNB on opBNB is bridged from BSC testnet: <https://opbnb-testnet-bridge.bnbchain.org>. The deploy needs
+  far less than 0.001 tBNB (see the numbers below). forge's estimate leaves out opBNB's L1 data fee, so the
+  preflight adds 0.0001 tBNB of headroom before it compares the balance.
+- **Explorer:** <https://testnet.opbnbscan.com>. The web app links there when it targets 5611.
+- **Verification:** forge 1.x has no opBNB-specific verifier; three paths work with `forge verify-contract`:
+  1. *Default:* `--verifier etherscan --chain 5611` uses Etherscan API V2, which lists opBNB testnet (5611). The
+     contracts then show as verified on opbnb-testnet.bscscan.com. The same `BSCSCAN_API_KEY` (an Etherscan V2 key)
+     works for 97 and 5611.
+  2. *opBNBScan (NodeReal):* set `VERIFIER_URL=https://open-platform.nodereal.io/<NODEREAL_KEY>/op-bnb-testnet/contract/`
+     (Etherscan-compatible; the key sits in the URL, so keep it in `.env` only). Limit: 100 submissions per day.
+  3. *Sourcify:* `forge verify-contract <addr> <id> --chain 5611 --verifier sourcify`, no key. Not tried here; check
+     that Sourcify lists chain 5611 before relying on it.
+
+  `VERIFY_DRY_RUN=1 pnpm deploy:opbnb:verify` prints the commands and builds the inputs locally without any API.
+- **Web:** after a deploy, `pnpm -C web sync:contracts` picks up `5611.json`, and `NEXT_PUBLIC_CHAIN_ID=5611` makes the
+  app target opBNB (chain list, RPC, opBNBScan links, server actions all know 5611). The one-click demo (step 10), the
+  agent's ERC-8004 registration and the Cloudflare build stay on chain 97.
+
+**Rehearsal gas (25 Nov 2026, both rehearsals pass 29 checks).** Gas units are identical on 97 and 5611:
+
+| | Gas | BSC testnet at 0.1 gwei | opBNB testnet at 0.001 gwei + L1 data fee |
+| --- | --- | --- | --- |
+| Deploy (MockUSDT, EscrowFactory + RentalEscrow implementation, FleetVault) | 5,072,948 | 0.00051 tBNB | 0.0000070 tBNB |
+| Preflight estimate (forge's 130% margin) | 6,594,830 | 0.00066 tBNB | 0.0000066 tBNB + L1 fee |
+| One rental, created to settled (7 txs) | 1,023,737 | 0.00010 tBNB | 0.0000011 tBNB |
+
+Gas prices are what the public RPCs returned on 25 Nov 2026 (`cast gas-price`); the opBNB L1 data fee comes from the
+L2 GasPriceOracle (`getL1Fee`, about 0.0000019 tBNB for the deploy and 0.00000009 tBNB for a rental). The real chain-97
+deploy used the same 5,072,948 gas at 1 gwei (0.0051 tBNB, `contracts/broadcast/Deploy.s.sol/97`). Against the local
+anvil the preflight prints its own price (2 gwei), so only the gas column carries over.
 
 ## Troubleshooting
 
@@ -259,3 +291,4 @@ Sourcify). Making the wrapper chain-agnostic is a small change if opBNB becomes 
 | `DeployerMismatch(expected, actual)` | `DEPLOYER_ADDRESS` is not the keystore or key that signs |
 | `MissingDeployer()` | no `--sender` / wallet. Use the wrapper, which passes it |
 | preflight exit 2 | `BSC_TESTNET_RPC_URL` unset or the endpoint is down or rate limited. Try another RPC |
+| preflight exit 3 on opBNB | `OPBNB_TESTNET_RPC_URL` points at another chain (opBNB mainnet is 204, always refused) |
