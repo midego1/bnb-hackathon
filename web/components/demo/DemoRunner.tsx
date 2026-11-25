@@ -7,7 +7,7 @@ import type { Address } from "viem";
 import { useAccount, useConnect, usePublicClient } from "wagmi";
 import { LeaseDetail } from "@/components/lease/LeaseDetail";
 import { Amount, Card, Notice, PriceSourceBadge, StatusBadge, useMoney } from "@/components/ui";
-import { Spinner } from "@/components/Toasts";
+import { Spinner, useToasts } from "@/components/Toasts";
 import { LeaseStatus } from "@/lib/contracts";
 import { fastForward } from "@/lib/demo/anvil";
 import { ledger, newContext, PATHS, stepsFor, type DemoActor, type DemoApi, type DemoCtx, type DemoPath, type DemoStep, type DemoTx } from "@/lib/demo/script";
@@ -59,6 +59,13 @@ export function DemoRunner() {
   const queryClient = useQueryClient();
   const { prices } = usePrices();
   const money = useMoney();
+  const { setCompact, clearSettled } = useToasts();
+
+  // Transactions follow each other quickly here: keep at most two toasts on screen and let successes go fast.
+  useEffect(() => {
+    setCompact({ max: 2, successMs: 2500 });
+    return () => setCompact();
+  }, [setCompact]);
 
   const [path, setPath] = useState<DemoPath>("happy");
   const [speed, setSpeed] = useState<Speed>("normal");
@@ -207,6 +214,7 @@ export function DemoRunner() {
       if (i < all.length - 1 && !(await gate(token))) return;
     }
     setPhase("done");
+    clearSettled(); // nothing may cover the summary
     setPauseAsked(false);
     pausedRef.current = false;
   }
