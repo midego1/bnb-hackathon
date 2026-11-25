@@ -22,7 +22,7 @@ export function Markdown({ text }: { text: string }) {
       while (i < lines.length && !/^```/.test(lines[i])) code.push(lines[i++]);
       i++;
       blocks.push(
-        <pre key={key++} className="overflow-x-auto rounded-lg bg-surface-muted p-2 font-mono text-xs whitespace-pre-wrap">
+        <pre key={key++} className="overflow-x-auto rounded-lg bg-muted p-2 font-mono text-xs whitespace-pre-wrap">
           {code.join("\n")}
         </pre>,
       );
@@ -72,7 +72,7 @@ function inline(text: string): ReactNode[] {
   for (const m of text.matchAll(TOKEN)) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const t = m[0];
-    if (m[1]) out.push(<code key={k++} className="rounded bg-surface-muted px-1 font-mono text-[0.85em] break-all">{t.slice(1, -1)}</code>);
+    if (m[1]) out.push(<code key={k++} className="rounded bg-muted px-1 font-mono text-[0.85em] break-all">{t.slice(1, -1)}</code>);
     else if (m[2]) out.push(<LinkOut key={k++} raw={t} />);
     else if (m[3]) out.push(<strong key={k++}>{t.slice(2, -2)}</strong>);
     else if (m[4]) out.push(<em key={k++}>{t.slice(1, -1)}</em>);

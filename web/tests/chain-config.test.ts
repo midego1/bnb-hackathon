@@ -41,6 +41,18 @@ describe("chain + deployment config", () => {
     expect(custom.supportedChains[0].rpcUrls.default.http).toEqual(["https://rpc.example/bsc-testnet"]);
   });
 
+  it("targets opBNB testnet with NEXT_PUBLIC_CHAIN_ID=5611: opBNBScan links, BNB Chain RPC, server RPC too", async () => {
+    const c = await load({ NEXT_PUBLIC_CHAIN_ID: "5611", NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL: "" });
+    expect(c.supportedChains.map((x) => x.id)).toEqual([5611, 97]);
+    expect(c.supportedChains[0].rpcUrls.default.http).toEqual(["https://opbnb-testnet-rpc.bnbchain.org"]);
+    expect(c.explorerName(5611)).toBe("opBNBScan");
+    expect(c.explorerLink(5611, "tx", "0xdef")).toBe("https://testnet.opbnbscan.com/tx/0xdef");
+    expect(c.explorerLink(5611, "address", "0xabc")).toBe("https://testnet.opbnbscan.com/address/0xabc");
+    const { rpcUrl, defaultChainId } = await import("@/lib/actions/context");
+    expect(defaultChainId({ NEXT_PUBLIC_CHAIN_ID: "5611" })).toBe(5611);
+    expect(rpcUrl(5611, {})).toBe("https://opbnb-testnet-rpc.bnbchain.org");
+  });
+
   it("applies env address overrides only to the target chain", async () => {
     const c = await load({ NEXT_PUBLIC_CHAIN_ID: "97", NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS: FACTORY, NEXT_PUBLIC_MOCK_USDT_ADDRESS: USDT });
     expect(c.getDeployment(97)).toMatchObject({ escrowFactory: FACTORY, mockUsdt: USDT, fromBlock: BigInt(0) });

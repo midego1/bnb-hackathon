@@ -51,24 +51,26 @@ export function defaultChainId(env: Env): SupportedChainId {
 
 /**
  * Server-side RPC per chain. 97 defaults to PublicNode (bnbchain.org's data-seed nodes refuse eth_getLogs);
- * 31337 to the anvil the web app uses.
+ * 5611 to BNB Chain's opBNB testnet endpoint; 31337 to the anvil the web app uses.
  */
 export function rpcUrl(chainId: SupportedChainId, env: Env): string {
   const own = env[`KEYESCROW_RPC_URL_${chainId}`];
   if (own) return own;
   if (chainId === 97) return env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL || "https://bsc-testnet-rpc.publicnode.com";
+  if (chainId === 5611) return env.NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL || "https://opbnb-testnet-rpc.bnbchain.org";
   return env.NEXT_PUBLIC_RPC_URL || env.NEXT_PUBLIC_ANVIL_RPC_URL || "http://127.0.0.1:8545";
 }
 
 export function actionContext(host: ActionHost, chainId?: number): ActionContext {
   const id = chainId ?? defaultChainId(host.env);
   if (!(SUPPORTED_CHAIN_IDS as readonly number[]).includes(id)) {
-    throw new ActionError(400, "unsupported_chain", `Chain ${id} is not supported. Use 31337 (local anvil) or 97 (BSC testnet).`);
+    throw new ActionError(400, "unsupported_chain", `Chain ${id} is not supported. Use 31337 (local anvil), 97 (BSC testnet) or 5611 (opBNB testnet).`);
   }
   const cid = id as SupportedChainId;
   const d = getDeployment(cid);
   if (!d) throw new ActionError(400, "unsupported_chain", `KeyEscrow is not deployed on chain ${cid}.`);
-  const transport = host.transport?.(cid) ?? http(rpcUrl(cid, host.env), { timeout: 15_000, retryCount: 1 });
+  // JSON-RPC batch: readLease's ~17 reads go out as one HTTP request (Workers Free allows 50 subrequests per request).
+  const transport = host.transport?.(cid) ?? http(rpcUrl(cid, host.env), { batch: true, timeout: 15_000, retryCount: 1 });
   return {
     chainId: cid,
     client: createPublicClient({ transport }) as PublicClient,

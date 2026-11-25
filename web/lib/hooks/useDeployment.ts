@@ -3,10 +3,13 @@
 import { useAccount, useChainId } from "wagmi";
 import { getDeployment } from "../contracts";
 
-/** Active chain (connected wallet's chain, else the default) and the KeyEscrow deployment on it. */
+/**
+ * Chain to read from: the wallet's chain when KeyEscrow is deployed there, else the app's default, so a wallet on
+ * another network (e.g. BSC mainnet) still sees the data. Writes are gated on the wallet's own chain (WalletGate).
+ */
 export function useDeployment() {
   const configChainId = useChainId();
   const { chainId: walletChainId } = useAccount();
-  const chainId = walletChainId ?? configChainId;
+  const chainId = walletChainId && getDeployment(walletChainId) ? walletChainId : configChainId;
   return { chainId, deployment: getDeployment(chainId) };
 }

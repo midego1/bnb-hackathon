@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { FleetStore, SEEDED_31337, fleetActionSchema } from "@/lib/server/fleet";
+import { applyAction, FleetStore, MAX_BOOKINGS, MAX_SCOOTERS, SEEDED_31337, fleetActionSchema } from "@/lib/server/fleet";
+import type { FleetData } from "@/lib/fleet";
 
 const RENTER = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
 const LEASE = "0x00000000000000000000000000000000000000a1";
@@ -33,6 +34,18 @@ describe("fleet store", () => {
     expect(data.bookings[0]).toMatchObject({ status: "offered", lease: LEASE });
     expect((await store.read(97)).scooters[0].rentals).toEqual([LEASE]);
     await expect(store.apply(97, { action: "book", scooterId: "nope", renter: RENTER })).rejects.toThrow(/unknown scooter/);
+  });
+
+  it("caps the record: refuses listings past MAX_SCOOTERS, keeps the newest MAX_BOOKINGS bookings", () => {
+    const add = fleetActionSchema.parse({ action: "addScooter", owner: RENTER, name: "Click", location: "Pai", rentThb: 3000, depositThb: 6000, vault: false });
+    const data: FleetData = { scooters: [], bookings: [] };
+    for (let i = 0; i < MAX_SCOOTERS; i++) applyAction(data, add, "t");
+    expect(() => applyAction(data, add, "t")).toThrow(/fleet is full/);
+    for (let i = 0; i < MAX_BOOKINGS + 5; i++) {
+      applyAction(data, { action: "book", scooterId: data.scooters[0].id, renter: RENTER }, `t${i}`);
+      applyAction(data, { action: "decline", bookingId: data.bookings.at(-1)!.id }, `t${i}`);
+    }
+    expect(data.bookings).toHaveLength(MAX_BOOKINGS);
   });
 
   it("rejects bad input", () => {

@@ -20,7 +20,7 @@ import { ArrowIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon } from "./icons
 
 const WRAP = "mx-auto w-full max-w-7xl px-5 sm:px-8";
 const H2 = "mk-display text-[clamp(2rem,1.3rem+2.6vw,3.25rem)]";
-const LEAD = "mt-4 max-w-[62ch] text-lg leading-relaxed text-muted";
+const LEAD = "mt-4 max-w-[62ch] text-lg leading-relaxed text-muted-foreground";
 
 function Ext({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -59,7 +59,7 @@ export function Counter() {
         {rows.map(([what, today, ours]) => (
           <div key={what} className="grid gap-x-10 gap-y-2 border-b border-border py-5 md:col-span-3 md:grid-cols-subgrid">
             <h3 className="font-medium">{what}</h3>
-            <p className="flex gap-2.5 text-muted">
+            <p className="flex gap-2.5 text-muted-foreground">
               <span className="mt-0.5 shrink-0 text-danger">
                 <CrossIcon />
               </span>
@@ -136,7 +136,7 @@ export function HowItWorks() {
           {steps.map((s) => (
             <li key={s.title} className="mk-stop flex flex-col">
               <h3 className="mk-h3 mt-2 text-2xl">{s.title}</h3>
-              <p className="mt-3 flex-1 leading-relaxed text-muted">{s.body}</p>
+              <p className="mt-3 flex-1 leading-relaxed text-muted-foreground">{s.body}</p>
               <dl className="mk-num mt-5 space-y-1.5 border-t border-border pt-4 text-sm">
                 {s.money.map(([k, v]) => (
                   <div key={k} className="flex items-baseline justify-between gap-3">
@@ -183,7 +183,7 @@ export function Inspection() {
                   <CheckIcon />
                 </span>
                 <span>
-                  <strong className="font-semibold">{lead}</strong> <span className="text-muted">{rest}</span>
+                  <strong className="font-semibold">{lead}</strong> <span className="text-muted-foreground">{rest}</span>
                 </span>
               </li>
             ))}
@@ -266,7 +266,7 @@ export function Deadlines() {
             <li key={l.title} className="grid gap-x-10 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center">
               <div>
                 <h3 className="mk-h3 text-2xl">{l.title}</h3>
-                <p className="mt-2 max-w-[48ch] leading-relaxed text-muted">{l.body}</p>
+                <p className="mt-2 max-w-[48ch] leading-relaxed text-muted-foreground">{l.body}</p>
               </div>
               <div>
                 <div className="mk-lane-track" aria-hidden>
@@ -302,7 +302,7 @@ export function FleetVault() {
       <div className="mt-12 grid gap-x-16 gap-y-12 lg:grid-cols-2">
         <div>
           <h3 className="mk-h3 text-2xl">For shop owners</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted">
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">
             List a scooter with the vault as its payee. You keep every role in the rental (propose, accept, dispute); only the payouts go to
             the vault. The operator keeps {FLEET_OPERATOR_FEE_PERCENT}% of income for maintenance.
           </p>
@@ -312,7 +312,7 @@ export function FleetVault() {
         </div>
         <div>
           <h3 className="mk-h3 text-2xl">For shareholders</h3>
-          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted">
+          <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground">
             Deposit mUSDT and receive BKK-FLEET-1 shares one to one. Claim your share of the fleet&apos;s income whenever you like, or redeem
             the shares for your deposit.
           </p>
@@ -351,7 +351,7 @@ export function Agents() {
             <code className="mk-code">prepare_*</code> actions return unsigned transactions, already simulated on the chain, for your own wallet
             to sign. KeyEscrow never holds a key.
           </p>
-          <p className="mt-5 max-w-[62ch] leading-relaxed text-muted">
+          <p className="mt-5 max-w-[62ch] leading-relaxed text-muted-foreground">
             The inspector is an agent too: ERC-8004 agent #{INSPECTOR_AGENT.id} in the Identity Registry on BSC testnet (
             <Ext href={explorerTx(INSPECTOR_AGENT.registerTx)}>registration</Ext>
             ). Other agents can find it, call it and verify what it signed.
@@ -378,7 +378,7 @@ claude mcp add --transport http keyescrow \\
           <h3 className="mt-8 text-sm text-subtle">
             {ACTIONS.length} rental tools and {INSPECTOR_TOOLS.length} inspector tools
           </h3>
-          <ul className="mk-code mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-muted">
+          <ul className="mk-code mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-muted-foreground">
             {[...ACTIONS.map((a) => a.name), ...INSPECTOR_TOOLS].map((name) => (
               <li key={name}>{name}</li>
             ))}
@@ -422,7 +422,7 @@ export function Live() {
               <th scope="row" className="mk-h3 block text-lg whitespace-nowrap md:table-cell md:py-4 md:pr-6">
                 {c.name}
               </th>
-              <td className="block pt-1 text-muted md:table-cell md:py-4 md:pr-6">{c.role}</td>
+              <td className="block pt-1 text-muted-foreground md:table-cell md:py-4 md:pr-6">{c.role}</td>
               <td className="block pt-2 md:table-cell md:py-4">
                 <a href={explorerAddress(c.address)} className="mk-link mk-code inline-flex items-center gap-1.5 whitespace-nowrap" data-testid="mk-contract">
                   {c.address.slice(0, 10)}…{c.address.slice(-8)}
@@ -436,7 +436,7 @@ export function Live() {
       <div className="mt-14 grid gap-x-16 gap-y-10 lg:grid-cols-2">
         <div>
           <h3 className="mk-h3 text-2xl">Prices in baht, with the source on show</h3>
-          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted">
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">
             Everyone at the counter thinks in baht, so every amount is shown in THB first, then USD and the exact token amount. Rates come
             from the Atlas on-chain feed or the CoinMarketCap Pro API, read on the server, and a badge always says which one you are looking
             at: Atlas feed, Live CoinMarketCap or Demo rates.
@@ -444,7 +444,7 @@ export function Live() {
         </div>
         <div>
           <h3 className="mk-h3 text-2xl">A deposit that keeps covering the repair bill</h3>
-          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted">
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-muted-foreground">
             The risk engine turns CoinMarketCap volatility into a deposit buffer: none for a stablecoin, more for BNB, and a token that swings
             too much is refused.{" "}
             <Link prefetch={false} href="/integrations" className="mk-link" data-testid="mk-integrations">
@@ -473,7 +473,7 @@ export function Fee() {
         <h2 id="fee-h" className="mk-display text-[clamp(2.4rem,1.2rem+5vw,5.5rem)] leading-[0.98] lg:col-span-2">
           {FEE_PERCENT}% of one month&apos;s rent. Once.
         </h2>
-        <p className="max-w-[46ch] text-lg leading-relaxed text-muted">
+        <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">
           Paid by the owner out of the first rent payout, however long the rental runs. Never taken from the deposit: that is the
           renter&apos;s money until the rental is settled. The renter pays nothing extra, and there is no token.
         </p>
@@ -519,7 +519,7 @@ export function Roadmap() {
           <li key={title} className="grid gap-x-10 gap-y-1 border-b border-border py-6 md:grid-cols-[10rem_14rem_minmax(0,1fr)] md:items-baseline">
             <p className="mk-num text-sm text-subtle">{when}</p>
             <h3 className="mk-h3 text-xl">{title}</h3>
-            <p className="max-w-[68ch] leading-relaxed text-muted">{body}</p>
+            <p className="max-w-[68ch] leading-relaxed text-muted-foreground">{body}</p>
           </li>
         ))}
       </ol>
@@ -612,11 +612,11 @@ export function SiteFooter({ demo }: { demo: boolean }) {
                 {links.map(([href, label, external]) => (
                   <li key={href}>
                     {external ? (
-                      <a href={href} className="text-muted transition-colors hover:text-foreground">
+                      <a href={href} className="text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </a>
                     ) : (
-                      <Link prefetch={false} href={href} className="text-muted transition-colors hover:text-foreground">
+                      <Link prefetch={false} href={href} className="text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </Link>
                     )}

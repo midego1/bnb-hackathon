@@ -1,3 +1,4 @@
+import { ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
 import { PlayDemoCta } from "@/components/demo/PlayDemoCta";
 import { REPO_URL, docsUrl } from "@/lib/links";
@@ -46,13 +47,13 @@ export default function Home() {
         <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
           Rent a scooter in Thailand without leaving your passport.
         </h1>
-        <p className="mt-4 max-w-2xl text-base text-muted sm:text-lg">
+        <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
           Rental shops often hold your passport as the deposit, and bogus damage claims at return are common. KeyEscrow keeps the
           deposit and rent in a smart contract made for each scooter rental, so it only moves when the shop owner and the renter
           agree, or a neutral dispute desk rules.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/landlord" className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover">
+          <Link href="/landlord" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover">
             I rent out scooters
           </Link>
           <Link href="/tenant" className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium hover:border-border-hover">
@@ -61,15 +62,16 @@ export default function Home() {
           <Link
             href="/how-it-works"
             data-testid="home-eli5"
-            className="rounded-lg border border-amber-300 bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning-fg hover:border-amber-400 dark:border-amber-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-highlight-edge bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning-fg hover:border-highlight"
           >
-            ▶ Explain it simply
+            <Play aria-hidden className="size-3.5 fill-current" />
+            Explain it simply
           </Link>
-          <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline">
-            How the demo works →
+          <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+            How the demo works <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </a>
-          <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted underline-offset-4 hover:underline" data-testid="integrations-link">
-            Risk engine &amp; integrations →
+          <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline" data-testid="integrations-link">
+            Risk engine &amp; integrations <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
         <PlayDemoCta />
@@ -78,20 +80,20 @@ export default function Home() {
       <section className="mt-12" aria-labelledby="how">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="how" className="text-lg font-semibold">How it works</h2>
-          <Link href="/how-it-works" className="text-sm font-medium text-muted underline-offset-4 hover:underline">
-            Watch it as a 1-minute cartoon →
+          <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+            Watch it as a 1-minute cartoon <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {steps.map((s, i) => (
             <li key={s.title} className="rounded-2xl border border-border bg-surface p-5">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-amber-400 text-sm font-semibold text-slate-950">{i + 1}</span>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-highlight text-sm font-semibold text-highlight-foreground">{i + 1}</span>
               <h3 className="mt-3 font-semibold">{s.title}</h3>
-              <p className="mt-1 text-sm text-muted">{s.body}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-sm text-muted">
+        <p className="mt-4 text-sm text-muted-foreground">
           If the owner ignores a return proposal (7 days by default), or the dispute desk misses its deadline (14 days by
           default), the full deposit goes back to the renter. Neither party can move the money alone.
         </p>
@@ -115,8 +117,8 @@ export default function Home() {
               className="group flex flex-col rounded-2xl border border-border p-5 transition hover:border-border-hover"
             >
               <h3 className="font-semibold">{role.title}</h3>
-              <p className="mt-1 flex-1 text-sm text-muted">{role.body}</p>
-              <span className="mt-3 text-sm font-medium text-subtle group-hover:text-foreground">{role.cta} →</span>
+              <p className="mt-1 flex-1 text-sm text-muted-foreground">{role.body}</p>
+              <span className="mt-3 text-sm font-medium text-subtle group-hover:text-foreground">{role.cta} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" /></span>
             </Link>
           ))}
         </div>

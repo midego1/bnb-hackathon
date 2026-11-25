@@ -1,3 +1,5 @@
+English | [简体中文](README.zh-CN.md)
+
 # KeyEscrow
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
@@ -32,6 +34,7 @@ Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas). Open source
 | Agent card (A2A) | [/.well-known/agent-card.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json) · ERC-8004 registration file: [/.well-known/agent-registration.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-registration.json) |
 | MCP server (Streamable HTTP, 17 tools) | `POST https://keyescrow-agent.mdgooijer.workers.dev/mcp` |
 | 3-minute pitch script | [docs/DEMO.md](docs/DEMO.md) |
+| Submission kit: videos, pitch deck, HackQuest fields, screenshots | [docs/submission](docs/submission/README.md) |
 
 The live `/demo` runs on throwaway demo wallets whose keys stay on the server: it creates a fresh rental, funds it,
 pays out month 1, runs the AI inspection and settles. You can open every step on BscScan. It allows one run at a
@@ -48,7 +51,7 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 
 ### BSC testnet contracts (chain 97)
 
-From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144802840).
+From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144828181).
 
 | Contract | Address |
 | --- | --- |
@@ -277,7 +280,7 @@ contracts/                 Foundry project
   src/FleetVault.sol         BKK-FLEET-1 shares: rental income in, operator fee out, pro-rata claims
   src/mocks/MockUSDT.sol     testnet-only 6-decimal stablecoin with a capped faucet
   deployments/97.json        the BSC testnet addresses
-web/                       Next.js (App Router) + TypeScript + Tailwind + wagmi/viem + RainbowKit
+web/                       Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + wagmi/viem + RainbowKit
   app/                       / (marketing page) /app (app home) /tenant /landlord /shareholders /backoffice /arbiter /lease/[address]
                              /demo /how-it-works /developers /integrations /settings/secrets (local only)
   app/api/                   settlement (AI), price, risk, cournot, evidence, fleet, integrations,

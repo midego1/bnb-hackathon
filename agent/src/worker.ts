@@ -123,14 +123,16 @@ async function handleA2a(app: App, request: Request): Promise<Response> {
 }
 
 async function handleMcp(app: App, env: AgentWorkerEnv, request: Request): Promise<Response> {
-  const declared = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return json({ error: "request body too large" }, 413);
+  const parsed = await readJson(request);
+  if (!parsed.ok) return parsed.res;
+  // One call per request: a JSON-RPC batch would run up to 100 inspections (paid model calls) in one POST.
+  if (Array.isArray(parsed.body)) return json({ jsonrpc: "2.0", error: { code: -32600, message: "batch requests are not supported" }, id: null }, 400);
   const identity = app.cfg.inspector?.identity ?? null;
   const server = buildMcpServer(workerDeps(app.cfg, env), identity, app.actions);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
   try {
-    return await transport.handleRequest(request);
+    return await transport.handleRequest(request, { parsedBody: parsed.body });
   } finally {
     // JSON response mode: the reply is complete once handleRequest resolves.
     void transport.close();

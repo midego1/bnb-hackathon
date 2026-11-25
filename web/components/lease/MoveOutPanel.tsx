@@ -153,7 +153,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold">AI return inspection</h3>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           Compares the {photoCount(checkIn)} pickup and {photoCount(checkOut)} return photo{photoCount(checkOut) === 1 ? "" : "s"} recorded on this
           rental and suggests how to split the deposit. Nothing is sent on-chain until you choose to propose it.
         </p>
@@ -260,7 +260,7 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
   return (
     <div className="border-t border-border pt-5">
       <h3 className="text-sm font-semibold">Can&apos;t agree?</h3>
-      <p className="mt-1 text-sm text-muted">
+      <p className="mt-1 text-sm text-muted-foreground">
         Hand the deposit decision to the dispute desk ({lease.terms.arbiterWindow / 86400} days to rule, or the full deposit goes back to the
         renter). Rent keeps being paid out as scheduled.
       </p>
@@ -290,21 +290,21 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
 /** What the inspector remembered about this scooter before judging (Living Brain or local stand-in). */
 function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["memory"]>; stored?: boolean }) {
   return (
-    <div className="mt-3 rounded-lg bg-surface-muted p-3 text-xs" data-testid="inspection-memory">
+    <div className="mt-3 rounded-lg bg-muted p-3 text-xs" data-testid="inspection-memory">
       <p className="font-semibold">
         Scooter memory · {memory.provider === "living-brain" ? "Living Brain" : "local (Living Brain not configured)"}
       </p>
       {memory.recalled.length ? (
         <>
-          <p className="mt-1 text-muted">Earlier inspections of {memory.scooterId}. Damage listed here is pre-existing and is not charged again:</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
+          <p className="mt-1 text-muted-foreground">Earlier inspections of {memory.scooterId}. Damage listed here is pre-existing and is not charged again:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
             {memory.recalled.map((r, i) => (
               <li key={i}>{r}</li>
             ))}
           </ul>
         </>
       ) : (
-        <p className="mt-1 text-muted">No earlier inspections of {memory.scooterId} on record.</p>
+        <p className="mt-1 text-muted-foreground">No earlier inspections of {memory.scooterId} on record.</p>
       )}
       {memory.error && <p className="mt-1 text-danger">Memory lookup failed: {memory.error}</p>}
       <p className="mt-1 text-subtle">{stored ? "This inspection was saved to the scooter's memory." : "This inspection was not saved to memory."}</p>

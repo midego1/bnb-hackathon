@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CurlExample } from "@/components/CurlExample";
 import { PageTitle } from "@/components/ui";
 import { ACTIONS, toolDescription, type Action } from "@/lib/actions/definitions";
 import { inputJsonSchema } from "@/lib/actions/openapi";
@@ -16,13 +17,13 @@ export default function DevelopersPage() {
         for your own wallet to sign: KeyEscrow never holds your key.
       </PageTitle>
 
-      <div className="mb-8 space-y-3 text-sm text-muted">
+      <div className="mb-8 space-y-3 text-sm text-muted-foreground">
         <p>
           OpenAPI 3.1: <a className="underline" href={`${API_BASE}/openapi.json`}>{API_BASE}/openapi.json</a>. MCP: the same actions are tools
           on the KeyEscrow Inspector agent (<code>POST /mcp</code>, see docs/AGENT.md for the Claude config). Amounts: mUSDT has 6 decimals;
           inputs take human amounts like <code>&quot;441.18&quot;</code>, outputs give <code>units</code> (base units) and <code>display</code>.
         </p>
-        <pre className="overflow-x-auto rounded-xl bg-surface-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
+        <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
       </div>
 
       <div className="space-y-6">
@@ -32,15 +33,6 @@ export default function DevelopersPage() {
       </div>
     </section>
   );
-}
-
-function curl(a: Action): string {
-  const path = `$BASE${API_BASE}/${a.name}`;
-  if (methodOf(a) === "GET") {
-    const qs = new URLSearchParams(Object.entries(a.example).map(([k, v]) => [k, String(v)])).toString();
-    return `curl -s "${path}?${qs}"`;
-  }
-  return `curl -s -X POST "${path}" \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify(a.example)}'`;
 }
 
 function ActionDoc({ action: a }: { action: Action }) {
@@ -54,7 +46,7 @@ function ActionDoc({ action: a }: { action: Action }) {
           {methodOf(a)} {API_BASE}/{a.name} · {a.title}
         </span>
       </h2>
-      <p className="mt-2 text-sm text-muted">{toolDescription(a)}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{toolDescription(a)}</p>
       <table className="mt-3 w-full text-left text-xs">
         <thead className="text-subtle">
           <tr>
@@ -80,7 +72,7 @@ function ActionDoc({ action: a }: { action: Action }) {
           ))}
         </tbody>
       </table>
-      <pre className="mt-3 overflow-x-auto rounded-xl bg-surface-muted p-3 text-xs">{curl(a)}</pre>
+      <CurlExample path={`$BASE${API_BASE}/${a.name}`} method={methodOf(a)} example={a.example} />
     </article>
   );
 }
