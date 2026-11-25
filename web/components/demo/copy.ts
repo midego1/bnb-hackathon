@@ -117,3 +117,32 @@ export const summaryCopy = {
   openLease: "Open the lease page ↗",
   hide: "Hide ✕",
 };
+
+/** The live BSC testnet (chain 97) variant of the stage: same story, real public transactions signed by the server. */
+export const testnetCopy = {
+  badge: "Live on BSC Testnet",
+  badgeShort: "BSC Testnet",
+  badgeTitle: "Every step is a real BSC testnet (chain 97) transaction, signed by KeyEscrow's demo wallets on the server. Click any hash to open it on BscScan.",
+  pageIntro:
+    "One click plays the whole KeyEscrow story live on BSC Testnet: real contracts, real public transactions you can open on BscScan, and the real lease page updating underneath. No wallet needed: KeyEscrow's demo landlord, tenant and dispute desk sign on the server.",
+  bullets: [
+    "A fresh Bangkok lease, created, funded and settled with real transactions on BSC Testnet (chain 97). Each one takes a few seconds to confirm.",
+    "Every transaction in the story column links to BscScan, and the balances on the left are read live from the chain.",
+    "Every amount in baht first, then dollars and the exact mUSDT on-chain.",
+    "The AI move-out inspection, the KeyEscrow fee going to the treasury, and the final balances.",
+  ],
+  timeoutNote: "Landlord ignores it needs 7 days of real time on a public chain; play it on the local demo.",
+  timeoutShort: "needs 7 days; play it on the local demo",
+  presenting: "One live run at a time. Pick Step by step to click through it; Pause works any time.",
+  txTitle: (hash: string) => `Open transaction ${hash} on BscScan`,
+  topUp: (role: string) => `Gas top-up for the ${role} (tBNB from KeyEscrow)`,
+  reverted: (label: string, url: string) => `"${label}" was reverted on BSC testnet. See why on BscScan: ${url}`,
+  noRpc: "Could not reach BSC testnet. Check your connection and press Retry.",
+  escrowOnBscscan: "View the escrow on BscScan ↗",
+  unsigned:
+    "Report by the KeyEscrow Inspector agent. Unsigned on this testnet demo server (no INSPECTOR_PRIVATE_KEY set); with its key set, every report is signed by the agent's ERC-8004 identity on BNB Chain.",
+  off: "The live testnet demo is switched off on this server. Connect a wallet to use KeyEscrow on BSC testnet, or play the demo on a local build.",
+  loading: "Loading the live testnet demo…",
+  ctaTitle: "See the whole story in one click, live on BSC Testnet",
+  ctaBody: "A fresh Bangkok lease, funded, paid out, inspected by AI and settled, with real BSC testnet transactions you can open on BscScan. No wallet needed. About two minutes.",
+};

@@ -1,6 +1,6 @@
 import { parseEventLogs, parseUnits, zeroAddress, type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
 import { escrowFactoryAbi, EvidenceKind, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, type Deployment } from "../contracts";
-import { devAccounts, type DevRole } from "../devAccounts";
+import type { DevRole } from "../devAccounts";
 import type { UploadedFile } from "../evidence";
 import { hashText } from "../hash";
 import type { InspectionPhoto, InspectionResult } from "../settlement";
@@ -80,6 +80,10 @@ type Call = { address: Address; abi: Abi; functionName: string; args?: readonly 
 
 export type DemoApi = {
   deployment: Deployment;
+  /** Who plays each role: the anvil dev accounts locally, the server's demo wallets on BSC testnet. */
+  accounts: Record<DevRole, Address>;
+  /** The lease's referee: address(0) = the factory's default (local); the demo dispute desk on BSC testnet. */
+  leaseArbiter: Address;
   /** Switch the connected demo account (anvil dev accounts) and wait until wagmi sees it. */
   as(role: DevRole): Promise<void>;
   /** Simulate, send and confirm a contract call through the app's own useTx hook. Throws a plain-language error. */
@@ -120,8 +124,8 @@ const leaseOf = (ctx: DemoCtx) => {
 async function balances(api: DemoApi, ctx: DemoCtx): Promise<Balances> {
   const bal = (who: Address) => api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [who] });
   const [tenant, landlord, treasury, escrow] = await Promise.all([
-    bal(devAccounts.tenant),
-    bal(devAccounts.landlord),
+    bal(api.accounts.tenant),
+    bal(api.accounts.landlord),
     bal(ctx.treasury ?? zeroAddress),
     bal(leaseOf(ctx)),
   ]);
@@ -173,8 +177,8 @@ const createLease: DemoStep = {
         functionName: "createLease",
         args: [
           {
-            tenant: devAccounts.tenant,
-            arbiter: zeroAddress, // address(0) = the factory's default arbiter, the KeyEscrow dispute desk
+            tenant: api.accounts.tenant,
+            arbiter: api.leaseArbiter, // address(0) = the factory's default arbiter, the KeyEscrow dispute desk
             rentAmount: ctx.rent,
             depositAmount: ctx.deposit,
             termMonths: ctx.termMonths,
@@ -216,12 +220,12 @@ const getUsdt: DemoStep = {
       : `MockUSDT is the testnet stand-in for USDT. The tenant taps its faucet for the ${m(need(c))} they need. On mainnet this would be real USDT.`,
   async run(api, ctx) {
     await api.as("tenant");
-    const balance = await api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [devAccounts.tenant] });
+    const balance = await api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "balanceOf", args: [api.accounts.tenant] });
     if (balance >= need(ctx)) {
       ctx.faucet = BigInt(0);
       return;
     }
-    await api.tx("Get test USDT", { address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "faucet", args: [devAccounts.tenant, need(ctx)] });
+    await api.tx("Get test USDT", { address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "faucet", args: [api.accounts.tenant, need(ctx)] });
     ctx.faucet = need(ctx);
   },
 };
@@ -236,7 +240,7 @@ const fund: DemoStep = {
     await api.as("tenant");
     const lease = leaseOf(ctx);
     ctx.before ??= await balances(api, ctx);
-    const allowance = await api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "allowance", args: [devAccounts.tenant, lease] });
+    const allowance = await api.read<bigint>({ address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "allowance", args: [api.accounts.tenant, lease] });
     if (allowance < need(ctx)) {
       await api.tx("Approve USDT", { address: api.deployment.mockUsdt, abi: mockUsdtAbi, functionName: "approve", args: [lease, need(ctx)] });
     }

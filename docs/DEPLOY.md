@@ -191,6 +191,29 @@ with a BscScan link per transaction to `.orca/reports/testnet-<e2e|seed>.md` (ou
 The landlord-response (7 days) and arbiter (14 days) timeouts need real time to pass, so they are not run on
 testnet. `pnpm e2e:chain` covers both against anvil with time travel.
 
+## 10. Live one-click demo on BSC testnet
+
+On the `pnpm testnet:web` build, `/demo` ("Play the demo") plays the happy and dispute stories as real chain 97
+transactions; every step on the timeline links to `testnet.bscscan.com`. The browser holds no key: it encodes each
+step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with its own demo wallets
+(`web/lib/server/demoTestnet`, sharing the keystore and sending code of `testnet.mts` via `web/lib/server/chain97.mts`).
+
+- **Off by default.** The routes answer 404 unless the server has `DEMO_TESTNET_RUNNER=1`, the build is chain 97
+  and `DEMO_TESTNET_SECRETS_DIR` is set. `pnpm testnet:web` sets all three (plus `DEMO_TESTNET_ENV_FILE`, the root
+  `.env`, for the RPC and the deployer keystore); `DEMO_TESTNET_RUNNER=0 pnpm testnet:web` switches it off. The unit
+  gets paths only, never key material. The RPC must answer chainId 97 or nothing is signed.
+- **Wallets.** Landlord, tenant and a separate demo dispute desk (named per lease, so the deployer never signs a demo
+  step) live in `<secrets>/testnet-demo-wallets.json` (mode 600), created on first use. A wallet below 0.002 tBNB is
+  topped up by the deployer with 0.005 tBNB (hard cap); if that would leave the deployer under 0.05 tBNB the run is
+  refused with a friendly message. Top-ups show on the demo timeline.
+- **Limits.** One run at a time (a lock freed at the end, or after 2 idle minutes); at most one run per 60 s and 12 per
+  hour (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`); 2.5M gas and 20 transactions per run
+  (`DEMO_TESTNET_MAX_GAS_PER_RUN`); 1 gwei legacy gas price; a 45 s receipt timeout (`DEMO_TESTNET_TX_TIMEOUT_S`) after
+  which Retry waits for the same transaction instead of sending it again. Only the story's own calls are signed: an
+  allowlist checks the contract, function, role and arguments (`guards.ts`, unit-tested).
+- **Cost.** About 0.0012 tBNB of gas per run. "Landlord ignores it" is disabled on testnet (it needs 7 days of real
+  time); play it on the local demo.
+
 ## opBNB testnet (chainId 5611)
 
 The chain guard already accepts 5611 with `ALLOW_NON_LOCAL_BROADCAST=true`, and the web app lists opBNB testnet. The

@@ -20,12 +20,15 @@ export function StepTimeline({
   current,
   txs,
   lease,
+  explorer,
 }: {
   steps: DemoStep[];
   statuses: StepStatus[];
   current: number;
   txs: Record<string, DemoTx[]>;
   lease?: Address;
+  /** Live testnet: each hash opens on the block explorer instead of the lease timeline. */
+  explorer?: { tx: (hash: string) => string; title: (hash: string) => string };
 }) {
   const list = useRef<HTMLOListElement>(null);
   const txCount = Object.values(txs).reduce((n, t) => n + t.length, 0);
@@ -77,15 +80,28 @@ export function StepTimeline({
                   {(txs[s.id] ?? []).map((t) => (
                     <p key={t.hash} className="flex items-center justify-between gap-1 text-[13px]">
                       <span className="min-w-0 truncate text-muted">{t.label}</span>
-                      <Link
-                        href={lease ? `/lease/${lease}` : "#"}
-                        target="_blank"
-                        title={panels.txTitle(t.hash)}
-                        className="shrink-0 whitespace-nowrap font-mono underline decoration-dotted"
-                        data-testid="demo-tx"
-                      >
-                        {t.hash.slice(0, 6)}…{t.hash.slice(-4)}
-                      </Link>
+                      {explorer ? (
+                        <a
+                          href={explorer.tx(t.hash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={explorer.title(t.hash)}
+                          className="shrink-0 whitespace-nowrap font-mono underline decoration-dotted"
+                          data-testid="demo-tx"
+                        >
+                          {t.hash.slice(0, 6)}…{t.hash.slice(-4)} ↗
+                        </a>
+                      ) : (
+                        <Link
+                          href={lease ? `/lease/${lease}` : "#"}
+                          target="_blank"
+                          title={panels.txTitle(t.hash)}
+                          className="shrink-0 whitespace-nowrap font-mono underline decoration-dotted"
+                          data-testid="demo-tx"
+                        >
+                          {t.hash.slice(0, 6)}…{t.hash.slice(-4)}
+                        </Link>
+                      )}
                     </p>
                   ))}
                 </div>
