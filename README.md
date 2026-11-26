@@ -45,12 +45,12 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 | --- | --- |
 | One escrow contract per rental; creating, funding, rent payouts, evidence hashes, proposals and settlements in `/demo` and `/stage` are real transactions | The money is MockUSDT test money with no value; `/demo` and `/stage` sign with throwaway server-side demo wallets and a guest wallet |
 | ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site is a deterministic *demo inspector* (no model key set); with a key, a vision LLM returns the same JSON |
-| The contracts, verified on BscScan | Prices show *Demo rates* (no CoinMarketCap key yet; Atlas publishes no testnet feed); Cournot and Living Brain are built but not live ([state per sponsor](#sponsor-integrations)) |
+| The contracts, verified on BscScan | Prices are live: Atlas push feeds first, CoinMarketCap as fallback and for THB; Cournot is built but waits for a partner key ([state per sponsor](#sponsor-integrations)) |
 | Photo and document fingerprints (SHA-256) | The photos themselves are off-chain; the *Pay with PromptPay* page is a simulation that mints test USDT |
 
-| `/demo`, mid-run | `/stage` big screen, settled | `/r` on the judge's phone |
+| `/duo`: renter phone left, rental company right | `/stage` big screen, settled | `/r` on the judge's phone |
 | --- | --- | --- |
-| ![Guided /demo at step 7 of 10: the AI inspector's split in baht, live balances, every transaction hash](docs/submission/screenshots/4-demo-mid-run.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
+| ![/duo/mystery-box after settlement: the renter's phone on the left, the rental company's screen on the right, every transaction](docs/submission/screenshots/02-duo.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
 
 The screenshots come from a local run of the same build (hence `127.0.0.1` under the QR code).
 
@@ -241,7 +241,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 |---|---|---|---|
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
-| Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Blocked: no BSC testnet feed addresses published |
+| Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)) |
 | Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
 ### CoinMarketCap
@@ -260,10 +260,15 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 
 `web/lib/server/price/index.ts` reads Atlas SingleFeed proxies (`decimals()` + `latestRoundData()`, compatible with
 AggregatorV3). It rejects answers that were never updated (`answer == 0` / `updatedAt == 0`), negative answers and
-stale answers (`now - updatedAt > ATLAS_MAX_AGE_SECONDS`, default 3600), as in Atlas's example code. When
-`ATLAS_RPC_URL`, `ATLAS_FEED_USDT_USD` and `ATLAS_FEED_BNB_USD` are set, it is the first price source for every
-THB/USD amount. **Blocked:** docs.atlasoracle.io and `oracle-atlas/push-oracle-interfaces` publish no BSC testnet (or
-mainnet) feed addresses; Atlas assigns them during onboarding.
+stale answers (`now - updatedAt > ATLAS_MAX_AGE_SECONDS`, default 3600; the USDT/USD feed's 24 h heartbeat is allowed
+up to 25 h), as in Atlas's example code. When `ATLAS_RPC_URL`, `ATLAS_FEED_USDT_USD` and `ATLAS_FEED_BNB_USD` are set,
+it is the first price source for every THB/USD amount; CoinMarketCap is the fallback and supplies the THB rate.
+**Live** on the testnet site and the mainnet pilot site (18-decimal feeds; BNB heartbeat 60 s, USDT 24 h):
+BSC testnet BNB/USD [`0x3957…788d`](https://testnet.bscscan.com/address/0x3957d289ee9c38272377786787ea34f9dd29788d),
+USDT/USD [`0x9dfd…4e8b`](https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b); BSC mainnet
+BNB/USD [`0x9c05…6438`](https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438), USDT/USD
+[`0x9fc0…01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4). The Atlas Pull API (signed
+reports with a `consensusScore`) is available with our key; no code calls it yet.
 
 ### Living Brain (ChatAndBuild)
 

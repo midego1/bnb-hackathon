@@ -38,12 +38,12 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 | --- | --- |
 | 每笔租约一个托管合约；`/demo` 和 `/stage` 里的创建、注资、租金发放、凭证哈希、提议和结算都是真实交易 | 资金是没有价值的 MockUSDT 测试币；`/demo` 和 `/stage` 用服务器上的一次性演示钱包和访客钱包签名 |
 | 代理 #2921 在 ERC-8004 Identity Registry 中的注册 | 在线站点的 AI 验车是确定性的*演示验车员*（未配置模型密钥）；配置密钥后，视觉大模型返回同样格式的 JSON |
-| 合约本身，已在 BscScan 验证 | 价格显示 *Demo rates*（尚无 CoinMarketCap 密钥；Atlas 未公布测试网喂价地址）；Cournot 和 Living Brain 已实现但未上线 |
+| 合约本身，已在 BscScan 验证 | 价格已上线：Atlas 推送式喂价为首选来源，CoinMarketCap 作为备用来源并提供泰铢汇率；Cournot 已实现，等待合作方密钥 |
 | 照片和文件的指纹（SHA-256） | 照片本身存在链下；*PromptPay 支付*页面是模拟，只会发放测试 USDT |
 
-| `/demo` 运行中 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |
+| `/duo`：左边租客手机，右边租车公司 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |
 | --- | --- | --- |
-| ![引导式 /demo 第 7/10 步：AI 验车员以泰铢给出的分配方案、实时余额和每笔交易哈希](docs/submission/screenshots/4-demo-mid-run.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
+| ![结算后的 /duo/mystery-box：左边是租客手机，右边是租车公司的屏幕，以及每笔交易](docs/submission/screenshots/02-duo.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
 
 截图来自同一版本的本地运行（因此二维码下方显示 `127.0.0.1`）。
 
