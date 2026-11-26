@@ -180,7 +180,7 @@ a `YYYY-MM-DD` date.
 
 ## GET /api/integrations
 
-State of each sponsor integration (`live`, `not-configured`, `blocked`, `off`), the env var names it needs, and its
+State of each sponsor integration (`live`, `not-configured`, `off`), the env var names it needs, and its
 last calls (endpoint, time, status, duration, note). Never returns key values.
 
 `POST /api/history` `{lease, chainId?}`: after a rental settled (agreement, dispute ruling or timeout), writes one
