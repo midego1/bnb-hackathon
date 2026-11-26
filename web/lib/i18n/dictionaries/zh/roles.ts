@@ -241,7 +241,7 @@ export const body: DeepPartial<typeof enBody> = {
     role: { renter: "租客", owner: "车主" },
     memory: "Living Brain 记住的内容",
     memoryLocal: "本地替代记忆记住的内容（未配置 Living Brain）",
-    source: { "living-brain": "Living Brain", local: "本地" },
+    source: { "living-brain": "Living Brain", sent: "已发送至 Living Brain", local: "本地" },
     memoryNone: "还没有记录：每笔租赁结算后，为每一方写入一条。",
     memoryError: "Living Brain 暂时不可用：只显示链上事实。",
     memoryLimited: "Living Brain 今日调用上限已到：只显示链上事实。",
