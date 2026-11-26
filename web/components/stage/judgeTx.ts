@@ -18,8 +18,15 @@ async function mainnetGasPrice(pub: PublicClient) {
   return p < MAINNET_MAX_GAS_PRICE ? p : MAINNET_MAX_GAS_PRICE;
 }
 
+/**
+ * BSC testnet: type-2 transactions at the node's 0.1 gwei tip can sit in the public RPC's pool for minutes (seen
+ * 26 Nov), while legacy 1 gwei ones land in the next block. The server's drip signs at 1 gwei and sends enough for that.
+ */
+const TESTNET_GAS_PRICE = parseGwei("1");
+
 async function send(wc: WalletClient, pub: PublicClient, call: { address: Address; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }): Promise<Hex> {
-  const fees = wc.chain?.id === 56 ? { type: "legacy", gasPrice: await mainnetGasPrice(pub) } : {};
+  const id = wc.chain?.id;
+  const fees = id === 56 ? { type: "legacy", gasPrice: await mainnetGasPrice(pub) } : id === 97 ? { type: "legacy", gasPrice: TESTNET_GAS_PRICE } : {};
   const hash = await wc.writeContract({ ...call, ...fees, account: wc.account!, chain: wc.chain } as never);
   const r = await pub.waitForTransactionReceipt({ hash, timeout: 90_000 });
   if (r.status !== "success") throw new Error("The transaction was reverted on-chain. Try again.");
