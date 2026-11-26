@@ -57,7 +57,8 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Always define the dev-accounts flag so Next inlines it and production bundles drop the anvil switcher
   // (an unset NEXT_PUBLIC_ var is left as a runtime lookup and nothing gets tree-shaken).
-  env: { NEXT_PUBLIC_DEV_ACCOUNTS: process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ? "1" : "0" },
+  // KEYESCROW_WALLET_SDKS tells lib/wagmi.ts that this build stubs the MetaMask and Base Account SDKs (Cloudflare).
+  env: { NEXT_PUBLIC_DEV_ACCOUNTS: process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1" ? "1" : "0", KEYESCROW_WALLET_SDKS: cloudflare ? "stubbed" : "full" },
   // Off everywhere. On Cloudflare Workers Cache Components' render staging relies on Node's setTimeout ordering, and
   // under workerd every page render hangs ("code had hung and would never generate a response"). On Node too since every
   // page reads the language cookie in the root layout (lib/i18n): with Cache Components that needs a Suspense hole, and
@@ -80,11 +81,10 @@ const nextConfig: NextConfig = {
       // Base Account wallet SDK: wagmi imports it only inside connect() in the browser, yet the server bundle carried it
       // (~95 KB gzip of the Cloudflare Worker). The server gets the empty stub; the browser keeps the real package.
       "@base-org/account": { browser: "@base-org/account", default: "./lib/stubs/empty.js" },
-      // wagmi's MetaMask and Base Account connectors import these SDKs lazily. Without a WalletConnect id only injected
-      // wallets are offered, so they never load; stubbing them keeps ~390 KiB gzip out of the Worker (3 MiB Free limit).
-      ...(cloudflare && !process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-        ? { "@metamask/sdk": "./lib/stubs/empty.js", "@base-org/account": "./lib/stubs/empty.js" }
-        : {}),
+      // wagmi's MetaMask and Base Account connectors import these SDKs lazily. The Cloudflare build never offers them,
+      // with or without a WalletConnect id (lib/wagmi.ts: injected wallets, Rainbow, WalletConnect), so stubbing them keeps
+      // ~390 KiB gzip out of the Worker (3 MiB Free limit).
+      ...(cloudflare ? { "@metamask/sdk": "./lib/stubs/empty.js", "@base-org/account": "./lib/stubs/empty.js" } : {}),
     },
   },
 };

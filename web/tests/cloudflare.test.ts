@@ -335,3 +335,30 @@ describe("sponsor and fleet data on Workers live in the Durable Object, not on d
     expect((await inspectionMemoryFromEnv({}).recall("CLICK-01"))[0].text).toMatch(/left mirror scratched/);
   });
 });
+
+describe("Worker size: the Cloudflare build stubs the MetaMask and Base Account SDKs", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  it("also with a WalletConnect id (the Worker went over 3 MiB without), and tells lib/wagmi.ts so", async () => {
+    vi.stubEnv("KEYESCROW_BUILD_TARGET", "cloudflare");
+    vi.stubEnv("NEXT_PUBLIC_CHAIN_ID", "97");
+    vi.stubEnv("NEXT_PUBLIC_DEV_ACCOUNTS", "0");
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "de10101f1fdad7557579d133239f1d8f");
+    vi.resetModules();
+    const cfg = (await import("@/next.config")).default;
+    const alias = cfg.turbopack?.resolveAlias as Record<string, unknown>;
+    expect(alias["@metamask/sdk"]).toBe("./lib/stubs/empty.js");
+    expect(alias["@base-org/account"]).toBe("./lib/stubs/empty.js");
+    expect(cfg.env?.KEYESCROW_WALLET_SDKS).toBe("stubbed");
+  });
+  it("keeps both SDKs in the Node build", async () => {
+    vi.stubEnv("KEYESCROW_BUILD_TARGET", "");
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "de10101f1fdad7557579d133239f1d8f");
+    vi.resetModules();
+    const cfg = (await import("@/next.config")).default;
+    expect((cfg.turbopack?.resolveAlias as Record<string, unknown>)["@metamask/sdk"]).toBeUndefined();
+    expect(cfg.env?.KEYESCROW_WALLET_SDKS).toBe("full");
+  });
+});
