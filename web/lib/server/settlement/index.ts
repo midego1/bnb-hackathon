@@ -9,7 +9,7 @@ import type { InspectionMemory, MemoryStatus } from "../sponsors/livingbrain";
 
 export * from "./schema";
 export * from "./inspector";
-export { anthropicBusy, visionProviderFromEnv, VisionProviderError, type VisionProvider } from "./vision";
+export { visionProviderFromEnv, VisionProviderError, type VisionProvider } from "./vision";
 
 /**
  * Why the demo inspector stood in although a vision model is configured: `busy` (Anthropic 429/5xx/529, out of
@@ -58,7 +58,7 @@ export class PhotoResolutionError extends Error {
 }
 
 /** Largest photo the server fetches by url (Anthropic's per-image limit). */
-export const MAX_PHOTO_FETCH_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_FETCH_BYTES = 5 * 1024 * 1024;
 
 /** Where photos may be fetched from by url: this app's own origin, through `fetch` (on Workers: the ASSETS binding). */
 export type PhotoSource = { origin: string; fetch: (url: string) => Promise<Response> };
@@ -180,7 +180,8 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
   };
   const reportHash = sha256Hex(canonicalJson(report));
   let memoryStored: boolean | undefined = memory ? false : undefined;
-  if (opts.memory && opts.rememberAs) {
+  // A stand-in verdict never goes into the scooter's history: later inspections trust it as pre-existing damage.
+  if (opts.memory && opts.rememberAs && !fallback) {
     const { scooterId: id, rental } = opts.rememberAs;
     const res = await opts.memory
       .remember({ scooterId: id, rental, at: createdAt, findings: proposal.reasons, newDamage: BigInt(proposal.landlordClaim) > BigInt(0), reportHash })

@@ -46,14 +46,13 @@ function apiError(status: number, type: string, msg: string) {
 
 const walkthrough = (file: string) => readFile(path.join(process.cwd(), "public/demo/walkthrough", file));
 
-/** The stub behind global fetch: Anthropic is faked, the app's own static demo photos are served from public/. */
+/** The stub behind global fetch: Anthropic is faked; the route reads the static demo photos from public/ itself. */
 async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = input instanceof Request ? input.url : String(input);
   if (url.startsWith("https://api.anthropic.com/")) {
     calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
     return reply();
   }
-  if (url.startsWith(`${ORIGIN}/demo/walkthrough/`)) return new Response(new Uint8Array(await walkthrough(url.split("/").pop()!)));
   if (url.startsWith(`${ORIGIN}/api/settlement`)) return settle(new NextRequest(url, init as never));
   return new Response("not found", { status: 404 });
 }
@@ -122,6 +121,21 @@ describe("/demo: static walkthrough photos by url", () => {
     const photo = { hash: `0x${"ab".repeat(32)}`, url: `${ORIGIN}/demo/walkthrough/checkin-front.png` };
     const body = await (await post({ deposit: "100000000", checkIn: [photo], checkOut: [photo] })).json();
     expect(body).toMatchObject({ mock: true, provider: "mock", fallback: "photos" });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("a 'same-origin' url is only ever a static file: no network fetch to the Host, no path outside public/", async () => {
+    const evil = (url: string) =>
+      settle(
+        new NextRequest(`http://169.254.169.254/api/settlement`, {
+          method: "POST",
+          body: JSON.stringify({ deposit: "100000000", checkIn: [{ url }], checkOut: [{ url }] }),
+          headers: { "x-forwarded-for": `10.3.0.${++ip}` },
+        }),
+      );
+    expect(await (await evil("http://169.254.169.254/latest/meta-data")).json()).toMatchObject({ mock: true, fallback: "photos" });
+    expect(await (await evil("http://169.254.169.254/demo/..%2F..%2Fpackage.json")).json()).toMatchObject({ mock: true, fallback: "photos" });
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u)).filter((u) => u.includes("169.254"))).toEqual([]);
     expect(calls).toHaveLength(0);
   });
 
@@ -200,6 +214,20 @@ describe("fallback when Anthropic cannot answer", () => {
     expect(body).toMatchObject({ mock: true, provider: "mock", fallback: "busy" });
     expect(body.model).toBeUndefined();
     expect(calls).toHaveLength(1);
+  });
+
+  it("a stand-in verdict is never written to the scooter's memory", async () => {
+    reply = () => apiError(529, "overloaded_error", "Overloaded");
+    const remember = vi.fn(async () => ({ stored: true }));
+    const memory = { status: { provider: "local" as const, configured: false }, recall: async () => [], remember };
+    const r = await proposeSettlement(SettlementRequestSchema.parse({ deposit: "100000000", checkIn: [await photo()], checkOut: [await photo()] }), {
+      provider: visionProviderFromEnv(),
+      photoSource: { origin: ORIGIN, fetch: async (u) => new Response(new Uint8Array(await walkthrough(u.split("/").pop()!))) },
+      memory,
+      rememberAs: { scooterId: "BKK-1", rental: "0x9f1ac54bef0dd2f6f3462ea0fa94fc62300d3a8e" },
+    });
+    expect(r).toMatchObject({ mock: true, fallback: "busy", memoryStored: false });
+    expect(remember).not.toHaveBeenCalled();
   });
 
   it("a refusal or unusable answer: labelled error", async () => {

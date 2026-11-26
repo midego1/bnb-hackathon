@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { getEvidenceStore } from "@/lib/server/evidence";
 import { clientIp, jsonError, zodIssues } from "@/lib/server/http";
@@ -62,13 +64,19 @@ function dailyCalls() {
 }
 
 /**
- * Same-origin photo urls (the /demo walkthrough photos). On Workers through the ASSETS binding: a plain fetch to the
- * Worker's own workers.dev host is not allowed (global_fetch_strictly_public). No redirects, so it never leaves.
+ * Same-origin photo urls (the /demo walkthrough photos) are this app's static files: on Workers from the ASSETS binding
+ * (a fetch to the own workers.dev host is not allowed), under Node from public/ on disk. Never a network fetch: the
+ * origin comes from the request's Host header, which the caller controls.
  */
 function photoSource(request: NextRequest): PhotoSource {
-  const assets = cloudflareBinding<{ fetch: typeof fetch }>("ASSETS");
-  const get = assets ? assets.fetch.bind(assets) : fetch;
-  return { origin: new URL(request.url).origin, fetch: (url) => get(url, { redirect: "error" }) };
+  const assets = cloudflareBinding<{ fetch: (url: string) => Promise<Response> }>("ASSETS");
+  const pub = path.join(process.cwd(), "public");
+  const fromDisk = async (url: string) => {
+    const file = path.join(pub, decodeURIComponent(new URL(url).pathname));
+    if (!file.startsWith(pub + path.sep)) return new Response(null, { status: 404 });
+    return new Response(new Uint8Array(await readFile(file)));
+  };
+  return { origin: new URL(request.url).origin, fetch: assets ? (url) => assets.fetch(url) : fromDisk };
 }
 
 /** The verified scooter id to write this inspection under, or null (rate-limited, not a rental, chain unreachable). */
