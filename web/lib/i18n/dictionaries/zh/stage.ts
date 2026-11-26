@@ -40,6 +40,18 @@ export const body: DeepPartial<typeof enBody> = {
     best: "在笔记本电脑或大屏幕上效果最佳：租客的手机和车主的视图并排显示。",
     phone: "租客的手机",
     scan: "用你自己的手机租用",
+    board: {
+      label: "这笔租赁的资金现在在哪里",
+      renter: "租客",
+      escrow: "托管",
+      escrowSub: "这笔租赁专属的合约",
+      owner: "车主",
+      renterHas: "在租客手里",
+      held: "托管中",
+      ownerHas: "在车主手里",
+      passport: "护照：还在你口袋里",
+      fee: "KeyScrow 手续费 {fee}，只收一次",
+    },
     steps: "租赁步骤",
   },
   judge: {

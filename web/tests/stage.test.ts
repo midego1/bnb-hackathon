@@ -26,7 +26,7 @@ import { stateFor } from "@/lib/i18n/server";
 import { makeT } from "@/lib/i18n/t";
 import type { ChainEvent } from "@/lib/rentals";
 import { TOKEN } from "@/lib/contracts";
-import { duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, stageTerms, takenByOther, type StageStatus } from "@/lib/stage";
+import { duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, moneyBoard, replaceable, STALE_OFFER_MS, stageTerms, takenByOther, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -213,6 +213,21 @@ describe("duo: step bar and the mirrored phone", () => {
     expect(mirroredRenter(theirs(lease("Cancelled")), ME)).toBeUndefined();
     expect(mirroredRenter(theirs(lease("Created"), now), ME, now)).toBe(OTHER);
     expect(mirroredRenter(theirs(lease("Created"), now - STALE_OFFER_MS - 1), ME, now)).toBeUndefined();
+  });
+
+  it("money board: the renter holds the price, then the escrow its balance, then settlement pays both sides", () => {
+    const n = (x: number) => BigInt(x);
+    const priced = { ...base, price: { rent: n(6), deposit: n(30), thbPerUsdt: 33 } } as StageStatus;
+    const terms = { rentAmount: n(7), depositAmount: n(31) };
+    const ev = (name: string, args: Record<string, bigint>) => ({ name, args }) as unknown as StageStatus["events"][number];
+    expect(moneyBoard(priced)).toEqual({ renter: n(36), escrow: n(0), owner: n(0), phase: "none" });
+    expect(moneyBoard({ ...priced, ...theirs(lease("Created", { terms, balance: n(0) })) })).toMatchObject({ renter: n(38), phase: "none" });
+    const funded = { ...priced, ...theirs(lease("Active", { terms, balance: n(38) })), events: [ev("Funded", { deposit: n(31), firstRent: n(7) })] };
+    expect(moneyBoard(funded)).toEqual({ renter: n(0), escrow: n(38), owner: n(0), phase: "funded", paid: n(38) });
+    // Settled on-chain a poll before the chain index has the event: the money still reads as in the escrow.
+    expect(moneyBoard({ ...funded, lease: lease("Settled", { terms, balance: n(0) }) })).toMatchObject({ renter: n(0), escrow: n(0), phase: "funded" });
+    const settled = { ...funded, lease: lease("Settled", { terms, balance: n(0) }), events: [...funded.events, ev("Settled", { tenantRefund: n(25), rentToTenant: n(0), landlordClaim: n(6), rentToLandlord: n(7), fee: n(1) })] };
+    expect(moneyBoard(settled)).toEqual({ renter: n(25), escrow: n(0), owner: n(12), fee: n(1), phase: "settled", paid: n(38) });
   });
 
   it("chooser: a scooter is 'rented right now' only while someone else holds it", () => {

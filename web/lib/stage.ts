@@ -111,6 +111,27 @@ export function duoStep(s: StageStatus | undefined): 1 | 2 | 3 | 4 | 5 {
 }
 
 /**
+ * /duo's money board: where this rental's money is now, from the chain. The renter holds rent + deposit until they pay
+ * (the offer's terms, or today's price before there is one), the escrow its live balance, and at settlement the renter
+ * gets back what the Settled event refunded and the owner what it paid out after the one-time fee. `phase` names the
+ * last transfer, so the board replays its animation when the money moves again.
+ */
+export function moneyBoard(s: StageStatus): { renter: bigint; escrow: bigint; owner: bigint; fee?: bigint; phase: "none" | "funded" | "settled"; paid?: bigint } {
+  const l = s.lease;
+  const zero = BigInt(0);
+  const funded = s.events.find((e) => e.name === "Funded")?.args;
+  const settled = s.events.findLast((e) => e.name === "Settled")?.args as Record<string, bigint> | undefined;
+  const paid = funded ? (funded.deposit as bigint) + (funded.firstRent as bigint) : undefined;
+  if (l && settled) {
+    return { renter: settled.tenantRefund + settled.rentToTenant, escrow: l.balance, owner: settled.landlordClaim + settled.rentToLandlord - settled.fee, fee: settled.fee, phase: "settled", paid };
+  }
+  // Paid in (or settled a poll before the chain index has its Settled event): the money is in the escrow.
+  if (l && l.status !== "Created" && l.status !== "Cancelled") return { renter: zero, escrow: l.balance, owner: zero, phase: "funded", paid };
+  const offer = l?.status === "Created" ? l.terms.rentAmount + l.terms.depositAmount : s.price.rent + s.price.deposit;
+  return { renter: offer, escrow: zero, owner: zero, phase: "none" };
+}
+
+/**
  * /duo's phone pane: a judge renting on their own phone (another wallet than `me`) is shown read-only, until the
  * presenter resets the stage or the offer goes stale. Returns that judge's address, or undefined for the own flow.
  */

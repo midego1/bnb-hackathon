@@ -266,6 +266,12 @@
     rotate: -90deg;
   }
 }
+/* /duo (components/stage/DuoView.tsx) shows real transfers: the coins chase three times when money moves, then the
+   track rests with the amount tag still on it (the money sits in the escrow; it is not moving any more). */
+.duo-board .mk-track:not([data-flow="off"])::after {
+  animation-iteration-count: 3;
+  animation-fill-mode: forwards; /* ends with the lit window off the track */
+}
 /* Reduced motion: the board keeps its states, without the chase. The active track is simply lit and its amount sits still. */
 @media (prefers-reduced-motion: reduce) {
   .mk-track:not([data-flow="off"])::after {
