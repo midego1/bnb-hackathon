@@ -39,6 +39,12 @@ export const body = {
   duo: {
     best: "Best on a laptop or a big screen: the renter's phone and the owner's view side by side.",
     phone: "The renter's phone",
+    sound: {
+      label: "Sound (M)",
+      on: "Sound on",
+      off: "Sound off",
+      tap: "Tap to enable sound",
+    },
     scan: "Rent it on your own phone",
     steps: "Rental steps",
     /** The money board (the landing page's LED board, live). */

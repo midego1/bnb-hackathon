@@ -10,7 +10,8 @@ import { formatFiat } from "@/lib/fiat";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import { getListing, type Listing } from "@/lib/listings";
-import { coinPlan, duoStep, eventLabel, moneyBoard, unitsToThb, type StageStatus } from "@/lib/stage";
+import { audioReady, playSound, setSoundOn, soundFor, soundOn, subscribeSound, unlockAudio, type Beat } from "@/lib/duoSound";
+import { coinPlan, duoStep, eventLabel, moneyBoard, unitsToThb, vaultPhase, type StageStatus } from "@/lib/stage";
 import { DotNum, Track } from "@/components/marketing/MoneyBoard";
 import { ExternalIcon, PassportIcon, ShopIcon } from "@/components/marketing/icons";
 import { big, headline, Qr, useNewestInView, useOwnerSide, type OwnerSide } from "./StageView";
@@ -48,7 +49,14 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
     return () => window.removeEventListener("message", onMessage);
   }, []);
   const listing = getListing(slug) ?? first;
-  const o = useOwnerSide(listing.slug);
+  const side = useOwnerSide(listing.slug);
+  const o: OwnerSide = {
+    ...side,
+    presenter: (action) => {
+      playSound("click");
+      return side.presenter(action);
+    },
+  };
   const { s, l, offline } = o;
   const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
   const t = useT();
@@ -106,7 +114,15 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
         <section aria-labelledby="duo-renter-label" className="duo-side" data-testid="duo-renter">
           <PaneLabel id="duo-renter-label">{t.h("duo.renter")}</PaneLabel>
           <Phone testid="duo-phone">
-            <iframe src={phoneSrc} title={t("duo.phone")} width={W} height={H} className="block border-0" data-testid="duo-phone-frame" />
+            <iframe
+              src={phoneSrc}
+              title={t("duo.phone")}
+              width={W}
+              height={H}
+              className="block border-0"
+              data-testid="duo-phone-frame"
+              onLoad={(e) => listenForSound(e.currentTarget.contentWindow)} // a tap or key on the phone unlocks the sound too
+            />
           </Phone>
           <p className="duo-note text-[var(--duo-teal-fg)]">
             <PassportIcon />
@@ -128,6 +144,7 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
       <footer className="flex flex-wrap items-center gap-3 border-t border-border py-2 wide:stage:py-[clamp(0.4rem,0.9vh,0.75rem)]" data-testid="stage-presenter">
         <QrCard url={url} name={listing.name} />
         <div className="min-w-0 flex-1">{o.error && <Notice kind="error">{o.error}</Notice>}</div>
+        <SoundButton s={s} />
         <ActionButton className="shrink-0" variant="secondary" busy={o.busy === "reset"} onClick={() => o.presenter("reset")} data-testid="stage-reset">
           {t("stage.presenter.reset")}
         </ActionButton>
@@ -136,6 +153,73 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
     </main>
   );
 }
+
+/** Unlock the audio on any click, tap or key in `w` (the page, or the phone's frame: same origin); "M" turns the sound on or off. */
+function listenForSound(w: Window | null) {
+  try {
+    w?.addEventListener("pointerup", unlockAudio);
+    w?.addEventListener("keydown", soundKey);
+  } catch {} // a frame on another origin
+}
+function soundKey(e: KeyboardEvent) {
+  unlockAudio();
+  const typing = (e.target as Element | null)?.closest?.("input, textarea, select, [contenteditable]");
+  if ((e.key !== "m" && e.key !== "M") || e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing) return;
+  toggleSound();
+}
+/** On or off; turning it on clicks (off is silent). */
+function toggleSound() {
+  setSoundOn(!soundOn());
+  playSound("click");
+}
+
+/**
+ * The bar's speaker button (and its "M" key): sound on (the default) or off, remembered. It plays the sound of each
+ * change the vault animates (lib/duoSound soundFor); a reload or another item starts silent, so nothing replays.
+ */
+function SoundButton({ s }: { s?: StageStatus }) {
+  const t = useT();
+  const on = useSyncExternalStore(subscribeSound, soundOn, () => true);
+  const ready = useSyncExternalStore(subscribeSound, audioReady, () => true);
+  const slug = s?.listing.slug;
+  const step = s && duoStep(s);
+  const phase = s && vaultPhase(s);
+  const beat = useRef<Beat>(undefined);
+  useEffect(() => {
+    if (!slug || !step || !phase) return;
+    const next = { slug, step, phase };
+    const sound = soundFor(beat.current, next);
+    beat.current = next;
+    if (sound) playSound(sound);
+  }, [slug, step, phase]);
+  useEffect(() => {
+    listenForSound(window);
+    return () => {
+      window.removeEventListener("pointerup", unlockAudio);
+      window.removeEventListener("keydown", soundKey);
+    };
+  }, []);
+  return (
+    <>
+      {on && !ready && (
+        <span className="shrink-0 text-xs text-muted-foreground" data-testid="duo-sound-tap">
+          {t("duo.sound.tap")}
+        </span>
+      )}
+      <ActionButton className="shrink-0" variant="secondary" aria-pressed={on} aria-keyshortcuts="M" title={t("duo.sound.label")} onClick={() => toggleSound()} data-testid="duo-sound">
+        <SpeakerIcon on={on} />
+        {t(on ? "duo.sound.on" : "duo.sound.off")}
+      </ActionButton>
+    </>
+  );
+}
+
+const SpeakerIcon = ({ on }: { on: boolean }) => (
+  <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M11 5 6 9H3v6h3l5 4z" />
+    {on ? <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /> : <path d="m16 9 6 6m0-6-6 6" />}
+  </svg>
+);
 
 function PaneLabel({ id, children }: { id: string; children: ReactNode }) {
   return (
@@ -194,8 +278,6 @@ function QrCard({ url, name }: { url: string; name: string }) {
   );
 }
 
-type VaultPhase = "none" | "funded" | "split" | "settled";
-
 /**
  * The escrow as a vault: the key-shield dial, the amount in LED coins, and a pile of coins (lib/stage coinPlan) that
  * fills when the renter pays, colours at the AI split (teal back to the renter, pink damage to the owner, amber rent)
@@ -208,7 +290,7 @@ function Vault({ s, chainId, rows }: { s: StageStatus; chainId: number; rows: Ow
   const m = moneyBoard(s);
   const baht = (u: bigint) => big(u, s);
   const thb = (u: bigint) => unitsToThb(u, s.price.thbPerUsdt);
-  const phase: VaultPhase = m.phase === "funded" && l?.status === "MoveOut" ? "split" : m.phase;
+  const phase = vaultPhase(s);
   const claim = (s.events.findLast((e) => e.name === "Settled")?.args.landlordClaim as bigint | undefined) ?? BigInt(0);
   const total = m.paid ?? (phase === "none" ? m.renter : m.escrow);
   const split = phase === "split" && l ? { renter: l.proposal.tenantRefund, owner: l.proposal.landlordClaim } : phase === "settled" ? { renter: m.renter, owner: claim } : undefined;

@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type FrameLocator, type Page } from "@playwright/test";
 import path from "node:path";
 import { E2E_WEB_PORT } from "./env";
+import { hydrated } from "./hydrated";
 import { noisyBmp } from "./photos";
 
 /**
@@ -346,4 +347,37 @@ test("duo + /r: step 0 Choose at 1440x900 and on a 390x844 phone, light and dark
     await p.screenshot({ path: path.join(SHOTS, `r-390x844-${scheme}-choose.png`) });
     await mobile.close();
   }
+});
+
+test("duo: the speaker button and M turn the sound on and off, remembered; no console errors while audio is blocked", async ({ page }) => {
+  const problems: string[] = [];
+  page.on("console", (m) => m.type() === "error" && problems.push(`console: ${m.text()}`));
+  page.on("pageerror", (e) => problems.push(`pageerror: ${e.message}`));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/duo/honda-scoopy");
+  const sound = page.getByTestId("duo-sound");
+  // On by default; before any click, tap or key the browser blocks audio, so the bar says how to enable it.
+  await expect(sound).toHaveAttribute("aria-pressed", "true");
+  await expect(sound).toHaveText("Sound on");
+  await expect(page.getByTestId("duo-sound-tap")).toHaveText("Tap to enable sound");
+  // A tap on the renter's phone (the framed /r) unlocks it too.
+  const phone = phoneOf(page);
+  await step(phone, "choose");
+  await phone.getByRole("heading", { name: "Ready to rent" }).click();
+  await expect(page.getByTestId("duo-sound-tap")).toHaveCount(0);
+  await sound.click();
+  await expect(sound).toHaveAttribute("aria-pressed", "false");
+  await expect(sound).toHaveText("Sound off");
+  // Remembered across a reload; then M turns it back on.
+  await page.reload();
+  await hydrated(sound);
+  await expect(sound).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("duo-sound-tap")).toHaveCount(0); // muted: no hint
+  await page.keyboard.press("m");
+  await expect(sound).toHaveAttribute("aria-pressed", "true");
+  await expect(sound).toHaveAttribute("title", "Sound (M)");
+  await page.reload();
+  await hydrated(sound);
+  await expect(sound).toHaveAttribute("aria-pressed", "true");
+  expect(problems).toEqual([]);
 });
