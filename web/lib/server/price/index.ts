@@ -40,6 +40,8 @@ export interface PriceEnv {
   ATLAS_FEED_BNB_USD?: string;
   ATLAS_FEED_USD_THB?: string;
   ATLAS_MAX_AGE_SECONDS?: string;
+  /** Max age of the USDT/USD feed (default 2 days: stablecoin feeds update rarely; 6.75 h was seen on BSC testnet). */
+  ATLAS_USDT_MAX_AGE_SECONDS?: string;
   PRICE_CACHE_TTL_SECONDS?: string;
 }
 
@@ -80,7 +82,7 @@ export async function readFeed(client: Pick<ReturnType<typeof createPublicClient
     const age = nowSeconds - updatedAt;
     if (age > maxAgeSeconds) throw new StalePriceError(`feed ${address} is stale: updated ${age}s ago (max ${maxAgeSeconds}s)`);
     await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: 200, ok: true, ms: Date.now() - started, note: `age=${age}s` });
-    return { value: Number(answer) / 10 ** decimals, updatedAt };
+    return { value: Number(answer) / 10 ** decimals, updatedAt, answer, decimals };
   } catch (err) {
     await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: null, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
     throw err;
@@ -91,8 +93,9 @@ export async function readFeed(client: Pick<ReturnType<typeof createPublicClient
 export async function fetchAtlas(env: PriceEnv, thbPerUsd: () => Promise<number>): Promise<Omit<PriceQuote, "fetchedAt">> {
   const client = createPublicClient({ transport: http(env.ATLAS_RPC_URL, { timeout: 8_000 }) });
   const maxAge = atlasMaxAgeSeconds(env);
+  const usdtMaxAge = Number(env.ATLAS_USDT_MAX_AGE_SECONDS) > 0 ? Number(env.ATLAS_USDT_MAX_AGE_SECONDS) : 172_800;
   const [usdt, bnb, thb] = await Promise.all([
-    readFeed(client, env.ATLAS_FEED_USDT_USD!, maxAge),
+    readFeed(client, env.ATLAS_FEED_USDT_USD!, Math.max(maxAge, usdtMaxAge)),
     readFeed(client, env.ATLAS_FEED_BNB_USD!, maxAge),
     env.ATLAS_FEED_USD_THB ? readFeed(client, env.ATLAS_FEED_USD_THB, maxAge) : null,
   ]);

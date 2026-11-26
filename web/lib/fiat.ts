@@ -1,4 +1,5 @@
 import { formatUnits } from "viem";
+import type { AtlasStatus } from "./atlas";
 import { TOKEN } from "./contracts";
 
 /** Shape of GET /api/price (kept in sync with lib/server/price). Safe to import client-side. */
@@ -12,6 +13,8 @@ export interface PriceResponse {
   fetchedAt: string;
   cached?: boolean;
   warning?: string;
+  /** Atlas BNB/USD push feed + Pull API consensus: the "Pay with BNB" guard and the Atlas badge. */
+  atlas?: AtlasStatus;
 }
 
 const LOCALE: Record<Fiat, string> = { USD: "en-US", THB: "th-TH" };

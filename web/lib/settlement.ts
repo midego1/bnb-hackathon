@@ -22,6 +22,8 @@ export type InspectionResult = {
   inspectorSignature?: Hex;
   /** Per-scooter inspection memory the inspector read before judging (Living Brain, or the local stand-in). */
   memory?: { provider: "living-brain" | "local"; configured: boolean; reason?: string; scooterId: string; recalled: string[]; error?: string };
+  /** Atlas signed price report attached when damage is charged (verified server-side against the official signer). */
+  priceProof?: { source: "atlas-pull"; hash: Hex; signer: Hex; payload: Hex; signature: Hex; prices: { feedId: number; price: string; timestamp: number }[] };
   /** True when this inspection was written to memory: only for a rental the server verified on-chain. */
   memoryStored?: boolean;
 };

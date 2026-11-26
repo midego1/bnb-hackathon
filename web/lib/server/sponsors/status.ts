@@ -46,12 +46,18 @@ export async function integrationStatus(env: Env = process.env): Promise<Integra
     },
     {
       id: "atlas",
-      name: "Atlas push oracle (BSC)",
-      state: atlasConfigured(env) ? "live" : "blocked",
+      name: "Atlas oracle (BSC push feeds + Pull API)",
+      state: atlasConfigured(env) ? "live" : "not-configured",
       detail: atlasConfigured(env)
-        ? "latestRoundData() with a staleness check (ATLAS_MAX_AGE_SECONDS) is the first price source for THB/USD display."
-        : "No Atlas feed addresses for BSC testnet are published; set them once Atlas provides them.",
-      env: ["ATLAS_RPC_URL", "ATLAS_FEED_BNB_USD", "ATLAS_FEED_USDT_USD", "ATLAS_FEED_USD_THB", "ATLAS_MAX_AGE_SECONDS"],
+        ? [
+            "Push feeds live: latestRoundData() with a staleness check is the first price source for THB/USD display, and BNB/USD (refused beyond 2x its heartbeat) guards Pay with BNB.",
+            env.ATLAS_API_KEY
+              ? "Pull API live: the signed BNB/USD + USDT/USD report gives the consensus badge (Pay with BNB refuses unless HEALTHY/DEGRADED) and, verified against the official signer, the price proof on AI settlement reports."
+              : "Pull API not configured (ATLAS_API_KEY): no consensus, so Pay with BNB stays refused and settlement reports carry no signed price.",
+            "Swap guard: amountOutMin = 99 % of the Atlas value, refused when the pool quote is more than 2 % off (PancakeSwap V2 on BSC mainnet, the AtlasSwapGuard demo swap on testnet).",
+          ].join(" ")
+        : "Set ATLAS_RPC_URL and the BSC feed addresses (testnet BNB/USD 0x3957d289ee9c38272377786787ea34f9dd29788d, USDT/USD 0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b), plus ATLAS_API_KEY for the Pull API.",
+      env: ["ATLAS_RPC_URL", "ATLAS_FEED_BNB_USD", "ATLAS_FEED_USDT_USD", "ATLAS_FEED_USD_THB", "ATLAS_MAX_AGE_SECONDS", "ATLAS_HEARTBEAT_SECONDS", "ATLAS_API_KEY"],
       calls: await recentSponsorCalls("atlas", 25, env),
     },
     {

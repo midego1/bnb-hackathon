@@ -6,6 +6,7 @@ import { extractJsonObject, repairProposal, type PhotoRef, type RepairResult, ty
 import type { InspectorIdentity, InspectorSigner } from "./inspector";
 import { anthropicBusy, type VisionImage, type VisionProvider } from "./vision";
 import type { InspectionMemory, MemoryStatus } from "../sponsors/livingbrain";
+import type { AtlasPriceProof } from "../price/atlas";
 
 export * from "./schema";
 export * from "./inspector";
@@ -43,6 +44,8 @@ export interface SettlementResult extends SettlementProposal {
   reportHash: Bytes32Hex;
   /** Per-scooter memory the inspector read before judging (part of the hashed report). */
   memory?: MemoryStatus & { scooterId: string; recalled: string[]; error?: string };
+  /** Atlas signed BNB/USD + USDT/USD report, verified against the official signer, when damage is charged (hashed). */
+  priceProof?: AtlasPriceProof;
   /** Whether this inspection was written back to memory (after hashing): only for a rental verified on-chain. */
   memoryStored?: boolean;
   /** EIP-191 signature of `reportHash` by `inspector.address`. */
@@ -115,6 +118,8 @@ export interface ProposeOptions {
    * agent faces (A2A, MCP) and requests without a real rental never write.
    */
   rememberAs?: { scooterId: string; rental: string } | null;
+  /** A verified Atlas signed price report (or null): attached to, and hashed with, a report that charges damage. */
+  priceProof?: () => Promise<AtlasPriceProof | null>;
   now?: Date;
 }
 
@@ -160,6 +165,8 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
   const live = judged ? provider : null;
   const { proposal, repairs } = judged ?? repairProposal(mockAssessment(req), deposit, req.decimals);
   const createdAt = (opts.now ?? new Date()).toISOString();
+  // Damage is priced in USD/THB: the Atlas signed price report of that moment goes into the hashed report.
+  const priceProof = opts.priceProof && BigInt(proposal.landlordClaim) > BigInt(0) ? await opts.priceProof().catch(() => null) : null;
   const report = {
     ...proposal,
     deposit: req.deposit,
@@ -176,6 +183,7 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
     ...(req.notes ? { notes: req.notes } : {}),
     ...(opts.inspector ? { inspector: opts.inspector.identity } : {}),
     ...(memory ? { memory } : {}),
+    ...(priceProof ? { priceProof } : {}),
     createdAt,
   };
   const reportHash = sha256Hex(canonicalJson(report));
