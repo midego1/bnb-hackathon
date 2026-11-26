@@ -93,7 +93,7 @@ one-page write-up is [docs/WRITEUP.md](../WRITEUP.md); every CMC call is logged 
 | Track | What KeyScrow does | State (26 Nov) |
 | --- | --- | --- |
 | ChatAndBuild / Living Brain | The inspector reads each scooter's damage history before judging, so old scratches are never charged twice; after every settled rental each wallet gets one factual dispute-memory entry, shown on the dispute desk. The demo world's shops and renters come with histories. | **Live** on the testnet site; the mainnet pilot site runs without it |
-| Cournot | A prediction-market probability that BNB falls below a threshold before the return date raises the deposit buffer; the exact claim and the evidence are shown. | **Built**, waiting for a partner key (no live call yet) |
+| Cournot | A prediction-market probability that BNB falls below a threshold before the return date raises the deposit buffer; the exact claim and the evidence are shown. | **Live call made** 26 Nov 13:06 UTC: p = 0.30, request id `7dcbb40bfbfdebad018e9bcad0d70c51` (proof in the README "Cournot Integration") |
 | AWS startup pitch | A fee from day one (10 % of one month's rent, once per rental) and a roadmap from a testnet pilot to mainnet, asset pools, opBNB and native apps ([BUSINESS.md](../BUSINESS.md)). | Pitch |
 
 Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own) and Flap.

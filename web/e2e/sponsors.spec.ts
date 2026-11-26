@@ -54,8 +54,8 @@ test("landing footer → /sponsors: five tracks, honest states, the checklist, s
   await expect(guard.getByRole("link", { name: "AtlasSwapGuard on BscScan" })).toHaveAttribute("href", "https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA");
   await expect(page.getByTestId("sponsor-check-atlasGuard")).toHaveText("Live");
   await expect(page.locator('[data-row="cmcCore"]')).toContainText("Not live on this server.");
-  await expect(page.locator('[data-row="cournotCall"]')).toContainText("Not yet");
-  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("Pending");
+  await expect(page.locator('[data-row="cournotCall"]')).toContainText("7dcbb40bfbfdebad018e9bcad0d70c51");
+  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("Done");
   await expect(page.locator('[data-row="cmcWriteup"]').getByRole("link", { name: "WRITEUP.md" })).toHaveAttribute("href", "https://github.com/midego1/bnb-hackathon/blob/main/docs/WRITEUP.md");
   await expect(page.locator('[data-row="lbWallet"]').getByRole("link", { name: "Dispute desk" })).toHaveAttribute("href", "/arbiter");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("Four.meme");
@@ -80,7 +80,7 @@ test("/sponsors in dark and in 中文", async ({ page }) => {
   await expect(page.getByTestId("sponsor-bnb-state")).toHaveText("已上线");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("未参加");
   await expect(page.getByText("赛道要求 → KeyScrow 如何做到")).toHaveCount(5);
-  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("待完成");
+  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("已完成");
 });
 
 test("/sponsors on a phone: no sideways scroll, tap targets and text pass the phone audit", async ({ page }) => {

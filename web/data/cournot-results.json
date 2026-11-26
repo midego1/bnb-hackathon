@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "claim": "Will BNB fall below $470 at any time before 2026-12-26 00:00 UTC?",
+    "marketId": "18090",
+    "marketTitle": "BNB price below $480.00 at any time before 2027-01-01 04:59 UTC",
+    "probability": 0.3,
+    "result": null,
+    "basis": [
+      {
+        "source": "kalshi",
+        "summary": "kalshi latest yes price 0.3000 for \"BNB price below $480.00 at any time before 2027-01-01 04:59 UTC\" (1 legs), ends 2027-01-01T04:59:59Z",
+        "time": "2026-11-26T13:02:35Z",
+        "url": "https://kalshi.com/markets/kxbnbminy/kxbnbminy-bnb-26dec31?op_market_ticker=KXBNBMINY-BNB-26DEC31-48000"
+      },
+      {
+        "source": "binance",
+        "summary": "Over the 76-day coverage window, BNB fell by -5.1598% from 692.85 to 657.1, experiencing a maximum drawdown of -17.8399% within a range spanning 649.6 to 811.18.",
+        "time": "2026-11-26T12:52:55.747Z",
+        "url": "https://www.binance.com/en/futures/BNBUSDT"
+      },
+      {
+        "source": "venues",
+        "summary": "Across venues over 76 days, medium returns ranged from -0.05268 to -0.051524 with annualized volatility between 0.407171 and 0.458864, while mark prices spanned from 552.48 to 553.17.",
+        "time": "2026-11-26T12:52:55.747Z",
+        "url": "https://www.coinglass.com/currencies/BNB"
+      }
+    ],
+    "billing": {
+      "billing": "free_quota",
+      "free_quota": {
+        "total": 3,
+        "used": 1,
+        "remaining": 2
+      },
+      "charged": false
+    },
+    "at": "2026-11-26T13:06:17.244Z",
+    "requestId": "7dcbb40bfbfdebad018e9bcad0d70c51",
+    "source": "live"
+  }
+]

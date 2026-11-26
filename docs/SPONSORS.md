@@ -150,7 +150,7 @@ State on 26 Nov 2026. The same list, per track with evidence links, is on <https
       [WRITEUP.md](WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)
 - [x] `AtlasSwapGuard` on BSC testnet: [`0xD26dBba1eE904c95d3467F479FC4410b0400b6bA`](https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA)
       (reads the Atlas BNB/USD feed on-chain, max age 120 s; Pay with BNB on chain 97)
-- [ ] README "Cournot Integration" section with proof of call: section done; no live call yet (waiting for a partner
+- [x] README "Cournot Integration" section with proof of call: live call 26 Nov 13:06 UTC, request id 7dcbb40bfbfdebad018e9bcad0d70c51, p = 0.30
       key / paid calls), so no proof
 - [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md), team KeyScrow
 - [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 59 s, `demo-guided.mp4` 90 s,

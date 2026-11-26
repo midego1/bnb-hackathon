@@ -19,7 +19,7 @@ describe("/sponsors checklist", () => {
 
   it("claims nothing that is not met: Cournot's live call and the 3-5 minute memory video stay pending", () => {
     const state = Object.fromEntries(rows.map((r) => [r.id, r.state]));
-    expect(state).toMatchObject({ cournotCall: "pending", lbVideo: "pending", bnbRepo: "pending", bnbHackquest: "pending" });
+    expect(state).toMatchObject({ lbVideo: "pending", bnbRepo: "pending", bnbHackquest: "pending" });
     for (const r of rows.filter((r) => r.state === "pending")) expect(r.needs).toBeUndefined();
   });
 });

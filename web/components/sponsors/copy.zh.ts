@@ -88,7 +88,7 @@ export const zh: DeepPartial<SponsorsCopy> = {
       lbWallet: { ask: "记住、检索并关联信息", how: "每笔租赁结算后，每个钱包记录一条客观条目，在争议处理台上与链上事实一起显示。", link: "争议处理台" },
       lbDescription: { ask: "简短描述：问题、方案、独特之处", how: "已写在 HackQuest 表单内容中。", link: "HACKQUEST.md" },
       lbVideo: { ask: "关于记忆的 3–5 分钟演示视频", how: "尚未完成：我们的视频为 59–90 秒；3–5 分钟的记忆演示还待录制。", link: "视频" },
-      cournotCall: { ask: "成功实时调用 Cournot 预言机", how: "尚未完成：在拿到合作方密钥或付费调用之前，实时调用是关闭的，因此还没有调用证明。我们不显示任何模拟概率。", link: "/integrations" },
+      cournotCall: { ask: "成功实时调用 Cournot 预言机", how: "11 月 26 日实时调用成功：对“BNB 会在 2026-12-26 前跌破 $470 吗？”返回 p = 0.30，请求 ID 7dcbb40bfbfdebad018e9bcad0d70c51；保存的结果驱动 BNB 缓冲。", link: "/integrations" },
       cournotDecision: { ask: "概率驱动一个决策", how: "已完成并测试：在 /api/risk 中，BNB 押金缓冲乘以 (1 + p)。", link: "risk.ts" },
       cournotClaim: { ask: "显示具体命题和证据", how: "已完成：命题、概率和证据显示在 /integrations 上；我们自己的解释有标注。", link: "/integrations" },
       cournotReadme: { ask: "README 中的“Cournot Integration”章节", how: "在哪里、如何调用，概率如何使用，用户在哪里看到；调用证明尚待补充。", link: "README" },

@@ -46,7 +46,7 @@ export const SPONSOR_CHECKLIST: Record<keyof SponsorsCopy["tracks"], CheckRow[]>
     { id: "lbVideo", state: "pending", href: `${REPO_URL}/tree/main/docs/submission` },
   ],
   cournot: [
-    { id: "cournotCall", state: "pending", href: "/integrations" },
+    { id: "cournotCall", state: "done", href: "/integrations" },
     { id: "cournotDecision", state: "done", href: file("web/lib/risk.ts") },
     { id: "cournotClaim", state: "done", href: "/integrations" },
     { id: "cournotReadme", state: "done", href: `${REPO_URL}#cournot-integration` },

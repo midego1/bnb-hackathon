@@ -100,7 +100,7 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 | --- | --- |
 | One escrow contract per rental; creating, funding, rent payouts, evidence hashes, proposals and settlements in `/demo` and `/stage` are real transactions | The money is MockUSDT test money with no value; `/demo` and `/stage` sign with throwaway server-side demo wallets and a guest wallet |
 | ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site runs a vision LLM (Claude); when the model is busy, the daily cap is used up, the photos are not on the server or the answer is unusable, a deterministic *demo inspector* returns the same JSON, labelled |
-| The contracts, verified on BscScan | Prices are live: Atlas push feeds first, CoinMarketCap as fallback and for THB; Cournot is built but waits for a partner key ([state per sponsor](#sponsor-integrations)) |
+| The contracts, verified on BscScan | Prices are live: Atlas push feeds first, CoinMarketCap as fallback and for THB; Cournot made a live call (p = 0.30, stored as proof) ([state per sponsor](#sponsor-integrations)) |
 | Photo and document fingerprints (SHA-256) | The photos themselves are off-chain; the *Pay with PromptPay* page is a simulation that mints test USDT |
 
 | `/duo`: renter phone left, rental company right | `/stage` big screen, settled | `/r` on the judge's phone |
@@ -295,7 +295,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 | Sponsor | What it does in KeyScrow | Turn it on | State on the live site (25 Nov) |
 |---|---|---|---|
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
-| Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
+| Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Live call made 26 Nov (request id `7dcbb40b…0c51`, p = 0.30); the stored answer is shown on keyscrow.app |
 | Atlas | `latestRoundData()` with a staleness check is the first price source; push feed + Pull API consensus guard Pay with BNB; the signed report is the settlement price proof | `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)). Pull API guard + price proof: built, tested with a mocked API, live once `ATLAS_API_KEY` is set |
 | Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
@@ -382,8 +382,11 @@ curl -s -X POST https://api.livingbrain.com/v1/brains -H "x-api-key: $LIVING_BRA
   (`/integrations`, the owner's create form, the renter's funding card). It shows the exact claim sent, the returned
   probability, the `result` fields, the full `basis` evidence verbatim and the request id (Cournot's `x-trace-id`).
   A separate box labelled **"Explanation added by KeyScrow (not from Cournot)"** holds our own explanation.
-- **Proof of a successful call.** _Pending: no probability call has been made yet (the owner decides when to spend
-  one of the 3 free calls)._ One `resolve` call (free) succeeded on 2026-11-25 12:44:29 UTC, `x-trace-id`
+- **Proof of a successful call.** Live probability call on **2026-11-26 13:06:17 UTC**, request id (`x-trace-id`)
+  **`7dcbb40bfbfdebad018e9bcad0d70c51`**: claim *"Will BNB fall below $470 at any time before 2026-12-26 00:00 UTC?"*,
+  reference market 18090 (Kalshi, "BNB price below $480.00 at any time before 2027-01-01"), **p = 0.30**, billed from
+  the free quota (1 of 3 used, nothing charged). The full answer with Cournot's evidence is committed in
+  [`web/data/cournot-results.json`](web/data/cournot-results.json) and shown on `/integrations`. Earlier, one `resolve` call (free) succeeded on 2026-11-25 12:44:29 UTC, `x-trace-id`
   `4dbc8496d005d7971986d3123fe7dadd`. Its response is `web/tests/fixtures/cournot/resolve.recorded-2026-11-25.json`.
 
 ## Networks
