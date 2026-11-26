@@ -14,7 +14,7 @@ import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
 import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
-import { judgeStep, MAINNET_STAGE_CHAIN_ID, same, stageTerms, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
+import { judgeStep, MAINNET_STAGE_CHAIN_ID, same, stageTerms, thbText, thbUsdText, type JudgeStep, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { anchorPhotos, fundLease, proposeSplit } from "./judgeTx";
 import { chooseExternal, createGuestKey, forgetGuestKey, guestWallet, loadExternal, loadGuestKey, stagePublicClient, subscribeGuestKey, subscribeNothing } from "./wallet";
@@ -175,7 +175,7 @@ function Step(p: StepProps) {
       const m = p.chainId === MAINNET_STAGE_CHAIN_ID ? "Mainnet" : "";
       return (
         <Big title={t.h(`judge.money${m}`)}>
-          <p className="text-muted-foreground">{t(`judge.money.body${m}`, { amount: thb(status.price.rent + status.price.deposit) })}</p>
+          <p className="text-muted-foreground">{t(`judge.money.body${m}`, { amount: (m ? thbUsdText : thbText)(status.price.rent + status.price.deposit, status.price.thbPerUsdt) })}</p>
           <ActionButton
             className={bigButton}
             busy={busy === "drip"}
@@ -247,7 +247,8 @@ function Step(p: StepProps) {
 
     case "settled": {
       const settled = status.events.findLast((e) => e.name === "Settled");
-      const back = settled ? (settled.args.tenantRefund as bigint) + (settled.args.rentToTenant as bigint) : BigInt(0);
+      // Until the chain index has the Settled event (a poll later), the accepted proposal says the same amount.
+      const back = settled ? (settled.args.tenantRefund as bigint) + (settled.args.rentToTenant as bigint) : (lease?.proposal.tenantRefund ?? BigInt(0));
       const href = settled && tx(settled.txHash);
       return (
         <Big title={<span data-testid="judge-settled">{t.h("judge.settled", { amount: thb(back) })}</span>}>

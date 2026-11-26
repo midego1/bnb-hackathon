@@ -48,7 +48,7 @@ export const body = {
       button: "Get test money",
       sent: { one: "Test money sent ({n} transaction).", other: "Test money sent ({n} transactions)." },
       bodyMainnet:
-        "We send this wallet {amount} in real USDT (BSC-USD on BSC mainnet), exactly the rent and the deposit, and a little BNB for gas. Real money, max 1 USD. The deposit comes back to this wallet.",
+        "We send this wallet {amount} of real BSC-USD (USDT on BSC mainnet), exactly the rent and the deposit, and a little BNB for gas. Real money, max 1 USD. The deposit comes back to this wallet.",
       buttonMainnet: "Get 1 USD to rent with",
       sentMainnet: { one: "Sent on BSC mainnet ({n} transaction).", other: "Sent on BSC mainnet ({n} transactions)." },
     },
