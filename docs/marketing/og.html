@@ -1,0 +1,165 @@
+<!doctype html>
+<!--
+  The social card (web/public/marketing/og-v2.jpg): open this file in Chromium at 1200x630 and screenshot it
+  (commands in README.md). Everything is local: our LED street picture, the self-hosted Kanit files and inline SVG.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>KeyEscrow social card</title>
+    <style>
+      @font-face {
+        font-family: "Kanit";
+        font-weight: 800;
+        src: url("../../web/app/(marketing)/fonts/kanit-800-latin.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Kanit";
+        font-weight: 500;
+        src: url("../../web/app/(marketing)/fonts/kanit-500-latin.woff2") format("woff2");
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #0d0b2a url("../../web/public/marketing/street-wide-1600.jpg") calc(100% + 56px) 100% / auto 104% no-repeat;
+        color: #f4f4ff;
+        font-family: "Kanit", sans-serif;
+        font-weight: 500;
+      }
+      /* Night over the sky and the left of the street, so the words read; the lit shop and the scooters stay clear. */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgb(13 11 42 / 0.95) 0%, rgb(13 11 42 / 0.93) 44%, rgb(13 11 42 / 0) 60%),
+          linear-gradient(90deg, rgb(13 11 42 / 0.96) 0%, rgb(13 11 42 / 0.9) 36%, rgb(13 11 42 / 0) 52%);
+      }
+      main {
+        position: absolute;
+        inset: 0;
+        padding: 50px 64px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .brand svg {
+        width: 46px;
+        height: 46px;
+      }
+      h1 {
+        margin-top: 30px;
+        font-size: 84px;
+        font-weight: 800;
+        line-height: 0.98;
+        letter-spacing: -0.005em;
+        word-spacing: 0.04em;
+        text-shadow: 0 2px 28px rgb(13 11 42 / 0.9);
+      }
+      .sub {
+        margin-top: 18px;
+        color: #cfd0ee;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      /* The escrow sign: the same pink bulb frame as SCOOTER RENT on the shop. */
+      .sign {
+        display: inline-block;
+        margin-top: 28px;
+        border: 3px dotted #f472b6;
+        border-radius: 14px;
+        background: #080720;
+        padding: 16px 22px 14px;
+        box-shadow: 0 0 34px rgb(244 114 182 / 0.28);
+      }
+      .sign svg {
+        display: block;
+        width: 352px;
+        height: 99px;
+        filter: drop-shadow(0 0 5px rgb(251 191 36 / 0.65));
+      }
+      .sign p {
+        margin-top: 8px;
+        color: #cfd0ee;
+        font-size: 23px;
+        line-height: 1.2;
+      }
+      .foot {
+        position: absolute;
+        left: 64px;
+        bottom: 36px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #cfd0ee;
+        font-size: 22px;
+        line-height: 1;
+      }
+      .foot i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #2dd4bf;
+        box-shadow: 0 0 10px #2dd4bf;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scrim"></div>
+    <main>
+      <p class="brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#f59e0b" />
+          <path d="M32 12 10 30h6v21h32V30h6L32 12Z" fill="#0f172a" />
+          <circle cx="32" cy="35" r="6" fill="#f59e0b" />
+          <path d="M29.5 38h5l1.5 9h-8l1.5-9Z" fill="#f59e0b" />
+        </svg>
+        KeyEscrow
+      </p>
+      <h1>Rent the scooter.<br />Keep your passport.</h1>
+      <p class="sub">Scooter deposits in escrow on BNB Chain</p>
+      <div class="sign">
+        <svg id="amount" role="img" aria-label="฿6,800"></svg>
+        <p>in escrow · nobody moves it alone</p>
+      </div>
+    </main>
+    <p class="foot"><i></i>Live on BSC testnet · contract v2 · open source</p>
+    <script>
+      // The page's 5x9 LED font (web/components/marketing/led.ts): "#" is a lit dot.
+      const GLYPHS = {
+        0: ["", ".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###.", ""],
+        6: ["", "..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###.", ""],
+        8: ["", ".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###.", ""],
+        ",": ["", "", "", "", "", "", "##", ".#", "#."],
+        "฿": ["..#..", "####.", "#.#.#", "#.#.#", "####.", "#.#.#", "#.#.#", "####.", "..#.."],
+      };
+      const svg = document.getElementById("amount");
+      const lit = new Set();
+      let cols = 0;
+      for (const ch of "฿6,800") {
+        const glyph = GLYPHS[ch];
+        glyph.forEach((line, y) => [...line].forEach((dot, i) => dot === "#" && lit.add(`${cols + i},${y}`)));
+        cols += Math.max(...glyph.map((line) => line.length)) + 1;
+      }
+      cols -= 1;
+      svg.setAttribute("viewBox", `0 0 ${cols} 9`);
+      let dots = "";
+      for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < cols; x++) {
+          dots += `<circle cx="${x + 0.5}" cy="${y + 0.5}" r="0.4" fill="#fbbf24" opacity="${lit.has(`${x},${y}`) ? 1 : 0.13}"/>`;
+        }
+      }
+      svg.innerHTML = dots;
+    </script>
+  </body>
+</html>
