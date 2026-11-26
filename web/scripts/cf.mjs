@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // KeyEscrow on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
 //
-//   node scripts/cf.mjs build        pnpm cf:build    chain 97 build into .open-next/ (refuses NEXT_PUBLIC_DEV_ACCOUNTS=1)
+//   node scripts/cf.mjs build        pnpm cf:build    chain 97 build into .open-next/ (refuses NEXT_PUBLIC_DEV_ACCOUNTS=1);
+//                                                     CF_CHAIN_ID=56: the BSC mainnet stage Worker (wrangler env "mainnet")
 //   node scripts/cf.mjs preview      pnpm cf:preview  serve that build locally with wrangler dev (workerd, no Cloudflare API)
 //   node scripts/cf.mjs size         pnpm cf:size     gzip size of the bundle wrangler dev built, vs the Free/Paid limits
 //   node scripts/cf.mjs deploy       pnpm cf:deploy   needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID; without them it
@@ -9,8 +10,10 @@
 //   node scripts/cf.mjs typecheck    type-check web/cloudflare/*.ts against `wrangler types`
 //   node scripts/cf.mjs next-build   the `next build` OpenNext runs (open-next.config.ts buildCommand); not for direct use
 //
-// Env: CF_PREVIEW_PORT (default 8787), CF_DEMO_TESTNET (default 1: the build shows the live testnet /demo; 0 hides it),
-// NEXT_PUBLIC_BSC_TESTNET_RPC_URL, NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (public values baked into the bundle).
+// Env: CF_CHAIN_ID (97 default, or 56: contracts/deployments/56.json, the Worker keyescrow-mainnet; preview and deploy
+// follow the last build), CF_PREVIEW_PORT (default 8787), CF_DEMO_TESTNET (default 1: the build shows the live testnet
+// /demo; 0 hides it; always off on 56), NEXT_PUBLIC_BSC_TESTNET_RPC_URL, NEXT_PUBLIC_BSC_RPC_URL,
+// NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (public values baked into the bundle).
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -21,7 +24,11 @@ const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = join(WEB, "..");
 const OUT = join(WEB, ".open-next");
 const MARKER = join(OUT, "keyescrow-build.json");
-const DEPLOYMENT_FILE = join(REPO, "contracts", "deployments", "97.json");
+const CHAIN_ID = process.env.CF_CHAIN_ID || "97";
+const DEPLOYMENT_FILE = join(REPO, "contracts", "deployments", `${CHAIN_ID}.json`);
+/** The wrangler environment of each chain's Worker (wrangler.jsonc): 97 is the top level, 56 is env "mainnet". */
+const WRANGLER_ENV = { 97: [], 56: ["--env", "mainnet"] };
+const WORKER = { 97: "keyescrow-web", 56: "keyescrow-mainnet" };
 const AGENT = join(REPO, "agent");
 const MiB = 1024 * 1024;
 const LIMITS = { free: 3 * MiB, paid: 10 * MiB };
@@ -38,6 +45,9 @@ export const WEB_SECRETS = [
   ["DEMO_TESTNET_RPC_URL", "optional", "live testnet /demo: BSC testnet RPC the runner signs against (may embed an API key)"],
   ["DEMO_TESTNET_FUNDER_KEY", "optional", "live testnet /demo: small dedicated gas top-up wallet, never the deployer"],
   ["STAGE_PRESENTER_CODE", "optional", "live judge demo /stage: code for the presenter's Accept / Reset buttons (open without it)"],
+  ["DEMO_MAINNET_OWNER_KEY", "56 only", "mainnet stage: the owner wallet that offers the rental and accepts the split (BNB for gas)"],
+  ["DEMO_MAINNET_FUNDER_KEY", "56 only", "mainnet stage: the funder wallet that sends each judge 1 BSC-USD + 0.0003 BNB (not the deployer)"],
+  ["DEMO_MAINNET_RPC_URL", "56 only", "mainnet stage: BSC mainnet RPC the server signs against (default NEXT_PUBLIC_BSC_RPC_URL / PublicNode)"],
 ];
 export const AGENT_SECRETS = [
   ["INSPECTOR_PRIVATE_KEY", "optional", "the agent's report signer (must match reportSigner of agent #2921)"],
@@ -68,13 +78,13 @@ function quietEnv(extra = {}, { credentials = false } = {}) {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Build: chain 97 only, no dev accounts
+// Build: chain 97 (or 56 with CF_CHAIN_ID=56), no dev accounts
 // -------------------------------------------------------------------------------------------------------------------
 
-function deployment97() {
-  if (!existsSync(DEPLOYMENT_FILE)) fail(`${relative(REPO, DEPLOYMENT_FILE)} is missing: the public build targets BSC testnet (97) only`);
+function deployment() {
+  if (!existsSync(DEPLOYMENT_FILE)) fail(`${relative(REPO, DEPLOYMENT_FILE)} is missing: deploy the contracts to chain ${CHAIN_ID} first`);
   const d = JSON.parse(readFileSync(DEPLOYMENT_FILE, "utf8"));
-  if (Number(d.chainId) !== 97) fail(`${relative(REPO, DEPLOYMENT_FILE)} is not a chain 97 deployment`);
+  if (String(d.chainId) !== CHAIN_ID) fail(`${relative(REPO, DEPLOYMENT_FILE)} is not a chain ${CHAIN_ID} deployment`);
   for (const k of ["escrowFactory", "token", "defaultArbiter"]) {
     if (!/^0x[0-9a-fA-F]{40}$/.test(d[k] ?? "")) fail(`${relative(REPO, DEPLOYMENT_FILE)}: ${k} is not an address`);
   }
@@ -86,8 +96,9 @@ function assertPublicBuildEnv() {
   if (process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1") {
     fail("NEXT_PUBLIC_DEV_ACCOUNTS=1 is set. The Cloudflare build is public: the anvil dev accounts must be off. Unset it and retry.");
   }
-  if (process.env.NEXT_PUBLIC_CHAIN_ID && process.env.NEXT_PUBLIC_CHAIN_ID !== "97") {
-    fail(`NEXT_PUBLIC_CHAIN_ID=${process.env.NEXT_PUBLIC_CHAIN_ID} is set. The Cloudflare build targets BSC testnet (97) only: anvil is not reachable from Cloudflare.`);
+  if (!(CHAIN_ID in WORKER)) fail(`CF_CHAIN_ID must be 97 (BSC testnet) or 56 (BSC mainnet stage), got ${CHAIN_ID}`);
+  if (process.env.NEXT_PUBLIC_CHAIN_ID && process.env.NEXT_PUBLIC_CHAIN_ID !== CHAIN_ID) {
+    fail(`NEXT_PUBLIC_CHAIN_ID=${process.env.NEXT_PUBLIC_CHAIN_ID} is set. The Cloudflare build targets chain ${CHAIN_ID} (CF_CHAIN_ID): anvil is not reachable from Cloudflare.`);
   }
   if (process.env.CF_DEMO_TESTNET && !["0", "1"].includes(process.env.CF_DEMO_TESTNET)) fail("CF_DEMO_TESTNET must be 0 or 1");
 }
@@ -97,21 +108,22 @@ function assertPublicBuildEnv() {
  * overrides a set variable), so a developer's web/.env.local (anvil addresses, dev accounts) cannot leak into the bundle.
  */
 function buildEnv() {
-  const d = deployment97();
+  const d = deployment();
   return quietEnv({
     KEYESCROW_BUILD_TARGET: "cloudflare",
     NEXT_DIST_DIR: "", // OpenNext reads .next
-    NEXT_PUBLIC_CHAIN_ID: "97",
+    NEXT_PUBLIC_CHAIN_ID: CHAIN_ID,
     NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS: d.escrowFactory,
     NEXT_PUBLIC_MOCK_USDT_ADDRESS: d.token,
     NEXT_PUBLIC_DISPUTE_DESK_ADDRESS: d.defaultArbiter,
     NEXT_PUBLIC_FLEET_VAULT_ADDRESS: /^0x[0-9a-fA-F]{40}$/.test(d.fleetVault ?? "") ? d.fleetVault : "",
     NEXT_PUBLIC_DEV_ACCOUNTS: "0",
-    NEXT_PUBLIC_DEMO_TESTNET: process.env.CF_DEMO_TESTNET ?? "1",
+    NEXT_PUBLIC_DEMO_TESTNET: CHAIN_ID === "56" ? "0" : (process.env.CF_DEMO_TESTNET ?? "1"),
     NEXT_PUBLIC_RPC_URL: "",
     NEXT_PUBLIC_ANVIL_RPC_URL: "",
     NEXT_PUBLIC_BSC_TESTNET_RPC_URL: process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL ?? "",
     NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL: process.env.NEXT_PUBLIC_OPBNB_TESTNET_RPC_URL ?? "",
+    NEXT_PUBLIC_BSC_RPC_URL: process.env.NEXT_PUBLIC_BSC_RPC_URL ?? "",
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
   });
 }
@@ -119,7 +131,7 @@ function buildEnv() {
 function nextBuild() {
   assertPublicBuildEnv();
   const env = buildEnv();
-  console.log(`cf: next build for chain 97 (factory ${env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS}, live testnet demo ${env.NEXT_PUBLIC_DEMO_TESTNET === "1" ? "on" : "off"})`);
+  console.log(`cf: next build for chain ${CHAIN_ID} (factory ${env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS}, live testnet demo ${env.NEXT_PUBLIC_DEMO_TESTNET === "1" ? "on" : "off"})`);
   process.exit(run("pnpm", ["exec", "next", "build"], { env: { ...env, ...openNextBuildVars() } }));
 }
 
@@ -176,11 +188,11 @@ function build() {
   assertNoDevAccounts();
   // Copy the prerendered pages into the static assets (the read-only incremental cache, open-next.config.ts), as
   // `opennextjs-cloudflare deploy` does again before uploading, so the local preview serves exactly what deploys.
-  if (run("pnpm", ["exec", "opennextjs-cloudflare", "populateCache", "local"], { env }) !== 0) fail("populating the static-assets cache failed");
+  if (run("pnpm", ["exec", "opennextjs-cloudflare", "populateCache", "local", ...WRANGLER_ENV[CHAIN_ID]], { env }) !== 0) fail("populating the static-assets cache failed");
   const marker = {
     target: "cloudflare",
-    worker: "keyescrow-web",
-    chainId: 97,
+    worker: WORKER[CHAIN_ID],
+    chainId: Number(CHAIN_ID),
     escrowFactory: env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS,
     mockUsdt: env.NEXT_PUBLIC_MOCK_USDT_ADDRESS,
     disputeDesk: env.NEXT_PUBLIC_DISPUTE_DESK_ADDRESS,
@@ -192,7 +204,7 @@ function build() {
     builtAt: new Date().toISOString(),
   };
   writeFileSync(MARKER, JSON.stringify(marker, null, 2) + "\n");
-  console.log(`cf: build ready in web/.open-next (chain 97, commit ${marker.commit}${marker.dirty ? " + local changes" : ""}). Next: pnpm cf:preview`);
+  console.log(`cf: build ready in web/.open-next (chain ${CHAIN_ID}, Worker ${marker.worker}, commit ${marker.commit}${marker.dirty ? " + local changes" : ""}). Next: pnpm cf:preview`);
 }
 
 function git(...args) {
@@ -203,7 +215,7 @@ function git(...args) {
 function readMarker() {
   if (!existsSync(MARKER)) return null;
   const m = JSON.parse(readFileSync(MARKER, "utf8"));
-  if (m.target !== "cloudflare" || m.chainId !== 97 || m.devAccounts !== false) fail("web/.open-next is not a chain 97 Cloudflare build: run pnpm cf:build");
+  if (m.target !== "cloudflare" || !(m.chainId in WORKER) || m.devAccounts !== false) fail("web/.open-next is not a chain 97 or 56 Cloudflare build: run pnpm cf:build");
   return m;
 }
 
@@ -215,7 +227,8 @@ function preview() {
   if (!readMarker()) fail("no Cloudflare build yet: run pnpm cf:build first");
   const port = process.env.CF_PREVIEW_PORT || "8787";
   console.log(`cf: local preview on http://127.0.0.1:${port} (wrangler dev, workerd; secrets for it go in web/.dev.vars)`);
-  process.exit(run("pnpm", ["exec", "wrangler", "dev", "--ip", "127.0.0.1", "--port", port, "--local", "--show-interactive-dev-session=false"], { env: quietEnv() }));
+  const m = readMarker();
+  process.exit(run("pnpm", ["exec", "wrangler", "dev", "--ip", "127.0.0.1", "--port", port, "--local", "--show-interactive-dev-session=false", ...WRANGLER_ENV[m.chainId]], { env: quietEnv() }));
 }
 
 /** Gzip size of the newest bundle wrangler wrote under <dir>/.wrangler/tmp (what an upload would compress). */
@@ -288,9 +301,9 @@ function plan(target) {
   const m = target === "web" ? readMarker() : null;
   const lines = [];
   if (target === "web") {
-    lines.push("Worker keyescrow-web  (web/wrangler.jsonc, entry web/cloudflare/worker.ts -> .open-next/worker.js)");
-    lines.push(m ? `  build      chain 97, factory ${m.escrowFactory}, commit ${m.commit}${m.dirty ? " + local changes" : ""}, built ${m.builtAt}` : "  build      none yet (pnpm cf:build)");
-    lines.push("  route      https://keyescrow-web.<your-subdomain>.workers.dev (workers.dev only, no custom domain)");
+    lines.push(`Worker ${m ? m.worker : "keyescrow-web"}  (web/wrangler.jsonc${m?.chainId === 56 ? ', env "mainnet"' : ""}, entry web/cloudflare/worker.ts -> .open-next/worker.js)`);
+    lines.push(m ? `  build      chain ${m.chainId}, factory ${m.escrowFactory}, commit ${m.commit}${m.dirty ? " + local changes" : ""}, built ${m.builtAt}` : "  build      none yet (pnpm cf:build)");
+    lines.push(`  route      https://${m ? m.worker : "keyescrow-web"}.<your-subdomain>.workers.dev (workers.dev only, no custom domain)`);
     lines.push("  bindings   ASSETS (static assets), KEYESCROW_STATE (Durable Object KeyEscrowState, SQLite, migration v1), WORKER_SELF_REFERENCE (this Worker, for Ask AI inspect_return)");
     lines.push("             EVIDENCE (R2) only if uncommented in wrangler.jsonc");
     lines.push("  secrets    " + WEB_SECRETS.map(([n]) => n).join(", "));
@@ -320,7 +333,7 @@ function deploy() {
   const env = quietEnv({ CLOUDFLARE_API_TOKEN: c.token, CLOUDFLARE_ACCOUNT_ID: c.account }, { credentials: true });
   const status =
     target === "web"
-      ? run("pnpm", ["exec", "opennextjs-cloudflare", "deploy"], { env })
+      ? run("pnpm", ["exec", "opennextjs-cloudflare", "deploy", ...WRANGLER_ENV[readMarker().chainId]], { env })
       : run("pnpm", ["exec", "wrangler", "deploy"], { env, cwd: AGENT });
   process.exit(status);
 }
