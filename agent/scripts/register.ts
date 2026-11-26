@@ -4,6 +4,9 @@
  *   pnpm agent:register:check            preflight; NEVER sends a transaction
  *   pnpm agent:register [-- --yes]       the broadcast: needs ALLOW_NON_LOCAL_BROADCAST=true and a typed confirmation
  *                                        (--yes skips the prompt). Writes agent/deployments/97.json.
+ *   pnpm agent:set-uri:check             preflight for pointing the registered agent at AGENT_PUBLIC_URL; NEVER sends
+ *   pnpm agent:set-uri [-- --yes]        setAgentURI(agentId, new registration file) as the owner: same guards
+ *                                        (typed confirmation "set-uri"). Updates deployments/97.json.
  *   pnpm agent:rehearse                  the whole path against a throwaway local anvil (agent/scripts/rehearse.sh)
  *
  * Env (the repo-root .env is loaded for names that are not already set; KEYESCROW_NO_DOTENV=1 skips it). Same wallet
@@ -13,7 +16,7 @@
  *   one wallet:  DEPLOYER_ACCOUNT (cast wallet keystore name, preferred) | DEPLOYER_KEYSTORE (path) | PRIVATE_KEY
  *   DEPLOYER_PASSWORD_FILE     optional keystore password file (otherwise a hidden prompt)
  *   INSPECTOR_SIGNER_ADDRESS   address of the server's INSPECTOR_PRIVATE_KEY; stored as `reportSigner` metadata.
- *                              Defaults to the address of INSPECTOR_PRIVATE_KEY when that is set.
+ *                              Defaults to the address of INSPECTOR_PRIVATE_KEY when that is set. Not needed for set-uri.
  *   AGENT_PUBLIC_URL           required. Public base URL of the agent (A2A card + MCP endpoint in the registration file)
  *   ERC8004_REGISTRY_ADDRESS   optional registry override (default: the SDK's BSC testnet Identity Registry)
  *   ALLOW_NON_LOCAL_BROADCAST  must be `true` for `register` (also in the local rehearsal: same guard)
@@ -30,7 +33,7 @@ import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { EVMWalletProvider, NETWORKS } from "@bnbagent/sdk";
-import { ERC8004Agent, getBuiltWithValue } from "@bnbagent/sdk/erc8004";
+import { AgentURIGenerator, ERC8004Agent, getBuiltWithValue } from "@bnbagent/sdk/erc8004";
 import { BSC_TESTNET_CHAIN_ID } from "@bnbagent/sdk/networks";
 import { decryptKeystoreV3 } from "@bnbagent/sdk/wallets";
 import {
@@ -46,7 +49,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentEndpoints } from "../src/card.ts";
-import { AGENT_DESCRIPTION, AGENT_DIR, AGENT_NAME, REPO_DIR, type AgentDeployment } from "../src/config.ts";
+import { AGENT_DESCRIPTION, AGENT_DIR, AGENT_NAME, readDeployment, REPO_DIR, type AgentDeployment } from "../src/config.ts";
 import { decodeReportSigner, IDENTITY_REGISTRY_ABI, REPORT_SIGNER_KEY } from "./registry.ts";
 
 const CHAIN_ID = BSC_TESTNET_CHAIN_ID; // 97
@@ -171,10 +174,19 @@ interface Plan {
   publicUrl: string;
   wallet: WalletChoice | null;
   outFile: string;
+  /** set-uri only: the existing record, the agentURI on-chain now, and the one to set. */
+  record?: AgentDeployment;
+  currentUri?: string;
+  newUri?: string;
 }
 
-async function preflight(): Promise<Plan> {
-  console.log(bold(`KeyEscrow Inspector: ERC-8004 registration preflight (chainId ${CHAIN_ID})`));
+const services = (uri: string) =>
+  uri.startsWith("data:")
+    ? ((AgentURIGenerator.decodeRegistrationFileFromBase64(uri).services as { endpoint: string }[] | undefined) ?? []).map((e) => e.endpoint).join(", ")
+    : uri;
+
+async function preflight(setUri: boolean): Promise<Plan> {
+  console.log(bold(`KeyEscrow Inspector: ERC-8004 ${setUri ? "agentURI update" : "registration"} preflight (chainId ${CHAIN_ID})`));
   const rpcUrl = process.env.BSC_TESTNET_RPC_URL ?? "";
   const local = isLoopback(rpcUrl);
   if (!rpcUrl) bad("BSC_TESTNET_RPC_URL is not set");
@@ -196,11 +208,13 @@ async function preflight(): Promise<Plan> {
   if (!signerEnv && process.env.INSPECTOR_PRIVATE_KEY) {
     signerEnv = privateKeyToAccount(process.env.INSPECTOR_PRIVATE_KEY.trim() as Hex).address;
   }
-  if (!isAddress(signerEnv)) bad("INSPECTOR_SIGNER_ADDRESS must be the address of the server's INSPECTOR_PRIVATE_KEY");
+  if (!isAddress(signerEnv) && !setUri) bad("INSPECTOR_SIGNER_ADDRESS must be the address of the server's INSPECTOR_PRIVATE_KEY");
   const signer = isAddress(signerEnv) ? getAddress(signerEnv) : ("0x" as Address);
 
   const publicUrl = (process.env.AGENT_PUBLIC_URL ?? "").replace(/\/+$/, "");
-  if (!/^https?:\/\/[^/]+/.test(publicUrl)) bad("AGENT_PUBLIC_URL must be the agent's public http(s) base URL");
+  const urlOk = /^https?:\/\/[^/]+/.test(publicUrl);
+  if (!urlOk) bad("AGENT_PUBLIC_URL must be the agent's public http(s) base URL");
+  else if (!local && isLoopback(publicUrl) && setUri) bad(`AGENT_PUBLIC_URL ${publicUrl} is loopback: other agents cannot reach it`);
   else if (!local && isLoopback(publicUrl)) warn(`AGENT_PUBLIC_URL ${publicUrl} is loopback: other agents cannot reach it`);
   else ok(`endpoints: ${agentEndpoints(publicUrl).map((e) => `${e.name} ${e.endpoint}`).join(", ")}`);
 
@@ -215,12 +229,31 @@ async function preflight(): Promise<Plan> {
   if (wallet) ok(`wallet: ${wallet.mode}`);
 
   const outFile = path.join(deploymentsDir(), `${CHAIN_ID}.json`);
-  if (existsSync(outFile)) {
+  const record = setUri ? readDeployment(outFile) : null;
+  let newUri: string | undefined;
+  if (setUri) {
+    if (!record) bad(`${outFile} not found: register first (pnpm agent:register)`);
+    else if (record.chainId !== CHAIN_ID || !isAddress(record.identityRegistry)) bad(`${outFile} is not a chainId-${CHAIN_ID} registration`);
+    else if (urlOk) {
+      if (!isAddressEqual(registry, record.identityRegistry)) bad(`registry ${registry} differs from the recorded ${record.identityRegistry}`);
+      registry = getAddress(record.identityRegistry);
+      // Same file ERC8004Agent.generateAgentUri builds (and registerAgent's phase 2 sets): registrations[] included.
+      newUri = AgentURIGenerator.generateAgentUri({
+        name: AGENT_NAME,
+        description: AGENT_DESCRIPTION,
+        endpoints: agentEndpoints(publicUrl),
+        agentId: Number(record.agentId),
+        identityRegistry: registry,
+        chainId: CHAIN_ID,
+      });
+    }
+  } else if (existsSync(outFile)) {
     const prev = JSON.parse(readFileSync(outFile, "utf8")) as AgentDeployment;
     if (process.env.FORCE_REREGISTER === "true") warn(`${outFile} exists (agent #${prev.agentId}); FORCE_REREGISTER=true registers a new agent`);
     else bad(`${outFile} exists: already registered as agent #${prev.agentId} (FORCE_REREGISTER=true to register again)`);
   }
 
+  let currentUri: string | undefined;
   if (rpcUrl) {
     const client = createPublicClient({ transport: http(rpcUrl, { timeout: 15_000, retryCount: 1 }) });
     try {
@@ -240,27 +273,37 @@ async function preflight(): Promise<Plan> {
       if (isAddress(deployer)) {
         const [bal, gasPrice] = await Promise.all([client.getBalance({ address: deployer }), client.getGasPrice()]);
         // register (~300-450k with a data: URI) + setAgentURI (~200-300k) at the network gas price, with headroom.
-        const need = 1_500_000n * gasPrice;
+        const need = (setUri ? 600_000n : 1_500_000n) * gasPrice;
         if (bal < need) bad(`deployer ${deployer} has ${formatEther(bal)} BNB, needs about ${formatEther(need)} BNB`);
         else ok(`deployer ${deployer} balance ${formatEther(bal)} BNB`);
+      }
+      if (record && newUri) {
+        const id = BigInt(record.agentId);
+        const owner = await client.readContract({ address: registry, abi: IDENTITY_REGISTRY_ABI, functionName: "ownerOf", args: [id] });
+        if (!isAddress(deployer) || !isAddressEqual(owner, deployer)) bad(`agent #${id} is owned by ${owner}, not DEPLOYER_ADDRESS ${deployer}`);
+        else ok(`agent #${id} owner ${owner} = DEPLOYER_ADDRESS`);
+        currentUri = await client.readContract({ address: registry, abi: IDENTITY_REGISTRY_ABI, functionName: "tokenURI", args: [id] });
+        console.log(`    now: ${services(currentUri)}\n    new: ${services(newUri)}`);
+        if (currentUri === newUri) warn(`agent #${id} already has this agentURI: nothing to send`);
       }
     } catch (err) {
       bad(`RPC ${rpcUrl} unreachable: ${(err as Error).message.split("\n")[0]}`);
     }
   }
-  if (isAddress(signer)) ok(`reportSigner metadata: ${signer}`);
-  return { rpcUrl, local, registry, deployer, signer, publicUrl, wallet, outFile };
+  if (isAddress(signer) && !setUri) ok(`reportSigner metadata: ${signer}`);
+  return { rpcUrl, local, registry, deployer, signer, publicUrl, wallet, outFile, record: record ?? undefined, currentUri, newUri };
 }
 
-async function register(plan: Plan, yes: boolean) {
+/** The broadcast guards, then an SDK agent on the decrypted wallet (throwaway wallets dir, removed afterwards). */
+async function withAgent(plan: Plan, yes: boolean, word: string, question: string, fn: (agent: ERC8004Agent) => Promise<void>) {
   // Required on every chainId-97 RPC, loopback rehearsals included, so the rehearsal exercises the same guard.
   if (process.env.ALLOW_NON_LOCAL_BROADCAST !== "true") {
-    die("refusing to broadcast: set ALLOW_NON_LOCAL_BROADCAST=true to register on BSC testnet", 3);
+    die(`refusing to broadcast: set ALLOW_NON_LOCAL_BROADCAST=true to ${word} on BSC testnet`, 3);
   }
   if (!yes) {
-    if (!process.stdin.isTTY) die("no terminal for the confirmation: pass --yes to register non-interactively", 3);
-    const answer = await prompt(`  Register "${AGENT_NAME}" on chainId ${CHAIN_ID} from ${plan.deployer}? Type "register": `);
-    if (answer.trim() !== "register") die("aborted", 3);
+    if (!process.stdin.isTTY) die(`no terminal for the confirmation: pass --yes to ${word} non-interactively`, 3);
+    const answer = await prompt(`  ${question} Type "${word}": `);
+    if (answer.trim() !== word) die("aborted", 3);
   }
   const key = await plan.wallet!.load();
   const account = privateKeyToAccount(key);
@@ -285,6 +328,22 @@ async function register(plan: Plan, yes: boolean) {
         policyContract: "",
       },
     });
+    await fn(agent);
+  } finally {
+    wallet.destroy();
+    rmSync(walletsDir, { recursive: true, force: true });
+  }
+}
+
+function writeRecord(plan: Plan, record: AgentDeployment) {
+  mkdirSync(path.dirname(plan.outFile), { recursive: true });
+  writeFileSync(plan.outFile, `${JSON.stringify(record, null, 2)}\n`);
+  const rel = path.relative(REPO_DIR, plan.outFile);
+  ok(`wrote ${rel.startsWith("..") ? plan.outFile : rel}`);
+}
+
+async function register(plan: Plan, yes: boolean) {
+  await withAgent(plan, yes, "register", `Register "${AGENT_NAME}" on chainId ${CHAIN_ID} from ${plan.deployer}?`, async (agent) => {
     const agentURI = agent.generateAgentUri({ name: AGENT_NAME, description: AGENT_DESCRIPTION, endpoints: agentEndpoints(plan.publicUrl) });
     console.log(bold("\nregistering…"));
     const res = await agent.registerAgent(agentURI, [{ key: REPORT_SIGNER_KEY, value: plan.signer }]);
@@ -318,31 +377,48 @@ async function register(plan: Plan, yes: boolean) {
       registeredAt: new Date().toISOString(),
       sdk: getBuiltWithValue(),
     };
-    mkdirSync(path.dirname(plan.outFile), { recursive: true });
-    writeFileSync(plan.outFile, `${JSON.stringify(record, null, 2)}\n`);
-    const rel = path.relative(REPO_DIR, plan.outFile);
-    ok(`wrote ${rel.startsWith("..") ? plan.outFile : rel}`);
+    writeRecord(plan, record);
     console.log(bold("\nserver env (web/.env.local and the agent):"));
     console.log(`  INSPECTOR_AGENT_ID=${record.agentId}`);
     console.log(`  INSPECTOR_AGENT_REGISTRY=${record.agentRegistry}`);
     console.log(`  INSPECTOR_PRIVATE_KEY=<the key of ${plan.signer}>`);
-  } finally {
-    wallet.destroy();
-    rmSync(walletsDir, { recursive: true, force: true });
-  }
+  });
+}
+
+async function setUri(plan: Plan, yes: boolean) {
+  const record = plan.record!;
+  const newUri = plan.newUri!;
+  if (plan.currentUri === newUri) die(`agent #${record.agentId} already has this agentURI; nothing was sent`);
+  const question = `Point agent #${record.agentId} at ${plan.publicUrl} (setAgentURI on chainId ${CHAIN_ID}, from ${plan.deployer})?`;
+  await withAgent(plan, yes, "set-uri", question, async (agent) => {
+    console.log(bold("\nsetAgentURI…"));
+    const res = await agent.setAgentUri(Number(record.agentId), newUri);
+    // A load-balanced public RPC can serve the read from a node a block behind the receipt: retry briefly.
+    let info = await agent.getAgentInfo(Number(record.agentId));
+    for (let i = 0; i < 5 && info.agentURI !== newUri; i++) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      info = await agent.getAgentInfo(Number(record.agentId));
+    }
+    // throw, not die(): the finally in withAgent must still remove the temp wallet dir.
+    if (info.agentURI !== newUri) throw new Error(`setAgentURI tx ${res.transactionHash} mined, but tokenURI does not read back as the new file`);
+    ok(`agent #${record.agentId} now lists ${services(newUri)} (tx ${res.transactionHash})`);
+    writeRecord(plan, { ...record, agentURI: newUri, publicUrl: plan.publicUrl, setUriTx: res.transactionHash as Hex, updatedAt: new Date().toISOString() });
+  });
 }
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  if (cmd !== "check" && cmd !== "register") die("usage: register.ts check | register [--yes]", 64);
+  const cmds = ["check", "register", "set-uri-check", "set-uri"];
+  if (!cmds.includes(cmd)) die("usage: register.ts check | register [--yes] | set-uri-check | set-uri [--yes]", 64);
   loadDotenv();
-  const plan = await preflight();
-  if (fails > 0) die(`\n${fails} preflight check(s) failed${cmd === "register" ? "; nothing was sent" : ""}`);
-  if (cmd === "check") {
-    console.log(green("\npreflight OK; nothing was sent. `pnpm agent:register` performs the registration."));
+  const plan = await preflight(cmd.startsWith("set-uri"));
+  if (fails > 0) die(`\n${fails} preflight check(s) failed; nothing was sent`);
+  if (cmd.endsWith("check")) {
+    const next = cmd === "check" ? "`pnpm agent:register` performs the registration" : "`pnpm agent:set-uri` sends setAgentURI";
+    console.log(green(`\npreflight OK; nothing was sent. ${next}.`));
     return;
   }
-  await register(plan, rest.includes("--yes"));
+  await (cmd === "set-uri" ? setUri : register)(plan, rest.includes("--yes"));
 }
 
-main().catch((err) => die(`registration failed: ${(err as Error).message}`));
+main().catch((err) => die(`failed: ${(err as Error).message}`));

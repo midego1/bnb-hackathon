@@ -34,7 +34,7 @@ export interface SettlementResult extends SettlementProposal {
   reportHash: Bytes32Hex;
   /** Per-scooter memory the inspector read before judging (part of the hashed report). */
   memory?: MemoryStatus & { scooterId: string; recalled: string[]; error?: string };
-  /** Whether this inspection was written back to memory (after hashing). */
+  /** Whether this inspection was written back to memory (after hashing): only for a rental verified on-chain. */
   memoryStored?: boolean;
   /** EIP-191 signature of `reportHash` by `inspector.address`. */
   inspectorSignature?: `0x${string}`;
@@ -71,8 +71,14 @@ export interface ProposeOptions {
   store?: EvidenceStore;
   /** Inspector agent that signs the report; its identity is part of the hashed report. Null/undefined -> unsigned. */
   inspector?: InspectorSigner | null;
-  /** Per-scooter inspection memory (Living Brain, or the local stand-in). Used when the request has a scooterId. */
+  /** Per-scooter inspection memory (Living Brain, or the local stand-in). Read before judging; see `rememberAs` for writes. */
   memory?: InspectionMemory | null;
+  /**
+   * Write this inspection to `memory` under this scooter id (it is also the id recalled). Only POST /api/settlement
+   * sets it, after verifying the rental on-chain (settlement/lease.ts); without it memory is read-only, so the public
+   * agent faces (A2A, MCP) and requests without a real rental never write.
+   */
+  rememberAs?: { scooterId: string; rental: string } | null;
   now?: Date;
 }
 
@@ -90,12 +96,13 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
   const provider = opts.provider ?? null;
 
   let memory: SettlementResult["memory"];
-  if (opts.memory && req.scooterId) {
+  const scooterId = opts.rememberAs?.scooterId ?? req.scooterId;
+  if (opts.memory && scooterId) {
     try {
-      const recalled = (await opts.memory.recall(req.scooterId)).map((m) => m.text);
-      memory = { ...opts.memory.status, scooterId: req.scooterId, recalled };
+      const recalled = (await opts.memory.recall(scooterId)).map((m) => m.text);
+      memory = { ...opts.memory.status, scooterId, recalled };
     } catch (err) {
-      memory = { ...opts.memory.status, scooterId: req.scooterId, recalled: [], error: (err as Error).message.slice(0, 200) };
+      memory = { ...opts.memory.status, scooterId, recalled: [], error: (err as Error).message.slice(0, 200) };
     }
   }
   const notes = memory ? [req.notes, memoryNotes(memory.recalled)].filter(Boolean).join("\n\n") : req.notes;
@@ -135,10 +142,11 @@ export async function proposeSettlement(req: SettlementRequest, opts: ProposeOpt
     createdAt,
   };
   const reportHash = sha256Hex(canonicalJson(report));
-  let memoryStored: boolean | undefined;
-  if (opts.memory && req.scooterId) {
+  let memoryStored: boolean | undefined = memory ? false : undefined;
+  if (opts.memory && opts.rememberAs) {
+    const { scooterId: id, rental } = opts.rememberAs;
     const res = await opts.memory
-      .remember({ scooterId: req.scooterId, at: createdAt, findings: proposal.reasons, newDamage: BigInt(proposal.landlordClaim) > BigInt(0), reportHash })
+      .remember({ scooterId: id, rental, at: createdAt, findings: proposal.reasons, newDamage: BigInt(proposal.landlordClaim) > BigInt(0), reportHash })
       .catch((err: Error) => ({ stored: false, error: err.message }));
     memoryStored = res.stored;
   }

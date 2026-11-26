@@ -202,7 +202,7 @@ describe("inspection memory (Living Brain)", () => {
     const store = { name: "local" as const, put: vi.fn(), get: vi.fn(async () => ({ hash: photo.hash as `0x${string}`, bytes: new Uint8Array([1]), contentType: "image/png" as const })) };
     const r = await proposeSettlement(
       { deposit: "100000000", decimals: 6, currency: "USDT", checkIn: [photo], checkOut: [photo], scooterId: "BKK-123" },
-      { provider: { name: "test", model: "m", assess }, store, memory: mem },
+      { provider: { name: "test", model: "m", assess }, store, memory: mem, rememberAs: { scooterId: "BKK-123", rental: "0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e" } },
     );
     const notes = (assess.mock.calls[0] as unknown as [{ notes: string }])[0].notes;
     expect(notes).toContain("left mirror scratched");
@@ -211,5 +211,13 @@ describe("inspection memory (Living Brain)", () => {
     expect(r.memoryStored).toBe(true);
     expect(await mem.recall("BKK-123")).toHaveLength(2);
     expect(memoryNotes([])).toContain("no earlier inspections");
+    // Without a verified rental (rememberAs) memory is read-only.
+    const readOnly = await proposeSettlement(
+      { deposit: "100000000", decimals: 6, currency: "USDT", checkIn: [photo], checkOut: [photo], scooterId: "BKK-123" },
+      { provider: { name: "test", model: "m", assess }, store, memory: mem },
+    );
+    expect(readOnly.memoryStored).toBe(false);
+    expect(readOnly.memory?.recalled).toHaveLength(2);
+    expect(await mem.recall("BKK-123")).toHaveLength(2);
   });
 });

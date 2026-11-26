@@ -41,7 +41,11 @@ export interface InspectDeps {
    * it): the web app's store on disk under Node (src/node-deps.ts), the R2 bucket on Workers. None -> photos need urls.
    */
   loadStore?: () => Promise<EvidenceStore | undefined>;
-  /** Per-scooter inspection memory; null = none. Defaults to `loadMemory()` when the request names a scooterId. */
+  /**
+   * Per-scooter inspection memory, read-only here: recalled before judging, never written (proposeSettlement writes
+   * only with `rememberAs`, which only the web app's POST /api/settlement sets after checking the rental on-chain).
+   * null = none. Defaults to `loadMemory()` when the request names a scooterId.
+   */
   memory?: InspectionMemory | null;
   /**
    * Living Brain (LIVING_BRAIN_*) or the web app's local stand-in under Node (src/node-deps.ts); on Workers only
