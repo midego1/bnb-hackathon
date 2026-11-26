@@ -3,9 +3,10 @@ import path from "node:path";
 import { E2E_WEB_PORT } from "./env";
 
 /**
- * The marketing page at /: a server-rendered page without the app shell or a wallet. It tells the story in order, its
- * three calls to action lead into the product, the money board works by mouse, keyboard and on its own, nothing logs an
- * error, a phone never scrolls sideways, and it reads in 中文 and EN+中文.
+ * The marketing page at /: a server-rendered page without the app shell or a wallet. Its search filters the demo
+ * listings below it and a card opens its listing page; it tells the story in order, its three calls to action lead
+ * into the product, the money board works by mouse, keyboard and on its own, nothing logs an error, a phone never
+ * scrolls sideways, and it reads in 中文 and EN+中文.
  *
  * Screenshots (1470x830 and 390x844, light and dark, EN and 中文, first screen and full page) go to MARKETING_SHOTS
  * (default test-results/screenshots/marketing).
@@ -16,6 +17,7 @@ const DESKTOP = { width: 1470, height: 830 };
 const PHONE = { width: 390, height: 844 };
 const SMALL_PHONE = { width: 360, height: 740 };
 const CTAS = ["mk-cta-demo", "mk-cta-box", "mk-cta-app"];
+const cityOf = (cards: ReturnType<Page["getByTestId"]>) => cards.evaluateAll((els) => els.map((e) => e.getAttribute("data-city")));
 
 /** Console errors, page errors and failed requests seen while the page is open. */
 function watchProblems(page: Page) {
@@ -50,22 +52,25 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await page.goto("/");
   await expect(page).toHaveTitle(/KeyEscrow.*passport/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
-  await expect(page.getByRole("main")).toContainText("left with a stranger");
-  await expect(page.getByRole("main")).toContainText("Nobody can move it alone");
+  await expect(page.getByRole("main")).toContainText("instead of your passport");
+  await expect(page.getByRole("main")).toContainText("nobody can move it alone");
+  await expect(page.getByTestId("mk-testnet")).toContainText("Demo listings on BSC testnet: test money only");
   await expect(page.getByTestId("sidebar")).toHaveCount(0);
   await expect(page.getByTestId("wallet")).toHaveCount(0);
   await expect(page.getByTestId("assistant-bubble")).toHaveCount(0);
   await page.keyboard.press("ControlOrMeta+j"); // Ask AI's shortcut belongs to the app shell only
   await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
 
-  // Problem and promise, proof, how it works, who decides, for shops, for agents, the fee, the roadmap, the ask.
+  // Find a scooter; why the deposit is safe (comparison, money board, who decides, deadlines); list your own; proof;
+  // for agents, the fee, the roadmap, the ask.
   const story = [
+    /Pick a scooter\. The deposit goes into escrow\./,
     /nobody holding your passport/i,
-    /Live on BSC testnet/,
-    /Follow the money, in four steps/,
+    /How your deposit is protected, in four steps/,
     /The AI proposes\. People decide\./,
     /Every dispute has a deadline/,
-    /Run a scooter shop\?/,
+    /List your scooter\./,
+    /Live on BSC testnet/,
     /Built for agents/,
     /10% of one month's rent\. Once\./,
     /Where this goes next/,
@@ -75,11 +80,31 @@ test("landing page tells the whole story in order, without the app shell, a wall
   expect(headings).toHaveLength(story.length);
   story.forEach((name, i) => expect(headings[i], `section ${i + 1}`).toMatch(name));
 
-  // Proof under the hero: four claims, each a link to where it can be checked.
-  const proof = page.getByTestId("mk-proof");
+  // The listings under the hero: six demo scooters and the Mystery Box, labelled as a demo, rating-free.
+  const cards = page.getByTestId("mk-listing");
+  await expect(cards).toHaveCount(7);
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
+  await expect(page.getByTestId("mk-listing-demo")).toContainText("Demo listings on BSC testnet");
+  await expect(page.getByTestId("mk-listing-demo")).toContainText("the deposit and the first month's rent into its own escrow, with test money");
+  await expect(page.getByTestId("mk-listing-demo")).toContainText("not real shops' offers");
+  const click = page.locator('[data-testid="mk-listing"][data-slug="honda-click-125i"]');
+  await expect(click).toHaveAttribute("href", "/app/listings/honda-click-125i");
+  await expect(click).toContainText("Honda Click 125i");
+  await expect(click).toContainText("Nimman, Chiang Mai");
+  await expect(click.getByTestId("mk-listing-price")).toHaveText("฿250 per day");
+  await expect(click).toContainText("฿3,400 per month");
+  await expect(click).toContainText("Deposit ฿6,800");
+  await expect(click).toContainText("Demo listing");
+  for (const text of await cards.allTextContents()) expect(text).toContain("Deposit protected by escrow");
+  await expect(page.locator('[data-testid="mk-listing"][data-slug="mystery-box"]')).toContainText("Live stage demo");
+  await expect(page.locator("#listings")).not.toContainText(/review|rating|★/i);
+
+  // Proof: four claims at the top of the proof section, each a link to where it can be checked.
+  const proof = page.locator("#live").getByTestId("mk-proof");
   await expect(proof).toHaveText([/Live on BSC testnet/, /Contract v2/, /305 contract tests/, /ERC-8004 agent #2921/]);
   const [live, factory, tests, agent] = await proof.evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
-  expect(live).toBe("#live");
+  expect(live).toBe("#contracts");
+  await expect(page.locator("#contracts")).toHaveCount(1);
   expect(factory).toMatch(/^https:\/\/testnet\.bscscan\.com\/address\/0x[0-9a-fA-F]{40}#code$/);
   expect(tests).toBe("https://github.com/midego1/bnb-hackathon/tree/main/contracts/test");
   expect(agent).toMatch(/^https:\/\/testnet\.bscscan\.com\/tx\/0x[0-9a-f]{64}$/);
@@ -98,6 +123,7 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await expect(shops).toContainText("Every 2 weeks");
   for (const amount of ["฿793", "฿1,586", "฿3,400"]) await expect(shops).toContainText(amount);
   await expect(shops).toContainText("Fleet Vault");
+  await expect(page.getByTestId("mk-list")).toHaveAttribute("href", "/landlord");
   await expect(shops).toContainText("A dispute desk that cannot stall");
 
   await expect(page.getByTestId("fee-pitch")).toContainText("Never taken from the deposit");
@@ -192,6 +218,62 @@ test("calls to action: Play the live demo, Rent our Mystery Box, Open the app, H
   await expect(page.getByTestId("stage-view")).toBeVisible();
 });
 
+test("search: a city and a length filter the listings below, and the address carries the search", async ({ page }) => {
+  const problems = watchProblems(page);
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/");
+  const cards = page.getByTestId("mk-listing");
+  const search = page.getByRole("search", { name: "Find a scooter" });
+  await expect(cards).toHaveCount(7);
+  await expect(page.getByTestId("mk-search-pill")).toBeHidden(); // the single pill is the phone's
+  await expect(search.getByLabel("When")).toHaveAttribute("type", "date");
+
+  await search.getByLabel("Where").selectOption("Phuket");
+  await search.getByLabel("How long").selectOption("month");
+  await search.getByRole("button", { name: "Search" }).click();
+  await page.waitForURL((url) => url.searchParams.get("where") === "Phuket" && url.searchParams.get("how") === "month" && url.hash === "#listings");
+  await expect(cards).toHaveCount(2);
+  expect(await cityOf(cards)).toEqual(["Phuket", "Phuket"]);
+  await expect(page.getByTestId("mk-listing-price")).toHaveText(["฿6,500 per month", "฿5,800 per month"]);
+  await expect(cards.first()).toContainText("฿450 per day");
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("2 demo listings in Phuket, by the month.");
+  await expect(page.locator("#listings")).toBeInViewport();
+  // The search is still what the form shows.
+  await expect(search.getByLabel("Where")).toHaveValue("Phuket");
+
+  // "Show all" brings back all seven, by the day.
+  await page.getByTestId("mk-listing-all").click();
+  await expect(cards).toHaveCount(7);
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
+  await expect(page.getByTestId("mk-listing-all")).toHaveCount(0);
+  await expect(search.getByLabel("Where")).toHaveValue("");
+  await expect(search.getByLabel("How long")).toHaveValue("day");
+
+  // The same search as a plain address (what the form sends without JavaScript): the server filters.
+  await page.goto("/?where=Pai&how=week&when=2026-12-24");
+  await expect(cards).toHaveCount(1);
+  await expect(page.getByTestId("mk-listing-price")).toHaveText("฿653 per week"); // 2,800 x 7 / 30, rounded down
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("1 demo listing in Pai, by the week, from 24 Dec 2026.");
+  await expect(search.getByLabel("When")).toHaveValue("2026-12-24");
+  // Anything unknown means everything.
+  await page.goto("/?where=Atlantis&how=forever&when=soon");
+  await expect(cards).toHaveCount(7);
+  expect(await page.locator("form[role=search]").getAttribute("action")).toBe("/#listings");
+  expect(problems).toEqual([]);
+});
+
+test("a listing card opens its listing page in the app", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/?where=Chiang%20Mai");
+  const cards = page.getByTestId("mk-listing");
+  expect(await cityOf(cards)).toEqual(["Chiang Mai", "Chiang Mai"]);
+  await page.locator('[data-testid="mk-listing"][data-slug="honda-click-125i"]').click();
+  await page.waitForURL(/\/app\/listings\/honda-click-125i$/);
+  await expect(page.getByTestId("sidebar")).toBeVisible();
+  await expect(page.getByTestId("listing-terms")).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("Honda Click 125i");
+});
+
 test("the money board: every step and both endings by click and keyboard, in baht", async ({ page }) => {
   const problems = watchProblems(page);
   await page.setViewportSize(DESKTOP);
@@ -270,19 +352,40 @@ test("the money board plays by itself once it is on screen, and Play runs it aga
 });
 
 for (const vp of [PHONE, SMALL_PHONE]) {
-  test(`phone (${vp.width} px): no sideways scroll, the three ways in on the first screen, the board works`, async ({ page }) => {
+  test(`phone (${vp.width} px): no sideways scroll, the search pill and the three ways in on the first screen, the board works`, async ({ page }) => {
     const problems = watchProblems(page);
     await page.setViewportSize(vp);
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await page.goto("/");
     expect(await sideways(page)).toBeLessThanOrEqual(0);
-    for (const id of [...CTAS, "mk-cta-how"]) {
+    for (const id of ["mk-search-pill", ...CTAS, "mk-cta-how"]) {
       const box = (await page.getByTestId(id).boundingBox())!;
       expect(box.x, id).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width, id).toBeLessThanOrEqual(vp.width);
       expect(box.y + box.height, `${id} is on the first screen`).toBeLessThanOrEqual(vp.height);
-      if (id !== "mk-cta-how") expect(box.height, `${id} is a comfortable touch target`).toBeGreaterThanOrEqual(40);
+      expect(box.height, `${id} is a comfortable touch target`).toBeGreaterThanOrEqual(40);
     }
+    // The search is one pill until it is tapped; then its fields open under it and it filters like the bar does.
+    const pill = page.getByTestId("mk-search-pill");
+    const go = page.getByTestId("mk-search-go");
+    await expect(pill).toHaveText(/Anywhere · Any date · By the day/);
+    await expect(pill).toHaveAttribute("aria-expanded", "false");
+    await expect(go).toBeHidden();
+    await pill.click();
+    await expect(pill).toHaveAttribute("aria-expanded", "true");
+    await expect(go).toBeVisible();
+    expect(await sideways(page)).toBeLessThanOrEqual(0);
+    await page.getByRole("search").getByLabel("Where").selectOption("Chiang Mai");
+    await expect(pill).toHaveText(/Chiang Mai · Any date · By the day/);
+    await go.click();
+    await expect(go).toBeHidden();
+    await expect(page.getByTestId("mk-listing")).toHaveCount(2);
+    expect(await cityOf(page.getByTestId("mk-listing"))).toEqual(["Chiang Mai", "Chiang Mai"]);
+    await expect(page.locator("#listings")).toBeInViewport();
+    // One card per row on a phone.
+    const [first, second] = await page.getByTestId("mk-listing").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().left));
+    expect(first).toBe(second);
+    await page.goto("/");
     expect(await page.locator(".mk-art img").evaluate((img: HTMLImageElement) => img.currentSrc)).toMatch(/street-tall-\d+\.(avif|webp|jpg)$/);
     // The header trades "Open the app" (it is the hero's third button) for a thumb-sized EN / 中文 switch.
     const header = page.getByRole("banner");
@@ -333,9 +436,23 @@ test("中文: the whole page reads in Chinese, on a laptop and on a phone", asyn
   await expect(page.getByTestId("mk-cta-box")).toHaveText("租我们的神秘盒子");
   await expect(page.getByTestId("mk-cta-app")).toHaveText("打开应用");
   await expect(page.getByTestId("mk-proof")).toHaveText([/已上线 BSC 测试网/, /合约 v2/, /305 项合约测试/, /ERC-8004 智能体 #2921/]);
-  for (const name of ["跟着钱走，一共四步。", "AI 提建议，人来做决定。", "你经营租车行？这是你能得到的。", "下一步去哪里。"]) {
+  for (const name of ["挑一辆摩托车，押金进托管。", "你的押金如何受保护，一共四步。", "AI 提建议，人来做决定。", "发布你的摩托车。", "下一步去哪里。"]) {
     await expect(page.getByRole("heading", { level: 2, name })).toBeVisible();
   }
+  // The search and the listings in Chinese: field labels, city names, the summary, the badge.
+  const search = page.getByRole("search", { name: "找一辆摩托车" });
+  await expect(search.getByLabel("地点").locator("option")).toHaveText(["泰国任何地方", "清迈", "曼谷", "普吉", "拜县"]);
+  await expect(search.getByLabel("租多久").locator("option")).toHaveText(["按天", "按周", "按月"]);
+  await expect(search.getByRole("button", { name: "搜索" })).toBeVisible();
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 条演示租赁信息。");
+  const zhClick = page.locator('[data-testid="mk-listing"][data-slug="honda-click-125i"]');
+  await expect(zhClick).toContainText("Nimman, 清迈");
+  await expect(zhClick).toContainText("押金由托管合约保护");
+  await expect(zhClick.getByTestId("mk-listing-price")).toHaveText("฿250 每天");
+  await search.getByLabel("地点").selectOption("Phuket");
+  await search.getByRole("button", { name: "搜索" }).click();
+  await expect(page.getByTestId("mk-listing")).toHaveCount(2);
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("2 条演示租赁信息，位于普吉。");
   await expect(page.getByTestId("mk-flow")).toContainText("护照：还在你口袋里");
   await expect(page.getByTestId("mk-phase").nth(1)).toContainText("计划中");
   await expect(page.getByTestId("mk-phase").nth(1)).toContainText("尚未上线");
@@ -364,9 +481,13 @@ test("EN+中文: a Chinese line under the headlines and the steps, English every
   const h1 = page.getByRole("heading", { level: 1 });
   await expect(h1).toContainText("Keep your passport.");
   await expect(h1.locator(".i18n-zh")).toHaveText("摩托车租走，护照留下。");
-  await expect(page.locator("#how .i18n-zh")).toHaveText("跟着钱走，一共四步。");
+  await expect(page.locator("#listings-h .i18n-zh")).toHaveText("挑一辆摩托车，押金进托管。");
+  await expect(page.locator("#how .i18n-zh")).toHaveText("你的押金如何受保护，一共四步。");
   await expect(page.getByTestId("mk-flow-step-2").locator(".i18n-zh")).toHaveText("租客向托管付款");
-  await expect(page.locator("#shops-h .i18n-zh")).toContainText("租车行");
+  await expect(page.locator("#shops-h .i18n-zh")).toHaveText("发布你的摩托车。");
+  // The search and the cards stay English.
+  await expect(page.getByRole("search").getByLabel("Where")).toBeVisible();
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
   // Body text and buttons stay English.
   await expect(page.getByTestId("mk-cta-box")).toHaveText("Rent our Mystery Box");
   await expect(page.getByTestId("mk-flow-step-2")).toContainText("goes into this rental's own contract");

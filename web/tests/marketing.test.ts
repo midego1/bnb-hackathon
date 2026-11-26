@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTIONS } from "@/lib/actions/definitions";
 import { landingCopy } from "@/components/marketing/copy";
 import { LED_CHARS, LED_COLS, LED_ROWS, ledDots } from "@/components/marketing/led";
 import { REPO_URL } from "@/lib/links";
+import { LISTING_CITIES, LISTINGS } from "@/lib/listings";
 import {
   ARBITER_DAYS,
   baht,
@@ -14,9 +15,12 @@ import {
   FLEET_OPERATOR_FEE_PERCENT,
   INSPECTOR_AGENT,
   INSPECTOR_TOOLS,
+  listingPrice,
   OWNER_RESPONSE_DAYS,
+  parseSearch,
   RENT_PERIOD_DAYS,
   rentPer,
+  searchListings,
   TESTNET_CONTRACTS,
   TESTS_URL,
 } from "@/lib/marketing";
@@ -113,5 +117,62 @@ describe("marketing page facts", () => {
     for (const tool of INSPECTOR_TOOLS) expect(agentSource).toContain(`"${tool}"`);
     expect(ACTIONS.length).toBeGreaterThan(0);
     expect(new Set(ACTIONS.map((a) => a.name)).size).toBe(ACTIONS.length);
+  });
+});
+
+describe("landing page search and listings", () => {
+  const scooters = LISTINGS.filter((l) => !l.stage);
+
+  it("reads the search from the query string and falls back on anything unknown", () => {
+    expect(parseSearch({})).toEqual({ where: undefined, when: undefined, how: "day" });
+    expect(parseSearch({ where: "phuket", when: "2026-12-01", how: "month" })).toEqual({ where: "Phuket", when: "2026-12-01", how: "month" });
+    expect(parseSearch({ where: ["Chiang Mai", "Pai"], how: "week" })).toEqual({ where: "Chiang Mai", when: undefined, how: "week" });
+    expect(parseSearch({ where: "Atlantis", when: "next week", how: "year" })).toEqual({ where: undefined, when: undefined, how: "day" });
+    expect(parseSearch({ when: "2026-13-45" }).when).toBeUndefined();
+  });
+
+  it("shows every listing, or one city's", () => {
+    expect(searchListings(parseSearch({}))).toHaveLength(LISTINGS.length);
+    for (const city of LISTING_CITIES) {
+      const found = searchListings(parseSearch({ where: city }));
+      expect(found.length, city).toBeGreaterThan(0);
+      expect(found.every((l) => l.city === city)).toBe(true);
+    }
+    expect(searchListings(parseSearch({ where: "Phuket" })).map((l) => l.slug)).toEqual(["yamaha-nmax-155", "honda-pcx-160"]);
+  });
+
+  it("leads with the price for the chosen length: day, week (month x 7 / 30, rounded down) or month", () => {
+    const click = LISTINGS.find((l) => l.slug === "honda-click-125i")!;
+    expect(listingPrice(click, "day")).toEqual({ amount: 250, per: "day" });
+    expect(listingPrice(click, "week")).toEqual({ amount: 793, per: "week" });
+    expect(listingPrice(click, "month")).toEqual({ amount: 3400, per: "month" });
+    // The first listing is the page's worked example: same scooter, same month and deposit, same weekly amount.
+    expect([click.name, click.monthThb, click.depositThb]).toEqual([EXAMPLE.scooter, EXAMPLE.rent, EXAMPLE.deposit]);
+    expect(listingPrice(click, "week").amount).toBe(rentPer(7));
+    // The stage item has no monthly price: it only rents by the day.
+    const box = LISTINGS.find((l) => l.stage)!;
+    expect(listingPrice(box, "month")).toEqual({ amount: box.rentThb, per: "day" });
+  });
+
+  it("lists six demo scooters and the one stage item, each in a known city, with its pictures on disk", () => {
+    expect(scooters).toHaveLength(6);
+    expect(LISTINGS.filter((l) => l.stage).map((l) => l.slug)).toEqual(["mystery-box"]);
+    expect(new Set(LISTINGS.map((l) => l.slug)).size).toBe(LISTINGS.length);
+    for (const l of LISTINGS) expect(LISTING_CITIES as readonly string[], l.slug).toContain(l.city);
+    for (const l of scooters) {
+      expect(l.description, l.slug).toMatch(/^Demo listing\./);
+      expect(l.monthThb, l.slug).toBeGreaterThan(l.rentThb);
+      expect(l.photos).toEqual([`/listings/${l.slug}-960.jpg`]);
+      for (const file of ["480.avif", "960.avif", "480.webp", "960.webp", "960.jpg"]) {
+        expect(existsSync(path.join(repo, "web/public/listings", `${l.slug}-${file}`)), `${l.slug}-${file}`).toBe(true);
+      }
+    }
+  });
+
+  it("names every city of the search in Chinese", () => {
+    for (const city of LISTING_CITIES) {
+      expect(landingCopy.en.search.cities[city]).toBe(city);
+      expect(landingCopy("zh").search.cities[city]).toMatch(/\p{Script=Han}/u);
+    }
   });
 });

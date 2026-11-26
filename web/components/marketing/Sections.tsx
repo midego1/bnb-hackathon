@@ -4,6 +4,7 @@ import { LangSwitch } from "@/components/LangSwitch";
 import { LogoMark } from "@/components/LogoMark";
 import { ACTIONS } from "@/lib/actions/definitions";
 import { docsUrl, REPO_URL } from "@/lib/links";
+import type { Listing } from "@/lib/listings";
 import { getDictionary } from "@/lib/i18n/server";
 import {
   ARBITER_DAYS,
@@ -14,15 +15,18 @@ import {
   FLEET_OPERATOR_FEE_PERCENT,
   INSPECTOR_AGENT,
   INSPECTOR_TOOLS,
+  listingPrice,
+  type ListingSearch,
   OWNER_RESPONSE_DAYS,
   RENT_PERIOD_DAYS,
   rentPer,
+  searchListings,
   TESTNET_CONTRACTS,
   TESTS_URL,
 } from "@/lib/marketing";
 import { landingCopy, type LandingCopy } from "./copy";
 import { MYSTERY_BOX } from "./Hero";
-import { ArrowIcon, BoxIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon } from "./icons";
+import { ArrowIcon, BoxIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon, ShieldIcon } from "./icons";
 import { MoneyFlow, type FlowFrame } from "./MoneyFlow";
 
 const WRAP = "mx-auto w-full max-w-7xl px-5 sm:px-8";
@@ -70,11 +74,103 @@ function Tile({ name, alt, label }: { name: string; alt: string; label: string }
   );
 }
 
+const CARD_SIZES = "(min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw";
+const cardSet = (slug: string, ext: string) => [480, 960].map((w) => `/listings/${slug}-${w}.${ext} ${w}w`).join(", ");
+
+/** One listing of the grid: the picture, what it is, where, what it costs for the chosen length, and the deposit. One link. */
+function ListingCard({ l, search, c, city }: { l: Listing; search: ListingSearch; c: LandingCopy["listings"]; city: (name: string) => string }) {
+  const lead = listingPrice(l, search.how);
+  const place = l.area ? `${l.area}, ${city(l.city)}` : c.onStage;
+  // The other price: by the month when the card leads with the day, by the day otherwise.
+  const other = l.monthThb === undefined ? undefined : lead.per === "day" ? ([l.monthThb, "month"] as const) : ([l.rentThb, "day"] as const);
+  const IMG = "mk-card-art";
+  return (
+    <li>
+      <Link prefetch={false} href={`/app/listings/${l.slug}`} className="mk-card" data-testid="mk-listing" data-slug={l.slug} data-city={l.city}>
+        <span className="mk-card-frame">
+          {l.stage ? (
+            // eslint-disable-next-line @next/next/no-img-element -- the stage item's own small SVG
+            <img src={l.photos[0]} width={400} height={300} alt={c.boxAlt} loading="lazy" decoding="async" className={IMG} />
+          ) : (
+            <picture>
+              <source type="image/avif" srcSet={cardSet(l.slug, "avif")} sizes={CARD_SIZES} />
+              <source type="image/webp" srcSet={cardSet(l.slug, "webp")} sizes={CARD_SIZES} />
+              <img src={`/listings/${l.slug}-960.jpg`} width={960} height={720} alt={c.alt(l.name, place)} loading="lazy" decoding="async" className={IMG} />
+            </picture>
+          )}
+          <span className="mk-card-tag">{l.stage ? c.stageTag : c.demoTag}</span>
+        </span>
+        <h3 className="mk-h3 mt-4 text-xl">{l.name}</h3>
+        <span className="mt-1 block text-muted-foreground">{place}</span>
+        <span className="mk-num mt-3 block">
+          <strong className="text-lg font-semibold" data-testid="mk-listing-price">
+            {baht(lead.amount)} {c.per[lead.per]}
+          </strong>
+          {other && (
+            <span className="text-sm text-subtle">
+              {" · "}
+              {baht(other[0])} {c.per[other[1]]}
+            </span>
+          )}
+        </span>
+        <span className="mk-num mt-1 block text-sm text-muted-foreground">{c.deposit(baht(l.depositThb))}</span>
+        <span className="mk-card-badge">
+          <ShieldIcon />
+          {c.badge}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/** The listings the search found, right under the hero: demo scooters (and the Mystery Box), each a way into a real rental. */
+export async function Listings({ search }: { search: ListingSearch }) {
+  const { c, h, t } = await copyFor("listings");
+  const city = (name: string) => t.of(landingCopy).search.cities[name] ?? name;
+  const found = searchListings(search);
+  const filtered = !!search.where || search.how !== "day" || !!search.when;
+  const when = search.when && new Intl.DateTimeFormat(t.lang === "zh" ? "zh-CN" : "en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${search.when}T00:00:00Z`));
+  return (
+    <section id="listings" aria-labelledby="listings-h" className={`${WRAP} py-16 sm:py-24`}>
+      <h2 id="listings-h" className={H2}>
+        {h((s) => s.title)}
+      </h2>
+      <p className="mt-4 text-lg text-muted-foreground" aria-live="polite">
+        <span data-testid="mk-listing-summary">
+          {c.count(found.length)}
+          {search.where && c.inCity(city(search.where))}
+          {c.by[search.how]}
+          {when && c.from(when)}
+          {t.lang === "zh" ? "。" : "."}
+        </span>{" "}
+        {filtered && (
+          <Link prefetch={false} href="/#listings" scroll={false} className="mk-link font-medium text-foreground" data-testid="mk-listing-all">
+            {c.all}
+          </Link>
+        )}
+      </p>
+      <p className="mt-2 max-w-[38rem] text-sm text-subtle" data-testid="mk-listing-demo">
+        {c.demo}
+      </p>
+      {found.length ? (
+        <ul className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          {found.map((l) => (
+            <ListingCard key={l.slug} l={l} search={search} c={c} city={city} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-10 text-lg">{c.none}</p>
+      )}
+    </section>
+  );
+}
+
 /** The problem and the promise: the counter today against the counter with KeyEscrow, row by row. */
 export async function Counter() {
   const { c, h } = await copyFor("counter");
   return (
-    <section aria-labelledby="why" className={`${WRAP} py-20 sm:py-28`}>
+    <section aria-labelledby="why" className="border-t border-border bg-surface">
+     <div className={`${WRAP} py-20 sm:py-28`}>
       <h2 id="why" className={H2}>
         {h((s) => s.title)}
       </h2>
@@ -106,6 +202,7 @@ export async function Counter() {
           </div>
         ))}
       </div>
+     </div>
     </section>
   );
 }
@@ -113,14 +210,29 @@ export async function Counter() {
 /** Proof that it is real: the four verified testnet contracts, the tests and the agent's registration. */
 export async function Live() {
   const { c, h } = await copyFor("live");
+  // Where each proof leads: the contract table below, the verified factory, the tests, the agent's registration.
+  const proof = ["#contracts", explorerAddress(TESTNET_CONTRACTS[0].address), TESTS_URL, explorerTx(INSPECTOR_AGENT.registerTx)];
   return (
     <section id="live" aria-labelledby="live-h" className="border-y border-border bg-surface">
       <div className={`${WRAP} py-20 sm:py-28`}>
         <h2 id="live-h" className={H2}>
           {h((s) => s.title)}
         </h2>
-        <p className={LEAD}>{c.lead}</p>
-        <table className="mt-10 block w-full border-collapse text-left md:table">
+        <ul aria-label={c.proofLabel} className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-y border-border py-6 lg:grid-cols-4">
+          {c.proof.map(([what, detail], i) => (
+            <li key={what}>
+              <a href={proof[i]} className="mk-proof" data-testid="mk-proof">
+                <span className="mk-h3 mk-proof-what">
+                  {what}
+                  {i > 0 && <ExternalIcon />}
+                </span>
+                <span className="mk-proof-detail">{detail}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p className={`${LEAD} mt-8`}>{c.lead}</p>
+        <table id="contracts" className="mt-10 block w-full border-collapse text-left md:table">
           <caption className="sr-only">{c.caption}</caption>
           <thead className="hidden md:table-header-group">
             <tr className="border-b border-border-strong text-sm text-subtle">
@@ -322,6 +434,12 @@ export async function Shops() {
         {h((s) => s.title)}
       </h2>
       <p className={LEAD}>{c.lead}</p>
+      <p className="mt-7">
+        <Link prefetch={false} href="/landlord" className="mk-btn mk-btn-ink" data-testid="mk-list">
+          {c.list}
+          <ArrowIcon />
+        </Link>
+      </p>
 
       <div className={`${ROW} mt-12`}>
         <div>

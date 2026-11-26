@@ -5,6 +5,7 @@
  */
 import deployments from "@/lib/contracts/deployments.generated.json";
 import { REPO_URL } from "@/lib/links";
+import { LISTING_CITIES, LISTINGS, type Listing } from "@/lib/listings";
 
 const EXPLORER = "https://testnet.bscscan.com";
 const bsc = deployments["97"];
@@ -62,3 +63,35 @@ export const EXAMPLE = {
 } as const;
 
 export const baht = (n: number) => `฿${n.toLocaleString("en-US")}`;
+
+/** How long a visitor wants a scooter for: it picks the price a listing card leads with. */
+export const RENT_LENGTHS = ["day", "week", "month"] as const;
+export type RentLength = (typeof RENT_LENGTHS)[number];
+/** The landing page's search: a city (none = everywhere), a start date (only echoed: every demo listing is open on every date) and a length. */
+export type ListingSearch = { where?: (typeof LISTING_CITIES)[number]; when?: string; how: RentLength };
+
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+
+/** The search in the page's query string. Anything unknown falls back: everywhere, any date, by the day. */
+export function parseSearch(query: Record<string, string | string[] | undefined>): ListingSearch {
+  const where = one(query.where).trim().toLowerCase();
+  const when = one(query.when);
+  const how = one(query.how);
+  return {
+    where: LISTING_CITIES.find((c) => c.toLowerCase() === where),
+    when: /^\d{4}-\d{2}-\d{2}$/.test(when) && !Number.isNaN(Date.parse(when)) ? when : undefined,
+    how: RENT_LENGTHS.find((l) => l === how) ?? "day",
+  };
+}
+
+/** The listings a search shows: all of them, or one city's. */
+export const searchListings = (search: ListingSearch, all: Listing[] = LISTINGS) => (search.where ? all.filter((l) => l.city === search.where) : all);
+
+/**
+ * What a listing costs for a length: per day, per week (the monthly price x 7 / 30, rounded down, as subscriptions
+ * do) or per month. A listing without a monthly price only rents by the day.
+ */
+export function listingPrice(l: Pick<Listing, "rentThb" | "monthThb">, how: RentLength): { amount: number; per: RentLength } {
+  if (how === "day" || l.monthThb === undefined) return { amount: l.rentThb, per: "day" };
+  return how === "month" ? { amount: l.monthThb, per: "month" } : { amount: Math.floor((l.monthThb * 7) / 30), per: "week" };
+}

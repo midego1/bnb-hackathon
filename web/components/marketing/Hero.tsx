@@ -3,9 +3,11 @@ import { LogoMark } from "@/components/LogoMark";
 import { LangSwitch } from "@/components/LangSwitch";
 import { ThemeCycleButton } from "@/components/ThemeSwitch";
 import { getDictionary } from "@/lib/i18n/server";
-import { explorerAddress, explorerTx, INSPECTOR_AGENT, TESTNET_CONTRACTS, TESTS_URL } from "@/lib/marketing";
+import { LISTING_CITIES } from "@/lib/listings";
+import type { ListingSearch } from "@/lib/marketing";
 import { landingCopy } from "./copy";
-import { ArrowIcon, BoxIcon, ExternalIcon, PlayIcon } from "./icons";
+import { ArrowIcon, BoxIcon, PlayIcon } from "./icons";
+import { Search } from "./Search";
 
 const WIDE = [1000, 1600, 2400];
 const TALL = [600, 900, 1200];
@@ -52,16 +54,16 @@ export async function SiteHeader() {
 }
 
 /**
- * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the problem
- * and the promise, the three ways in, and under it the proof that it is real. The artwork is the LCP element, so it is
- * preloaded per viewport class and never lazy.
+ * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the
+ * promise, and the search that leads into the listings below. The three other ways in sit under it as smaller buttons.
+ * The artwork is the LCP element, so it is preloaded per viewport class and never lazy.
  */
-export async function Hero({ demo }: { demo: boolean }) {
+export async function Hero({ demo, search }: { demo: boolean; search: ListingSearch }) {
   const t = await getDictionary();
-  const c = t.of(landingCopy).hero;
+  const copy = t.of(landingCopy);
+  const c = copy.hero;
   const lines = (l: string[]) => l.flatMap((x, i) => (i ? [<br key={i} />, x] : [x]));
-  // Where each proof leads: the contract table below, the verified factory, the tests, the agent's registration.
-  const proof = ["#live", explorerAddress(TESTNET_CONTRACTS[0].address), TESTS_URL, explorerTx(INSPECTOR_AGENT.registerTx)];
+  const WAY = "mk-btn mk-btn-line mk-btn-glass mk-btn-sm";
   return (
     <section aria-label={c.label} className="mk-night">
       {/* React hoists these into <head>. */}
@@ -95,61 +97,56 @@ export async function Hero({ demo }: { demo: boolean }) {
         <div className="mx-auto flex w-full max-w-7xl flex-col justify-start px-5 pt-20 pb-6 sm:px-8 md:pt-28 xl:flex-1 xl:justify-center xl:pt-24 xl:pb-12">
           <div className="max-w-[46rem]">
             <h1 className="mk-display">{t.head(landingCopy, (x) => lines(x.hero.h1))}</h1>
-            <p className="mk-hero-copy mt-4 max-w-[34rem] text-base leading-relaxed text-foreground sm:mt-5 sm:text-xl sm:leading-relaxed">
+            <p className="mk-hero-copy mt-4 max-w-[36rem] text-base leading-relaxed text-foreground sm:mt-5 sm:text-xl sm:leading-relaxed">
               {c.body}
             </p>
-            <div className="mk-ctas mt-6 sm:mt-7">
+            {/* Keyed by the search, so the fields follow the address ("Show all" clears them). */}
+            <Search
+              key={`${search.where}|${search.when}|${search.how}`}
+              labels={copy.search}
+              cities={LISTING_CITIES.map((city) => [city, copy.search.cities[city] ?? city])}
+              today={new Date().toISOString().slice(0, 10)}
+              initial={{ where: search.where ?? "", when: search.when ?? "", how: search.how }}
+            />
+            {/* Without JavaScript the phone's pill cannot open: show the fields instead. */}
+            <noscript>
+              <style>{".mk-search-fields{display:grid!important}.mk-search-pill{display:none!important}"}</style>
+            </noscript>
+            <ul aria-label={c.ways} className="mk-ways mt-4 sm:mt-5">
               {demo && (
-                <Link prefetch={false} href="/demo" data-testid="mk-cta-demo" className="mk-btn mk-btn-amber">
-                  <PlayIcon />
-                  {c.playDemo}
-                </Link>
+                <li>
+                  <Link prefetch={false} href="/demo" data-testid="mk-cta-demo" className={WAY}>
+                    <PlayIcon />
+                    {c.playDemo}
+                  </Link>
+                </li>
               )}
-              <Link prefetch={false} href={MYSTERY_BOX} title={c.mysteryBoxHint} data-testid="mk-cta-box" className={`mk-btn ${demo ? "mk-btn-line mk-btn-glass" : "mk-btn-amber"}`}>
-                <BoxIcon />
-                {c.mysteryBox}
-              </Link>
-              <Link prefetch={false} href="/app" data-testid="mk-cta-app" className="mk-btn mk-btn-line mk-btn-glass">
-                {c.openApp}
-                <ArrowIcon />
-              </Link>
-            </div>
-            <p className="mk-hero-copy mt-4 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[0.95rem] sm:mt-5">
-              <Link prefetch={false} href="/how-it-works" data-testid="mk-cta-how" className="mk-link inline-flex min-h-8 items-center gap-1.5 font-medium">
-                {c.how}
-                <ArrowIcon />
-              </Link>
-              <span className="text-muted-foreground">
-                {c.shops[0]}
-                <a href="#shops" className="mk-link font-medium text-foreground">
-                  {c.shops[1]}
-                </a>
-              </span>
+              <li>
+                <Link prefetch={false} href={MYSTERY_BOX} title={c.mysteryBoxHint} data-testid="mk-cta-box" className={WAY}>
+                  <BoxIcon />
+                  {c.mysteryBox}
+                </Link>
+              </li>
+              <li>
+                <Link prefetch={false} href="/app" data-testid="mk-cta-app" className={WAY}>
+                  {c.openApp}
+                  <ArrowIcon />
+                </Link>
+              </li>
+              <li>
+                <Link prefetch={false} href="/how-it-works" data-testid="mk-cta-how" className="mk-hero-copy mk-link inline-flex min-h-11 items-center gap-1.5 px-1 text-[0.95rem] font-medium">
+                  {c.how}
+                  <ArrowIcon />
+                </Link>
+              </li>
+            </ul>
+            <p className="mk-hero-copy mt-3 text-sm text-muted-foreground" data-testid="mk-testnet">
+              {c.testnet}
+              {c.testnetMore}
+              {t.lang === "zh" ? "。" : "."}
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Proof that it is real, each one a link to where a judge can check it. */}
-      <div className="border-t border-border">
-        <ul aria-label={c.proofLabel} className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-5 pt-6 pb-4 sm:px-8 lg:grid-cols-4">
-          {c.proof.map(([what, detail], i) => (
-            <li key={what}>
-              <a href={proof[i]} className="mk-proof" data-testid="mk-proof">
-                <span className="mk-h3 mk-proof-what">
-                  {what}
-                  {i > 0 && <ExternalIcon />}
-                </span>
-                <span className="mk-proof-detail">{detail}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-        <p className="mx-auto max-w-7xl px-5 pb-6 text-xs text-subtle sm:px-8">
-          {c.testnet}
-          {c.testnetMore}
-          {t.lang === "zh" ? "。" : "."}
-        </p>
       </div>
     </section>
   );

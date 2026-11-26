@@ -65,3 +65,19 @@ export const PassportIcon = () => (
     <path d="M9.5 16h5" />
   </svg>
 );
+
+export const SearchIcon = () => (
+  <svg {...base} {...stroke}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </svg>
+);
+
+/** The escrow badge on a listing card: a shield with the keyhole of the logo. */
+export const ShieldIcon = () => (
+  <svg {...base} {...stroke} width={16} height={16}>
+    <path d="M12 3.5 5 6v5.5c0 4.2 2.8 7.4 7 9 4.2-1.6 7-4.8 7-9V6l-7-2.5Z" />
+    <circle cx="12" cy="10.5" r="1.6" />
+    <path d="M12 12.1v3" />
+  </svg>
+);

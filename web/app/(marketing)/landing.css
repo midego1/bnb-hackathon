@@ -176,8 +176,8 @@ html.dark .mk section.mk-night {
   position: relative;
   isolation: isolate;
   display: flex;
-  /* With the proof strip below it, the first screen is exactly one viewport on a laptop. */
-  min-height: calc(min(100svh, 60rem) - 8.25rem);
+  /* A little short of one viewport on a laptop, so the listings below show that there is more. */
+  min-height: calc(min(100svh, 60rem) - 5.5rem);
   flex-direction: column;
   overflow: hidden;
 }
@@ -359,7 +359,226 @@ html.dark .mk section.mk-night {
   }
 }
 
-/* ---- Proof strip under the hero: four lit signs, each a link ---- */
+/* ---- Hero search: one light bar on the night street (the shape people know from booking sites, in our palette) ---- */
+.mk-search {
+  max-width: 44rem;
+  margin-top: 1.5rem;
+  color: #1b1236;
+  color-scheme: light;
+}
+.mk-search :focus-visible {
+  outline-color: #1b1236;
+}
+.mk-search-pill {
+  display: none;
+}
+.mk-search-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: 999px;
+  background: #f4f4ff;
+  padding: 0.4rem;
+  box-shadow: 0 14px 32px -14px rgb(0 0 0 / 0.7);
+}
+.mk-search label {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  transition: background-color 0.2s;
+}
+.mk-search label:hover,
+.mk-search label:focus-within {
+  background: #e4e4f6;
+}
+/* A hairline between two fields. */
+.mk-search label + label::before {
+  content: "";
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: 0;
+  width: 1px;
+  background: #c4c5e3;
+}
+.mk-search label > span {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #4a4670;
+}
+.mk-search select,
+.mk-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 1.6rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 1rem;
+  color: #1b1236;
+}
+.mk-search-go {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: var(--mk-amber);
+  padding: 0 1.5rem;
+  color: #1b1236;
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mk-search-go:hover {
+  background: #fcd34d;
+}
+.mk-search-go:active {
+  transform: translateY(1px);
+}
+/* Phones: the bar is one pill that sums up the search; tapping it opens the fields under it. */
+@media (max-width: 767px) {
+  .mk-search {
+    margin-top: 1.25rem;
+  }
+  .mk-search-pill {
+    display: flex;
+    width: 100%;
+    min-height: 3.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 999px;
+    background: #f4f4ff;
+    padding: 0 1.25rem;
+    text-align: left;
+    font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 14px 32px -14px rgb(0 0 0 / 0.7);
+  }
+  .mk-search-pill > svg {
+    flex: none;
+  }
+  .mk-search-pill > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mk-search-fields {
+    display: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    border-radius: 1.5rem;
+    padding: 0.5rem;
+  }
+  .mk-search[data-open] .mk-search-fields {
+    display: grid;
+  }
+  .mk-search label {
+    border-radius: 1rem;
+    padding: 0.55rem 0.9rem;
+  }
+  .mk-search label + label::before {
+    display: none;
+  }
+  .mk-search-go {
+    margin-top: 0.25rem;
+  }
+}
+/* The other ways in, under the search: smaller than it. */
+.mk-ways {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.6rem;
+}
+.mk .mk-btn-sm {
+  min-height: 2.75rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+}
+/* Phones: no icons and tighter pills, so two of them share a row down to 360 px. */
+@media (max-width: 767px) {
+  .mk .mk-btn-sm {
+    padding-inline: 0.8rem;
+    font-size: 0.9rem;
+  }
+  .mk-ways .mk-btn-sm svg {
+    display: none;
+  }
+}
+
+/* ---- Listing cards: a picture, the facts under it, one link ---- */
+.mk-card {
+  display: block;
+  border-radius: 1rem;
+}
+.mk-card-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #0d0b2a;
+}
+.mk-card-frame picture {
+  display: block;
+  height: 100%;
+}
+.mk-card-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mk-card:hover .mk-card-art {
+  transform: scale(1.04);
+}
+.mk-card:hover h3 {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.mk-card-tag {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  border-radius: 999px;
+  background: #f4f4ff;
+  padding: 0.25rem 0.7rem;
+  color: #1b1236;
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.mk-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  border: 1px solid var(--success-border);
+  border-radius: 999px;
+  background: var(--success-soft);
+  padding: 0.25rem 0.7rem 0.25rem 0.55rem;
+  color: var(--success-fg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* ---- Proof strip at the top of the proof section: four lit signs, each a link ---- */
 .mk-proof {
   display: grid;
   gap: 0.2rem;
@@ -819,8 +1038,14 @@ html.dark .mk section.mk-night {
   }
   .mk-seg button,
   .mk-steps button,
-  .mk-steps button > span {
+  .mk-steps button > span,
+  .mk-search label,
+  .mk-search-go,
+  .mk-card-art {
     transition: none;
+  }
+  .mk-card:hover .mk-card-art {
+    transform: none;
   }
 }
 
