@@ -48,7 +48,7 @@ const portInUse = (port: number) =>
 
 function forge(args: string[], env: Record<string, string> = {}) {
   // A clean env: nothing from the caller's shell or .env (no real RPC, no real key) reaches forge.
-  const base = { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", KEYESCROW_NO_DOTENV: "1", FOUNDRY_BROADCAST: path.join(tmp, "broadcast") };
+  const base = { NODE_ENV: "test" as const, PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", KEYESCROW_NO_DOTENV: "1", FOUNDRY_BROADCAST: path.join(tmp, "broadcast") };
   const r = spawnSync("forge", args, { cwd: CONTRACTS, env: { ...base, ...env }, encoding: "utf8" });
   if (r.status !== 0) throw new Error(`forge ${args.join(" ")} failed:\n${(r.stdout + r.stderr).split("\n").slice(-25).join("\n")}`);
   return r.stdout.trim();

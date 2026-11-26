@@ -88,8 +88,8 @@ describe("marketing page facts", () => {
     expect(title).toBe("Capped BSC mainnet pilot");
     expect(body).toMatch(/^Not live yet\./);
     const business = read("docs/BUSINESS.md");
-    expect(business).toContain("at most 5 USDT deposit and 2 USDT rent per period per rental, 25 USDT held in all escrows together");
-    expect(body).toContain("at most 5 USDT deposit and 2 USDT rent per payment per rental, and 25 USDT in all escrows together");
+    expect(business).toContain("at most 0.70 USDT deposit and 0.30 USDT rent per period per rental (so one rental is at most 1 USD), 5 USDT held in all escrows together");
+    expect(body).toContain("at most 0.70 USDT deposit and 0.30 USDT rent per payment per rental (one rental is at most 1 USD), and 5 USDT in all escrows together");
   });
 
   it("draws its coins with BNB Chain's own logomark, unchanged (docs/marketing/README.md, The BNB mark)", () => {
