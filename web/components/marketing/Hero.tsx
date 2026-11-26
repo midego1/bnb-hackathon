@@ -89,6 +89,9 @@ export async function Hero({ demo, search }: { demo: boolean; search: ListingSea
                 fetchPriority="high"
               />
             </picture>
+            {/* The sign's tubes flicker and the scooter's headlight sweeps the road (landing.css, CSS only). */}
+            <span className="mk-fx mk-flicker" aria-hidden />
+            <span className="mk-fx mk-beam" aria-hidden />
           </div>
         </div>
         <div className="mk-glow" aria-hidden />

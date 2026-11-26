@@ -59,9 +59,12 @@ board (`MoneyFlow.tsx`). It renders per request because its words follow the lan
 - **Shapes.** Pill buttons in three fills (amber, outline, ink). Hairline rules instead of cards. Authored SVG icons on
   one 24-unit grid with 2-unit round strokes.
 - **Motion.** The street moves (a slow sideways drift away from the headline, the sign and doorway breathing like
-  neon, scroll parallax where the browser supports scroll-driven animation) and the money board plays. All of it is
-  off under `prefers-reduced-motion`: the street stands still, the board never starts on its own, its active track is
-  simply lit, and every state is still one press away.
+  neon, the sign's letters dimming briefly now and then like a tube about to go, the front scooter's headlight slowly
+  sweeping the road, scroll parallax where the browser supports scroll-driven animation) and the money board plays.
+  The two lights are CSS overlays placed in the picture's own pixels (`.mk-fx` in `landing.css`), so they stay on the
+  sign and the lamp at every width; on phones they are softer and come less often. All of it is off under
+  `prefers-reduced-motion`: the street stands still (the headlight simply shines), the board never starts on its own,
+  its active track is simply lit, and every state is still one press away.
 - **Layout.** From 1280 px the headline lies over the left of the picture, behind a scrim. Below that the headline
   sits in the sky and the street follows in the normal flow, so copy never lands on the lit shop; phones get an upright
   crop of the scene.
