@@ -26,6 +26,9 @@ struct HomeView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var wallet: WalletStore
     @StateObject private var model = HomeModel()
+    /// Screenshot deep links (launch arguments): `-listing <id>` opens a listing, `-flow <id>` its rent flow.
+    @State private var linkedListing: Listing?
+    @State private var linkedFlow: Listing?
 
     var body: some View {
         ScrollView {
@@ -44,7 +47,14 @@ struct HomeView: View {
         .navigationDestination(for: Listing.self) { ListingDetailView(listing: $0, thbPerUsdt: model.thbPerUsdt) }
         .toolbar { ToolbarItem(placement: .topBarTrailing) { WalletChip() } }
         .refreshable { await model.load(); await wallet.refresh() }
-        .task { if model.listings.isEmpty { await model.load() } }
+        .navigationDestination(item: $linkedListing) { ListingDetailView(listing: $0, thbPerUsdt: model.thbPerUsdt) }
+        .navigationDestination(item: $linkedFlow) { RentFlowView(listing: $0, wallet: wallet) }
+        .task {
+            if model.listings.isEmpty { await model.load() }
+            let d = UserDefaults.standard
+            if let id = d.string(forKey: "listing") { linkedListing = model.listings.first { $0.id == id } }
+            if let id = d.string(forKey: "flow") { linkedFlow = model.listings.first { $0.id == id } }
+        }
     }
 
     private var hero: some View {

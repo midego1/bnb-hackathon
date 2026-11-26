@@ -23,6 +23,8 @@ struct RentalsView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var wallet: WalletStore
     @StateObject private var model = RentalsModel()
+    /// Screenshot deep link: `-lease <escrow address>` opens that rental.
+    @State private var linked: String? = UserDefaults.standard.string(forKey: "lease")
 
     var body: some View {
         List {
@@ -45,6 +47,7 @@ struct RentalsView: View {
         .overlay { if !model.loaded { ProgressView() } }
         .refreshable { await model.load(wallet.address) }
         .task { await model.load(wallet.address) }
+        .navigationDestination(item: $linked) { RentalDetailView(address: $0) }
     }
 
     private func row(_ i: LeaseList.Item) -> some View {

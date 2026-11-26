@@ -18,7 +18,7 @@ struct RentFlowView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 progress
-                stepCard.accessibilityIdentifier("flow-step-\(model.step.rawValue)")
+                stepCard
                 if let n = model.note { Notice(text: n, tone: .info) }
                 if let e = model.error { Notice(text: e, tone: .danger).accessibilityIdentifier("flow-error") }
                 if !model.sent.isEmpty {
@@ -161,13 +161,13 @@ struct RentFlowView: View {
                 SecondaryButton(title: settings.t("flow.photo.sample"), icon: "photo.badge.plus", disabled: model.busy != nil) {
                     if let p = CapturedPhoto.sample(title: model.listing.name, kind: pickup ? "PICKUP" : "RETURN") { model.photos = Array((model.photos + [p]).suffix(3)) }
                 }
-                .accessibilityIdentifier("flow-sample-photo")
+                .accessibilityIdentifier("flow-sample-\(kind)")
                 Text(settings.t("flow.photo.noCamera")).font(.caption).foregroundStyle(Color.KE.subtle)
             }
             PrimaryButton(title: settings.t("flow.photo.save", "\(model.photos.count)"), icon: "link", busy: model.busy == "photos", disabled: model.photos.isEmpty) {
                 model.savePhotos(kind: kind)
             }
-            .accessibilityIdentifier("flow-save-photos")
+            .accessibilityIdentifier("flow-save-\(kind)")
         }
     }
 

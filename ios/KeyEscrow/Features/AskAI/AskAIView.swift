@@ -79,9 +79,10 @@ struct AskAIView: View {
                     HStack {
                         SecondaryButton(title: settings.t("ask.decline")) { model.answer(a, approve: false, wallet: wallet) }
                         PrimaryButton(title: settings.t("ask.approve"), icon: "checkmark") { model.answer(a, approve: true, wallet: wallet) }
+                            .accessibilityIdentifier("ask-approve")
                     }
                 case .signing: HStack { ProgressView(); Text(settings.t("ask.signing")) }
-                case .approved: Pill(text: settings.t("ask.approved"), tone: .ok)
+                case .approved: Pill(text: settings.t("ask.approved"), tone: .ok).accessibilityIdentifier("ask-approved")
                 case .declined: Pill(text: settings.t("ask.declined"), tone: .neutral)
                 }
             }
@@ -99,12 +100,14 @@ struct AskAIView: View {
                 .background(Color.KE.surface, in: RoundedRectangle(cornerRadius: 22))
                 .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(Color.KE.borderStrong))
                 .submitLabel(.send)
+                .accessibilityIdentifier("ask-input")
                 .onSubmit(sendText)
             Button(action: sendText) {
                 Image(systemName: "arrow.up").font(.headline).foregroundStyle(Color.KE.onPrimary).frame(width: 44, height: 44).background(Color.KE.primary, in: Circle())
             }
             .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || model.running)
             .accessibilityLabel(settings.t("ask.send"))
+            .accessibilityIdentifier("ask-send")
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.bar)
@@ -113,6 +116,7 @@ struct AskAIView: View {
     private func sendText() {
         model.send(text, address: wallet.address)
         text = ""
+        focused = false
     }
 }
 

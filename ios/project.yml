@@ -53,6 +53,18 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/KeyEscrow.app/KeyEscrow"
+  KeyEscrowE2E:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - KeyEscrowE2E
+    dependencies:
+      - target: KeyEscrow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.keyescrow.ios.e2e
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: KeyEscrow
 schemes:
   KeyEscrow:
     build:
@@ -62,3 +74,11 @@ schemes:
     test:
       targets:
         - KeyEscrowTests
+  KeyEscrowE2E:
+    build:
+      targets:
+        KeyEscrow: all
+        KeyEscrowE2E: [test]
+    test:
+      targets:
+        - KeyEscrowE2E
