@@ -54,6 +54,31 @@ export const body = {
       passport: "Passport: still in your pocket",
       fee: "KeyScrow fee {fee}, once",
     },
+    /** The vault in the middle: this rental's escrow, its coin pile and the receipt under it. */
+    vault: {
+      label: "The escrow: this rental's own contract",
+      coin: "1 coin = {amount}",
+      terms: "{deposit} deposit + {rent} rent",
+      back: "{amount} back to renter",
+      damage: "{amount} to the owner",
+      rent: "{amount} rent",
+      fee: "KeyScrow fee, once",
+      lock: { none: "Empty: waiting for the renter", funded: "Locked: nobody can move it alone", split: "Split proposed: it needs the owner's OK", settled: "Paid out and closed" },
+      receipt: "On-chain receipt",
+      local: "Local chain {id}",
+      pay: { renter: "{amount} renter", owner: "{amount} owner", fee: "{amount} KeyScrow" },
+    },
+    /** The owner's phone on the right. */
+    shop: {
+      phone: "The shop owner's phone",
+      badge: "Owner",
+      wallet: "Shop wallet",
+      deposit: "Deposit in escrow",
+      rent: "Rent (1 day)",
+      toYou: "To you",
+      note: "Deposit: on-chain, not in a drawer",
+    },
+    qr: { enlarge: "Tap to enlarge", title: "Scan to rent the {name} on your own phone" },
   },
   /** The judge's phone (/r/<slug>, components/stage/JudgeFlow.tsx). */
   judge: {

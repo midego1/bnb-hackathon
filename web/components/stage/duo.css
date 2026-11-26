@@ -1,0 +1,570 @@
+/*
+ * /duo (components/stage/DuoView.tsx): two phones and a vault. The vault is this rental's escrow at night (the landing
+ * page's LED board colours, the same in the light and the dark theme); the page around it follows the theme.
+ * One screen from 1280x720 to 1920x1080 (wide + at least 720 px tall); stacked below that.
+ */
+.duo {
+  --duo-amber: #fbbf24;
+  --duo-pink: #f472b6;
+  --duo-teal: #2dd4bf;
+  /* The board's tones (components/marketing/board.css), for the lanes' tracks and tags. */
+  --mk-amber: var(--duo-amber);
+  --mk-pink: var(--duo-pink);
+  --mk-teal: var(--duo-teal);
+  --duo-night: #080720;
+  --duo-ink: #f4f4ff;
+  --duo-ink2: #cfd0ee;
+  --duo-sub: #a9abd6;
+  --duo-line: #454092;
+  /* The tones as text and fills on the page (readable on white, or on the dark theme). */
+  --duo-teal-fg: #0f766e;
+  --duo-pink-fg: #be185d;
+  --duo-pink-soft: #fce7f3;
+  --duo-dial: clamp(3.25rem, 9vh, 5.5rem);
+  --duo-vp: clamp(0.9rem, 1.6vw, 2rem);
+}
+:root.dark .duo {
+  --duo-teal-fg: #2dd4bf;
+  --duo-pink-fg: #f472b6;
+  --duo-pink-soft: rgb(244 114 182 / 0.16);
+}
+
+/* ---- Layout: stacked by default (phones, tablets portrait) ---- */
+.duo-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+.duo-side {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.duo-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.duo-centre {
+  display: flex;
+  width: 100%;
+  max-width: 34rem;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
+}
+@media (min-width: 1024px) and (orientation: landscape) {
+  .duo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr) minmax(0, 20rem);
+    align-items: start;
+    gap: clamp(0.5rem, 1vw, 1.5rem);
+  }
+  .duo-centre {
+    --duo-lane: clamp(6.5rem, 10vw, 12rem);
+    --duo-lane-gap: clamp(0.75rem, 1.5vw, 2.25rem);
+    max-width: none;
+    padding-inline: calc(var(--duo-lane) + var(--duo-lane-gap));
+  }
+  .duo-note {
+    font-size: clamp(0.75rem, 0.35rem + 0.4vw, 1.125rem);
+  }
+}
+@media (min-width: 1024px) and (orientation: landscape) and (min-height: 720px) {
+  .duo-grid {
+    --duo-ph: calc((100dvh - 12rem) * 0.47);
+    min-height: 0;
+    flex: 1;
+    grid-template-columns: minmax(0, var(--duo-ph)) minmax(0, 1fr) minmax(0, var(--duo-ph));
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .duo-side,
+  .duo-centre {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+/* ---- The vault ---- */
+.duo-vault {
+  position: relative;
+  container-type: inline-size;
+  margin-top: calc(var(--duo-dial) / 2 + 0.25rem);
+  border: 3px dotted var(--duo-pink);
+  border-radius: 1.5rem;
+  background: radial-gradient(78% 62% at 50% 58%, rgb(251 191 36 / 0.1), transparent 72%), var(--duo-night);
+  padding: calc(var(--duo-dial) * 0.7 + 0.5rem) var(--duo-vp) var(--duo-vp);
+  color: var(--duo-ink);
+  text-align: center;
+  box-shadow: 0 0 60px -20px rgb(244 114 182 / 0.35);
+  transition:
+    box-shadow 0.9s,
+    border-color 0.6s;
+  z-index: 1;
+}
+.duo-vault:is([data-phase="funded"], [data-phase="split"]) {
+  border-color: #f9a8d4;
+  background: radial-gradient(78% 62% at 50% 58%, rgb(251 191 36 / 0.17), transparent 72%), var(--duo-night);
+  box-shadow: 0 0 110px -14px rgb(244 114 182 / 0.62);
+}
+/* The dial on the vault door: the key-shield, a ring of ticks and a needle that turns as the vault locks and opens. */
+.duo-dial {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--duo-dial);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #1b174a, var(--duo-night) 74%);
+  box-shadow:
+    0 0 0 1.5px rgb(251 191 36 / 0.85),
+    0 0 0 0.45rem var(--duo-night),
+    0 0 34px 8px rgb(251 191 36 / 0.26);
+}
+.duo-dial svg {
+  position: absolute;
+  inset: -18%;
+  width: 136%;
+  height: 136%;
+  overflow: visible;
+  rotate: -70deg;
+  filter: drop-shadow(0 0 3px rgb(251 191 36 / 0.55));
+  transition: rotate 1.1s cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+.duo-dial circle {
+  fill: none;
+}
+.duo-dial-ticks {
+  stroke: rgb(251 191 36 / 0.6);
+  stroke-width: 3.5;
+  stroke-dasharray: 0.5 3.5;
+}
+.duo-dial-needle {
+  stroke: #fff;
+  stroke-width: 6.5;
+  stroke-dasharray: 1 95;
+  stroke-dashoffset: -71.5;
+}
+.duo-vault:is([data-phase="funded"], [data-phase="split"]) .duo-dial svg {
+  rotate: 0deg;
+}
+.duo-vault[data-phase="settled"] .duo-dial svg {
+  rotate: 160deg;
+}
+.duo-dial .duo-dial-mark {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  border-radius: 50%;
+}
+.duo-vault-title {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(1.05rem, 4.6cqi, 2.1rem);
+  font-weight: 500;
+  line-height: 1.15;
+}
+.duo-vault-title small {
+  display: block;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(0.75rem, 2.8cqi, 1.15rem);
+  font-weight: 400;
+  color: var(--duo-sub);
+}
+.duo-vault .mk-dotnum {
+  width: 90%;
+  margin: clamp(0.4rem, 2cqi, 1rem) auto 0;
+  color: var(--duo-amber);
+}
+/* Nothing in the vault: the ฿0 stays dim. */
+.duo-vault:is([data-phase="none"], [data-phase="settled"]) .mk-dotnum {
+  filter: none;
+}
+.duo-vault:is([data-phase="none"], [data-phase="settled"]) .mk-dot-on {
+  opacity: 0.42;
+}
+.duo-ledcap {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.35rem 5% 0;
+  font-size: clamp(0.75rem, 2.8cqi, 1.1rem);
+  color: var(--duo-ink2);
+}
+.duo-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.92em;
+  color: var(--duo-sub);
+}
+.duo-addr svg {
+  width: 0.9em;
+  height: 0.9em;
+}
+a.duo-addr:hover {
+  color: var(--duo-ink);
+}
+
+/* The pile: one coin per coinPlan().coin baht, four rows filled column by column (left to right). */
+.duo-pilewrap {
+  position: relative;
+  margin-top: clamp(0.5rem, 2.6cqi, 1.25rem);
+}
+.duo-pile {
+  --coin: 3.9cqi;
+  display: grid;
+  grid-template-rows: repeat(4, var(--coin));
+  grid-auto-columns: var(--coin);
+  grid-auto-flow: column;
+  justify-content: center;
+  gap: calc(var(--coin) * 0.14);
+}
+.duo-coin {
+  --tone: var(--duo-amber);
+  position: relative;
+  border-radius: 50%;
+  background: rgb(251 191 36 / 0.13);
+}
+.duo-coin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: url("/marketing/bnb-symbol.svg") center / 62% no-repeat;
+  background-color: color-mix(in srgb, var(--tone) 45%, #000);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--tone) 75%, transparent);
+  opacity: 0;
+  transition:
+    background-color 0.4s calc(var(--i) * 14ms),
+    box-shadow 0.4s calc(var(--i) * 14ms);
+}
+.duo-vault:is([data-phase="split"], [data-phase="settled"]) .duo-coin[data-kind="renter"] {
+  --tone: var(--duo-teal);
+}
+.duo-vault:is([data-phase="split"], [data-phase="settled"]) .duo-coin[data-kind="owner"] {
+  --tone: var(--duo-pink);
+}
+/* Paid in: the coins drop into the pile one after the other. */
+.duo-vault:is([data-phase="funded"], [data-phase="split"]) .duo-coin::after {
+  opacity: 1;
+  animation: duo-coin-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) calc(var(--i) * 18ms) backwards;
+}
+@keyframes duo-coin-in {
+  from {
+    opacity: 0;
+    translate: 0 -1.5rem;
+    scale: 0.6;
+  }
+}
+/* Settled: the renter's coins leave left, the owner's and the rent right, the last coin down to the fee. */
+.duo-vault[data-phase="settled"] .duo-coin::after {
+  animation: duo-out-r 0.9s ease-in calc((80 - var(--i)) * 12ms) backwards;
+}
+.duo-vault[data-phase="settled"] .duo-coin[data-kind="renter"]::after {
+  animation-name: duo-out-l;
+  animation-delay: calc(var(--i) * 12ms);
+}
+.duo-vault[data-phase="settled"] .duo-coin[data-kind="fee"]::after {
+  animation: duo-out-fee 1.2s ease-in-out 1.1s backwards;
+}
+@keyframes duo-out-l {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    translate: -8rem 0;
+  }
+}
+@keyframes duo-out-r {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    translate: 8rem 0;
+  }
+}
+@keyframes duo-out-fee {
+  from {
+    opacity: 1;
+  }
+  40% {
+    opacity: 1;
+    translate: 2rem -1.5rem;
+    scale: 1.6;
+  }
+  to {
+    opacity: 0;
+    translate: 9rem 4rem;
+    scale: 1.2;
+  }
+}
+.duo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.15rem 1rem;
+  margin-top: clamp(0.4rem, 2cqi, 0.9rem);
+  font-size: clamp(0.7rem, 2.6cqi, 1.05rem);
+  color: var(--duo-sub);
+}
+.duo-dot {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--tone, var(--duo-amber));
+  box-shadow: 0 0 6px var(--tone, var(--duo-amber));
+}
+.duo-dot[data-kind="renter"] {
+  --tone: var(--duo-teal);
+}
+.duo-dot[data-kind="owner"] {
+  --tone: var(--duo-pink);
+}
+.duo-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: clamp(0.4rem, 2cqi, 0.9rem);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.045);
+  padding: 0.35rem 0.9rem 0.35rem 0.7rem;
+  box-shadow: inset 0 0 0 1px var(--duo-line);
+  font-size: clamp(0.75rem, 2.7cqi, 1.1rem);
+  font-weight: 500;
+  color: var(--duo-ink2);
+}
+.duo-lock svg {
+  flex: none;
+  color: var(--duo-amber);
+}
+
+/* ---- Lanes: stacked they are two rows of numbers in the vault; one-screen, coin tracks out to the phones ---- */
+.duo-lane {
+  margin: 0.6rem 0;
+}
+.duo-lane .mk-track {
+  display: none;
+}
+.duo-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+.duo-stat {
+  --tone: var(--duo-amber);
+}
+.duo-stat[data-kind="renter"] {
+  --tone: var(--duo-teal);
+}
+.duo-stat[data-kind="owner"] {
+  --tone: var(--duo-pink);
+}
+.duo-stat dt {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--duo-sub);
+}
+.duo-stat dt::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--tone);
+  opacity: 0.35;
+}
+.duo-stat[data-on] dt::before {
+  opacity: 1;
+  box-shadow: 0 0 6px var(--tone);
+}
+.duo-stat dd {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--duo-line);
+}
+.duo-stat[data-on] dd {
+  color: var(--duo-ink);
+  animation: duo-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+@keyframes duo-pop {
+  from {
+    scale: 0.6;
+    opacity: 0.2;
+  }
+}
+@media (min-width: 1024px) and (orientation: landscape) {
+  .duo-lane {
+    position: absolute;
+    top: 50%;
+    width: var(--duo-lane);
+    margin: 0;
+    color: var(--foreground);
+  }
+  .duo-lane-l {
+    right: calc(100% + var(--duo-vp) + var(--duo-lane-gap));
+  }
+  .duo-lane-r {
+    left: calc(100% + var(--duo-vp) + var(--duo-lane-gap));
+  }
+  .duo-lane .mk-track {
+    --mk-dot: clamp(0.5rem, 0.75vw, 0.95rem);
+    display: block;
+    margin: 0;
+    translate: 0 -50%;
+  }
+  .duo-lane-l .mk-track[data-flow="rev"] .mk-track-tag {
+    background: var(--duo-teal);
+  }
+  .duo-lane-r .mk-track-tag {
+    background: var(--duo-pink);
+  }
+  .duo-lane .mk-track-tag {
+    font-size: clamp(0.875rem, 0.4rem + 0.6vw, 1.5rem);
+  }
+  .duo-stats {
+    position: absolute;
+    top: calc(var(--mk-dot, 0.75rem) * 1.5 + 0.75rem);
+    right: -1rem;
+    left: -1rem;
+    display: grid;
+    gap: clamp(0.4rem, 1.2vh, 1rem);
+    text-align: center;
+  }
+  .duo-stat dt {
+    font-size: clamp(0.625rem, 0.3rem + 0.4vw, 0.9375rem);
+    color: var(--muted-foreground);
+  }
+  .duo-stat dd {
+    font-size: clamp(1.05rem, 0.4rem + 1.1vw, 2.1rem);
+    color: var(--subtle);
+  }
+  .duo-stat[data-on] dd {
+    color: var(--foreground);
+  }
+}
+
+/* ---- The on-chain receipt under the vault: one printed line per event, newest at the bottom ---- */
+.duo-receipt {
+  min-height: 0;
+  margin: -0.5rem clamp(0.5rem, 1.5vw, 1.5rem) 0;
+  overflow-y: auto;
+  filter: drop-shadow(0 12px 16px rgb(0 0 0 / 0.3));
+  scrollbar-width: thin;
+}
+@media (min-width: 1024px) and (orientation: landscape) and (min-height: 720px) {
+  .duo-receipt {
+    flex: 1;
+  }
+}
+.duo-paper {
+  --z: 5px;
+  background: linear-gradient(#d9d1bc, #f7f1e1 15px);
+  padding: 1.1rem 0.9rem 1rem;
+  color: #1b1236;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--z)) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--z)) 100%;
+}
+.duo-rh {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1.5px dashed #b3a98f;
+  padding-bottom: 0.2rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(0.625rem, 0.3rem + 0.35vw, 0.875rem);
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #5b5378;
+}
+.duo-rh b {
+  font-weight: 600;
+  color: #1b1236;
+}
+.duo-paper li {
+  display: grid;
+  grid-template-columns: 5.2em minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.6em;
+  font-size: clamp(0.75rem, 0.35rem + 0.45vw, 1.125rem);
+  line-height: 1.7;
+  white-space: nowrap;
+  animation: duo-print 0.55s steps(18) both;
+}
+@keyframes duo-print {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.duo-call {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.92em;
+  font-weight: 600;
+}
+.duo-what {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.duo-hash {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.88em;
+  color: #1d4ed8;
+  text-decoration: underline dotted;
+  text-underline-offset: 2.5px;
+}
+.duo-hash svg {
+  width: 0.85em;
+  height: 0.85em;
+}
+.duo-paper li.duo-pay {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1em;
+  margin-top: 0.2rem;
+  border-top: 1.5px dashed #b3a98f;
+  padding-top: 0.15rem;
+  font-weight: 600;
+}
+
+/* Reduced motion: every state stays (the pile is full, coloured or empty), nothing flies, drops or prints. */
+@media (prefers-reduced-motion: reduce) {
+  .duo-coin::after,
+  .duo-paper li,
+  .duo-stat dd {
+    animation: none !important;
+    transition: none !important;
+  }
+  .duo-dial svg,
+  .duo-vault {
+    transition: none;
+  }
+}

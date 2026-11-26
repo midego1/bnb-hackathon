@@ -167,15 +167,20 @@ time; an offer left unfunded for 5 minutes may be taken by the next renter. The 
 the stage rental is "one day" in the UI and settles the same day. Every stage item, box or scooter, rents for one day at
 its listing's day price (Honda Click ฿250) plus its deposit.
 
-**Both sides on one screen (`/duo/mystery-box`, unlisted), for the pitch and the video:** left the renter's phone (the
-real `/r` flow in a phone frame, with this browser's own guest wallet), right the rental company's view (headline,
-money strip, photos, timeline, a small QR, *Accept* / *Reset*), under a step bar Choose → Rent → Pickup photos → Return → AI split → Settled. The phone opens on its chooser;
-picking e.g. the Honda Click switches the header, the owner pane and the URL to `/duo/honda-click-125i`. The owner pane's money
-is the landing page's LED board, live: Renter → Escrow ("this rental's own contract") → Owner, the on-chain amounts in
-BNB-coin dots; on each real transfer the coins chase along the track (three times; lit but still with reduced motion)
-and the amount tag flies in; at settlement it shows what came back and *KeyScrow fee ฿X, once*. When a judge scans the QR and rents on
-their own phone, the left pane mirrors that rental read-only until *Reset stage*. One screen on a laptop or projector
-(1280×720 and up); stacked on a phone. Rehearse: `cd web && npx playwright test duo`.
+**Both sides on one screen (`/duo/mystery-box`, unlisted), for the pitch and the video: two phones and a vault.** Left
+the renter's phone (the real `/r` flow in a phone frame, with this browser's own guest wallet), right the shop owner's
+phone (what the owner sees: the offer, the deposit locked, the pickup and return photos, the AI split with both photos
+and *Accept the split*, which is the presenter's accept behind the presenter code, then settled). Between them the
+escrow as a vault: the key-shield dial, the escrow amount in LED coins and a coin pile (40 to 80 coins of a round value
+per rental, e.g. ฿100 for the Honda) that fills when the renter pays, takes the AI split's colours (teal back to the
+renter, pink damage to the owner, amber rent) and drains into both lanes at settlement, one coin to *KeyScrow fee*. The
+lanes carry the coin tracks, amount tags and *Renter paid / Back to renter / Owner got / KeyScrow fee, once*; under
+the vault the on-chain receipt prints one line per event with its BscScan link, then the payouts. A step bar Choose →
+Rent → Pickup photos → Return → AI split → Settled sits on top; a bottom bar has the QR (tap to enlarge) and *Reset
+stage*. The phone opens on its chooser; picking e.g. the Honda Click switches the header, the owner's phone and the URL
+to `/duo/honda-click-125i`. When a judge scans the QR and rents on their own phone, the left phone mirrors that rental
+read-only until *Reset stage*. Reduced motion: nothing flies or drops, the pile just changes. One screen on a laptop or
+projector (1280×720 and up); stacked on a phone. Rehearse: `cd web && npx playwright test duo`.
 
 ### Demo scooter listings: rent one from the landing page
 

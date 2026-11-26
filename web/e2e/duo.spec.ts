@@ -4,10 +4,11 @@ import { E2E_WEB_PORT } from "./env";
 import { noisyBmp } from "./photos";
 
 /**
- * /duo/mystery-box on the throwaway anvil: the renter's phone (the framed /r flow) left, the rental company's view right.
- * The phone starts on its chooser; picking the Honda Click switches the header, the owner pane and the URL to it. One
- * full rental is played through the phone pane; the owner pane, step bar and money follow it, and the presenter
- * accepts on the right. Then the settled screen at laptop and projector size, light and dark, 中文 and EN+中文, and a phone.
+ * /duo/mystery-box on the throwaway anvil: two phones and a vault. The renter's phone (the framed /r flow) left, the
+ * shop owner's phone right, the escrow as a vault between them. The phone starts on its chooser; picking the Honda
+ * Click switches the header, the owner side and the URL to it. One full rental is played through the phone pane; the
+ * owner's phone, the vault (coin pile, lanes, receipt), the step bar and the money follow it, and the presenter accepts
+ * on the owner's phone. Then the settled screen at laptop and projector size, light and dark, 中文 and EN+中文, and a phone.
  *
  * Screenshots go to DUO_SHOTS (default test-results/screenshots/duo).
  */
@@ -35,34 +36,47 @@ async function photos(page: Page, kind: "pickup" | "return", seed: number) {
   await phone.getByTestId(`judge-save-${kind}`).click();
 }
 
-/** One screen: no page scroll either way, both panes, the phone, the QR and the presenter buttons fully in view. */
+/**
+ * One screen: no page scroll either way; the step bar, both phones, the vault with its lanes and receipt, the QR and
+ * Reset fully in view (and Accept when the owner's phone shows it).
+ */
 async function oneScreen(page: Page, at: string) {
   const m = await page.evaluate(() => ({ sw: document.scrollingElement!.scrollWidth, sh: document.scrollingElement!.scrollHeight, w: innerWidth, h: innerHeight }));
   expect(m.sw, `sideways scroll at ${at}`).toBeLessThanOrEqual(m.w);
   expect(m.sh, `page scroll at ${at}`).toBeLessThanOrEqual(m.h);
-  for (const id of ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "stage-qr", "duo-board", "stage-accept", "stage-reset"]) {
-    await expect(page.getByTestId(id), `${id} at ${at}`).toBeInViewport({ ratio: 1 });
-  }
-  // The three LED panels sit inside their stations, side by side.
-  for (const el of await page.locator("[data-testid='duo-board'] .mk-dotnum").all()) {
-    expect(await el.evaluate((e) => e.getBoundingClientRect().right <= e.closest(".mk-station")!.getBoundingClientRect().right + 1), `LED panel overflows at ${at}`).toBe(true);
-  }
+  const ids = ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "duo-owner-phone", "stage-qr", "duo-board", "duo-pile", "duo-lock", "duo-paid", "duo-back", "duo-got", "duo-fee", "stage-timeline-box", "stage-reset"];
+  if (await page.getByTestId("stage-accept").count()) ids.push("stage-accept");
+  // 0.999: Accept sits in the owner's scaled phone, whose sub-pixel edges round a hair under 1.
+  for (const id of ids) await expect(page.getByTestId(id).first(), `${id} at ${at}`).toBeInViewport({ ratio: 0.999 });
+  // The lanes sit between the phones and the vault, not over either.
+  const box = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
+  const [phone, owner, laneL, laneR, vault] = await Promise.all(["[data-testid='duo-phone']", "[data-testid='duo-owner-phone']", ".duo-lane-l", ".duo-lane-r", ".duo-vault"].map(box));
+  expect(laneL.x, `left lane over the phone at ${at}`).toBeGreaterThanOrEqual(phone.x + phone.width - 1);
+  expect(laneL.x + laneL.width, `left lane over the vault at ${at}`).toBeLessThanOrEqual(vault.x + 1);
+  expect(laneR.x, `right lane over the vault at ${at}`).toBeGreaterThanOrEqual(vault.x + vault.width - 1);
+  expect(laneR.x + laneR.width, `right lane over the owner's phone at ${at}`).toBeLessThanOrEqual(owner.x + 1);
 }
 
-/** The money board (the landing page's LED board, live): what a station holds, as its screen-reader text says it. */
-const held = (page: Page, tone: "renter" | "escrow" | "owner") => page.locator(`[data-testid='duo-board'] .mk-station-${tone} .mk-station-read .sr-only`);
-const track = (page: Page, i: 0 | 1) => page.locator("[data-testid='duo-board'] .mk-track").nth(i);
-const LED_SHOTS = process.env.DUO_LED_SHOTS ?? SHOTS;
-/** The board at 1440x900, light and dark, for the report; then back to the test's own size. */
-async function ledShots(page: Page, name: string) {
+/** The vault: what the escrow holds (its screen-reader text), a lane's coin track, a lane number. */
+const escrow = (page: Page) => page.getByTestId("duo-escrow");
+const track = (page: Page, i: 0 | 1) => page.locator(".duo-lane .mk-track").nth(i);
+const stat = (page: Page, id: "paid" | "back" | "got" | "fee") => page.locator(`[data-testid='duo-${id}'] dd`);
+/** The pile's coins of one kind that are lit (their coin face showing), once the drop or drain has played. */
+const lit = (page: Page, kind?: string) =>
+  page.locator(`[data-testid='duo-pile'] .duo-coin${kind ? `[data-kind='${kind}']` : ""}`).evaluateAll((els) => els.filter((e) => getComputedStyle(e, "::after").opacity === "1").length);
+const coins = (page: Page, kind: string) => page.locator(`[data-testid='duo-pile'] .duo-coin[data-kind='${kind}']`).count();
+/** The whole screen at 1440x900, light and dark, for the report; then back to the test's own size. */
+async function shots(page: Page, name: string) {
   const size = page.viewportSize()!;
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const colorScheme of ["light", "dark"] as const) {
-    await page.emulateMedia({ colorScheme });
-    await page.waitForTimeout(1200); // the tag has flown in and the new amount has lit up
-    await page.screenshot({ path: path.join(LED_SHOTS, `duo-led-1440x900-${colorScheme}-${name}.png`) });
+    await page.emulateMedia({ colorScheme }); // the framed phone follows the media query
+    await page.evaluate((c) => document.documentElement.classList.replace(c === "dark" ? "light" : "dark", c), colorScheme); // the page, its theme class
+    await page.waitForTimeout(2500); // the coins have dropped or drained, the tag has flown in, the receipt has printed
+    await page.screenshot({ path: path.join(SHOTS, `duo-1440x900-${colorScheme}-${name}.png`) });
   }
   await page.emulateMedia({ colorScheme: null });
+  await page.evaluate(() => document.documentElement.classList.replace("dark", "light"));
   await page.setViewportSize(size);
 }
 
@@ -109,6 +123,7 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(phone.getByTestId(`judge-pick-${SLUG}`)).toHaveAttribute("aria-current", "true");
   await expect(phone.getByTestId("judge-choose").getByRole("button")).toHaveCount(8);
   await oneScreen(page, "1470x830 choose");
+  await shots(page, "1-choose");
   // No Ask AI bubble, neither on the page nor in the framed phone.
   await expect(page.getByTestId("assistant-bubble")).toHaveCount(0);
   await expect(phone.getByTestId("assistant-bubble")).toHaveCount(0);
@@ -131,15 +146,21 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await phone.getByTestId(`judge-pick-${HONDA}`).click();
   await step(phone, "wallet");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "1");
-  // Rent: the renter still holds the Honda's day + deposit (฿250 + ฿6,800; on-chain mUSDT, so ±฿1), nothing moves yet.
+  // Rent: the vault is empty; its pile is laid out for the Honda's day + deposit (฿250 + ฿6,800; on-chain mUSDT, so
+  // ±฿1) in ฿100 coins, all dim. Nothing moves yet.
   await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "none");
-  await expect(held(page, "renter")).toHaveText(/^฿7,05[01]\s*$/);
-  await expect(held(page, "escrow")).toHaveText(/^฿0\s*$/);
-  await expect(held(page, "owner")).toHaveText(/^฿0\s*$/);
+  await expect(escrow(page)).toHaveText(/^฿0\s*$/);
+  await expect(page.getByTestId("duo-pile")).toHaveAttribute("data-coin", "100");
+  await expect(page.getByTestId("duo-pile")).toHaveAttribute("data-count", "71");
+  expect(await lit(page)).toBe(0);
+  await expect(page.getByTestId("duo-legend")).toContainText("1 coin = ฿100");
+  await expect(page.getByTestId("duo-legend")).toContainText(/฿6,80[01] deposit \+ ฿25[01] rent/);
+  await expect(page.getByTestId("duo-lock")).toHaveText("Empty: waiting for the renter");
   await expect(track(page, 0)).toHaveAttribute("data-flow", "off");
-  await expect(page.getByTestId("duo-board")).toContainText("Passport: still in your pocket");
+  await expect(stat(page, "paid")).toHaveText("–");
+  await expect(page.getByTestId("duo-renter")).toContainText("Passport: still in your pocket");
   await expect(page.getByTestId("duo-board")).toContainText("this rental's own contract");
-  await ledShots(page, "1-rent");
+  await expect(page.getByTestId("stage-headline")).toContainText("Scan to rent the Honda Click 125i");
 
   await phone.getByTestId("judge-guest").click();
   await step(phone, "money");
@@ -151,24 +172,33 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await phone.getByTestId("judge-rent").click();
   await step(phone, "pickup");
 
-  // Funded: the owner pane follows; the escrow's live balance is on the board and the coins run renter -> escrow.
+  // Funded: the owner's phone follows; the vault holds the live balance, its pile fills and the coins run renter -> vault.
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Active");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "2");
   await expect(page.getByTestId("stage-headline")).toContainText("locked in escrow");
+  await expect(page.getByTestId("duo-owner-screen")).toContainText(/Deposit in escrow\s*฿6,80[01]/);
   await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "funded");
-  await expect(held(page, "renter")).toHaveText(/^฿0\s*$/);
-  await expect(held(page, "escrow")).toHaveText(/^฿7,05[01]\s*$/);
+  await expect(escrow(page)).toHaveText(/^฿7,05[01]\s*$/);
+  await expect.poll(() => lit(page), { timeout: 10_000 }).toBe(71);
+  await expect(page.getByTestId("duo-lock")).toHaveText("Locked: nobody can move it alone");
   await expect(track(page, 0)).toHaveAttribute("data-flow", "fwd");
   await expect(track(page, 0)).toContainText(/฿7,05[01]/);
   await expect(track(page, 1)).toHaveAttribute("data-flow", "off");
+  await expect(stat(page, "paid")).toHaveText(/^฿7,05[01]$/);
+  await expect(stat(page, "back")).toHaveText("–");
+  // The receipt has printed the offer and the payment, each with its transaction.
+  await expect(page.getByTestId("stage-timeline").locator("li")).toHaveCount(2);
+  await expect(page.getByTestId("stage-timeline").locator("li").nth(0)).toContainText(/create.*escrow created.*0x[0-9a-f]{8}/);
+  await expect(page.getByTestId("stage-timeline").locator("li").nth(1)).toContainText(/fund.*Renter paid/);
   await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(2);
   await page.screenshot({ path: path.join(SHOTS, "duo-1470x830-funded.png") });
-  await ledShots(page, "2-escrow");
+  await shots(page, "2-rent-paid");
 
   await photos(page, "pickup", 1);
   await step(phone, "return");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "3");
   await expect(page.locator("img[alt='Pickup photo']")).toHaveCount(1);
+  await expect(page.getByTestId("stage-timeline")).toContainText("evidence");
 
   await photos(page, "return", 2);
   await step(phone, "inspect");
@@ -179,35 +209,61 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await step(phone, "waiting");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "MoveOut");
   await expect(page.getByTestId("stage-headline")).toContainText("AI split proposed");
+  // The AI split: the pile takes the split's colours (teal back to the renter, pink to the owner, amber the rent), the
+  // owner's phone shows both photos and its Accept; the receipt has both photos and the proposal.
+  await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "split");
+  await expect(page.getByTestId("duo-lock")).toHaveText("Split proposed: it needs the owner's OK");
+  expect(await coins(page, "renter")).toBeGreaterThan(50);
+  expect(await coins(page, "owner")).toBeGreaterThan(0);
+  expect(await coins(page, "fee")).toBe(1);
+  await expect(page.getByTestId("duo-legend")).toContainText("back to renter");
+  await expect(page.getByTestId("duo-owner-screen").locator("img[alt='Pickup photo'], img[alt='Return photo']")).toHaveCount(2);
+  await expect(page.getByTestId("stage-timeline").locator("li")).toHaveCount(5);
+  await expect(page.getByTestId("stage-accept")).toBeVisible();
+  await oneScreen(page, "1470x830 split");
   await page.screenshot({ path: path.join(SHOTS, "duo-1470x830-proposed.png") });
+  await shots(page, "3-ai-split");
 
   await page.getByTestId("stage-accept").click();
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Settled", { timeout: 30_000 });
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "5");
   await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(6);
   await expect(page.getByTestId("stage-timeline")).toContainText("Both agreed: money settled");
-  // Settled: the escrow is empty, coins run back to the renter and on to the owner, and the one-time fee shows.
+  // Settled: the vault is empty, its pile drains into both lanes (back to the renter, on to the owner) and the one-time
+  // fee shows; the receipt prints the payouts.
   await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "settled");
-  await expect(held(page, "escrow")).toHaveText(/^฿0\s*$/);
+  await expect(escrow(page)).toHaveText(/^฿0\s*$/);
+  await expect.poll(() => lit(page), { timeout: 10_000 }).toBe(0);
+  await expect(page.getByTestId("duo-lock")).toHaveText("Paid out and closed");
   await expect(track(page, 0)).toHaveAttribute("data-flow", "rev");
   await expect(track(page, 1)).toHaveAttribute("data-flow", "fwd");
-  await expect(page.locator("[data-testid='duo-board'] .mk-station-owner .mk-station-note")).toHaveText(/^KeyScrow fee ฿[\d,]+, once$/);
-  await expect(page.locator("[data-testid='duo-board'] .mk-station-owner .mk-station-note")).not.toHaveClass(/invisible/);
+  await expect(page.getByTestId("duo-fee")).toContainText("KeyScrow fee, once");
+  await expect(stat(page, "fee")).toHaveText(/^฿[1-9][\d,]*$/);
+  const fee = (await stat(page, "fee").textContent())!;
+  await expect(page.getByTestId("duo-payout")).toContainText(`${fee} KeyScrow`);
   await step(phone, "settled");
   await expect(phone.getByTestId("judge-settled")).toContainText(/Your ฿[\d,]+ are back/);
-  // The board and the phone agree on what came back.
+  // The lanes, the receipt, the owner's phone and the renter's phone agree on what came back and what the owner got.
   const back = (await phone.getByTestId("judge-settled").textContent())!.match(/฿[\d,]+/)![0];
-  await expect(held(page, "renter")).toHaveText(new RegExp(`^${back}\\s*$`));
-  await expect(held(page, "owner")).toHaveText(/^฿[1-9][\d,]*\s*$/);
+  await expect(stat(page, "back")).toHaveText(back);
+  await expect(stat(page, "got")).toHaveText(/^฿[1-9][\d,]*$/);
+  const got = (await stat(page, "got").textContent())!;
+  await expect(page.getByTestId("duo-payout")).toContainText(`${back} renter`);
+  await expect(page.getByTestId("duo-payout")).toContainText(`${got} owner`);
+  await expect(page.getByTestId("duo-owner-screen")).toContainText(new RegExp(`Owner got\\s*${got}`));
+  await expect(page.getByTestId("stage-accept")).toHaveCount(0);
   await expect(phone.getByTestId("judge-mirror")).toHaveCount(0);
   await oneScreen(page, "1470x830 settled");
-  await ledShots(page, "3-settled");
-  // Reduced motion: the active tracks are simply lit (no chase), the tag and the amounts sit still.
+  await shots(page, "4-settled");
+  // Reduced motion: the active tracks are simply lit (no chase), nothing drops, drains, prints or flies.
   await page.emulateMedia({ reducedMotion: "reduce" });
   const still = (sel: string, pseudo?: string) => page.locator(`[data-testid='duo-board'] ${sel}`).first().evaluate((e, p) => getComputedStyle(e, p).animationName, pseudo);
   expect(await still(".mk-track[data-flow='fwd']", "::after")).toBe("none");
   expect(await still(".mk-track-tag")).toBe("none");
   expect(await still(".mk-dot-on")).toBe("none");
+  expect(await still(".duo-coin", "::after")).toBe("none");
+  expect(await still(".duo-receipt li")).toBe("none");
+  expect(await lit(page)).toBe(0);
 
   for (const [w, h] of [
     [1280, 720],
