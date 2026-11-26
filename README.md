@@ -9,7 +9,7 @@ English | [简体中文](README.zh-CN.md)
 ![web coverage](https://img.shields.io/badge/coverage%20web-66.2%25-yellow.svg)
 ![agent coverage](https://img.shields.io/badge/coverage%20agent-81.4%25-green.svg)
 <!-- coverage:end -->
-[![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8)
+[![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](#bsc-testnet-contracts-chain-97)
 
 **Rent a scooter in Thailand without leaving your passport.**
 
@@ -24,10 +24,52 @@ Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas). Open source
 
 ## For judges
 
+**In 30 seconds.** Open <https://keyescrow-web.mdgooijer.workers.dev> and pick one of three ways in:
+
+1. **[/demo](https://keyescrow-web.mdgooijer.workers.dev/demo)**: one click plays a whole scooter rental with real
+   BSC testnet transactions. No wallet needed; every step links to BscScan.
+2. **[/stage/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/stage/mystery-box)** on a big screen and
+   **[/r/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/r/mystery-box)** on your phone (scan the QR): you
+   rent our physical Mystery Box with a guest wallet, take pickup and return photos, get the AI split and settle.
+3. **[/pitch](https://keyescrow-web.mdgooijer.workers.dev/pitch)**: the 3-minute pitch as an animated storyboard.
+
+The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
+[agent card](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json). The contracts are in
+[one table below](#bsc-testnet-contracts-chain-97).
+
+**Real on-chain vs mocked**
+
+| Real (BSC testnet, chain 97) | Test stand-in or mocked, and labelled in the UI |
+| --- | --- |
+| One escrow contract per rental; creating, funding, rent payouts, evidence hashes, proposals and settlements in `/demo` and `/stage` are real transactions | The money is MockUSDT test money with no value; `/demo` and `/stage` sign with throwaway server-side demo wallets and a guest wallet |
+| ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site is a deterministic *demo inspector* (no model key set); with a key, a vision LLM returns the same JSON |
+| The contracts, verified on BscScan | Prices show *Demo rates* (no CoinMarketCap key yet; Atlas publishes no testnet feed); Cournot and Living Brain are built but not live ([state per sponsor](#sponsor-integrations)) |
+| Photo and document fingerprints (SHA-256) | The photos themselves are off-chain; the *Pay with PromptPay* page is a simulation that mints test USDT |
+
+| `/demo`, mid-run | `/stage` big screen, settled | `/r` on the judge's phone |
+| --- | --- | --- |
+| ![Guided /demo at step 7 of 10: the AI inspector's split in baht, live balances, every transaction hash](docs/submission/screenshots/4-demo-mid-run.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
+
+**Where each judging criterion is answered**
+
+| Criterion | Read |
+| --- | --- |
+| Design and usability | [docs/DESIGN.md](docs/DESIGN.md); amounts in baht first; EN, 中文 and EN+中文 ([languages](docs/ARCHITECTURE.md#languages-en--中文--en中文)); the [1-minute cartoon](https://keyescrow-web.mdgooijer.workers.dev/how-it-works) |
+| Scalability | [ARCHITECTURE.md §11](docs/ARCHITECTURE.md#11-scalability) and [§7 Cloudflare](docs/ARCHITECTURE.md#7-cloudflare-deployment) |
+| Innovation | The AI drafts, people decide, timeouts protect the renter ([how it works](#how-it-works)); one escrow per rental; every action as REST, MCP and A2A ([docs/AGENT.md](docs/AGENT.md)) |
+| Open-source quality | MIT; [tests and CI](#tests-and-ci); [security review](docs/SECURITY.md); [CONTRIBUTING.md](CONTRIBUTING.md) |
+| BNB Chain integration | [What makes it BNB-native](#what-makes-it-bnb-native): ERC-8004 #2921, BSC testnet, opBNB-ready, BNB Greenfield evidence |
+| CoinMarketCap x Atlas track | [docs/WRITEUP.md](docs/WRITEUP.md) and [sponsor integrations](#sponsor-integrations) |
+| Business model and roadmap | [docs/BUSINESS.md](docs/BUSINESS.md): the 10 % one-time fee, dispute desk, Fleet Vault, subscriptions (weekly, every 2 weeks, monthly), the capped mainnet pilot |
+
+### All links
+
 | What | Link |
 | --- | --- |
 | **Web app** (BSC testnet, chain 97) | <https://keyescrow-web.mdgooijer.workers.dev> |
 | **Live testnet demo**: one click plays a whole rental with real BSC testnet transactions, no wallet needed | <https://keyescrow-web.mdgooijer.workers.dev/demo> |
+| **Judge demo**: rent the Mystery Box from your phone | [/stage/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/stage/mystery-box) · [/r/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/r/mystery-box) · [listing](https://keyescrow-web.mdgooijer.workers.dev/app/listings/mystery-box) |
+| Pitch storyboard (3 minutes) | <https://keyescrow-web.mdgooijer.workers.dev/pitch> |
 | How it works, as a 1-minute cartoon | <https://keyescrow-web.mdgooijer.workers.dev/how-it-works> |
 | Developers: every rental action as REST + MCP, OpenAPI 3.1 | [/developers](https://keyescrow-web.mdgooijer.workers.dev/developers) · [/api/v1/openapi.json](https://keyescrow-web.mdgooijer.workers.dev/api/v1/openapi.json) |
 | **AI inspector agent** (ERC-8004 agent #2921) | <https://keyescrow-agent.mdgooijer.workers.dev> |
@@ -51,7 +93,9 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 
 ### BSC testnet contracts (chain 97)
 
-From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144828181).
+From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144828181). This table is the one
+place in the docs with these addresses; every other document links here. **Contract v2** (per-rental rent periods,
+pilot caps, audit fixes) replaces them on Thu 26 Nov, around 13:00 ICT: then only this table and `97.json` change.
 
 | Contract | Address |
 | --- | --- |
@@ -122,14 +166,17 @@ artifact; `pnpm coverage` measures all three locally and rewrites the coverage b
 number covers `lib/` and the API routes, the pages are covered by Playwright).
 
 ```bash
-cd contracts && forge build && forge test   # 120 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 344 vitest tests (server routes, actions, demo, sponsors; offline)
+cd contracts && forge build && forge test   # 120 tests (unit, fuzz, invariants; 305 with contract v2): factory, escrow, Fleet Vault, MockUSDT
+pnpm -C web lint && pnpm -C web test        # eslint + 393 vitest tests in 30 files (server routes, actions, demo, sponsors, i18n; offline)
 pnpm -C web build                           # production build
 pnpm agent:test                             # 21 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil
 pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
-cd web && npx playwright test               # 91 browser tests in 17 files, 2 workers; own anvil :28546 + server :3150
+cd web && npx playwright test               # 108 browser tests in 20 files, 2 workers; own anvil :28546 + server :3150
 pnpm coverage                               # forge coverage + vitest v8 coverage, lcov in <part>/coverage/
+pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.70 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
 ```
+
+Counts and sizes as of 26 Nov 2026 (main).
 
 ---
 
