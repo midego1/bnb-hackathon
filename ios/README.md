@@ -82,8 +82,15 @@ targets are at least 44 pt.
 ## Safety
 
 - **Testnet only.** `LegacyTransaction.signed` throws for any chainId but 97; `TxSender` also checks the prepared
-  answer's `chainId` and the RPC's `eth_chainId` before every send, caps gas (1.5 M) and gas price (10 gwei), refuses
-  value on prepared steps, and only calls MockUSDT, the factory, or an address the API confirms is a KeyEscrow rental.
+  answer's `chainId` and the RPC's `eth_chainId` before every send, caps gas (1.5 M) and gas price (10 gwei) and
+  refuses value on prepared steps.
+- **Calldata policy** (`Wallet/TxPolicy.swift`): whatever the server or an Ask AI card asks for, the phone signs only
+  MockUSDT `approve` to a real escrow (≤ 10,000 mUSDT) and `faucet` to itself, the factory's `createLease`, and
+  RentalEscrow's own actions on an address that `EscrowFactory.isLease` confirms on-chain through the app's own RPC
+  (never the API's word). A proposal is signed only if its amount and report hash equal the inspection's. No
+  `transfer`, no other contract.
+- A send whose answer got lost is looked up by its hash before retrying, and a pending shop offer is finished rather
+  than created twice. A Keychain read error never replaces the stored key.
 - **Keys** are made on the phone (`SecRandomCopyBytes`), stored in the Keychain with
   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` (no iCloud sync, not in backups) and never leave it. The server
   only ever sees addresses.
@@ -97,12 +104,12 @@ ios/
   project.yml                 XcodeGen: app, unit tests, live E2E UI test
   KeyEscrow/
     Crypto/                   Keccak-256, RLP, BigUInt, EIP-155 legacy tx signing, EIP-55 addresses, tiny ABI
-    Wallet/                   Keychain, WalletStore (guest + demo shop keys), TxSender (prepare_* steps -> RPC)
+    Wallet/                   Keychain, WalletStore (guest + demo shop keys), TxPolicy (what may be signed), TxSender
     Network/                  APIClient (/api/v1, stage, fleet, price, chain index, settlement, evidence), RPC, models
     Features/Home|Rent|Rentals|AskAI|Settings
     Support/                  AppSettings, L10n (EN + 中文 side by side), Money (baht / mUSDT / tBNB)
     Design/                   colour tokens, cards, pills, buttons
-  KeyEscrowTests/             signer vectors (viem), API decoding (live fixtures), money + i18n
+  KeyEscrowTests/             signer vectors (viem), calldata policy, API decoding (live fixtures), money + i18n
   KeyEscrowE2E/               live rent-a-scooter run on BSC testnet
 ```
 

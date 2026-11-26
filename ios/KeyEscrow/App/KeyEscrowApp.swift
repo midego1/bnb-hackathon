@@ -21,6 +21,7 @@ struct RootView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var wallet: WalletStore
     @State private var tab = AppSettings.initialTab
+    @Environment(\.scenePhase) private var phase
 
     var body: some View {
         TabView(selection: $tab) {
@@ -34,5 +35,6 @@ struct RootView: View {
                 .tabItem { Label(settings.t("tab.settings"), systemImage: "gearshape.fill") }.tag(3)
         }
         .task { await wallet.refresh() }
+        .onChange(of: phase) { _, p in if p == .active { wallet.reloadIfNeeded() } }
     }
 }

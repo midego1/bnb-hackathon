@@ -59,6 +59,7 @@ struct WalletView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Notice(text: settings.t("wallet.warning"), tone: .warn)
+                if wallet.keychainUnavailable { Notice(text: settings.t("wallet.keychain"), tone: .danger) }
                 Card {
                     Text(settings.t("wallet.guestLabel")).font(.headline)
                     Text(wallet.address).font(.callout.monospaced()).textSelection(.enabled).accessibilityIdentifier("wallet-address")

@@ -52,8 +52,9 @@ enum Money {
     /// THB -> mUSDT base units, rounded up to the cent (the renter never pays less than the listed THB). Mirrors
     /// web/lib/server/stage/guards.ts thbToUnits.
     static func unitsFromThb(_ thb: Double, rate: Double) -> BigUInt {
-        guard thb > 0, rate > 0 else { return BigUInt() }
+        guard thb > 0, rate > 0, thb.isFinite, rate.isFinite else { return BigUInt() }
         let cents = (thb / rate * 100 - 1e-9).rounded(.up)
+        guard cents.isFinite, cents < 1e15 else { return BigUInt() }
         return BigUInt(UInt64(cents)).multiplied(by: 10_000)
     }
 }

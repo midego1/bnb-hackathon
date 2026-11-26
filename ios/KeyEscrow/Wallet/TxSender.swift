@@ -26,23 +26,21 @@ struct TxSender {
         }
     }
 
-    /// Is `to` a contract this app may call? MockUSDT, the factory, or a rental escrow the API confirms.
-    func isAllowedTarget(_ to: String, lease: String?) async -> Bool {
-        if EthAddress.same(to, Self.token) || EthAddress.same(to, Self.factory) { return true }
-        if let lease, EthAddress.same(to, lease) { return true }
-        return (try? await api.getLease(to)) != nil // the server answers 404 for anything that is not a KeyEscrow rental
+    /// Throws unless the app's policy allows this call (TxPolicy; escrows are checked on-chain, not with the API).
+    func checkPolicy(to: String, data: Data, signer: String) async throws {
+        try await TxPolicy.check(to: to, data: data, signer: signer) { await EscrowRegistry.shared.isEscrow($0) }
     }
 
-    /// Runs prepare_* steps in order with `key`.
-    func run(_ p: Prepared, key: EthKey, lease: String?, onSent: (Sent) -> Void = { _ in }) async throws -> [Sent] {
+    /// Runs prepare_* steps in order with `key`. Every step passes TxPolicy before it is signed.
+    func run(_ p: Prepared, key: EthKey, onSent: (Sent) -> Void = { _ in }) async throws -> [Sent] {
         guard p.chainId == Chain.id else { throw EthError.wrongChain(p.chainId) }
         guard EthAddress.same(p.from, key.address) else { throw EthError.notAllowed("prepared for another wallet") }
         if p.simulation?.ok == false { throw SendError.message("The chain says this would fail right now. Refresh and try again.") }
         var out: [Sent] = []
         for step in p.steps {
             guard let value = BigUInt(step.value), value.isZero else { throw EthError.notAllowed("a prepared step wants to send tBNB") }
-            guard await isAllowedTarget(step.to, lease: lease) else { throw EthError.notAllowed("\(step.to) is not a KeyEscrow contract") }
             guard let data = Data(hex: step.data) else { throw EthError.notAllowed("bad calldata") }
+            try await checkPolicy(to: step.to, data: data, signer: key.address)
             let s = try await send(key: key, to: step.to, data: data, value: BigUInt(), description: step.description)
             out.append(s)
             onSent(s)
@@ -50,8 +48,17 @@ struct TxSender {
         return out
     }
 
-    /// One transaction: nonce, gas price and gas from the node, sign locally, send, wait for the receipt.
+    /// One transaction: sign, send, wait for the receipt, require success.
     func send(key: EthKey, to: String, data: Data, value: BigUInt, description: String, fixedGas: UInt64? = nil) async throws -> Sent {
+        let hash = try await signAndSend(key: key, to: to, data: data, value: value, description: description, fixedGas: fixedGas)
+        let receipt = try await waitForReceipt(hash)
+        guard receipt.succeeded else { throw SendError.reverted(hash) }
+        return Sent(description: description, hash: hash, block: receipt.blockNumber)
+    }
+
+    /// Nonce, gas price and gas from the node, sign locally, broadcast; returns the hash without waiting. `onHash` gets
+    /// the hash before it is broadcast, so a caller can remember it across a crash or a timeout.
+    func signAndSend(key: EthKey, to: String, data: Data, value: BigUInt = BigUInt(), description: String, fixedGas: UInt64? = nil, onHash: (String) -> Void = { _ in }) async throws -> String {
         let chain = try await rpc.chainId()
         guard chain == Chain.id else { throw EthError.wrongChain(chain) }
         async let nonceF = rpc.nonce(key.address)
@@ -61,25 +68,28 @@ struct TxSender {
         guard gasPrice <= Self.maxGasPrice else { throw EthError.notAllowed("gas price above 10 gwei") }
         let gas: UInt64
         if let fixedGas { gas = fixedGas } else {
-            do {
-                let est = try await rpc.estimateGas(from: key.address, to: to, data: data.hex0x, value: value)
-                gas = est + est / 4 + 10_000
-            } catch {
+            let est: UInt64
+            do { est = try await rpc.estimateGas(from: key.address, to: to, data: data.hex0x, value: value) } catch {
                 throw SendError.message("The chain says this would fail: \(error.localizedDescription)")
             }
+            guard est <= Self.maxGas else { throw EthError.notAllowed("gas \(est) is above the cap") }
+            gas = min(Self.maxGas, est + est / 4 + 10_000)
         }
         guard gas <= Self.maxGas else { throw EthError.notAllowed("gas \(gas) is above the cap") }
         let tx = LegacyTransaction(nonce: try await nonceF, gasPrice: gasPrice, gas: gas, to: to, value: value, data: data, chainId: Chain.id)
         let raw = try tx.signed(with: key)
-        let expected = LegacyTransaction.hash(ofRaw: raw)
-        var hash = expected
-        do { hash = try await rpc.sendRaw(raw) } catch {
-            // A retried send can answer "already known": the transaction is in the pool, carry on with its hash.
-            if !error.localizedDescription.lowercased().contains("known") { throw SendError.message(error.localizedDescription) }
+        let hash = LegacyTransaction.hash(ofRaw: raw)
+        onHash(hash)
+        do {
+            let answered = try await rpc.sendRaw(raw)
+            guard answered.lowercased() == hash.lowercased() else { throw SendError.message("The node answered another transaction hash.") }
+        } catch {
+            // The node may have taken it even if the answer got lost (or says "already known"): look it up by hash
+            // before giving up, so a retry never signs a second transaction.
+            let known = error.localizedDescription.lowercased().contains("already known")
+            if !known, (try? await rpc.transaction(hash)) == nil { throw SendError.message(error.localizedDescription) }
         }
-        let receipt = try await waitForReceipt(hash)
-        guard receipt.succeeded else { throw SendError.reverted(hash) }
-        return Sent(description: description, hash: hash, block: receipt.blockNumber)
+        return hash
     }
 
     func waitForReceipt(_ hash: String, timeout: TimeInterval = 120) async throws -> TxReceipt {

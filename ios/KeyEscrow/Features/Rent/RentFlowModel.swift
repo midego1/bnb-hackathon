@@ -87,7 +87,7 @@ final class RentFlowModel: ObservableObject {
             }
             if let a = leaseAddress {
                 lease = try await api.getLease(a)
-                if let ix = try? await api.chainIndex(minBlock: sent.last?.block.flatMap { BigUInt(hex: $0)?.description }) {
+                if let ix = try? await api.chainIndex() {
                     events = ix.events(of: a)
                 }
             } else {
@@ -174,7 +174,7 @@ final class RentFlowModel: ObservableObject {
 
     private func fund(_ lease: String) async throws {
         let p = try await api.prepare("fund", ["lease": lease, "from": me])
-        _ = try await sender.run(p, key: wallet.guest, lease: lease, onSent: record)
+        _ = try await sender.run(p, key: wallet.guest, onSent: record)
     }
 
     /// The demo shop wallet (on this phone) offers the scooter: prepare_create_lease signed by the shop key.
@@ -189,11 +189,23 @@ final class RentFlowModel: ObservableObject {
         }
         note = t("flow.rent.preparing")
         let p = try await api.prepare("create_lease", [
-            "from": shop.address, "renter": me, "rent": String(Int(listing.rentThb)), "deposit": String(Int(listing.depositThb)),
+            "from": shop.address, "renter": me, "rent": Self.whole(listing.rentThb), "deposit": Self.whole(listing.depositThb),
             "currency": "THB", "termPeriods": 1, "rentPeriodDays": 30, "responseWindowDays": 1, "arbiterWindowDays": 1,
         ])
-        let sent = try await sender.run(p, key: shop, lease: nil, onSent: record)
-        guard let hash = sent.last?.hash, let receipt = try? await sender.rpc.receipt(hash) else { throw TxSender.SendError.message("No receipt for the offer.") }
+        // A step that timed out earlier may still be mined: finish that one instead of creating a second offer.
+        var hash: String
+        if let pending = ShopRentals.pendingOffer(for: listing.id, renter: me), (try? await sender.rpc.transaction(pending)) != nil {
+            hash = pending
+        } else {
+            guard p.steps.count == 1, let step = p.steps.first, let data = Data(hex: step.data) else { throw TxSender.SendError.message("Unexpected offer steps.") }
+            try await sender.checkPolicy(to: step.to, data: data, signer: shop.address)
+            guard TxPolicy.address(data, 0).map({ EthAddress.same($0, me) }) == true else { throw EthError.notAllowed("the offer is for another renter") }
+            hash = try await sender.signAndSend(key: shop, to: step.to, data: data, description: step.description) { ShopRentals.setPendingOffer($0, for: self.listing.id, renter: self.me) }
+        }
+        let receipt = try await sender.waitForReceipt(hash)
+        ShopRentals.setPendingOffer(nil, for: listing.id, renter: me)
+        guard receipt.succeeded else { throw TxSender.SendError.reverted(hash) }
+        record(.init(description: p.steps.first?.description ?? "Offer", hash: hash, block: receipt.blockNumber))
         // EscrowFactory LeaseCreated(address indexed escrow, address indexed landlord, address indexed tenant, ...)
         let created = receipt.logs.first { EthAddress.same($0.address, TxSender.factory) && $0.topics.count == 4 && $0.topics[3].lowercased().hasSuffix(String(me.lowercased().dropFirst(2))) }
         guard let topic = created?.topics[1] else { throw TxSender.SendError.message("The offer was sent but its escrow was not found in the receipt.") }
@@ -203,6 +215,8 @@ final class RentFlowModel: ObservableObject {
         return escrow
     }
 
+    static func whole(_ v: Double) -> String { v.isFinite && v > 0 && v < 1e9 ? String(format: "%.0f", v.rounded()) : "0" }
+
     /// Hash (SHA-256) the photos, upload them as evidence (best effort), anchor each hash on-chain.
     func savePhotos(kind: String) {
         guard let lease = leaseAddress, !photos.isEmpty else { return }
@@ -210,17 +224,24 @@ final class RentFlowModel: ObservableObject {
         act("photos") { [self] in
             var hashes = shots.map(\.sha256)
             if let up = try? await api.uploadEvidence(shots.map(\.jpeg)), up.items.count == shots.count { hashes = up.items.map { $0.hash.lowercased() } }
-            let anchored = Set(events.filter { $0.name == "EvidenceAdded" }.compactMap { $0.args["contentHash"]?.string?.lowercased() })
+            let anchored = Set(photoHashes(kind: kind == "check_in" ? 0 : 1))
             for h in hashes where !anchored.contains(h) {
                 let p = try await api.prepare("add_evidence", ["lease": lease, "from": me, "kind": kind, "contentHash": h])
-                _ = try await sender.run(p, key: wallet.guest, lease: lease, onSent: record)
+                _ = try await sender.run(p, key: wallet.guest, onSent: record)
             }
             photos = []
         }
     }
 
+    /// Photo hashes anchored on this rental: from the chain index, plus the escrow's own latest pickup / return hash
+    /// (read straight from the contract), so a lagging index never blocks the inspection.
     func photoHashes(kind: Int) -> [String] {
-        events.filter { $0.name == "EvidenceAdded" && $0.args["kind"]?.int == kind }.compactMap { $0.args["contentHash"]?.string?.lowercased() }
+        var out = events.filter { $0.name == "EvidenceAdded" && $0.args["kind"]?.int == kind }.compactMap { $0.args["contentHash"]?.string?.lowercased() }
+        if let l = lease {
+            let h = (kind == 0 ? l.checkInHash : l.checkOutHash).lowercased()
+            if h != Lease.zeroHash, !out.contains(h) { out.append(h) }
+        }
+        return out
     }
 
     func runInspection() {
@@ -238,7 +259,12 @@ final class RentFlowModel: ObservableObject {
                 "lease": l.address, "from": me,
                 "inspection": ["tenantRefund": i.tenantRefund.description, "reportHash": i.reportHash, "deposit": i.deposit.description],
             ])
-            _ = try await sender.run(p, key: wallet.guest, lease: l.address, onSent: record)
+            // Sign only the split the inspector proposed: propose(tenantRefund, reportHash) to this rental.
+            guard p.steps.count == 1, let step = p.steps.first, EthAddress.same(step.to, l.address), let data = Data(hex: step.data),
+                  data.prefix(4) == TxPolicy.propose, TxPolicy.word(data, 0).map(BigUInt.init(bytes:)) == i.tenantRefund,
+                  TxPolicy.word(data, 1)?.hex0x.lowercased() == i.reportHash.lowercased()
+            else { throw EthError.notAllowed("the prepared proposal does not match the inspection") }
+            _ = try await sender.run(p, key: wallet.guest, onSent: record)
         }
     }
 
@@ -247,7 +273,7 @@ final class RentFlowModel: ObservableObject {
         guard let l = lease, listing.kind == .demoScooter else { return }
         act("accept") { [self] in
             let p = try await api.prepare("accept", ["lease": l.address, "from": wallet.shop.address])
-            _ = try await sender.run(p, key: wallet.shop, lease: l.address, onSent: record)
+            _ = try await sender.run(p, key: wallet.shop, onSent: record)
         }
     }
 

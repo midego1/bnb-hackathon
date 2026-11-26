@@ -15,19 +15,41 @@ final class WalletStore: ObservableObject {
     @Published var shopTbnb: BigUInt?
     @Published var refreshing = false
     @Published var lastError: String?
+    /// The Keychain could not be read (e.g. the app was launched before the first unlock): a throwaway in-memory key
+    /// stands in until `reloadIfNeeded()` finds the real one. It is never saved, so the stored key is never replaced.
+    @Published private(set) var keychainUnavailable = false
 
     let rpc = RPC()
 
     init() {
-        guest = WalletStore.loadOrCreate(WalletStore.guestAccount)
-        shop = WalletStore.loadOrCreate(WalletStore.shopAccount)
+        let g = WalletStore.loadOrCreate(WalletStore.guestAccount)
+        let s = WalletStore.loadOrCreate(WalletStore.shopAccount)
+        guest = g.key
+        shop = s.key
+        keychainUnavailable = !g.stored || !s.stored
     }
 
-    private static func loadOrCreate(_ account: String) -> EthKey {
-        if let d = Keychain.load(account), let k = try? EthKey(privateKey: d) { return k }
-        let k = try! EthKey.generate()
-        Keychain.save(k.privateKey, account)
-        return k
+    /// The stored key, or a new one when there is none. On a Keychain error: a throwaway key, `stored == false`.
+    private static func loadOrCreate(_ account: String) -> (key: EthKey, stored: Bool) {
+        switch Keychain.read(account) {
+        case .found(let d):
+            if let k = try? EthKey(privateKey: d) { return (k, true) }
+            return ((try? EthKey.generate())!, false) // unreadable bytes: keep them, do not overwrite
+        case .notFound:
+            let k = (try? EthKey.generate())!
+            return (k, Keychain.add(k.privateKey, account))
+        case .failed:
+            return ((try? EthKey.generate())!, false)
+        }
+    }
+
+    func reloadIfNeeded() {
+        guard keychainUnavailable else { return }
+        let g = WalletStore.loadOrCreate(WalletStore.guestAccount)
+        let s = WalletStore.loadOrCreate(WalletStore.shopAccount)
+        if g.stored { guest = g.key }
+        if s.stored { shop = s.key }
+        keychainUnavailable = !g.stored || !s.stored
     }
 
     var address: String { guest.address }
@@ -50,8 +72,8 @@ final class WalletStore: ObservableObject {
     func reset() {
         Keychain.delete(WalletStore.guestAccount)
         Keychain.delete(WalletStore.shopAccount)
-        guest = WalletStore.loadOrCreate(WalletStore.guestAccount)
-        shop = WalletStore.loadOrCreate(WalletStore.shopAccount)
+        keychainUnavailable = true
+        reloadIfNeeded()
         tbnb = nil; musdt = nil; shopTbnb = nil
         ShopRentals.clear()
     }
@@ -76,7 +98,18 @@ enum ShopRentals {
         let d = (UserDefaults.standard.dictionary(forKey: key) as? [String: String]) ?? [:]
         return d.first { $0.value.lowercased() == lease.lowercased() }.map { String($0.key.split(separator: ":").last ?? "") }
     }
-    static func clear() { UserDefaults.standard.removeObject(forKey: key) }
+    static func clear() { UserDefaults.standard.removeObject(forKey: key); UserDefaults.standard.removeObject(forKey: pending) }
+
+    /// A createLease the shop sent but whose receipt we have not seen yet.
+    private static let pending = "keyescrow.shopPendingOffers.v1"
+    static func pendingOffer(for scooter: String, renter: String) -> String? {
+        (UserDefaults.standard.dictionary(forKey: pending) as? [String: String])?["\(renter.lowercased()):\(scooter)"]
+    }
+    static func setPendingOffer(_ hash: String?, for scooter: String, renter: String) {
+        var d = (UserDefaults.standard.dictionary(forKey: pending) as? [String: String]) ?? [:]
+        d["\(renter.lowercased()):\(scooter)"] = hash
+        UserDefaults.standard.set(d, forKey: pending)
+    }
 
     private static let names = "keyescrow.shopNames.v1"
     static func remember(name: String, of scooter: String) {
