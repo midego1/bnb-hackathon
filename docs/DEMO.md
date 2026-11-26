@@ -152,7 +152,7 @@ We bring a physical **KeyScrow Mystery Box** (฿200/day, ฿1,000 deposit; edit
    button). Each item has its own stage (one rental per item); the big screen follows only its own item. Then
    *Use a guest wallet* (a fresh testnet key made on the phone, kept in its localStorage, never
    sent anywhere) or *Connect MetaMask* (shown only with a browser wallet or a WalletConnect project id) →
-   *Get test money* (0.002 tBNB + the mUSDT for rent and deposit, once per address) → *Pay into escrow* (the demo
+   *Get test money* (0.002 tBNB + the mUSDT for rent and deposit; a wallet that rents again gets only what it is short of, max 5 sends a day) → *Pay into escrow* (the demo
    owner creates the rental for that address, the phone approves and funds) → pickup photos → hand the box back →
    return photos → *Run the AI inspection* → *Propose this split*.
 3. **Presenter:** *Accept the split (owner)* on the big screen. Both screens show *Settled*; the phone says
