@@ -9,7 +9,7 @@ struct APIError: LocalizedError, Equatable {
 
 /// The live KeyScrow web API. Read actions and prepare_* return JSON; nothing here ever signs.
 struct APIClient {
-    static let defaultBase = URL(string: "https://keyescrow-web.mdgooijer.workers.dev")!
+    static let defaultBase = URL(string: "https://keyscrow.mdgooijer.workers.dev")!
     var base: URL = APIClient.defaultBase
     var session: URLSession = .shared
 
@@ -79,7 +79,7 @@ struct APIClient {
 
     // MARK: Data
 
-    func fleet() async throws -> Fleet { try await get("api/fleet", as: Fleet.self) }
+    func listings() async throws -> Catalogue { try await get("api/listings", as: Catalogue.self) }
     func price() async throws -> PriceQuote { try await get("api/price", as: PriceQuote.self) }
     func chainIndex(minBlock: String? = nil) async throws -> ChainIndex {
         var q = ["chainId": "\(Chain.id)"]

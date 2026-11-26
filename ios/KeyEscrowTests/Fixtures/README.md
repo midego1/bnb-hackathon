@@ -1,9 +1,12 @@
 # Test fixtures
 
 JSON captured from the live API (`https://keyescrow-web.mdgooijer.workers.dev`, BSC testnet, contract v2) on
-2026-11-26: `get_lease`, `list_leases`, `explain_status`, `prepare_fund`, `/api/fleet`, `/api/price`,
+2026-11-26: `get_lease`, `list_leases`, `explain_status`, `prepare_fund`, `/api/price`,
 `/api/stage/mystery-box`, `/api/chain/index` (trimmed to two contracts) and `/api/settlement` (demo inspector).
 Only public on-chain addresses; no keys.
+
+`listings.json` is `GET /api/listings` from a local `next start` of this repo's web app (http://127.0.0.1:3997, so
+the photo URLs point there) on 2026-11-26, after the one-catalogue change; the live Worker answers the same shape.
 
 The signer vectors in `SignerTests.swift` come from viem 2.58.6:
 
