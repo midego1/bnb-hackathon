@@ -55,6 +55,8 @@ type Stored = { snapshot: ChainIndexSnapshot; error?: { error: string; since: nu
 export const stateKey = (chainId: number, factory: Address) => `chainindex:v1:${chainId}:${factory.toLowerCase()}`;
 /** A caller's `minBlock` forces at most one refresh per this many ms. */
 export const MIN_FORCED_GAP_MS = 1_000;
+/** Most addresses one eth_getLogs may filter on (PublicNode refuses more than 10 with -32602). */
+export const MAX_LOG_ADDRESSES = 10;
 /** Snapshots stay in SharedState this long after their last refresh. */
 const STORE_TTL_MS = 7 * 86_400_000;
 
@@ -174,13 +176,20 @@ export class ChainIndexer {
     const size = this.o.windowSize > BigInt(0) ? this.o.windowSize : latest - start + BigInt(1);
     const windows = start <= latest ? blockRanges(start, latest, size > BigInt(0) ? size : BigInt(1)) : [];
     const logsIn = (range: BlockRange, q: (r: BlockRange) => Promise<Log[]>) => splitOnRangeError(range, (r) => rpc(() => q(r)));
+    // Public RPCs cap the address list of one eth_getLogs (PublicNode: 10), so query in groups of MAX_LOG_ADDRESSES.
+    const logsForAddresses = async (range: BlockRange, addrs: Address[]) => {
+      const groups: Address[][] = [];
+      for (let i = 0; i < addrs.length; i += MAX_LOG_ADDRESSES) groups.push(addrs.slice(i, i + MAX_LOG_ADDRESSES));
+      const parts = await Promise.all(groups.map((g) => logsIn(range, (r) => c.getLogs({ address: g, ...r }) as Promise<Log[]>)));
+      return parts.flat();
+    };
 
     // Phase 1, per window: the factory, the vault and every escrow we already know (one query), and the token's
     // transfers into the vault (income from escrows, filtered below).
     const base = [d.escrowFactory, ...(d.fleetVault ? [d.fleetVault] : []), ...[...knownEscrows].map((a) => a as Address)];
     const phase1 = await mapLimit(windows, this.o.concurrency, async (w) => {
       const [own, inflow] = await Promise.all([
-        logsIn(w, (r) => c.getLogs({ address: base, ...r }) as Promise<Log[]>),
+        logsForAddresses(w, base),
         d.fleetVault ? logsIn(w, (r) => c.getLogs({ address: d.mockUsdt, event: transferEvent, args: { to: d.fleetVault! }, ...r } as Parameters<IndexClient["getLogs"]>[0]) as Promise<Log[]>) : Promise.resolve([] as Log[]),
       ]);
       return { own, inflow };
@@ -201,7 +210,7 @@ export class ChainIndexer {
       const first = created.reduce((m, e) => (e.blockNumber < m ? e.blockNumber : m), created[0].blockNumber);
       const fresh = created.map((e) => e.args.escrow as Address);
       const later = windows.filter((w) => w.toBlock >= first).map((w) => ({ fromBlock: max(w.fromBlock, first), toBlock: w.toBlock }));
-      const logs = await mapLimit(later, this.o.concurrency, (w) => logsIn(w, (r) => c.getLogs({ address: fresh, ...r }) as Promise<Log[]>));
+      const logs = await mapLimit(later, this.o.concurrency, (w) => logsForAddresses(w, fresh));
       escrowEvents.push(...decode(logs.flat(), rentalEscrowAbi as Abi, ["Initialized"]));
     }
 

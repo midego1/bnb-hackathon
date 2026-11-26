@@ -7,6 +7,7 @@ import {
   backoffMs,
   blockRanges,
   ChainIndexer,
+  MAX_LOG_ADDRESSES,
   isRangeError,
   isRetryable,
   mapLimit,
@@ -294,6 +295,26 @@ describe("ChainIndexer", () => {
     expect(income.args.from).toBe(LEASE_A);
     expect(s.events.every((e) => e.timestamp === b(1_700_000_000) + e.blockNumber)).toBe(true);
     expect(eventsOfLease(s.events, LEASE_A).map((e) => e.name)).toEqual(["LeaseCreated", "PayeeSet", "Funded", "RentReleased"]);
+  });
+
+  it("never sends more than MAX_LOG_ADDRESSES addresses in one getLogs (PublicNode refuses more than 10)", async () => {
+    const { rpc, ix, tick } = setup();
+    await ix.get();
+    const leases = Array.from({ length: 12 }, (_, i) => `0x${(0xbeef00 + i).toString(16).padStart(40, "0")}` as Address);
+    rpc.head = 20_200;
+    leases.forEach((l, i) => rpc.logs.push(created(l, 20_010 + i), funded(l, 20_100 + i)));
+    tick(5_000);
+    await ix.get();
+    rpc.head = 20_300;
+    rpc.calls = [];
+    leases.forEach((l, i) => rpc.logs.push(log(l, rentalEscrowAbi as Abi, "DisputeRaised", { by: RENTER }, 20_250 + i)));
+    tick(5_000);
+    const s = await ix.get();
+    for (const c of rpc.calls.filter((c) => c.method === "getLogs")) {
+      const n = Array.isArray(c.address) ? c.address.length : 1;
+      expect(n).toBeLessThanOrEqual(MAX_LOG_ADDRESSES);
+    }
+    expect(names(s).filter((n) => n === "DisputeRaised").length).toBeGreaterThanOrEqual(12);
   });
 
   it("serves the cached snapshot within the TTL without touching the RPC", async () => {
