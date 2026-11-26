@@ -25,10 +25,9 @@ export interface VisionProvider {
   assess(input: VisionAssessmentInput): Promise<unknown>;
 }
 
-export const DEFAULT_ANTHROPIC_MODEL = "claude-opus-5-5";
-
-/** Models that accept the server-side refusal fallback (`fallbacks: "default"`). */
-const FALLBACK_CAPABLE = new Set(["claude-fable-5-2", "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5";
+/** The only vision models (cost guard, like Ask AI): Sonnet 5.5 by default, Haiku 5.5 via VISION_LLM_MODEL. */
+export const VISION_MODELS = ["claude-sonnet-5-5", "claude-haiku-5-5"];
 
 const SYSTEM_PROMPT = `You are a neutral return inspector for a scooter rental deposit escrow in Thailand.
 You receive pickup photos (start of the rental) and return photos (end of the rental) of the same scooter and the deposit amount.
@@ -63,6 +62,20 @@ export class VisionProviderError extends Error {
   }
 }
 
+const BUSY_TYPES = ["rate_limit_error", "overloaded_error", "api_error", "billing_error"];
+
+/**
+ * True for an Anthropic error that means "try again later" rather than "this request is wrong": 429, 5xx/529,
+ * out of credit (402, or the 400 "credit balance is too low"), network failure or timeout. Shared with Ask AI.
+ */
+export function anthropicBusy(err: unknown): boolean {
+  if (err instanceof Anthropic.APIConnectionError) return true;
+  if (!(err instanceof Anthropic.APIError) || err instanceof Anthropic.APIUserAbortError) return false;
+  const status = err.status ?? 0;
+  // A mid-stream error event has no HTTP status, only its type.
+  return status === 429 || status === 402 || status >= 500 || BUSY_TYPES.includes(err.type ?? "") || /credit balance/i.test(err.message);
+}
+
 function toImageBlock(img: VisionImage): Anthropic.Beta.BetaImageBlockParam {
   return img.kind === "url"
     ? { type: "image", source: { type: "url", url: img.url } }
@@ -86,7 +99,8 @@ export class AnthropicVisionProvider implements VisionProvider {
     apiKey: string,
     readonly model: string = DEFAULT_ANTHROPIC_MODEL,
   ) {
-    this.client = new Anthropic({ apiKey, timeout: 120_000, maxRetries: 2 });
+    // One retry: a busy API falls back to the demo inspector rather than keeping the caller waiting.
+    this.client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 1 });
   }
 
   async assess(input: VisionAssessmentInput): Promise<unknown> {
@@ -102,15 +116,19 @@ export class AnthropicVisionProvider implements VisionProvider {
       },
     ];
 
-    const useFallbacks = FALLBACK_CAPABLE.has(this.model);
+    // No server-side refusal fallback: it could answer (and bill) on a model outside VISION_MODELS. A refusal falls
+    // back to the demo inspector instead (proposeSettlement).
     const response = await this.client.beta.messages.create({
       model: this.model,
-      max_tokens: 16000,
-      system: SYSTEM_PROMPT,
+      // Caps a call's output cost; a verdict with medium-effort thinking fits well inside it.
+      max_tokens: 8192,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content }],
       output_config: { effort: "medium", format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
-      ...(useFallbacks ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
     });
+    const u = response.usage;
+    // Counts only: never the photos, notes, verdict or key.
+    console.log("settlement: vision call", this.model, `in=${u.input_tokens} out=${u.output_tokens} cache_read=${u.cache_read_input_tokens ?? 0}`);
 
     if (response.stop_reason === "refusal") {
       throw new VisionProviderError(`model declined the request (${response.stop_details?.category ?? "no category"})`);
@@ -129,7 +147,8 @@ export class AnthropicVisionProvider implements VisionProvider {
 
 /**
  * Pick the configured vision provider, or null when no key is set (callers then use the mock).
- * VISION_LLM_PROVIDER selects the backend (only "anthropic" today); VISION_LLM_MODEL overrides the model.
+ * VISION_LLM_PROVIDER selects the backend (only "anthropic" today); VISION_LLM_MODEL picks one of VISION_MODELS
+ * (anything else: the default, Sonnet 5.5).
  */
 export function visionProviderFromEnv(env: Env = process.env): VisionProvider | null {
   const provider = (env.VISION_LLM_PROVIDER || "anthropic").toLowerCase();
@@ -137,7 +156,8 @@ export function visionProviderFromEnv(env: Env = process.env): VisionProvider | 
   if (provider === "anthropic") {
     const key = env.ANTHROPIC_API_KEY;
     if (!key) return null;
-    return new AnthropicVisionProvider(key, env.VISION_LLM_MODEL || DEFAULT_ANTHROPIC_MODEL);
+    const model = env.VISION_LLM_MODEL?.trim() ?? "";
+    return new AnthropicVisionProvider(key, VISION_MODELS.includes(model) ? model : DEFAULT_ANTHROPIC_MODEL);
   }
   throw new VisionProviderError(`unknown VISION_LLM_PROVIDER "${provider}"`);
 }

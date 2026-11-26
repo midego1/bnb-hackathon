@@ -66,6 +66,7 @@ export const E2E_WEB_ENV: Record<string, string> = {
   ASSISTANT_MODEL: "",
   ASSISTANT_DAILY_TOKENS: "",
   VISION_LLM_MODEL: "",
+  SETTLEMENT_DAILY_CALLS: "",
   CMC_API_KEY: "",
   CMC_PRO_API_KEY: "",
   ATLAS_RPC_URL: "",

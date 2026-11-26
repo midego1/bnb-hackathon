@@ -6,7 +6,7 @@
  * Each name is imported from the module that defines it: web/ is not an ES module package, so tsx loads its files
  * as CommonJS, and Node cannot see names that index.ts only re-exports with `export *`.
  */
-export { PhotoResolutionError, proposeSettlement, type SettlementResult } from "../../web/lib/server/settlement/index.ts";
+export { proposeSettlement, type SettlementResult } from "../../web/lib/server/settlement/index.ts";
 export {
   INSPECTOR_NAME,
   InspectorConfigError,
@@ -17,8 +17,8 @@ export {
   type InspectorIdentity,
   type InspectorSigner,
 } from "../../web/lib/server/settlement/inspector.ts";
-export { ProposalRepairError, SettlementRequestSchema, type SettlementRequest } from "../../web/lib/server/settlement/schema.ts";
-export { visionProviderFromEnv, VisionProviderError, type VisionProvider } from "../../web/lib/server/settlement/vision.ts";
+export { SettlementRequestSchema, type SettlementRequest } from "../../web/lib/server/settlement/schema.ts";
+export { visionProviderFromEnv, type VisionProvider } from "../../web/lib/server/settlement/vision.ts";
 export type { EvidenceStore } from "../../web/lib/server/evidence/types.ts";
 
 // The rental actions (web/lib/actions): one definition per action, served here as MCP tools and A2A skills.
