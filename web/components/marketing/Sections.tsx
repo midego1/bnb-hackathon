@@ -259,7 +259,7 @@ export async function Live() {
             ))}
           </tbody>
         </table>
-        <p className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-[0.95rem]">
+        <p className="mk-proof-links mt-5 flex flex-wrap gap-x-8 gap-y-2 text-[0.95rem]">
           <Ext href={TESTS_URL}>{c.tests[0]}</Ext>
           <Ext href={explorerTx(INSPECTOR_AGENT.registerTx)}>{c.tests[1]}</Ext>
         </p>

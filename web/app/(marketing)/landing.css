@@ -61,11 +61,17 @@ html.dark .mk section.mk-night {
 /* Phones: the header's language switch offers EN and 中文 (EN+中文 is the presenter's mode, in the footer). */
 @media (max-width: 639px) {
   .mk-top [role="group"] > button {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     padding-inline: 0.75rem;
   }
   .mk-top [role="group"] > button:last-child {
     display: none;
+  }
+  /* Stand-alone proof links: a 44 px tap target on phones. */
+  .mk-proof-links > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
   }
 }
 .mk a.mk-link {
