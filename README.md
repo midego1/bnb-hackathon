@@ -26,6 +26,45 @@ Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas, ChatAndBuild
 [one card per track on /sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors)). Open source (MIT), BSC testnet
 plus a capped mainnet pilot, no token.
 
+## KeyScrow in pictures
+
+<p align="center">
+  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the rental company on the right. Rent, pickup photo, return photo, AI split, the owner accepts, settled"></a><br>
+  <sub>One whole rental in 60 seconds: the renter's phone on the left, the rental company on the right (<a href="docs/submission/duo.mp4">full video</a>).</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/01-landing.png"><img src="docs/submission/screenshots/01-landing.png" width="420" alt="Landing page: Rent the scooter. Keep your passport."></a><br><b>1.</b> Find a scooter and book it: the deposit and rent go into the rental's own escrow contract, not your passport.</td>
+    <td width="50%" valign="top"><a href="docs/submission/inspection.png"><img src="docs/submission/inspection.png" width="420" alt="Pickup and return photos of the same scooter side, and the AI return inspection splitting the deposit"></a><br><b>2.</b> At return, the AI inspector compares the pickup and return photos and drafts the deposit split.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo after settlement: renter paid, in escrow, owner got, back to renter, every transaction"></a><br><b>3.</b> The renter proposes, the shop accepts, and the money moves at once, with every step on BscScan.</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/05-backoffice.png"><img src="docs/submission/screenshots/05-backoffice.png" width="420" alt="Back office: every rental and its deposit, rent paid out and slashes, read from the contracts"></a><br><b>4.</b> The shop's back office: every rental, deposit and rent payout, read straight from the chain.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/screenshots/shareholders.png"><img src="docs/screenshots/shareholders.png" width="420" alt="Shareholders: Fleet Vault TVL, income to shareholders, your position, claim income"></a><br><b>5.</b> Fleet Vault: shareholders fund a scooter fleet and claim their share of its rent.</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors: one card per sponsor track with its live state"></a><br><b>6.</b> <a href="https://keyscrow.mdgooijer.workers.dev/sponsors">/sponsors</a>: one card per sponsor track, with its live state.</td>
+  </tr>
+</table>
+
+### How it works, in one diagram
+
+```mermaid
+flowchart LR
+  R(["Renter"]) -->|"deposit + rent"| E[["Escrow contract<br/>one per rental"]]
+  E -->|"rent, month by month"| S(["Rental shop"])
+  E -.->|"or rent to a Fleet Vault"| V(["Shareholders"])
+  E --> P["Return photos"]
+  P --> AI["AI inspector<br/>drafts a split"]
+  AI --> Q{"Both agree?"}
+  Q -->|"yes"| PAY["Payout"]
+  Q -->|"no"| D["Dispute desk rules"]
+  D --> PAY
+  PAY -->|"deposit back"| R
+  PAY -->|"repairs"| S
+```
+
 ## For judges
 
 **In 30 seconds.** Open <https://keyscrow.mdgooijer.workers.dev> and pick a way in:

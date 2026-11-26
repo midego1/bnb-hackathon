@@ -18,6 +18,45 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
 为 BNB Bangkok 2026 黑客松打造（Developer Track、CoinMarketCap x Atlas、ChatAndBuild / Living Brain、Cournot、AWS 路演：
 [/sponsors 每个赛道一张卡片](https://keyscrow.mdgooijer.workers.dev/sponsors)）。MIT 开源，BSC 测试网加一个有上限的主网试点，不发币。
 
+## 图解 KeyScrow
+
+<p align="center">
+  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="一笔租约从头到尾：左边是租客手机，右边是租车行。付款、取车照片、还车照片、AI 分配、车主接受、结算完成"></a><br>
+  <sub>60 秒看完一整笔租约：左边是租客手机，右边是租车行（<a href="docs/submission/duo.mp4">完整视频</a>）。</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/01-landing.png"><img src="docs/submission/screenshots/01-landing.png" width="420" alt="首页：租车，护照留在自己手里"></a><br><b>1.</b> 找到一辆摩托车并预订：押金和租金存进这笔租约自己的托管合约，不再押护照。</td>
+    <td width="50%" valign="top"><a href="docs/submission/inspection.png"><img src="docs/submission/inspection.png" width="420" alt="同一侧车身的取车和还车照片，以及 AI 还车验车给出的押金分配"></a><br><b>2.</b> 还车时，AI 验车对比取车和还车照片，起草押金分配方案。</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo 结算后：租客支付、托管中、车主所得、退还租客，以及每一笔交易"></a><br><b>3.</b> 租客提出方案，车行接受，资金立即到账，每一步都能在 BscScan 上查到。</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/05-backoffice.png"><img src="docs/submission/screenshots/05-backoffice.png" width="420" alt="后台：直接从合约读取每笔租约的押金、已付租金和扣款"></a><br><b>4.</b> 车行后台：每笔租约、押金和租金支付，都直接从链上读取。</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><a href="docs/screenshots/shareholders.png"><img src="docs/screenshots/shareholders.png" width="420" alt="股东页：Fleet Vault 总锁仓、股东收益、你的持仓、领取收益"></a><br><b>5.</b> Fleet Vault：股东出资组建车队，并领取车队租金中属于自己的份额。</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors：每个赞助赛道一张卡片，显示实时状态"></a><br><b>6.</b> <a href="https://keyscrow.mdgooijer.workers.dev/sponsors">/sponsors</a>：每个赞助赛道一张卡片，显示实时状态。</td>
+  </tr>
+</table>
+
+### 一张图看懂流程
+
+```mermaid
+flowchart LR
+  R(["租客"]) -->|"押金 + 租金"| E[["托管合约<br/>每笔租约一个"]]
+  E -->|"租金按月支付"| S(["租车行"])
+  E -.->|"或把租金付给 Fleet Vault"| V(["股东"])
+  E --> P["还车照片"]
+  P --> AI["AI 验车<br/>起草分配方案"]
+  AI --> Q{"双方同意？"}
+  Q -->|"是"| PAY["付款"]
+  Q -->|"否"| D["争议处理台裁决"]
+  D --> PAY
+  PAY -->|"退还押金"| R
+  PAY -->|"维修费"| S
+```
+
 ## 评委速览
 
 **30 秒了解。** 打开 <https://keyscrow.mdgooijer.workers.dev>，选一种方式体验：
