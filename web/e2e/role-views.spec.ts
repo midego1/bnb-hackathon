@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { E2E_WEB_PORT } from "./env";
 
 /**
  * The four role views on the seeded throwaway anvil: back office (every rental + transaction, flags), fleet owner
@@ -162,4 +163,41 @@ test("/demo Fleet Vault path: the vault's income rises after a damaged return", 
   // The shareholders' dashboard shows the new income.
   await page.goto("/backoffice");
   await expect(page.getByTestId("vault-panel").locator('[data-event="Transfer"]').nth(2)).toBeVisible();
+});
+
+test("shareholders: the asset-pools roadmap card fits a laptop and a phone, light and dark", async ({ page }) => {
+  for (const vp of [
+    { width: 1470, height: 830 },
+    { width: 390, height: 844 },
+  ]) {
+    for (const theme of ["light", "dark"] as const) {
+      await page.setViewportSize(vp);
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("/shareholders");
+      const card = page.getByTestId("asset-pools");
+      await expect(card).toContainText("Ferrari 296 GTB, Phuket");
+      await expect(card).toContainText("฿12,000,000");
+      await expect(card).toContainText("example, not a real pool");
+      await expect(card.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "64");
+      await expect(card.getByRole("listitem")).toHaveCount(5);
+      await expect(card.getByRole("button", { name: "Join the waitlist" })).toBeDisabled();
+      await expect(page.getByTestId("vault-tvl")).toBeVisible();
+      expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+      await card.scrollIntoViewIfNeeded();
+      await shot(page, `05-asset-pools-${vp.width}x${vp.height}-${theme}`);
+    }
+  }
+});
+
+test("shareholders: the asset-pools heading in 中文 and EN+中文", async ({ page }) => {
+  for (const [mode, heading, button] of [
+    ["zh", /^即将推出：资产池$/, "加入候补名单"],
+    ["both", /^Coming soon: Asset pools\s*即将推出：资产池$/, "Join the waitlist"],
+  ] as const) {
+    await page.context().addCookies([{ name: "ke_lang", value: mode, url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
+    await page.goto("/shareholders");
+    const card = page.getByTestId("asset-pools");
+    await expect(page.getByRole("heading", { level: 2, name: heading })).toBeVisible();
+    await expect(card.getByRole("button", { name: button })).toBeDisabled();
+  }
 });

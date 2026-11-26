@@ -62,7 +62,7 @@ The screenshots come from a local run of the same build (hence `127.0.0.1` under
 | Open-source quality | MIT; [tests and CI](#tests-and-ci); [security review](docs/SECURITY.md); [CONTRIBUTING.md](CONTRIBUTING.md) |
 | BNB Chain integration | [What makes it BNB-native](#what-makes-it-bnb-native): ERC-8004 #2921, BSC testnet, opBNB-ready, BNB Greenfield evidence |
 | CoinMarketCap x Atlas track | [docs/WRITEUP.md](docs/WRITEUP.md) and [sponsor integrations](#sponsor-integrations) |
-| Business model and roadmap | [docs/BUSINESS.md](docs/BUSINESS.md): the 10 % one-time fee, dispute desk, Fleet Vault, subscriptions (weekly, every 2 weeks, monthly), the capped mainnet pilot |
+| Business model and roadmap | [docs/BUSINESS.md](docs/BUSINESS.md): the 10 % one-time fee, dispute desk, Fleet Vault, subscriptions (weekly, every 2 weeks, monthly), the capped mainnet pilot, asset pools (roadmap, no token) |
 
 ### All links
 

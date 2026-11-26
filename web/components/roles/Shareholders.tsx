@@ -1,8 +1,10 @@
 "use client";
 
+import { BadgeCheck, Lock, Percent, RotateCcw, Scale } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { Badge } from "@/components/ui/badge";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { utcDateTimeIn } from "@/components/lease/copy";
@@ -10,6 +12,7 @@ import { PayeeMrrKpi } from "@/components/subscriptions/OwnerSubscriptions";
 import { WalletGate } from "@/components/WalletGate";
 import { chainName } from "@/lib/chains";
 import { fleetVaultAbi, mockUsdtAbi, TOKEN } from "@/lib/contracts";
+import { formatFiat } from "@/lib/fiat";
 import { formatUsdt, parseUsdt, shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useT } from "@/lib/i18n/client";
@@ -22,8 +25,18 @@ import { Kpi, TxLink, When } from "./shared";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
-/** Investor dashboard for the Fleet Vault: TVL, income, yield, the wallet's shares and claimable income. */
+/** The Shareholders page: the Fleet Vault dashboard, then the asset-pools roadmap card. */
 export function Shareholders() {
+  return (
+    <div className="space-y-6">
+      <VaultDashboard />
+      <AssetPoolsCard />
+    </div>
+  );
+}
+
+/** Investor dashboard for the Fleet Vault: TVL, income, yield, the wallet's shares and claimable income. */
+function VaultDashboard() {
   const t = useT();
   const { chainId, deployment } = useDeployment();
   const { address } = useAccount();
@@ -117,6 +130,61 @@ export function Shareholders() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// Static example numbers for the roadmap card; nothing is read from a chain.
+const POOL_TARGET_THB = 12_000_000;
+const POOL_EXAMPLE_PCT = 64;
+const POOL_RULES = [
+  ["refund", RotateCcw],
+  ["cap", Percent],
+  ["kyc", BadgeCheck],
+  ["fixed", Lock],
+  ["income", Scale],
+] as const;
+
+/** Roadmap only: shareholders co-own one bigger asset through a pool. No coin, no contract, no backend. */
+function AssetPoolsCard() {
+  const t = useT();
+  return (
+    <Card title={t.h("holders.pools")} aside={<Badge variant="secondary">{t("holders.pools.soon")}</Badge>} className="border-dashed">
+      <div data-testid="asset-pools" className="space-y-4 text-sm">
+        <p className="text-muted-foreground">{t("holders.pools.intro")}</p>
+        <div className="rounded-xl bg-muted/60 p-4">
+          <p className="text-xs text-subtle">{t("holders.pools.example")}</p>
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span className="font-semibold">{t("holders.pools.asset")}</span>
+            <span className="font-medium tabular-nums">{t("holders.pools.target", { amount: formatFiat(POOL_TARGET_THB, "THB") })}</span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label={t("holders.pools.example")}
+            aria-valuenow={POOL_EXAMPLE_PCT}
+            aria-valuetext={t("holders.pools.filled", { pct: POOL_EXAMPLE_PCT })}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            className="mt-3 h-2 overflow-hidden rounded-full bg-border"
+          >
+            <div className="h-full rounded-full bg-primary" style={{ width: `${POOL_EXAMPLE_PCT}%` }} />
+          </div>
+          <p className="mt-1 text-xs text-subtle">{t("holders.pools.filled", { pct: POOL_EXAMPLE_PCT })}</p>
+        </div>
+        <ul className="space-y-2">
+          {POOL_RULES.map(([key, Icon]) => (
+            <li key={key} className="flex items-start gap-2.5">
+              <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{t(`holders.pools.rules.${key}`)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="font-medium">{t("holders.pools.whyNot")}</p>
+        <p className="text-xs text-subtle">{t("holders.pools.legal")}</p>
+        <ActionButton variant="secondary" className="sm:w-fit" disabledReason={t("holders.pools.joinReason")}>
+          {t("holders.pools.join")}
+        </ActionButton>
+      </div>
+    </Card>
   );
 }
 

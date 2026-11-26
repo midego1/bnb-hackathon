@@ -147,6 +147,7 @@ extra contract:
 | **3. Mainnet on BNB Chain and opBNB** | Q2–Q3 2027 | Deploy on BSC mainnet and opBNB (cheaper monthly payouts) with a widely held stablecoin. Wallet onboarding for non-crypto users (embedded wallets, Binance Web3 Wallet). Legal review of the escrow, dispute-desk and vault roles under Thai law. A keeper for monthly rent releases. |
 | **4. Rental shops and partners** | 2027 → | Shop onboarding and multi-scooter tools (bulk listing, accounting exports) as a B2B subscription. Rental associations as named arbiters. Integrations with booking sites and AI travel agents through the MCP / REST actions. |
 | **5. Insurance** | after mainnet | Partner insurers cover damage above the deposit, priced from each scooter's inspection history. Insurers can also act as named arbiters. |
+| **6. Asset pools (v3)** | after mainnet and a licensed issuance route | Shareholders co-own one bigger asset (a car, a boat, a villa) through a pool and share its rent. Roadmap only: nothing is built and nothing on-chain changes. See [Asset pools](#asset-pools-v3-roadmap). |
 
 ### Fiat on-ramp via a licensed Thai partner
 
@@ -163,6 +164,34 @@ no payment provider is connected. Next steps: pick a partner, agree on the payme
 test mint with the partner's stablecoin delivery.
 
 Other markets with the same passport-as-deposit problem (Bali, Vietnam) come after Thailand works.
+
+### Asset pools (v3, roadmap)
+
+The Fleet Vault spreads many small scooters over many shareholders. An asset pool is the same idea for one bigger
+asset: shareholders together fund and co-own, say, one Ferrari for rent in Phuket, and share its rent. The Shareholders
+page shows it as a **"Coming soon: Asset pools"** card with an example pool (Ferrari 296 GTB, Phuket, target
+฿12,000,000) and a static progress bar labelled "example". There is no pool, no contract, no sign-up and no backend.
+
+There is **no coin, no ticker and no token launch**: KeyEscrow still has no token of its own (hackathon rule). A pool
+would issue fixed shares in that one asset, the way the Fleet Vault issues shares in its fleet. Why not a meme coin?
+On a bonding curve anyone can buy a majority of the asset, and nothing stops sybil wallets or the team from dumping.
+
+| Risk | Mechanism |
+| --- | --- |
+| **Unfilled pool** | USDT waits in an escrow until the target is met. Not filled by the deadline: a full automatic refund, the same refund-on-timeout pattern the rental escrow uses for the renter. |
+| **One buyer takes the majority** | Max 10 % per person, checked on every purchase and every transfer. |
+| **Sybil wallets** (one person, many wallets) | Verified holders only (KYC), so the 10 % cap holds per person, not per wallet. |
+| **Team dump or extra minting** | A fixed number of shares, minted once when the pool fills. No team allocation, no mint function after that. |
+| **Asset custody** | A legal entity (an SPV) holds the asset. The pooled funds go only to the named seller, only after the target is met, through a timelock and a multisig. |
+| **Income** | Rent flows in and is shared pro rata over the shares, claimed by each holder, as in the `FleetVault` (operator fee for maintenance first). |
+| **Governance** | Big decisions (sell the asset, change the operator) need a supermajority of the shares. |
+
+**Legal.** An income-sharing token on a real asset is an investment token under the Thai SEC's digital-asset rules,
+so a public offer needs a licensed ICO portal. Until that route exists, asset pools stay a testnet prototype at most.
+
+**What it reuses.** `FleetVault` already does pro-rata income with a claim per holder and an operator fee; the rental
+escrow already does "funds wait, refund on timeout". A pool adds the target, the deadline, the per-person cap with
+KYC and the fixed mint.
 
 ## Risks and mitigations
 
