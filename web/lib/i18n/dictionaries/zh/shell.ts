@@ -17,6 +17,7 @@ export const body: DeepPartial<typeof enBody> = {
     how: "运作方式",
     developers: "开发者",
     integrations: "集成",
+    sponsors: "赞助赛道",
     settings: "设置",
     settingsTitle: "密钥设置（仅限本地）",
   },

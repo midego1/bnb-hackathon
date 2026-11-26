@@ -15,6 +15,7 @@ export const body = {
     how: "How it works",
     developers: "Developers",
     integrations: "Integrations",
+    sponsors: "Sponsor tracks",
     settings: "Settings",
     settingsTitle: "Secrets settings (local only)",
   },
