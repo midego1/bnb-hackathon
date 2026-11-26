@@ -66,6 +66,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm -C web install --frozen-lockfile
+      - run: bash web/scripts/brand-check.sh
       - run: pnpm -C web lint
       # Unit tests with v8 coverage: prints the summary, writes web/coverage/lcov.info.
       - run: pnpm -C web test --coverage

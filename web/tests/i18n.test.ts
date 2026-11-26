@@ -162,7 +162,7 @@ describe("shared lib sentences in the UI language", () => {
   it("back office feed: same English as before, Chinese in 中文", () => {
     const money = (v: bigint) => `${v}u`;
     const ev = (name: string, args: Record<string, unknown>) => ({ name, args }) as unknown as ChainEvent;
-    expect(describeEvent(ev("RentReleased", { toLandlord: BigInt(90), fee: BigInt(10) }), money, enT)).toBe("Rent paid out: 90u to the owner + 10u KeyEscrow fee");
+    expect(describeEvent(ev("RentReleased", { toLandlord: BigInt(90), fee: BigInt(10) }), money, enT)).toBe("Rent paid out: 90u to the owner + 10u KeyScrow fee");
     expect(describeEvent(ev("Settled", { landlordClaim: BigInt(0), tenantRefund: BigInt(5) }), money, enT)).toBe("Settled: full deposit returned (5u)");
     expect(describeEvent(ev("DisputeRaised", {}), money, zhT)).toBe("已提出争议：由争议处理台裁决");
     expect(describeEvent(ev("Mystery", {}), money, zhT)).toBe("Mystery");
@@ -181,3 +181,12 @@ describe("rent periods (contract v2) in both languages", () => {
   });
 });
 
+
+describe("brand", () => {
+  it("no user-facing string (en + zh) uses an old product name", () => {
+    const copy = [en, zh, EN_ERRORS, zhErrors, ...(["en", "zh"] as const).flatMap((l) => [landingCopy(l), demoCopy(l), eli5Copy(l)])];
+    const text = JSON.stringify(copy);
+    expect(text).not.toMatch(/KeyEscrow|KeyCrow/);
+    expect(text).toContain("KeyScrow");
+  });
+});
