@@ -381,3 +381,11 @@
   border-radius: 999px;
   background: #000;
 }
+
+/* The page inside /duo's phone scrolls like a phone: no scrollbar (it still scrolls by wheel, touch and keys). */
+html:has(.ios) {
+  scrollbar-width: none;
+}
+html:has(.ios)::-webkit-scrollbar {
+  display: none;
+}
