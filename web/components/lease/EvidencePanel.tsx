@@ -20,8 +20,8 @@ import type { Viewer } from "./model";
 export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; viewer: Viewer; events: TimelineEvent[] | undefined }) {
   const { checkIn, checkOut } = evidenceFromEvents(events);
   const isParty = viewer === "landlord" || viewer === "tenant";
-  const open = lease.status !== LeaseStatus.Settled && lease.status !== LeaseStatus.Cancelled;
   const moveOutStage = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
+  const addPickup = lease.status === LeaseStatus.Created || (lease.status === LeaseStatus.Active && checkOut.length === 0);
   const t = useT();
 
   return (
@@ -42,14 +42,11 @@ export function EvidencePanel({ lease, viewer, events }: { lease: LeaseData; vie
           hashes={checkOut}
           empty={moveOutStage ? t("rental.evidence.returnEmpty") : t("rental.evidence.returnLater")}
         />
-        {isParty && open && (
+        {/* Only what this viewer can add now: pickup photos until the return starts, return photos once the rental runs. */}
+        {isParty && (addPickup || moveOutStage) && (
           <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-            <AnchorPhotos lease={lease} kind="CheckIn" />
-            {moveOutStage ? (
-              <AnchorPhotos lease={lease} kind="CheckOut" />
-            ) : (
-              <p className="self-center text-xs text-subtle">{t("rental.evidence.returnAfterFunding")}</p>
-            )}
+            {addPickup && <AnchorPhotos lease={lease} kind="CheckIn" />}
+            {moveOutStage && <AnchorPhotos lease={lease} kind="CheckOut" />}
           </div>
         )}
       </div>

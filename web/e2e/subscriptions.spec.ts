@@ -133,7 +133,7 @@ test("weekly plan: the rhythm reaches the chain as a 7-day rent period", async (
   // The escrow itself says weekly: its terms() hold rentPeriod = 7 days.
   await sub.getByRole("link", { name: /Open rental/ }).click();
   await page.waitForURL(/\/lease\/0x[0-9a-fA-F]{40}$/);
-  await expect(page.getByText("12 weeks (12 × rent per week)")).toBeVisible();
+  await expect(page.getByTestId("agreement")).toContainText("12 weeks, rent paid every week");
   expect(problems).toEqual([]);
 });
 
