@@ -31,6 +31,8 @@ const FORMATS: Record<SecretFormat, { re: RegExp; hint: string }> = {
   digits: { re: /^[0-9]{1,12}$/, hint: "a number" },
   bucket: { re: /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/, hint: "a bucket name (lowercase letters, digits, -)" },
   hex32: { re: /^[0-9a-fA-F]{32}$/, hint: "32 hex characters" },
+  // CoinMarketCap Pro keys: older ones are UUIDs, current ones 32 hex characters without dashes.
+  cmc: { re: /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/, hint: "a CoinMarketCap key (32 hex characters or a UUID)" },
   anthropic: { re: /^sk-ant-[A-Za-z0-9_-]{20,}$/, hint: "an Anthropic key (sk-ant-...)" },
   // As lib/server/sponsors/cournot.ts reads them: other keys and bases are ignored or refused there.
   cournot: { re: /^ck_live_[A-Za-z0-9_-]{1,256}$/, hint: "a Cournot key (ck_live_...)" },

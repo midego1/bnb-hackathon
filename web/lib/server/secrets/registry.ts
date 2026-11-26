@@ -16,7 +16,7 @@ export type SecretTarget = "root" | "web";
 export type SecretGroup = "prices" | "wallet" | "rpc" | "storage" | "sponsors" | "ai" | "deploy";
 
 /** Cheap per-name format checks. Every value also has to pass the shared charset and length rules (envFile.ts). */
-export type SecretFormat = "token" | "privateKey" | "jwt" | "url" | "uuid" | "digits" | "bucket" | "hex32" | "anthropic" | "cournot" | "cournotBase";
+export type SecretFormat = "token" | "privateKey" | "jwt" | "url" | "uuid" | "digits" | "bucket" | "hex32" | "cmc" | "anthropic" | "cournot" | "cournotBase";
 
 export type SecretSpec = {
   name: string;
@@ -41,7 +41,7 @@ export const SECRETS: SecretSpec[] = [
     purpose: "CoinMarketCap Pro API: live USDT/BNB/THB prices and the volatility buffer on the deposit.",
     source: { label: "CoinMarketCap Pro (free Basic plan)", url: "https://pro.coinmarketcap.com/signup" },
     targets: ["web"],
-    format: "uuid",
+    format: "cmc",
   },
   {
     name: "ATLAS_RPC_URL",

@@ -445,3 +445,13 @@ describe("test route: stored and typed values, audit, rate limit", () => {
     expect(codes.filter((c) => c === 429).length).toBe(1); // 2 above + 8 here = 10 allowed, the 11th refused
   });
 });
+
+describe("CMC_API_KEY format", () => {
+  it("accepts the current 32-hex keys and the older UUID keys, refuses others", async () => {
+    const { matchesFormat } = await import("../lib/server/secrets/envFile");
+    expect(matchesFormat("cmc", "0123456789abcdef0123456789ABCDEF")).toBe(true);
+    expect(matchesFormat("cmc", "01234567-89ab-cdef-0123-456789abcdef")).toBe(true);
+    expect(matchesFormat("cmc", "not-a-key")).toBe(false);
+    expect(matchesFormat("cmc", "0123456789abcdef0123456789abcde")).toBe(false);
+  });
+});
