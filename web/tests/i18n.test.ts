@@ -1,6 +1,7 @@
 import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { demoCopy } from "@/components/demo/copy";
+import { mediaCopy } from "@/components/media/copy";
 import { sponsorsCopy } from "@/components/sponsors/copy";
 import { eli5Copy, endingsText, sceneText, story } from "@/components/eli5/script";
 import { landingCopy } from "@/components/marketing/copy";
@@ -91,6 +92,7 @@ describe("key parity: every English string has Chinese", () => {
     eli5Copy: [eli5Copy.en, eli5Copy.zh],
     landing: [landingCopy.en, landingCopy.zh],
     sponsors: [sponsorsCopy.en, sponsorsCopy.zh],
+    media: [mediaCopy.en, mediaCopy.zh],
     errors: [EN_ERRORS, zhErrors],
   } as const;
 
@@ -186,7 +188,7 @@ describe("rent periods (contract v2) in both languages", () => {
 
 describe("brand", () => {
   it("no user-facing string (en + zh) uses an old product name", () => {
-    const copy = [en, zh, EN_ERRORS, zhErrors, ...(["en", "zh"] as const).flatMap((l) => [landingCopy(l), demoCopy(l), eli5Copy(l), sponsorsCopy(l)])];
+    const copy = [en, zh, EN_ERRORS, zhErrors, ...(["en", "zh"] as const).flatMap((l) => [landingCopy(l), demoCopy(l), eli5Copy(l), sponsorsCopy(l), mediaCopy(l)])];
     const text = JSON.stringify(copy);
     expect(text).not.toMatch(/KeyEscrow|KeyCrow/);
     expect(text).toContain("KeyScrow");

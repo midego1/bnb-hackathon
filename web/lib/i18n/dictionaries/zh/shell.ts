@@ -55,6 +55,7 @@ export const body: DeepPartial<typeof enBody> = {
       website: "关于 KeyScrow",
       docs: "文档",
       eli5: "运作方式，通俗讲解",
+      media: "媒体资料",
       secrets: "密钥（仅限本地）",
     },
     gate: {

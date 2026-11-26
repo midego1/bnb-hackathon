@@ -280,6 +280,7 @@ claude mcp add --transport http keyscrow \\
       developers: "开发者参考",
       integrations: "集成",
       sponsors: "赞助赛道",
+      media: "媒体资料与下载",
       agent: "验车智能体",
       api: "API",
       architecture: "架构",

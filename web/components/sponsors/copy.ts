@@ -8,6 +8,7 @@ const en = {
   lead: "What KeyScrow enters at BNB Bangkok 2026, what each track uses, and its state on this server right now. The status chips read the same data as /api/integrations.",
   see: "See it",
   proof: "Proof",
+  media: "Media kit: every video, the deck, screenshots and documents to download",
   state: { live: "Live", built: "Built", waiting: "Waiting for key" },
   tracks: {
     bnb: {

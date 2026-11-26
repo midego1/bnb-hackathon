@@ -310,6 +310,7 @@ claude mcp add --transport http keyscrow \\
       developers: "Developer reference",
       integrations: "Integrations",
       sponsors: "Sponsor tracks",
+      media: "Media kit and downloads",
       agent: "Inspector agent",
       api: "API",
       architecture: "Architecture",
