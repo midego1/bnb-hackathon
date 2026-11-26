@@ -16,13 +16,23 @@ board (`MoneyFlow.tsx`). It renders per request because its words follow the lan
 - **Idea.** The page is the street the product lives on: the first screen is an LED signboard picture of a Thai soi at
   night with a scooter rental shop, and the promise is written over it like a shop sign. The street comes back once,
   dimmer, behind the closing ask.
-- **Story, top to bottom.** The problem and the promise (hero, then "today" against "with KeyEscrow" as two LED
-  tiles), proof that it is real (four linked claims under the hero, then the contract table), how the money moves
-  (the board), who decides (AI inspection, deadlines), what a shop gets (subscriptions, Fleet Vault, dispute desk),
-  the agent surface, the fee, the roadmap (each phase says "Live on testnet" or "Planned"), and the three ways in.
-- **Three ways in.** "Play the live demo" (amber), "Rent our Mystery Box" and "Open the app" (outline), in the hero
-  and again in the closing; "How it works" is a text link. On a phone the first is full width and the other two share
-  a row, and the header carries EN / 中文 instead of "Open the app".
+- **Story, top to bottom.** Find a scooter (the search, then the demo listings it filters), why the deposit is safe
+  ("today" against "with KeyEscrow" as two LED tiles, the money board, AI inspection, deadlines), listing your own
+  scooter (subscriptions, Fleet Vault, dispute desk), proof that it is real (four linked claims, then the contract
+  table), the agent surface, the fee, the roadmap (each phase says "Live on testnet" or "Planned"), and the three
+  ways in.
+- **The search.** The hero's main action, in the manner of a rental marketplace: one light rounded bar on the night
+  artwork with Where (the four cities of the demo listings), When and How long, and an amber Search button. It is a
+  plain GET form to `/#listings` inside a small island (`Search.tsx`), so the address carries the search and the
+  server filters the grid. On phones the bar is one pill that sums up the choice and opens the fields when tapped.
+- **The listing grid.** Cards without ratings or reviews: an LED picture of the scooter in its city (our drawings,
+  `docs/marketing/scooters.py`), name, area, the price for the chosen length with the other price beside it, the
+  deposit, and a "Deposit protected by escrow" badge. One column on phones, two from 640 px, three from 1024 px. Each
+  card is one link to the listing's page in the app, where "Rent it" starts a real testnet rental. Every card and the
+  section say "demo listing".
+- **Three ways in.** "Play the live demo", "Rent our Mystery Box" and "Open the app": smaller outline pills under the
+  search in the hero, full-size buttons in the closing; "How it works" is a text link. On phones the header carries
+  EN / 中文 instead of "Open the app".
 - **The money board.** The page's one authored moment: three LED panels (renter, escrow, owner) set in a 5x9 dot
   font (`led.ts`), two tracks of dots between them, and the four steps as buttons. Each panel shows what is at that
   station now, so the amounts move from left to right and back; a panel holding nothing goes dim. Lit dots chase
