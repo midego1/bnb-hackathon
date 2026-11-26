@@ -173,8 +173,8 @@ page shows it as a **"Coming soon: Asset pools"** card with an example pool (Fer
 ฿12,000,000) and a static progress bar labelled "example". There is no pool, no contract, no sign-up and no backend.
 
 There is **no coin, no ticker and no token launch**: KeyEscrow still has no token of its own (hackathon rule). A pool
-would issue fixed shares in that one asset, the way the Fleet Vault issues shares in its fleet. Why not a meme coin? On a bonding curve
-anyone can buy a majority of the asset, and nothing stops sybil wallets or the team from dumping.
+would issue fixed shares in that one asset, the way the Fleet Vault issues shares in its fleet. Why not a meme coin?
+On a bonding curve anyone can buy a majority of the asset, and nothing stops sybil wallets or the team from dumping.
 
 | Risk | Mechanism |
 | --- | --- |
