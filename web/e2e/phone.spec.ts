@@ -76,7 +76,7 @@ for (const vp of PHONES) {
           expect(Math.round(bubble.width)).toBe(48);
           expect(bubble.y + bubble.height).toBeLessThanOrEqual(vp.height);
           const bar = page.getByTestId("mobile-nav");
-          expect((await bar.getByRole("link").first().locator("svg").boundingBox())!.width).toBeGreaterThanOrEqual(23);
+          expect((await bar.getByRole("link").first().locator("img").boundingBox())!.width).toBeGreaterThanOrEqual(23);
           expect(await bar.evaluate((n) => n.scrollWidth - n.clientWidth)).toBeLessThanOrEqual(0);
         }
         await check(page, `${vp.width}-${mode}-${theme}-${name}`);
