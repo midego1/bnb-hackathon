@@ -139,6 +139,18 @@ export const body: DeepPartial<typeof enBody> = {
       mock: "演示验车员（这台服务器没有视觉模型密钥）：结果固定，并没有真正查看照片。",
       propose: "提出这个分配",
     },
+    ios: {
+      nav: "租用",
+      step: { money: "资金", pay: "付款", pickup: "取车", return: "还车", inspect: "AI 验车", accept: "确认", settled: "结清" },
+      progress: "第 {n} 步，共 7 步：{name}",
+      total: "现在存入托管",
+      ready: "可以租用",
+      readyBody: "押金存放在托管合约里，而不是交给车行。",
+      protected: "押金由托管保护",
+      fee: "KeyScrow 手续费",
+      txs: "链上交易",
+      txsFoot: { one: "{chain} 上的 {n} 笔交易。", other: "{chain} 上的 {n} 笔交易。" },
+    },
   },
 };
 

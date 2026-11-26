@@ -1,0 +1,383 @@
+/*
+ * The phone inside /duo as the KeyScrow iPhone app (Design/Theme.swift + Components.swift of the iOS app under ios/): the same
+ * tokens as the site (Theme.swift copies globals.css), the system font (SF on Apple devices), rounded headings and
+ * amounts, 22 pt cards with a hairline and a soft shadow, 16 pt buttons 54 pt tall. Scoped to .ios (JudgeFlow, ?duo=1).
+ */
+.ios {
+  --ios-amber: #f59e0b;
+  --ios-amber-soft: #fef3c7;
+  --ios-on-amber: #1c1917;
+  --ios-shadow: 0 6px 14px rgb(15 23 42 / 0.06);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+:root.dark .ios {
+  --ios-amber: #fbbf24;
+  --ios-amber-soft: #2a1a05;
+  --ios-shadow: none;
+}
+.ios :is(h1, h2, .ios-title, .ios-display, .ios-headline, .ios-dot, .ios-kv dd) {
+  font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, var(--font-sans), system-ui, sans-serif;
+}
+
+/* Nav bar: the round back button and the inline title. */
+.ios-nav {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  min-height: 44px;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+}
+.ios-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgb(15 23 42 / 0.12);
+}
+
+/* The 7-dot step row: done = green tick, current = amber with a halo, todo = grey number. */
+.ios-steps {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 2px 0;
+}
+.ios-steps li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ios-steps li + li::before {
+  content: "";
+  position: absolute;
+  top: 15.5px;
+  right: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--border-strong);
+}
+.ios-steps li:is([data-state="done"], [data-state="current"]) + li::before,
+.ios-steps li + li:is([data-state="done"], [data-state="current"])::before {
+  background: var(--success);
+}
+.ios-steps li[data-state="current"] + li[data-state="todo"]::before {
+  background: var(--border-strong);
+}
+.ios-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: 3px 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  box-shadow: 0 0 0 3px var(--background);
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ios-dot svg {
+  width: 14px;
+  height: 14px;
+}
+[data-state="done"] > .ios-dot {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--primary-foreground);
+}
+:root.dark [data-state="done"] > .ios-dot {
+  color: var(--background);
+}
+[data-state="current"] > .ios-dot {
+  width: 30px;
+  height: 30px;
+  margin: 1px 0;
+  border: 0;
+  background: var(--ios-amber);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--ios-amber) 25%, var(--background)),
+    0 0 0 6px var(--background);
+  color: var(--ios-on-amber);
+  font-size: 14px;
+  font-weight: 800;
+}
+.ios-step-name {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap; /* "AI check" in bold is a hair wider than its column: it may reach into the gaps either side */
+  color: var(--subtle);
+}
+[data-state="done"] > .ios-step-name {
+  color: var(--muted-foreground);
+}
+[data-state="current"] > .ios-step-name {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* Cards. */
+.ios-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--ios-shadow);
+}
+.ios-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--ios-amber-soft);
+  color: var(--ios-amber);
+}
+.ios-tile[data-tone="info"] {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.ios-tile[data-tone="success"] {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.ios-tile[data-tone="warning"] {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.ios-tile[data-tone="neutral"] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.ios-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.ios-headline {
+  font-size: 17px;
+  font-weight: 600;
+}
+.ios-display {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.ios-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--subtle);
+}
+.ios-card > p,
+.ios-body {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+.ios-rule {
+  border: 0;
+  border-top: 1px dashed var(--border-strong);
+}
+
+/* Amount rows: label left, baht right, mUSDT under it. */
+.ios-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ios-kv dt {
+  font-size: 17px;
+  color: var(--muted-foreground);
+}
+.ios-kv dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ios-kv dd small {
+  font-family: -apple-system, BlinkMacSystemFont, var(--font-sans), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--subtle);
+}
+.ios-kv[data-strong] dt {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.ios-kv[data-strong] dd {
+  font-size: 26px;
+}
+
+/* Buttons: ActionButton's <button>, full width, 54 pt, 16 pt corners; primary is the navy (white in dark). */
+.ios-card [data-slot="button"],
+.ios-card label.ios-secondary {
+  min-height: 54px;
+  width: 100%;
+  gap: 8px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* The split bar and its legend. */
+.ios-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+.ios-bar i {
+  min-width: 6px;
+  border-radius: 999px;
+}
+:is(.ios-bar, .ios-legend) [data-kind="back"] {
+  background: var(--success);
+}
+:is(.ios-bar, .ios-legend) [data-kind="owner"] {
+  background: var(--info);
+}
+:is(.ios-bar, .ios-legend) [data-kind="fee"] {
+  background: var(--ios-amber);
+}
+.ios-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.ios-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ios-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.ios-legend b {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The settled tick. */
+.ios-success {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin: 4px auto 0;
+  border: 5px solid var(--success);
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.ios-success svg {
+  width: 48px;
+  height: 48px;
+}
+
+/* Transactions. */
+.ios-receipt {
+  gap: 10px;
+}
+.ios-tx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  font-size: 15px;
+  color: var(--foreground);
+}
+.ios-txn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ios-txn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The catalogue as an inset grouped list. */
+.ios-list {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--ios-shadow);
+}
+.ios-list li + li {
+  border-top: 1px solid var(--border);
+  margin-left: 92px;
+}
+.ios-list li + li > button {
+  margin-left: -92px;
+  width: calc(100% + 92px);
+}
+.ios-list button[aria-current="true"] {
+  background: color-mix(in srgb, var(--ios-amber) 9%, var(--surface));
+}
+.ios-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--ios-amber);
+  color: var(--ios-on-amber);
+}
+
+/* The status bar and the Dynamic Island, over the top of the framed screen (components/stage/DuoView Phone). */
+.ios-statusbar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 54px;
+  padding: 4px 30px 0 44px;
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  backdrop-filter: blur(12px);
+  font: 600 17px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-sans), system-ui, sans-serif;
+  color: var(--foreground);
+  pointer-events: none;
+}
+.ios-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 124px;
+  height: 36px;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: #000;
+}
