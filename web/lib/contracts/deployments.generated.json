@@ -16,7 +16,8 @@
     "rentalEscrowImplementation": "0xEAaDe62c3255dAc5EB38952a80fa375618c34E53",
     "fromBlock": 144891362,
     "tokenDecimals": 6,
-    "tokenSymbol": "mUSDT"
+    "tokenSymbol": "mUSDT",
+    "atlasSwapGuard": "0xD26dBba1eE904c95d3467F479FC4410b0400b6bA"
   },
   "31337": {
     "escrowFactory": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",

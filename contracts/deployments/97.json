@@ -16,5 +16,6 @@
   "startBlock": 144891362,
   "token": "0x7aF0035c254bC760231BCcFF3403A714611c35B1",
   "tokenDecimals": 6,
-  "tokenSymbol": "mUSDT"
+  "tokenSymbol": "mUSDT",
+  "atlasSwapGuard": "0xD26dBba1eE904c95d3467F479FC4410b0400b6bA"
 }
