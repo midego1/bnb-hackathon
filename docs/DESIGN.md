@@ -45,6 +45,14 @@ board (`MoneyFlow.tsx`). It renders per request because its words follow the lan
   the tokens, so the same utilities (`text-muted`, `border-border`, ...) work inside them. Teal, pink and amber name
   the three stations of the board (renter, owner, escrow), as the street has them; the escrow panel wears the dotted
   pink frame of the artwork's shop sign.
+- **Coins.** Every dot of the LED pictures (the street, the two tiles, the listing pictures) and of the money board is a
+  tiny BNB coin: a disc with the official BNB Chain logomark on it, as large as the coin allows
+  (`docs/marketing/coins.py`; the board draws the same coin as SVG from the official file). Lit marks are the official
+  yellow `#F0B90B` and dim ones darker; the disc follows its spot in the picture (the night stays indigo, pale light
+  turns gold, the red scooter and the teal awning keep their colours), so the street still reads. Now and then a soft
+  band of light sweeps across the street's coins, and across a listing's picture on hover: CSS only, an overlay that
+  leaves the gaps dark, and never under `prefers-reduced-motion`. The logo's use needs BNB Chain's approval (see
+  [marketing/README.md](marketing/README.md#the-bnb-mark)).
 - **Type.** Kanit, the Thai signage grotesque, self-hosted: 800 for the hero and section headings, 500 for
   sub-headings and buttons. Geist for reading, about 70 characters a line. Geist Mono only for code, addresses and
   money. Kanit ships as a Latin subset: Chinese headlines and the baht sign fall back to the system face.
