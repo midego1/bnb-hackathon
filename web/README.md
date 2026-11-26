@@ -13,7 +13,7 @@ Next.js (App Router) + wagmi/viem + RainbowKit frontend for the KeyEscrow contra
 
 One UI library: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind v4, the code lives in
 `components/ui/*`, set up with `shadcn@4.23.0`, see `components.json`), [lucide-react](https://lucide.dev) icons, and
-[Vercel AI Elements](https://elements.ai-sdk.dev) for the Ask AI panel (`components/ai-elements/*`, from
+[Vercel AI Elements](https://elements.ai-sdk.dev) for the Ask AI chat window (`components/ai-elements/*`, from
 `ai-elements@1.9.1`, trimmed: no `ai` package, streamdown, shiki or motion).
 
 - **Colours are tokens only** (`app/globals.css`), light and dark, switched by the theme switch (`lib/theme.ts`,
@@ -24,7 +24,7 @@ One UI library: [shadcn/ui](https://ui.shadcn.com) (Radix primitives + Tailwind 
 - `components/ui.tsx` keeps the app's own primitives (`Card`, `StatusBadge`, `ActionButton`, `Field`, `Notice`,
   `Amount`, ...) on top of the shadcn components; `components/Toasts.tsx` keeps `useToasts()` and renders with sonner.
 - **Worker size:** the Cloudflare web Worker must stay under 3 MiB gzip (`pnpm cf:build && pnpm cf:size`). Keep
-  heavy client-only UI out of the server render: the Ask AI panel, sonner and the confirm dialog load with
+  heavy client-only UI out of the server render: the Ask AI chat window, sonner and the confirm dialog load with
   `next/dynamic(..., { ssr: false })`, and the tooltip provider lives in the panel.
 
 ## Contracts → frontend

@@ -70,7 +70,7 @@ product name stays English in running text only where the UI shows it as a name;
 | baht | 泰铢 | amounts keep ฿ |
 | risk engine / buffer | 风险引擎 / 缓冲 | |
 | agent (software) | 智能体 | |
-| Ask AI (the assistant panel) | AI 助手 | |
+| Ask AI (the assistant chat) | AI 助手 | |
 | approve (a token allowance) | 授权 | "Approve USDT" → 授权 USDT |
 | approve (a change in Ask AI) | 批准 | |
 | Get test USDT | 领取测试 USDT | button and every sentence that quotes it |

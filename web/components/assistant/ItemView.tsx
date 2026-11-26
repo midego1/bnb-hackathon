@@ -22,6 +22,30 @@ const STEP: Record<StepState, ToolState> = {
 };
 const STEP_ICON: Record<StepKind, LucideIcon> = { read: Search, change: PenLine, page: Compass };
 
+/**
+ * A conversation as chat bubbles: the person's messages on the right, and everything Ask AI says or does between two
+ * of them (answers, steps with their server cards, approvals, notices) in one assistant bubble on the left.
+ */
+export function ChatItems({ items, onApprove, onDecline }: { items: Item[]; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
+  const turns: Item[][] = [];
+  for (const item of items) {
+    const last = turns.at(-1);
+    if (item.kind !== "user" && last && last[0].kind !== "user") last.push(item);
+    else turns.push([item]);
+  }
+  return turns.map((turn) =>
+    turn[0].kind === "user" ? (
+      <ItemView key={turn[0].id} item={turn[0]} />
+    ) : (
+      <div key={turn[0].id} className="mr-auto flex w-full max-w-[94%] min-w-0 flex-col gap-2 rounded-2xl rounded-bl-md bg-muted/70 p-2.5" data-testid="assistant-turn">
+        {turn.map((item) => (
+          <ItemView key={item.id} item={item} onApprove={onApprove} onDecline={onDecline} />
+        ))}
+      </div>
+    ),
+  );
+}
+
 /** One entry of a conversation: a message, an answer, a step with its cards, an approval, a notice. */
 export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
   const t = useT();
@@ -29,7 +53,10 @@ export function ItemView({ item, onApprove, onDecline }: { item: Item; onApprove
     case "user":
       return (
         <Message from="user" className="max-w-[85%]">
-          <MessageContent className="whitespace-pre-wrap [overflow-wrap:anywhere] group-[.is-user]:rounded-2xl group-[.is-user]:bg-muted group-[.is-user]:px-3 group-[.is-user]:py-2" data-testid="assistant-user">
+          <MessageContent
+            className="whitespace-pre-wrap [overflow-wrap:anywhere] group-[.is-user]:rounded-2xl group-[.is-user]:rounded-br-md group-[.is-user]:bg-primary group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground"
+            data-testid="assistant-user"
+          >
             {item.text}
           </MessageContent>
         </Message>

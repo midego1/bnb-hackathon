@@ -107,7 +107,7 @@ Safety properties enforced in code:
 - **Isolated terms:** each escrow copies the fee, the arbiter and both windows at creation. Later factory changes
   never reach an existing rental.
 
-**Status:** on `main` and deployed on BSC testnet (verified on BscScan). 105 Foundry tests (unit + fuzz), see
+**Status:** on `main` and deployed on BSC testnet (verified on BscScan). 120 Foundry tests (unit, fuzz, invariants; 305 with contract v2), see
 [§12](#12-testing).
 
 ## 3. Web app
@@ -123,7 +123,7 @@ flowchart TB
         RO["<b>Roles</b><br/>Renter · /tenant<br/>Fleet owner · /landlord<br/>Shareholders · /shareholders<br/>Back office · /backoffice<br/>Dispute desk · /arbiter"]
         DM["<b>Demo</b><br/>Play the demo · /demo<br/>How it works · /how-it-works"]
         BU["<b>Build</b><br/>Developers · /developers<br/>Integrations · /integrations"]
-        EX["Settings · /settings/secrets (local only)<br/>Ask AI panel (slot only, coming)"]
+        EX["Settings · /settings/secrets (local only)<br/>Ask AI · floating bubble + chat window"]
     end
     LD["Rental page · /lease/[address]<br/>(also rendered live inside /demo)"]
     API["<b>Server routes · web/app/api</b><br/>settlement (AI inspection) · price · risk · cournot<br/>evidence · fleet · integrations<br/>v1/[action] · v1/openapi.json<br/>demo-testnet/* (live demo runner) · settings/secrets/*"]
@@ -141,7 +141,7 @@ flowchart TB
 | **`/developers`** | Docs for every `/api/v1` action, generated from the action definitions ([§4](#4-actions-rest-openapi-mcp-a2a)). |
 | **`/integrations`** | The sponsor integrations' state, the deposit risk engine and recent sponsor calls. |
 | **`/settings/secrets`** | A write-only page for setting API keys on the team's own box. It is on only when the server has `SETTINGS_SECRETS_ENABLED=1`, answers only local or tailnet clients on a non-public host, needs a passcode, and never shows a value back. A Cloudflare build with the flag fails, and Workers ignore it at runtime. See [SETUP.md](SETUP.md). |
-| **Ask AI panel** | **Roadmap.** The shell has an empty `#ask-ai-slot` for it; nothing is mounted yet. |
+| **Ask AI** | A bubble bottom right of every app page (and Ctrl/Cmd+J) opens a floating chat window: reads, approval cards signed by your wallet, follow along. See [ASSISTANT.md](ASSISTANT.md). |
 
 Listing data (the scooter catalogue and booking requests, `/api/fleet`) is off-chain and demo-grade: it is a file
 under Node and the Durable Object on Cloudflare. Rental money and state live only in the escrows; a listing links to
@@ -173,7 +173,7 @@ The testnet runner (`lib/server/demoTestnet/`) vets every call against an allowl
 functions (`guards.ts`) before it signs, keeps the run lock in the Durable Object, and never puts a key in a response
 or a log. Other builds compile the demo out, and `/demo` answers 404.
 
-**Status:** live. The Ask AI panel is roadmap.
+**Status:** live, Ask AI included.
 
 ### Languages (EN / 中文 / EN+中文)
 
@@ -497,13 +497,13 @@ sequenceDiagram
 
 ## 12. Testing
 
-| Suite | Command | Count (25 Nov 2026) |
+| Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit + fuzz (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 105 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 241 |
-| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 20 |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 120 (305 with contract v2) |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 393 in 30 files |
+| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 21 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
-| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page | `cd web && npx playwright test` | 50 tests in 11 files |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 108 tests in 20 files |
 
 CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
 secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.
