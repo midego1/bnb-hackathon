@@ -70,11 +70,13 @@ async function shots(page: Page, name: string) {
   const size = page.viewportSize()!;
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const colorScheme of ["light", "dark"] as const) {
-    await page.emulateMedia({ colorScheme });
+    await page.emulateMedia({ colorScheme }); // the framed phone follows the media query
+    await page.evaluate((c) => document.documentElement.classList.replace(c === "dark" ? "light" : "dark", c), colorScheme); // the page, its theme class
     await page.waitForTimeout(2500); // the coins have dropped or drained, the tag has flown in, the receipt has printed
     await page.screenshot({ path: path.join(SHOTS, `duo-1440x900-${colorScheme}-${name}.png`) });
   }
   await page.emulateMedia({ colorScheme: null });
+  await page.evaluate(() => document.documentElement.classList.replace("dark", "light"));
   await page.setViewportSize(size);
 }
 
