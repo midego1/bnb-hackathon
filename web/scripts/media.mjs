@@ -2,11 +2,11 @@
 // The /media page's files (app/(app)/media): copies every downloadable file into public/media/<folder>/, zips them into
 // public/media/keyscrow-media.zip and writes public/media/manifest.json (path + bytes of each file, read by the page).
 // All three are build outputs (gitignored). Runs before every next build: package.json build, cf.mjs, testnet-web.sh,
-// playwright.config.ts. Needs the system `zip` (macOS and Ubuntu ship it).
-import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+// playwright.config.ts. Node only: the zip is written here (the production build server has no `zip` binary).
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = join(WEB, "..");
@@ -50,6 +50,62 @@ const FILES = [
 const nameOf = (src) =>
   src === "docs/submission/README.md" ? "SUBMISSION.md" : src.startsWith("docs/screenshots/judges/") ? `judges-${basename(src)}` : basename(src);
 
+// zlib.crc32 is Node >= 20.15 / 22.2; the table version covers older Node 20 (Next 16 needs >= 20.9).
+const CRC_TABLE = Int32Array.from({ length: 256 }, (_, n) => {
+  for (let k = 0; k < 8; k++) n = n & 1 ? 0xedb88320 ^ (n >>> 1) : n >>> 1;
+  return n;
+});
+const crc32 = zlib.crc32 ?? ((buf) => ~buf.reduce((c, b) => CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8), -1) >>> 0);
+
+/**
+ * A plain zip (no zip64: every file and the whole zip stay far below 4 GiB, guarded at 25 MiB): each entry deflated
+ * when that makes it smaller (the .md files), else stored (PNG, MP4 and PDF are compressed already).
+ */
+export function writeZip(file, entries) {
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const { name, data, mtime } of entries) {
+    const deflated = zlib.deflateRawSync(data, { level: 9 });
+    const [method, body] = deflated.length < data.length ? [8, deflated] : [0, data];
+    const nameBuf = Buffer.from(name, "utf8");
+    const dosTime = (mtime.getHours() << 11) | (mtime.getMinutes() << 5) | (mtime.getSeconds() >> 1);
+    const dosDate = ((Math.max(mtime.getFullYear(), 1980) - 1980) << 9) | ((mtime.getMonth() + 1) << 5) | mtime.getDate();
+    // version needed 2.0, flag bit 11: UTF-8 names, method, time, date, crc, compressed size, size, name length, no extra
+    const common = Buffer.alloc(26);
+    common.writeUInt16LE(20, 0);
+    common.writeUInt16LE(0x0800, 2);
+    common.writeUInt16LE(method, 4);
+    common.writeUInt16LE(dosTime, 6);
+    common.writeUInt16LE(dosDate, 8);
+    common.writeUInt32LE(crc32(data), 10);
+    common.writeUInt32LE(body.length, 14);
+    common.writeUInt32LE(data.length, 18);
+    common.writeUInt16LE(nameBuf.length, 22);
+    const local = Buffer.concat([u32(0x04034b50), common, nameBuf]);
+    // central header: signature, version made by, the common fields, then comment length, disk, internal and external
+    // attributes (all 0) and the local header's offset
+    const tail = Buffer.alloc(14);
+    tail.writeUInt32LE(offset, 10);
+    central.push(Buffer.concat([u32(0x02014b50), Buffer.from([20, 0]), common, tail, nameBuf]));
+    parts.push(local, body);
+    offset += local.length + body.length;
+  }
+  const cd = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(cd.length, 12);
+  end.writeUInt32LE(offset, 16);
+  writeFileSync(file, Buffer.concat([...parts, cd, end]));
+}
+const u32 = (n) => {
+  const b = Buffer.alloc(4);
+  b.writeUInt32LE(n);
+  return b;
+};
+
 export function buildMedia() {
   rmSync(OUT, { recursive: true, force: true });
   const files = FILES.map(([folder, src, zip]) => {
@@ -60,8 +116,10 @@ export function buildMedia() {
   });
   const paths = files.map((f) => f.path);
   if (new Set(paths).size !== paths.length) throw new Error("media: two files share a name");
-  // -X: no extra attributes (uid/gid, timestamps beyond the DOS one), so the zip only changes when a file does.
-  execFileSync("zip", ["-q", "-X", ZIP, ...files.filter((f) => f.zip).map((f) => f.path)], { cwd: OUT });
+  writeZip(
+    join(OUT, ZIP),
+    files.filter((f) => f.zip).map((f) => ({ name: f.path, data: readFileSync(join(OUT, f.path)), mtime: statSync(join(REPO, f.src)).mtime })),
+  );
   const zipBytes = statSync(join(OUT, ZIP)).size;
   if (zipBytes >= MAX_FILE) throw new Error(`media: ${ZIP} is ${zipBytes} bytes, over the 25 MiB Workers Static Assets limit`);
   const big = files.filter((f) => f.bytes >= MAX_FILE);

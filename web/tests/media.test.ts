@@ -28,6 +28,8 @@ describe("media manifest", () => {
   it("zips every file but the duplicates, in folders, below the 25 MiB Workers Static Assets limit", () => {
     expect(m.zip.bytes).toBe(statSync(path.join(OUT, m.zip.path)).size);
     expect(m.zip.bytes).toBeLessThan(25 * MiB);
+    // scripts/media.mjs writes the zip itself (no `zip` binary): unzip checks every entry's CRC and its listing.
+    expect(execFileSync("unzip", ["-tq", m.zip.path], { cwd: OUT, encoding: "utf8" })).toMatch(/No errors detected/);
     const inZip = execFileSync("unzip", ["-Z1", m.zip.path], { cwd: OUT, encoding: "utf8" }).trim().split("\n").sort();
     expect(inZip).toEqual(m.files.filter((f) => f.zip).map((f) => f.path).sort());
     expect(new Set(inZip.map((p) => p.slice(0, p.lastIndexOf("/"))))).toEqual(new Set(["videos", "deck", "screenshots/web", "screenshots/ios", "brand", "docs"]));
