@@ -46,7 +46,7 @@ test("landing page renders the whole story without the app shell, a wallet or co
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
   await expect(page.getByTestId("sidebar")).toHaveCount(0);
   await expect(page.getByTestId("wallet")).toHaveCount(0);
-  await expect(page.getByTestId("ask-ai-entry")).toHaveCount(0);
+  await expect(page.getByTestId("assistant-bubble")).toHaveCount(0);
   await page.keyboard.press("ControlOrMeta+j"); // Ask AI's shortcut belongs to the app shell only
   await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
 

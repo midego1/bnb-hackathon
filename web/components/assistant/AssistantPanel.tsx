@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Circle, Eye, EyeOff, Hand, History, PanelRightClose, PanelRightOpen, Sparkles, SquarePen, Square, X, Zap, ChevronDown } from "lucide-react";
+import { ArrowUp, Circle, Eye, EyeOff, Hand, History, Sparkles, SquarePen, Square, X, Zap, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Suggestion } from "@/components/ai-elements/suggestion";
@@ -20,38 +20,39 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { composerLabel, interpret, matchCommands, suggestionsFor, type Suggestion as PromptSuggestion } from "@/lib/assistant/composer";
 import { useT } from "@/lib/i18n/client";
 import { HistoryView, ReadOnlyChat } from "./AssistantHistory";
-import { MIN_WIDTH } from "./constants";
-import { ItemView } from "./ItemView";
+import { ChatItems } from "./ItemView";
 import { MODEL_CHOICES, type ModelChoice, type useAssistantRun } from "./useAssistantRun";
 
 type Assistant = ReturnType<typeof useAssistantRun>;
 
-/** Above the panel (z-[65]): its menus and tooltips render in portals. */
+/** Above the window (z-[75]): its menus and tooltips render in portals. */
 const OVER_PANEL = "z-[80]";
 
 /**
- * The Ask AI panel (Vercel AI Elements on shadcn/ui; loaded lazily by AssistantProvider): header (follow along, new chat, widen, close), status line, the conversation (steps, server cards,
- * approval cards, answers), suggestions for the page in view, and the composer with slash commands and Stop.
+ * The Ask AI chat window (Vercel AI Elements on shadcn/ui; loaded lazily by AssistantProvider), floating above the
+ * bubble bottom right, a full-height sheet on phones: header (model, history, follow along, new chat, close), status
+ * line, the conversation as chat bubbles (steps, server cards and approval cards inside the assistant's), suggestions
+ * for the page in view, and the composer with slash commands and Stop. Stays mounted once opened: closed, it is
+ * invisible and inert, so it can scale and fade from the bubble (no motion with prefers-reduced-motion).
  */
 export function AssistantPanel({
   ref,
+  open,
+  small,
   assistant,
   path,
   follow,
   onFollow,
-  wide,
-  onWidth,
-  onWide,
   onClose,
 }: {
   ref: Ref<HTMLElement>;
+  open: boolean;
+  /** The one-screen stages: the small bubble, a shorter window. */
+  small: boolean;
   assistant: Assistant;
   path: string;
   follow: boolean;
   onFollow: (v: boolean) => void;
-  wide: boolean;
-  onWidth: (w: number) => void;
-  onWide: () => void;
   onClose: () => void;
 }) {
   const { run, send, stop, newChat, approve, decline, history, continueChat, renameChat, deleteChat, setModel, freshen } = assistant;
@@ -65,11 +66,6 @@ export function AssistantPanel({
     const m = MODEL_CHOICES.find((x) => x.id === id)!;
     setNote(t(run.mock ? "ai.notePicked" : "ai.noteAnswers", { model: m.label }));
   };
-  // The one-screen stages (/demo, /how-it-works: `data-demo-stage`) keep their full width while they are pinned to the
-  // window (the `stage` variant: desktop, at least 720px tall): there the panel floats bottom right instead of taking a
-  // column, and app/globals.css does not pad the page. On a shorter window, or a tablet, the stage scrolls like any
-  // page, so the panel takes its column and the page reflows beside it (a float would sit on the last rows for good).
-  const floating = path === "/demo" || path === "/how-it-works";
   const [draft, setDraft] = useState("");
   const [cmdIndex, setCmdIndex] = useState(0);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -77,11 +73,12 @@ export function AssistantPanel({
   const commands = matchCommands(draft);
 
   useEffect(() => {
+    if (!open) return;
     freshen();
     input.current?.focus();
     // On open only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [open]);
 
   const submit = (text: string) => {
     const what = interpret(text);
@@ -106,38 +103,22 @@ export function AssistantPanel({
     } else submit(s.prompt);
   };
 
-  const startResize = (e: React.PointerEvent) => {
-    e.preventDefault();
-    const move = (ev: PointerEvent) => onWidth(Math.min(Math.max(window.innerWidth - ev.clientX, MIN_WIDTH), Math.min(900, window.innerWidth * 0.7)));
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-
   // The panel is the only place with tooltips: their provider lives here, so Radix's popper stays out of every page
   // (the panel itself loads lazily, client only; see AssistantProvider).
   return (
     <TooltipProvider delayDuration={300}>
       <aside
         ref={ref}
+        id="assistant-window"
         aria-label={t("ai.name")}
+        inert={!open}
         data-testid="assistant-panel"
+        data-open={open || undefined}
         data-assistant-state={run.state}
-        data-floating={floating || undefined}
-        className={`fixed inset-x-0 bottom-0 z-[65] flex h-[78dvh] flex-col rounded-t-2xl border border-border bg-background text-foreground shadow-2xl md:inset-x-auto md:top-0 md:right-0 md:h-auto md:w-[var(--assistant-width)] md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none ${
-          floating
-            ? "stage:top-auto stage:right-4 stage:bottom-4 stage:h-[min(58dvh,560px)] stage:w-[min(var(--assistant-width),420px)] stage:rounded-2xl stage:border-y stage:border-r stage:shadow-2xl"
-            : ""
-        }`}
+        className={`fixed inset-0 z-[75] flex origin-bottom-right flex-col overflow-hidden bg-background text-foreground transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none sm:inset-auto sm:right-4 sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:border sm:border-border sm:shadow-xl ${
+          small ? "sm:bottom-14 sm:h-[min(560px,62dvh)]" : "sm:bottom-[5.5rem] sm:h-[min(640px,80vh,calc(100dvh-7rem))]"
+        } ${open ? "visible scale-100 opacity-100" : "pointer-events-none invisible translate-y-2 scale-90 opacity-0"}`}
       >
-        <div
-          onPointerDown={startResize}
-          className={`absolute inset-y-0 left-0 hidden w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-border-strong md:block ${floating ? "stage:hidden" : ""}`}
-          aria-hidden
-        />
         <header className="flex min-w-0 items-center gap-1.5 border-b border-border py-2 pr-2 pl-3">
           <Sparkles aria-hidden className="size-4 text-(--assistant-waiting)" />
           <h2 className="shrink-0 text-sm font-semibold whitespace-nowrap">{t("ai.name")}</h2>
@@ -186,9 +167,6 @@ export function AssistantPanel({
             </IconButton>
             <IconButton label={t("ai.newChat")} onClick={() => (newChat(), setView("chat"), setNote(null))} testId="assistant-new">
               <SquarePen />
-            </IconButton>
-            <IconButton label={wide ? t("ai.narrow") : t("ai.widen")} onClick={onWide} testId="assistant-widen" className="hidden md:inline-flex">
-              {wide ? <PanelRightClose /> : <PanelRightOpen />}
             </IconButton>
             <IconButton label={t("ai.close")} onClick={onClose} testId="assistant-close">
               <X />
@@ -246,7 +224,7 @@ export function AssistantPanel({
                     </div>
                   </div>
                 ) : (
-                  run.items.map((item) => <ItemView key={item.id} item={item} onApprove={approve} onDecline={decline} />)
+                  <ChatItems items={run.items} onApprove={approve} onDecline={decline} />
                 )}
               </ConversationContent>
               <ConversationScrollButton aria-label={t("ai.scrollLatest")} className="bottom-3 size-8" />
