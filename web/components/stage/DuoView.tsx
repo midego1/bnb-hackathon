@@ -14,6 +14,7 @@ import { coinPlan, duoStep, eventLabel, moneyBoard, unitsToThb, type StageStatus
 import { DotNum, Track } from "@/components/marketing/MoneyBoard";
 import { ExternalIcon, PassportIcon, ShopIcon } from "@/components/marketing/icons";
 import { big, headline, Qr, useNewestInView, useOwnerSide, type OwnerSide } from "./StageView";
+import { StatusBar } from "./JudgeIos";
 import { subscribeNothing } from "./wallet";
 import "./duo.css";
 
@@ -144,7 +145,7 @@ function PaneLabel({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** A phone: its 390x844 CSS px screen scaled down (or up) to the room the column has, inside a bezel. */
+/** A phone: its 390x844 CSS px screen scaled down (or up) to the room the column has, inside a bezel; the status bar and Dynamic Island on top. */
 function Phone({ testid, children }: { testid: string; children: ReactNode }) {
   const slot = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -163,6 +164,7 @@ function Phone({ testid, children }: { testid: string; children: ReactNode }) {
           <div className="relative size-full overflow-hidden rounded-[1.6rem] bg-background">
             <div className="absolute top-0 left-0 origin-top-left" style={{ width: W, height: H, transform: `scale(${scale})` }}>
               {children}
+              <StatusBar />
             </div>
           </div>
         </div>
@@ -391,7 +393,7 @@ function OwnerScreen({ o, listing, chainId }: { o: OwnerSide; listing: Listing; 
   const wallet = s && explorerLink(chainId, "address", s.owner);
   const open = l && l.status !== "Cancelled" && !s?.creating;
   return (
-    <div className="flex size-full flex-col gap-4 bg-muted/40 px-4 pt-12 pb-6 text-foreground" data-testid="duo-owner-screen">
+    <div className="flex size-full flex-col gap-4 bg-muted/40 px-4 pt-16 pb-6 text-foreground" data-testid="duo-owner-screen">
       <div className="flex items-center gap-3">
         <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[var(--duo-pink-soft)] text-[var(--duo-pink-fg)]">
           <ShopIcon />

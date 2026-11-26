@@ -144,6 +144,19 @@ export const body = {
       mock: "Demo inspector (no vision model key on this server): deterministic, not a real look at the photos.",
       propose: "Propose this split",
     },
+    /** The phone inside /duo, drawn as the KeyScrow iPhone app (Features/Rent in the iOS app under ios/). */
+    ios: {
+      nav: "Rent it",
+      step: { money: "Money", pay: "Pay", pickup: "Pickup", return: "Return", inspect: "AI check", accept: "Accept", settled: "Settled" },
+      progress: "Step {n} of 7: {name}",
+      total: "Into escrow now",
+      ready: "Ready to rent",
+      readyBody: "The deposit sits in escrow, not with the shop.",
+      protected: "Deposit protected by escrow",
+      fee: "KeyScrow fee",
+      txs: "On-chain transactions",
+      txsFoot: { one: "{n} transaction on {chain}.", other: "{n} transactions on {chain}." },
+    },
   },
 };
 

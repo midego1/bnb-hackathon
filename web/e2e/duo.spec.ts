@@ -8,7 +8,8 @@ import { noisyBmp } from "./photos";
  * shop owner's phone right, the escrow as a vault between them. The phone starts on its chooser; picking the Honda
  * Click switches the header, the owner side and the URL to it. One full rental is played through the phone pane; the
  * owner's phone, the vault (coin pile, lanes, receipt), the step bar and the money follow it, and the presenter accepts
- * on the owner's phone. Then the settled screen at laptop and projector size, light and dark, 中文 and EN+中文, and a phone.
+ * on the owner's phone. The renter's phone is drawn as the KeyScrow iPhone app (status bar, 7-dot step row, the app's
+ * cards, on-chain transactions); a shot of the whole screen at each step, light and dark. Then the settled screen at laptop and projector size, light and dark, 中文 and EN+中文, and a phone.
  *
  * Screenshots go to DUO_SHOTS (default test-results/screenshots/duo).
  */
@@ -122,6 +123,10 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "0");
   await expect(phone.getByTestId(`judge-pick-${SLUG}`)).toHaveAttribute("aria-current", "true");
   await expect(phone.getByTestId("judge-choose").getByRole("button")).toHaveCount(8);
+  // The iPhone app look: its catalogue list, the status bar and Dynamic Island on both phones.
+  await expect(phone.getByRole("heading", { name: "Ready to rent" })).toBeVisible();
+  await expect(page.locator(".ios-statusbar")).toHaveCount(2);
+  await expect(page.locator(".ios-statusbar").first()).toContainText("09:41");
   await oneScreen(page, "1470x830 choose");
   await shots(page, "1-choose");
   // No Ask AI bubble, neither on the page nor in the framed phone.
@@ -169,6 +174,12 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   // On stage a scooter rents for one day at its day price, like the box.
   await expect(phone.getByRole("heading", { level: 2 })).toContainText(/Rent it for ฿25[01]/);
   await expect(phone.getByText("Rent (1 day)")).toBeVisible();
+  // The app's step row (dot 2 of 7, Money ticked) and its rent card: each amount with its mUSDT, the total, the lock.
+  await expect(phone.getByTestId("ios-steps").locator("[aria-current='step']")).toHaveText("2Pay");
+  await expect(phone.getByTestId("ios-steps").locator("[data-state='done']")).toHaveCount(1);
+  await expect(phone.locator(".ios-kv")).toHaveCount(3);
+  await expect(phone.locator(".ios-kv").last()).toContainText(/Into escrow now\s*฿7,05[01]\s*[\d.]+ mUSDT/);
+  await shots(page, "1b-rent");
   await phone.getByTestId("judge-rent").click();
   await step(phone, "pickup");
 
@@ -199,12 +210,16 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "3");
   await expect(page.locator("img[alt='Pickup photo']")).toHaveCount(1);
   await expect(page.getByTestId("stage-timeline")).toContainText("evidence");
+  await expect(phone.getByTestId("ios-txs").locator(".ios-tx")).toHaveCount(3); // offer, payment, pickup photo
+  await shots(page, "2b-return");
 
   await photos(page, "return", 2);
   await step(phone, "inspect");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "4");
   await phone.getByTestId("judge-inspect").click();
   await expect(phone.getByTestId("judge-split")).toBeVisible();
+  await expect(phone.getByTestId("ios-split")).toContainText("Back to you");
+  await shots(page, "2c-ai-check");
   await phone.getByTestId("judge-propose").click();
   await step(phone, "waiting");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "MoveOut");
@@ -253,6 +268,12 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("duo-owner-screen")).toContainText(new RegExp(`Owner got\\s*${got}`));
   await expect(page.getByTestId("stage-accept")).toHaveCount(0);
   await expect(phone.getByTestId("judge-mirror")).toHaveCount(0);
+  // The app's settled card: all 7 dots ticked, the split bar with the fee, the transactions (create to accept).
+  await expect(phone.getByTestId("ios-steps").locator("[data-state='done']")).toHaveCount(7);
+  await expect(phone.getByTestId("ios-split")).toContainText(`Back to you ${back}`);
+  await expect(phone.getByTestId("ios-split")).toContainText(`To the owner ${got}`);
+  await expect(phone.getByTestId("ios-split")).toContainText(`KeyScrow fee ${fee}`);
+  await expect(phone.getByTestId("ios-txs").locator(".ios-tx")).toHaveCount(6);
   await oneScreen(page, "1470x830 settled");
   await shots(page, "4-settled");
   // Reduced motion: the active tracks are simply lit (no chase), nothing drops, drains, prints or flies.
