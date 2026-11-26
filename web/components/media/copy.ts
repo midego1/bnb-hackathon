@@ -7,7 +7,7 @@ const en = {
   title: "Media kit",
   lead: "Every video, the pitch deck, the screenshots, the logo and the documents of KeyScrow: each file on its own, or all of them in one .zip.",
   zip: "Download everything (.zip, {size})",
-  zipNote: "{n} files in folders: videos/, deck/, screenshots/web/, screenshots/ios/, brand/, docs/. The .webm and .gif videos the iOS .jpg copies and the older development screenshots are separate downloads only.",
+  zipNote: "{n} files in folders: videos/, deck/, screenshots/web/, screenshots/ios/, brand/, docs/. The zip has the iOS screens as JPEG; the full-size iOS PNGs, the pitch video, the .webm and .gif videos and the older development screenshots are separate downloads.",
   download: "Download",
   github: "On GitHub",
   sections: {

@@ -37,8 +37,10 @@ const FILES = [
   // The older development shots stay separate downloads: with them the zip passes 25 MiB.
   ...ls("docs/screenshots", /\.png$/).map((f) => ["screenshots/web", f, false]),
   ...ls("docs/screenshots/judges", /\.png$/).map((f) => ["screenshots/web", f, false]),
-  ...ls("ios/screenshots", /\.png$/).map((f) => ["screenshots/ios", f, true]),
-  ...ls("docs/submission/screenshots/ios", /\.jpg$/).map((f) => ["screenshots/ios", f, false]),
+  // The full-size iOS Simulator PNGs push the zip past 25 MiB: the zip carries their JPEG copies, the PNGs stay
+  // separate downloads.
+  ...ls("ios/screenshots", /\.png$/).map((f) => ["screenshots/ios", f, false]),
+  ...ls("docs/submission/screenshots/ios", /\.jpg$/).map((f) => ["screenshots/ios", f, true]),
   ["brand", "ios/KeyEscrow/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png", true],
   ["brand", "web/public/icons/icon-512.png", true],
   ["brand", "web/app/apple-icon.png", true],
