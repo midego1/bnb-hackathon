@@ -196,6 +196,14 @@ for (const mobile of [true, false]) {
     await step(second, "choose");
     await expect(second.getByTestId(`judge-pick-${SLUG}`)).toBeEnabled();
     await second.close();
+
+    // The same guest wallet rents again after a reset: it kept less than rent + deposit, so "Get test money" tops up
+    // only what is missing (not the first drip's old answer) and says what it sent this time.
+    await resetStage(stage);
+    await step(phone, "money");
+    await phone.getByTestId("judge-drip").click();
+    await expect(phone.getByText(/^Test money sent: ฿[\d,]+ \([\d.]+ \w*USDT\)( \+ [\d.]+ tBNB for gas)? \(\d transactions?\)\.$/)).toBeVisible();
+    await step(phone, "rent");
     await phone.close();
     expect(problems).toEqual([]);
   });

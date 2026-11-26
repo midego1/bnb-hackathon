@@ -10,6 +10,7 @@ import {
   DRIP_TBNB,
   dripDecision,
   dripPlan,
+  DRIPS_PER_WALLET_PER_DAY,
   FUNDER_FLOOR,
   MAINNET_DRIP_BNB,
   MAINNET_FUNDER_MIN_BNB,
@@ -94,8 +95,22 @@ describe("drip caps", () => {
 
   it("tops gas up to 0.002 tBNB and mUSDT to rent + deposit + 10 %, never more", () => {
     expect(dripPlan({ bnb: BigInt(0), musdt: BigInt(0), need, funderBnb: rich })).toEqual({ bnb: DRIP_TBNB, musdt: parseUnits("40.007", 6) });
-    expect(dripPlan({ bnb: parseEther("0.0015"), musdt: need, funderBnb: rich, need })).toEqual({ bnb: parseEther("0.0005"), musdt: parseUnits("3.637", 6) });
+    expect(dripPlan({ bnb: parseEther("0.0001"), musdt: need, funderBnb: rich, need })).toEqual({ bnb: parseEther("0.0019"), musdt: parseUnits("3.637", 6) });
     expect(dripPlan({ bnb: parseEther("5"), musdt: parseUnits("999", 6), need, funderBnb: rich })).toEqual({ bnb: BigInt(0), musdt: BigInt(0) });
+  });
+
+  it("a second drip after a finished rental sends only the shortfall, and nothing when the wallet has enough", () => {
+    // One round of the box left ~33.9 mUSDT and some gas: short of rent + deposit, so only the mUSDT difference goes out.
+    const left = { bnb: parseEther("0.0011"), musdt: parseUnits("33.9", 6) };
+    expect(dripDecision({ state: "done", at: 0, txs: ["0x1", "0x2"] }, 10 ** 12)).toBe("claim");
+    expect(dripPlan({ ...left, need, funderBnb: rich })).toEqual({ bnb: BigInt(0), musdt: parseUnits("40.007", 6) - left.musdt });
+    // Out of gas too: gas comes along.
+    expect(dripPlan({ bnb: parseEther("0.0001"), musdt: left.musdt, need, funderBnb: rich }).bnb).toBe(DRIP_TBNB - parseEther("0.0001"));
+    // Enough for what the phone checks (rent + deposit, MIN_GAS_WEI): nothing, even under the 10 % margin and 0.002 tBNB.
+    expect(dripPlan({ bnb: MIN_GAS_WEI, musdt: need, need, funderBnb: rich })).toEqual({ bnb: BigInt(0), musdt: BigInt(0) });
+    // ...and nothing to send never trips the empty-funder refusal.
+    expect(dripPlan({ bnb: MIN_GAS_WEI, musdt: need, need, funderBnb: BigInt(0) })).toEqual({ bnb: BigInt(0), musdt: BigInt(0) });
+    expect(DRIPS_PER_WALLET_PER_DAY).toBe(5);
   });
 
   it("never mints over the MockUSDT faucet limit", () => {
@@ -106,9 +121,9 @@ describe("drip caps", () => {
     expect(() => dripPlan({ bnb: BigInt(0), musdt: BigInt(0), need, funderBnb: FUNDER_FLOOR })).toThrow(StageError);
   });
 
-  it("is once per address: a done drip repeats its answer, a fresh pending one waits, a stale one may retry", () => {
+  it("one drip in flight per address: a fresh pending one waits, a stale one may retry, a done one may top up", () => {
     expect(dripDecision(undefined, 1_000)).toBe("claim");
-    expect(dripDecision({ state: "done", at: 0, txs: [] }, 10 ** 12)).toBe("done");
+    expect(dripDecision({ state: "done", at: 0, txs: [] }, 10 ** 12)).toBe("claim");
     expect(dripDecision({ state: "pending", at: 1_000 }, 2_000)).toBe("pending");
     expect(dripDecision({ state: "pending", at: 1_000 }, 1_000 + DRIP_PENDING_MS + 1)).toBe("claim");
   });

@@ -2,7 +2,7 @@
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { type Address, type Hex, type WalletClient } from "viem";
+import { formatEther, type Address, type Hex, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { LogoMark } from "@/components/LogoMark";
@@ -274,8 +274,13 @@ function Step(p: StepProps) {
             data-testid="judge-drip"
             onClick={() =>
               p.act("drip", async () => {
-                const r = await stageAction<{ txs: string[] }>(status.listing.slug, { action: "drip", address: me });
-                p.setNote(r.txs.length ? t(`judge.money.sent${m}.${r.txs.length > 1 ? "other" : "one"}`, { n: r.txs.length }) : undefined);
+                const r = await stageAction<{ txs: string[]; sent: { bnb: bigint; token: bigint } }>(status.listing.slug, { action: "drip", address: me });
+                // What went out this time (a repeat only tops up the shortfall), baht first.
+                const what = [
+                  r.sent.token > BigInt(0) && thbUsdText(r.sent.token, status.price.thbPerUsdt),
+                  r.sent.bnb > BigInt(0) && t("judge.money.gas", { amount: Number(formatEther(r.sent.bnb)).toFixed(4), symbol: m ? "BNB" : "tBNB" }),
+                ].filter(Boolean).join(" + ");
+                p.setNote(r.txs.length ? t(`judge.money.sent${m}.${r.txs.length > 1 ? "other" : "one"}`, { n: r.txs.length, what }) : t("judge.money.nothing"));
               })
             }
           >

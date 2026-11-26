@@ -54,10 +54,12 @@ export const body: DeepPartial<typeof enBody> = {
     money: {
       body: "我们会给这个钱包转一点测试 BNB 作为 Gas 费，再转 {amount} 测试美元（mUSDT）用于租金和押金。仅限测试网，不涉及真钱。",
       button: "领取测试资金",
-      sent: { one: "测试资金已发送（{n} 笔交易）。", other: "测试资金已发送（{n} 笔交易）。" },
+      sent: { one: "测试资金已发送：{what}（{n} 笔交易）。", other: "测试资金已发送：{what}（{n} 笔交易）。" },
+      gas: "{amount} {symbol} 用作 Gas 费",
+      nothing: "这个钱包的钱已经够这次租赁了，所以没有发送。",
       bodyMainnet: "我们会给这个钱包转 {amount} 的真实 BSC-USD（BSC 主网上的 USDT），正好是租金和押金，再转一点 BNB 作为 Gas 费。真钱，最多 1 美元。押金会退回这个钱包。",
       buttonMainnet: "领取 1 美元用于租用",
-      sentMainnet: { one: "已在 BSC 主网发送（{n} 笔交易）。", other: "已在 BSC 主网发送（{n} 笔交易）。" },
+      sentMainnet: { one: "已在 BSC 主网发送：{what}（{n} 笔交易）。", other: "已在 BSC 主网发送：{what}（{n} 笔交易）。" },
     },
     rent: {
       rent: "租金（1 天）",
