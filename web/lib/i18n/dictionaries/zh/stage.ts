@@ -9,6 +9,8 @@ export const body: DeepPartial<typeof enBody> = {
     disabled: "这台服务器没有开启现场演示。",
     terms: "{rent} / 天 · 押金 {deposit}",
     qr: "二维码：{url}",
+    openHere: "或在本设备上打开",
+    timeline: "时间线",
     offline: "正在重新连接… 租赁安全地记录在链上，网络恢复后这个屏幕会自动跟上。",
     money: { paid: "租客已付", escrow: "托管中", owner: "车主收到", back: "退还租客", fee: "手续费 {fee}" },
     photos: { pickup: "取件", return: "归还", alt: "{title}照片" },
