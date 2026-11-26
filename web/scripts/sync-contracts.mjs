@@ -54,6 +54,7 @@ function normalise(raw) {
     mockUsdt: pick(flat, [/^mockusdt$/i, /^usdt$/i, /^token$/i, /^stablecoin$/i]),
     disputeDesk: pick(flat, [/^defaultarbiter$/i, /^disputedesk$/i]),
     fleetVault: pick(flat, [/^fleetvault$/i]),
+    atlasSwapGuard: pick(flat, [/^atlasswapguard$/i]),
     rentalEscrowImplementation: pick(flat, [/^rentalescrowimplementation$/i]),
     fromBlock: pickNumber(flat, [/^startblock$/i, /^fromblock$/i, /^deployblock$/i, /^blocknumber$/i, /^block$/i]) ?? 0,
     // Read from the token itself by Deploy.s.sol (decimals() / symbol()); the app never assumes 6.

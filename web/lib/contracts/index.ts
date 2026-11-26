@@ -15,6 +15,8 @@ export type Deployment = {
   disputeDesk?: Address;
   /** Fleet Vault (BKK-FLEET-1 shares); absent on deployments made before the vault existed. */
   fleetVault?: Address;
+  /** Testnet "Pay with BNB" demo swap at the Atlas price (contracts/script/DeployAtlasSwapGuard.s.sol); never on 56. */
+  atlasSwapGuard?: Address;
   /** First block worth scanning for events (factory deployment). */
   fromBlock: bigint;
   /** The stablecoin's decimals() and symbol(), read from the token by the deploy script. */
@@ -22,7 +24,7 @@ export type Deployment = {
   tokenSymbol: string;
 };
 
-type Row = { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fleetVault?: string; fromBlock?: number; tokenDecimals: number; tokenSymbol?: string };
+type Row = { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fleetVault?: string; atlasSwapGuard?: string; fromBlock?: number; tokenDecimals: number; tokenSymbol?: string };
 const table = deployments as Record<string, Row>;
 
 /**
@@ -67,6 +69,7 @@ export function getDeployment(chainId: number | undefined): Deployment | undefin
     fleetVault:
       (chainId === targetChainId ? envAddress(process.env.NEXT_PUBLIC_FLEET_VAULT_ADDRESS) : undefined) ??
       (raw.fleetVault ? getAddress(raw.fleetVault) : undefined),
+    atlasSwapGuard: raw.atlasSwapGuard ? getAddress(raw.atlasSwapGuard) : undefined,
     fromBlock: BigInt(raw.fromBlock ?? 0),
     tokenDecimals: raw.tokenDecimals,
     tokenSymbol: raw.tokenSymbol ?? "USDT",

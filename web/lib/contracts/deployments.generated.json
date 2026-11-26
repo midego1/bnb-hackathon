@@ -23,6 +23,7 @@
     "mockUsdt": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     "disputeDesk": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
     "fleetVault": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "atlasSwapGuard": "0xA15BB66138824a1c7167f5E85b957d04Dd34E468",
     "rentalEscrowImplementation": "0xCafac3dD18aC6c6e92c921884f9E4176737C052c",
     "fromBlock": 0,
     "tokenDecimals": 6,
