@@ -23,7 +23,7 @@ const file = (path: string) => manifest.files.find((f) => f.path === path)!;
 
 /** Length (ffprobe) and the screenshot of the same screen as poster. */
 const VIDEOS = [
-  ["duo", "0:59", "screenshots/web/02-duo.png"],
+  ["duo", "1:04", "screenshots/web/02-duo.png"],
   ["demo-guided", "1:30", "screenshots/web/demo-mid-run.png"],
   ["eli5", "1:11", "screenshots/web/how-it-works.png"],
   ["tour", "1:17", "screenshots/web/01-landing.png"],

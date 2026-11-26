@@ -21,8 +21,8 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
 ## 图解 KeyScrow
 
 <p align="center">
-  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="一笔租约从头到尾：左边是租客手机，右边是租车行和 LED 资金看板。选车、付款进托管、取车照片、还车照片、AI 分配、车主接受、结算完成"></a><br>
-  <sub>60 秒看完一整笔租约：左边是租客手机，右边是租车行（<a href="docs/submission/duo.mp4">完整视频</a>）。</sub>
+  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="一笔租约从头到尾：左边是租客手机，右边是车主手机，中间是托管保险箱。选车、付款（保险箱装满）、取车照片、还车照片、AI 分配（硬币变成分配的颜色）、车主接受、结算完成（保险箱清空分给双方，一枚硬币是手续费）"></a><br>
+  <sub>64 秒看完一整笔租约：左边是租客手机，右边是车主手机，中间是托管保险箱（<a href="docs/submission/duo.mp4">完整视频</a>）。</sub>
 </p>
 
 <table>
@@ -31,7 +31,7 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
     <td width="50%" valign="top"><a href="docs/submission/inspection.png"><img src="docs/submission/inspection.png" width="420" alt="同一侧车身的取车和还车照片，以及 AI 还车验车给出的押金分配"></a><br><b>2.</b> 还车时，AI 验车对比取车和还车照片，起草押金分配方案。</td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo 结算后：LED 资金看板显示退还租客的押金、付给车主的租金和赔偿、一次性的 KeyScrow 费用，以及每一笔交易"></a><br><b>3.</b> 租客提出方案，车行接受，资金立即到账，每一步都能在 BscScan 上查到。</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo 结算后：租客手机显示押金已退还，清空的托管保险箱显示退还租客的金额、付给车主的租金和赔偿、一次性的 KeyScrow 费用，以及每一笔交易"></a><br><b>3.</b> 租客提出方案，车行接受，资金立即到账，每一步都能在 BscScan 上查到。</td>
     <td width="50%" valign="top"><a href="docs/submission/screenshots/05-backoffice.png"><img src="docs/submission/screenshots/05-backoffice.png" width="420" alt="后台：直接从合约读取每笔租约的押金、已付租金和扣款"></a><br><b>4.</b> 车行后台：每笔租约、押金和租金支付，都直接从链上读取。</td>
   </tr>
   <tr>
@@ -67,7 +67,7 @@ flowchart LR
    **[/r/mystery-box](https://keyscrow.app/r/mystery-box)** 在手机上打开（扫大屏上的二维码）：
    你用访客钱包租下我们现场的实物神秘盒子，拍取件和归还照片，拿到 AI 分配方案并完成结算。
 3. **[/duo/mystery-box](https://keyscrow.app/duo/mystery-box)**：同一笔租约的分屏视图，左边租客手机，
-   右边租车公司（[主视频](docs/submission/duo.mp4)）。
+   右边车主手机，中间是托管保险箱（[主视频](docs/submission/duo.mp4)）。
 4. **[/pitch](https://keyscrow.app/pitch)**：3 分钟路演的动画分镜。
 
 **评委信息**
@@ -77,7 +77,7 @@ flowchart LR
 | 在线应用（BSC 测试网，chain 97） | <https://keyscrow.app>（与 `keyscrow.app` 是同一个应用） |
 | 主网试点（BSC 主网，chain 56） | <https://mainnet.keyscrow.app>：工厂合约 [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)，真实 BSC-USD，链上上限：押金 0.70 + 每期租金 0.30（每笔租约最多 1 美元），所有未结租约合计 5 美元 |
 | 赞助商赛道与实时状态 | [/sponsors](https://keyscrow.app/sponsors)（状态来自 `/api/integrations`；技术细节见 [/integrations](https://keyscrow.app/integrations)） |
-| 视频（本地链，已填充演示世界） | [duo](docs/submission/duo.mp4)（60 秒）· [引导式 /demo](docs/submission/demo-guided.mp4)（90 秒）· [ELI5](docs/submission/eli5.mp4)（71 秒）· [应用导览](docs/submission/tour.mp4)（77 秒）· [路演幻灯片](docs/submission/deck.pdf) |
+| 视频（本地链，已填充演示世界） | [duo](docs/submission/duo.mp4)（64 秒）· [引导式 /demo](docs/submission/demo-guided.mp4)（90 秒）· [ELI5](docs/submission/eli5.mp4)（71 秒）· [应用导览](docs/submission/tour.mp4)（77 秒）· [路演幻灯片](docs/submission/deck.pdf) |
 | 测试（11 月 26 日） | Foundry 314 · vitest 558（40 个文件）· 代理 24 · Playwright 154（27 个 spec 文件） |
 | 规模 | 约 74,000 行代码 + 约 5,300 行 Markdown 文档（已跟踪文件；不含锁文件、`contracts/lib`、生成的 ABI、JSON 数据和二进制文件） |
 | 构建方式 | Claude Code：共 24.7 亿 token（输出 813 万），paseo-box + 10 台 boat 虚拟机，按 11 月 26 日约 15:50（泰国时间）的 Claude Code 记录统计 |
@@ -97,7 +97,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 
 | `/duo`：左边租客手机，右边租车公司 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |
 | --- | --- | --- |
-| ![结算后的 /duo/honda-click-125i：左边是租客手机，右边是租车公司的 LED 资金看板，以及每笔交易](docs/submission/screenshots/02-duo.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
+| ![结算后的 /duo/honda-click-125i：左边是租客手机，中间是清空的托管保险箱和各方所得，右边是车主手机，以及每笔交易](docs/submission/screenshots/02-duo.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
 
 截图来自同一版本的本地运行（因此二维码下方显示 `127.0.0.1`）。
 

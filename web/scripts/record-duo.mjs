@@ -1,15 +1,18 @@
-// Records the hero video docs/submission/duo.{mp4,webm}: one full rental on /duo, the renter's phone (left) and the
-// rental company with the LED money board (right). Choose the Honda Click on the phone, test money, pay into escrow,
-// pickup and return photos, AI split, the owner accepts, settled.
+// Records the hero video docs/submission/duo.{mp4,webm}: one full rental on /duo, two phones and a vault: the renter's
+// phone (left, drawn as the KeyScrow iPhone app), the shop owner's phone (right) and the escrow vault between them.
+// Choose the Honda Click on the phone, test money, pay (the vault fills), pickup and return photos, AI split (the coins
+// take its colours), the owner presses Accept on the owner's phone, settled (the vault drains to both sides, one coin
+// to the fee).
 //
 // Against a local production build on anvil with the demo accounts on (`WORLD_KEEP=1 pnpm testnet:world rehearse`
 // serves one on :3170; build web with the e2e env pointed at its anvil first). Never against a public chain.
 //
-//   node web/scripts/record-duo.mjs [outDir]   -> outDir/<video>.webm, settled.png (02-duo.png), board-*.png; prints
+//   node web/scripts/record-duo.mjs [outDir]   -> outDir/<video>.webm, settled.png (02-duo.png), board-*.png,
+//                                                 settled-dark.png (02-duo-dark.png); prints
 //                                                 {start, end}: the trim marks in seconds
 //   ffmpeg -i in.webm -ss S -to E -an -c:v libx264 -preset slow -crf 30 -pix_fmt yuv420p -movflags +faststart duo.mp4
 //   ffmpeg -i in.webm -ss S -to E -an -c:v libvpx-vp9 -crf 40 -b:v 0 -row-mt 1 -deadline good -cpu-used 4 duo.webm
-//   GIF (720 px, 10 fps): palettegen=max_colors=128:stats_mode=diff, then paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle
+//   GIF (720 px, 10 fps): palettegen=max_colors=64:stats_mode=diff, then paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -24,7 +27,8 @@ const PHOTOS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".
 const PHOTOS = { pickup: path.join(PHOTOS_DIR, "honda-click-125i-960.jpg"), return: path.join(PHOTOS_DIR, "honda-click-125i-1200.jpg") };
 const FIRST = "mystery-box", HONDA = "honda-click-125i";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const BOARD_HOLD = 1800; // each money moment stays still long enough to read the board
+const BOARD_HOLD = 1800; // each money moment stays still long enough to read the vault
+const COINS = 2300; // the pile's fill or drain (and the fee coin) has played out (duo.css)
 
 const CURSOR = `(() => { if (window.top !== window) return; addEventListener('DOMContentLoaded', () => {
   const c = document.createElement('div'); c.id = '__rec_cursor';
@@ -93,15 +97,15 @@ try {
   await step("choose");
   await sleep(1500);
   marks.start = t();
-  await caption(page, "KeyScrow live: the renter's phone (left) and the rental company (right)");
+  await caption(page, "KeyScrow live: the renter's phone (left), the shop owner's phone (right), the escrow vault between");
   await sleep(4500);
   await caption(page, "1 · The renter picks a scooter on the phone");
   await sleep(2200);
   await click(page, phone.getByTestId(`judge-pick-${HONDA}`));
   await step("wallet");
-  await expect(page.getByTestId("stage-headline")).toContainText("Honda Click 125i", { timeout: 30_000 });
-  await expect(board.locator(".mk-station-renter .mk-station-read .sr-only")).toHaveText(/฿7,05[01]/, { timeout: 30_000 });
-  await caption(page, "The whole screen follows: Honda Click 125i, ฿250 for a day + ฿6,800 deposit");
+  await expect(page.getByTestId("duo-view").locator("header")).toContainText("Honda Click 125i", { timeout: 30_000 });
+  await expect(page.getByTestId("duo-legend")).toContainText(/฿6,80[01] deposit/, { timeout: 30_000 });
+  await caption(page, "Both phones and the vault follow: Honda Click 125i, ฿250 for a day + ฿6,800 deposit");
   await sleep(BOARD_HOLD + 1500);
   await shot("board-1-choose");
   await caption(page, "2 · A guest wallet and test money, no real money");
@@ -116,8 +120,8 @@ try {
   await click(page, phone.getByTestId("judge-rent"));
   await step("pickup");
   await expect(board).toHaveAttribute("data-phase", "funded", { timeout: 30_000 });
-  await caption(page, "The coins run renter → escrow. The passport stays in the renter's pocket");
-  await sleep(BOARD_HOLD);
+  await caption(page, "The vault fills: ฿7,050 locked in escrow. The passport stays in the renter's pocket");
+  await sleep(COINS + BOARD_HOLD);
   await shot("board-2-escrow");
   await sleep(2200);
   await caption(page, "4 · Pickup photos: only their SHA-256 fingerprint goes on-chain");
@@ -140,16 +144,21 @@ try {
   await click(page, phone.getByTestId("judge-propose"));
   await step("waiting");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "MoveOut", { timeout: 30_000 });
-  await sleep(3000);
-  await caption(page, "8 · The owner accepts: one transaction pays everyone");
+  await expect(board).toHaveAttribute("data-phase", "split", { timeout: 30_000 });
+  await caption(page, "The coins take the split's colours: back to the renter, to the owner, the rent");
+  // The colours sweep the pile in ~1.4 s (duo.css); the vault then stays still through this and the next caption.
+  await sleep(1000 + BOARD_HOLD);
+  await shot("board-3-split");
   await sleep(1200);
+  await caption(page, "8 · The owner presses Accept on their phone: one transaction pays everyone");
+  await sleep(1500);
   await click(page, page.getByTestId("stage-accept"));
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Settled", { timeout: 30_000 });
   await expect(board).toHaveAttribute("data-phase", "settled", { timeout: 30_000 });
   await step("settled");
-  await caption(page, "Settled: the coins run back to the renter and on to the owner. KeyScrow fee ฿25, once");
-  await sleep(BOARD_HOLD);
-  await shot("board-3-settled");
+  await caption(page, "Settled: the vault drains back to the renter and to the owner. One coin is the KeyScrow fee, ฿25");
+  await sleep(COINS + BOARD_HOLD);
+  await shot("board-4-settled");
   await sleep(3500);
   await caption(page, "Neither side could move the deposit alone, and no passport was left at the shop.");
   await sleep(6000);
@@ -159,6 +168,11 @@ try {
   // The still for docs/submission/screenshots/02-duo.png, without the fake cursor (after the trim end).
   await page.evaluate(() => document.getElementById("__rec_cursor")?.remove());
   await shot("settled");
+  // The dark still (02-duo-dark.png): the page's theme class and the colour scheme (the phone's iframe follows it).
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.evaluate(() => { const c = document.documentElement.classList; c.remove("light"); c.add("dark"); });
+  await sleep(1500);
+  await shot("settled-dark");
   console.log(JSON.stringify({ ...marks, video: await page.video()?.path() }));
 } catch (e) {
   await shot("fail");
