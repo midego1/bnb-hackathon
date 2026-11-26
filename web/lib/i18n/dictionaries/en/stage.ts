@@ -41,8 +41,6 @@ export const body = {
     phone: "The renter's phone",
     sound: {
       label: "Sound (M)",
-      on: "Sound on",
-      off: "Sound off",
       tap: "Tap to enable sound",
     },
     scan: "Rent it on your own phone",
@@ -84,7 +82,7 @@ export const body = {
       toYou: "To you",
       note: "Deposit: on-chain, not in a drawer",
     },
-    qr: { enlarge: "Tap to enlarge", title: "Scan to rent the {name} on your own phone" },
+    qr: { title: "Scan to rent the {name} on your own phone" },
   },
   /** The judge's phone (/r/<slug>, components/stage/JudgeFlow.tsx). */
   judge: {

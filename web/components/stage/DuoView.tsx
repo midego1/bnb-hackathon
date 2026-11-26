@@ -1,7 +1,9 @@
 "use client";
 
+import { QrCode, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { LogoMark } from "@/components/LogoMark";
+import { ThemeCycleButton } from "@/components/ThemeSwitch";
 import { ActionButton, Notice } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { explorerLink } from "@/lib/chains";
@@ -19,10 +21,11 @@ import { StatusBar } from "./JudgeIos";
 import { subscribeNothing } from "./wallet";
 import "./duo.css";
 
-/** The phones draw an iPhone-sized viewport (CSS px), scaled to fit, inside a bezel. */
+/** The phones draw an iPhone-sized screen (CSS px) inside the device (duo.css .duo-device: 12 px of frame a side, side buttons 3 px out), scaled to fit. */
 const W = 390;
 const H = 844;
-const BEZEL = 10;
+const FRAME = 12;
+const BUTTONS = 3;
 const STEPS = ["choose", "rent", "pickup", "return", "split", "settled"] as const;
 
 /**
@@ -31,7 +34,7 @@ const STEPS = ["choose", "rent", "pickup", "return", "split", "settled"] as cons
  * escrow as a vault: the amount in LED coins, a coin pile that fills, colours at the split and drains at settlement,
  * and the on-chain receipt under it. Everything follows the live rental (chain state, polled). Laptop and projector:
  * one screen; an unfolded foldable gets that screen scaled to fit (FitFrame, Live.tsx). Phones: stacked, with a note
- * that it is best on a laptop.
+ * that it is best on a laptop. No bottom bar: the presenter's sound, theme, QR and Reset are icon buttons in the header.
  * The phone starts on its chooser (step 0) and posts what it picked: the header, owner side and URL follow that item.
  */
 export function DuoView({ listing: first, chainId }: { listing: Listing; chainId: number }) {
@@ -66,12 +69,12 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
 
   return (
     <main
-      className="duo flex min-h-dvh flex-col gap-3 p-3 sm:p-4 wide:stage:h-dvh wide:stage:gap-[clamp(0.5rem,1.2vh,1.25rem)] wide:stage:px-[clamp(0.75rem,1.4vw,2rem)] wide:stage:pt-[clamp(0.5rem,1.2vh,1.5rem)] wide:stage:pb-0"
+      className="duo flex min-h-dvh flex-col gap-3 p-3 sm:p-4 wide:stage:h-dvh wide:stage:gap-[clamp(0.5rem,1.2vh,1.25rem)] wide:stage:px-[clamp(0.75rem,1.4vw,2rem)] wide:stage:py-[clamp(0.5rem,1.2vh,1.5rem)]"
       data-testid="duo-view"
       data-status={l?.status ?? "none"}
       data-step={at}
     >
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <header className="relative flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
           <img src={listing.photos[0]} alt="" className="size-10 shrink-0 rounded-lg object-cover wide:size-[clamp(2.5rem,4.5vh,3.5rem)]" />
@@ -105,6 +108,29 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
             );
           })}
         </ol>
+        <div className="flex shrink-0 items-center gap-1.5 ml-auto" data-testid="stage-presenter">
+          <SoundButton s={s} />
+          <ThemeCycleButton className="inline-flex !size-10 [&>svg]:size-[18px]" />
+          <QrButton url={url} name={listing.name} />
+          <button
+            type="button"
+            className={TOOL}
+            aria-label={t("stage.presenter.reset")}
+            title={t("stage.presenter.reset")}
+            aria-busy={o.busy === "reset"}
+            disabled={o.busy === "reset"}
+            onClick={() => o.presenter("reset")}
+            data-testid="stage-reset"
+          >
+            <RotateCcw aria-hidden className={`size-[18px] ${o.busy === "reset" ? "animate-spin [animation-direction:reverse]" : ""}`} />
+          </button>
+          {o.dialogs}
+        </div>
+        {o.error && (
+          <div className="absolute top-full right-0 z-20 mt-2 w-[min(28rem,calc(100vw-1.5rem))] shadow-lg">
+            <Notice kind="error">{o.error}</Notice>
+          </div>
+        )}
       </header>
 
       <div className="wide:hidden">
@@ -121,7 +147,7 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
               title={t("duo.phone")}
               width={W}
               height={H}
-              className="block border-0"
+              className="absolute inset-0 block size-full border-0"
               data-testid="duo-phone-frame"
               onLoad={(e) => listenForSound(e.currentTarget.contentWindow)} // a tap or key on the phone unlocks the sound too
             />
@@ -143,15 +169,6 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
         </section>
       </div>
 
-      <footer className="flex flex-wrap items-center gap-3 border-t border-border py-2 wide:stage:py-[clamp(0.4rem,0.9vh,0.75rem)]" data-testid="stage-presenter">
-        <QrCard url={url} name={listing.name} />
-        <div className="min-w-0 flex-1">{o.error && <Notice kind="error">{o.error}</Notice>}</div>
-        <SoundButton s={s} />
-        <ActionButton className="shrink-0" variant="secondary" busy={o.busy === "reset"} onClick={() => o.presenter("reset")} data-testid="stage-reset">
-          {t("stage.presenter.reset")}
-        </ActionButton>
-        {o.dialogs}
-      </footer>
     </main>
   );
 }
@@ -176,7 +193,7 @@ function toggleSound() {
 }
 
 /**
- * The bar's speaker button (and its "M" key): sound on (the default) or off, remembered. It plays the sound of each
+ * The header's speaker button (and its "M" key): sound on (the default) or off, remembered. It plays the sound of each
  * change the vault animates (lib/duoSound soundFor); a reload or another item starts silent, so nothing replays.
  */
 function SoundButton({ s }: { s?: StageStatus }) {
@@ -201,23 +218,36 @@ function SoundButton({ s }: { s?: StageStatus }) {
       window.removeEventListener("keydown", soundKey);
     };
   }, []);
+  const tap = on && !ready;
   return (
-    <>
-      {on && !ready && (
-        <span className="shrink-0 text-xs text-muted-foreground" data-testid="duo-sound-tap">
-          {t("duo.sound.tap")}
+    <button
+      type="button"
+      className={TOOL}
+      aria-pressed={on}
+      aria-keyshortcuts="M"
+      aria-label={t("duo.sound.label")}
+      aria-describedby={tap ? "duo-sound-tap" : undefined}
+      title={tap ? `${t("duo.sound.label")} · ${t("duo.sound.tap")}` : t("duo.sound.label")}
+      onClick={() => toggleSound()}
+      data-testid="duo-sound"
+    >
+      <SpeakerIcon on={on} />
+      {tap && (
+        // Audio is blocked until a click, tap or key: a small amber dot on the speaker says so (its text for screen readers).
+        <span id="duo-sound-tap" className="absolute -top-1 -right-1 size-3 rounded-full bg-warning ring-2 ring-background" data-testid="duo-sound-tap">
+          <span className="sr-only">{t("duo.sound.tap")}</span>
         </span>
       )}
-      <ActionButton className="shrink-0" variant="secondary" aria-pressed={on} aria-keyshortcuts="M" title={t("duo.sound.label")} onClick={() => toggleSound()} data-testid="duo-sound">
-        <SpeakerIcon on={on} />
-        {t(on ? "duo.sound.on" : "duo.sound.off")}
-      </ActionButton>
-    </>
+    </button>
   );
 }
 
+/** The header's icon buttons: 40 px, the site's muted chip look (as ThemeCycleButton). */
+const TOOL =
+  "relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground transition hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary disabled:opacity-60";
+
 const SpeakerIcon = ({ on }: { on: boolean }) => (
-  <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M11 5 6 9H3v6h3l5 4z" />
     {on ? <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /> : <path d="m16 9 6 6m0-6-6 6" />}
   </svg>
@@ -231,26 +261,37 @@ function PaneLabel({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** A phone: its 390x844 CSS px screen scaled down (or up) to the room the column has, inside a bezel; the status bar and Dynamic Island on top. */
+/**
+ * A phone: a modern iPhone (duo.css .duo-device: thin titanium band, black border, side buttons, the 390x844 CSS px
+ * screen with its rounded corners clipping what is on it, the status bar + Dynamic Island and the home indicator),
+ * drawn at 1:1 and scaled as one piece to the room the column has.
+ */
 function Phone({ testid, children }: { testid: string; children: ReactNode }) {
   const slot = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
   useEffect(() => {
     const el = slot.current!;
-    const fit = () => setScale(Math.min((el.clientWidth - 2 * BEZEL) / W, (el.clientHeight - 2 * BEZEL) / H));
+    const fit = () => setScale(Math.min(el.clientWidth / (W + 2 * FRAME + 2 * BUTTONS), el.clientHeight / (H + 2 * FRAME)));
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
   return (
     // Stacked: the slot is phone-shaped and as wide as the screen allows; one-screen: it is the column's whole height.
-    <div ref={slot} className="flex aspect-[410/864] w-full max-w-[410px] justify-center wide:stage:aspect-auto wide:stage:min-h-0 wide:stage:max-w-none wide:stage:flex-1">
+    <div ref={slot} className="flex aspect-[420/868] w-full max-w-[420px] justify-center wide:stage:aspect-auto wide:stage:min-h-0 wide:stage:max-w-none wide:stage:flex-1">
       {scale > 0 && (
-        <div data-testid={testid} className="shrink-0 overflow-hidden rounded-[2.25rem] bg-neutral-900 shadow-xl ring-1 ring-border-strong dark:bg-neutral-700" style={{ width: W * scale + 2 * BEZEL, height: H * scale + 2 * BEZEL, padding: BEZEL }}>
-          <div className="relative size-full overflow-hidden rounded-[1.6rem] bg-background">
-            <div className="absolute top-0 left-0 origin-top-left" style={{ width: W, height: H, transform: `scale(${scale})` }}>
-              {children}
-              <StatusBar />
+        <div data-testid={testid} className="relative shrink-0" style={{ width: (W + 2 * FRAME + 2 * BUTTONS) * scale, height: (H + 2 * FRAME) * scale }}>
+          <div className="duo-device" style={{ left: BUTTONS * scale, transform: `scale(${scale})` }}>
+            <i className="duo-key duo-key-action" />
+            <i className="duo-key duo-key-up" />
+            <i className="duo-key duo-key-down" />
+            <i className="duo-key duo-key-side" />
+            <div className="duo-glass">
+              <div className="duo-screen">
+                {children}
+                <StatusBar />
+                <i className="duo-home" aria-hidden />
+              </div>
             </div>
           </div>
         </div>
@@ -259,17 +300,13 @@ function Phone({ testid, children }: { testid: string; children: ReactNode }) {
   );
 }
 
-/** The QR to /r/<slug> in the bottom bar; tapping it opens a big one to scan from the room. */
-function QrCard({ url, name }: { url: string; name: string }) {
+/** The header's QR button: it opens the QR to /r/<slug>, big, to scan from the room. */
+function QrButton({ url, name }: { url: string; name: string }) {
   const t = useT();
   return (
     <Dialog>
-      <DialogTrigger className="flex items-center gap-2 rounded-lg text-left outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring" data-testid="stage-qr-card">
-        <span className="size-12 shrink-0 rounded-md bg-white p-0.5 wide:stage:size-[clamp(3rem,7vh,5rem)]">{url && <Qr text={url} label={t("stage.qr", { url })} />}</span>
-        <span className="text-xs leading-tight text-muted-foreground wide:text-[clamp(0.75rem,0.3rem+0.35vw,1rem)]">
-          <b className="block font-semibold text-foreground">{t("duo.scan")}</b>
-          {t("duo.qr.enlarge")}
-        </span>
+      <DialogTrigger className={TOOL} aria-label={t("duo.scan")} title={t("duo.scan")} data-testid="stage-qr-card">
+        <QrCode aria-hidden className="size-[18px]" />
       </DialogTrigger>
       <DialogContent className="sm:max-w-[min(90vw,32rem)]" data-testid="stage-qr-big">
         <DialogTitle className="pr-8 text-lg font-semibold">{t("duo.qr.title", { name })}</DialogTitle>

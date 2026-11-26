@@ -41,8 +41,6 @@ export const body: DeepPartial<typeof enBody> = {
     phone: "租客的手机",
     sound: {
       label: "声音 (M)",
-      on: "声音开",
-      off: "声音关",
       tap: "点按以启用声音",
     },
     scan: "用你自己的手机租用",
@@ -80,7 +78,7 @@ export const body: DeepPartial<typeof enBody> = {
       toYou: "给你",
       note: "押金：在链上，不在抽屉里",
     },
-    qr: { enlarge: "点击放大", title: "用你自己的手机扫码租用 {name}" },
+    qr: { title: "用你自己的手机扫码租用 {name}" },
     steps: "租赁步骤",
   },
   judge: {

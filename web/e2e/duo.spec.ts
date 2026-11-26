@@ -39,14 +39,14 @@ async function photos(page: Page, kind: "pickup" | "return", seed: number) {
 }
 
 /**
- * One screen: no page scroll either way; the step bar, both phones, the vault with its lanes and receipt, the QR and
- * Reset fully in view (and Accept when the owner's phone shows it).
+ * One screen: no page scroll either way; the step bar and the header's icon buttons (sound, theme, QR, Reset), both
+ * phones, the vault with its lanes and receipt fully in view (and Accept when the owner's phone shows it).
  */
 async function oneScreen(page: Page, at: string) {
   const m = await page.evaluate(() => ({ sw: document.scrollingElement!.scrollWidth, sh: document.scrollingElement!.scrollHeight, w: innerWidth, h: innerHeight }));
   expect(m.sw, `sideways scroll at ${at}`).toBeLessThanOrEqual(m.w);
   expect(m.sh, `page scroll at ${at}`).toBeLessThanOrEqual(m.h);
-  const ids = ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "duo-owner-phone", "stage-qr", "duo-board", "duo-pile", "duo-lock", "duo-paid", "duo-back", "duo-got", "duo-fee", "stage-timeline-box", "stage-reset"];
+  const ids = ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "duo-owner-phone", "duo-sound", "theme-cycle", "stage-qr-card", "duo-board", "duo-pile", "duo-lock", "duo-paid", "duo-back", "duo-got", "duo-fee", "stage-timeline-box", "stage-reset"];
   if (await page.getByTestId("stage-accept").count()) ids.push("stage-accept");
   // 0.999: Accept sits in the owner's scaled phone, whose sub-pixel edges round a hair under 1.
   for (const id of ids) await expect(page.getByTestId(id).first(), `${id} at ${at}`).toBeInViewport({ ratio: 0.999 });
@@ -115,7 +115,7 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   page.on("console", (m) => m.type() === "error" && problems.push(`console: ${m.text()}`));
   await page.setViewportSize({ width: 1470, height: 830 });
   await page.goto(`/duo/${SLUG}`);
-  await expect(page.getByTestId("stage-qr")).toBeVisible();
+  await expect(page.getByTestId("stage-qr-card")).toBeVisible();
   await resetStage(page);
   const phone = phoneOf(page);
   // Step 0: the phone shows the catalogue, the Mystery Box preselected; the step bar is at Choose.
@@ -358,8 +358,9 @@ test("duo: the speaker button and M turn the sound on and off, remembered; no co
   const sound = page.getByTestId("duo-sound");
   // On by default; before any click, tap or key the browser blocks audio, so the bar says how to enable it.
   await expect(sound).toHaveAttribute("aria-pressed", "true");
-  await expect(sound).toHaveText("Sound on");
-  await expect(page.getByTestId("duo-sound-tap")).toHaveText("Tap to enable sound");
+  await expect(sound).toHaveAccessibleName("Sound (M)");
+  await expect(page.getByTestId("duo-sound-tap")).toHaveText("Tap to enable sound"); // the dot on the speaker (its text for screen readers)
+  await expect(sound).toHaveAttribute("title", "Sound (M) · Tap to enable sound");
   // A tap on the renter's phone (the framed /r) unlocks it too.
   const phone = phoneOf(page);
   await step(phone, "choose");
@@ -367,7 +368,6 @@ test("duo: the speaker button and M turn the sound on and off, remembered; no co
   await expect(page.getByTestId("duo-sound-tap")).toHaveCount(0);
   await sound.click();
   await expect(sound).toHaveAttribute("aria-pressed", "false");
-  await expect(sound).toHaveText("Sound off");
   // Remembered across a reload; then M turns it back on.
   await page.reload();
   await hydrated(sound);
@@ -380,4 +380,44 @@ test("duo: the speaker button and M turn the sound on and off, remembered; no co
   await hydrated(sound);
   await expect(sound).toHaveAttribute("aria-pressed", "true");
   expect(problems).toEqual([]);
+});
+
+test("duo: the header's theme switch (the phone follows live), the QR overlay, no bottom bar, phones drawn as iPhones", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/duo/honda-scoopy");
+  const phone = phoneOf(page);
+  await step(phone, "choose");
+  await expect(page.getByTestId("duo-view").locator("footer")).toHaveCount(0); // the presenter's buttons sit in the header
+  const theme = (frame: Page | FrameLocator) => frame.locator("html").evaluate((e) => (e.classList.contains("dark") ? "dark" : "light"));
+  const cycle = page.getByTestId("theme-cycle");
+  await hydrated(cycle);
+  for (const [pref, want] of [["light", "light"], ["dark", "dark"], ["system", "light"]] as const) {
+    await cycle.click();
+    await expect(cycle).toHaveAttribute("data-theme-pref", pref);
+    await expect.poll(() => theme(page)).toBe(want);
+    await expect.poll(() => theme(phone), `the phone follows ${pref}`).toBe(want);
+  }
+  // The QR button opens the big QR to /r/<slug>; Escape closes it.
+  await page.getByTestId("stage-qr-card").click();
+  await expect(page.getByTestId("stage-qr-big").getByTestId("stage-qr")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("stage-qr-big")).toHaveCount(0);
+  // Both phones: the screen is clipped to its rounded corners and the renter's page fills it exactly, with no scrollbar.
+  for (const id of ["duo-phone", "duo-owner-phone"]) {
+    const screen = page.getByTestId(id).locator(".duo-screen");
+    expect(await screen.evaluate((e) => [getComputedStyle(e).overflow, getComputedStyle(e).borderRadius])).toEqual(["hidden", "55px"]);
+    await expect(page.getByTestId(id).locator(".duo-home")).toBeVisible();
+  }
+  const [frame, screen] = await Promise.all([page.getByTestId("duo-phone-frame").boundingBox(), page.getByTestId("duo-phone").locator(".duo-screen").boundingBox()]);
+  for (const k of ["x", "y", "width", "height"] as const) expect(Math.abs(frame![k] - screen![k]), k).toBeLessThan(0.5);
+  expect(await phone.locator("html").evaluate((e) => innerWidth - e.clientWidth), "scrollbar in the phone").toBe(0);
+  expect(await phone.locator("html").evaluate((e) => e.scrollHeight > e.clientHeight), "the phone page still scrolls").toBe(true);
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await expect.poll(() => theme(phone)).toBe(colorScheme);
+    await page.waitForTimeout(400);
+    const box = (await page.getByTestId("duo-phone").boundingBox())!;
+    await page.screenshot({ path: path.join(SHOTS, `duo-phone-closeup-${colorScheme}.png`), clip: { x: box.x - 16, y: box.y - 16, width: box.width + 32, height: box.height + 32 } });
+  }
 });
