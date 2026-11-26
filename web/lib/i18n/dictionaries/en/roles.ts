@@ -245,6 +245,8 @@ export const body = {
     source: { "living-brain": "Living Brain", local: "local" },
     memoryNone: "Nothing remembered yet: one entry is written per party after each settled rental.",
     memoryError: "Living Brain is unavailable right now: showing the on-chain facts only.",
+    memoryLimited: "Living Brain's daily limit is reached: showing the on-chain facts only.",
+    show: "Show what the dispute desk sees",
     note: "The AI summarises; the dispute desk decides.",
     privacy: "Wallet address only, no names. Facts from the chain, no opinions.",
     error: "Could not load this wallet's history right now.",

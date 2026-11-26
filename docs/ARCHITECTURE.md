@@ -306,6 +306,13 @@ dispute desk sees about you"). Ask AI and the agent read the same thing through 
   A marker in shared state skips repeat calls; Living Brain dedupes on `originRef`. Same limit as the scooter memory:
   20 writes an hour per IP. Reading searches the brain for `wallet:<address>` and keeps only entries naming that
   wallet, each with its transaction link and its source (Living Brain or local).
+- **Budget (prepaid Living Brain credit).** Every search and capture, scooter memory included, counts against
+  `LIVING_BRAIN_DAILY_CALLS` (default 200 per 24 h, in shared state, so across all Worker isolates). Over it nothing is
+  called and the card says "daily limit reached: showing the on-chain facts only". Writes: one capture per party per
+  settling transaction, only for settlements from the last 7 days (no backfill when someone browses old rentals).
+  Reads: cached 10 minutes per wallet in shared state (cleared when a new entry is written); the dispute desk and the
+  disputed rental page load the cards, while a party's own card on their rental page loads only when opened. Living
+  Brain is never called when `CI`, `KEYESCROW_E2E` (the Playwright server) or `VITEST` is set; tests use mocks.
 - **The AI summarises; the dispute desk decides.** Nothing here scores or judges a person, and the ruling form is
   unchanged.
 

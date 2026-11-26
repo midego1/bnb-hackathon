@@ -6,6 +6,7 @@ import { summarizeRentals, type ChainEvent } from "../../rentals";
 import { factsSummary, settledSentence, walletFacts, type AiClaim, type Party } from "../../walletHistory";
 import { chainIndexer } from "../chainIndex";
 import { getSharedState, update, type SharedState } from "../state";
+import { LivingBrainCapError } from "../sponsors/livingbrain";
 import { walletMemoryFromEnv, type RecalledWalletEntry, type WalletMemory } from "../sponsors/walletMemory";
 
 /**
@@ -24,6 +25,12 @@ const AI_TTL_MS = 90 * 86_400_000;
 /** Most rentals of one wallet whose AI proposals are read (one state read each). */
 const AI_LOOKUPS = 25;
 
+/** Living Brain reads per wallet are cached this long. */
+const READ_CACHE_MS = 10 * 60_000;
+/** Settlements older than this (chain time) are not written: no backfill of old history. */
+const WRITE_WINDOW_S = 7 * 86_400;
+
+const readKey = (wallet: string) => `wallet-memory-read:${wallet.toLowerCase()}`;
 const aiKey = (chainId: number, lease: string) => `ai-claims:${chainId}:${lease.toLowerCase()}`;
 const writtenKey = (chainId: number, tx: string, wallet: string) => `wallet-memory-written:${chainId}:${tx.toLowerCase()}:${wallet.toLowerCase()}`;
 
@@ -57,12 +64,7 @@ export async function walletHistory(wallet: Address, chainId: SupportedChainId, 
   const address = getAddress(wallet);
   const state = deps.state ?? getSharedState();
   const memory = deps.memory === undefined ? walletMemoryFromEnv(deps.env ?? process.env) : deps.memory;
-  const recalled = memory
-    ? memory.recall(address).then(
-        (entries) => ({ entries, error: undefined as string | undefined }),
-        (err: Error) => ({ entries: [] as RecalledWalletEntry[], error: err.message.slice(0, 200) }),
-      )
-    : null;
+  const recalled = memory ? recallCached(memory, address.toLowerCase(), state) : null;
 
   const { events, chainNow } = await indexFor(chainId, deps);
   const w = address.toLowerCase();
@@ -87,12 +89,29 @@ export async function walletHistory(wallet: Address, chainId: SupportedChainId, 
     address,
     facts,
     summary: factsSummary(facts),
-    memory: memory ? { ...memory.status, entries: mem!.entries, ...(mem!.error ? { error: mem!.error } : {}) } : null,
+    memory: memory ? { ...memory.status, ...mem! } : null,
     note: DISCLAIMER,
   };
 }
 
-export type RememberResult = { stored: number; skipped: number; reason?: "not-a-rental" | "not-settled"; errors?: string[] };
+/**
+ * What memory remembers about a wallet, read at most once per READ_CACHE_MS (shared state, so every isolate shares
+ * it): Living Brain credit is prepaid. A failed read is not cached; `limited` = the daily call cap stopped it.
+ */
+async function recallCached(memory: WalletMemory, wallet: string, state: SharedState): Promise<{ entries: RecalledWalletEntry[]; error?: string; limited?: true }> {
+  const key = readKey(wallet);
+  const hit = await state.get<RecalledWalletEntry[]>(key);
+  if (hit) return { entries: hit.value };
+  try {
+    const entries = await memory.recall(wallet);
+    await state.set(key, 0, entries, { ttlMs: READ_CACHE_MS }).catch(() => null);
+    return { entries };
+  } catch (err) {
+    return { entries: [], error: (err as Error).message.slice(0, 200), ...(err instanceof LivingBrainCapError ? { limited: true as const } : {}) };
+  }
+}
+
+export type RememberResult = { stored: number; skipped: number; reason?: "not-a-rental" | "not-settled" | "too-old"; errors?: string[] };
 
 /**
  * After a settlement, a dispute ruling or a timeout: one factual capture per party, from the chain index only (a
@@ -106,6 +125,8 @@ export async function rememberSettlement(lease: Address, chainId: SupportedChain
   const [r] = summarizeRentals(eventsOfLease(events, lease), chainNow);
   if (!r) return { stored: 0, skipped: 0, reason: "not-a-rental" };
   if (!r.settled) return { stored: 0, skipped: 0, reason: "not-settled" };
+  // No backfill: only outcomes from the last WRITE_WINDOW_S, so browsing old rentals spends no Living Brain credit.
+  if (chainNow - r.settled.at > BigInt(WRITE_WINDOW_S)) return { stored: 0, skipped: 0, reason: "too-old" };
   const out: RememberResult = { stored: 0, skipped: 0 };
   for (const party of ["renter", "owner"] as Party[]) {
     const wallet = (party === "renter" ? r.tenant : r.landlord).toLowerCase();
@@ -118,6 +139,9 @@ export async function rememberSettlement(lease: Address, chainId: SupportedChain
     if (res.stored) {
       out.stored++;
       await state.set(key, 0, true, { ttlMs: AI_TTL_MS });
+      // The next read shows the new entry instead of a cached list without it.
+      const cached = await state.get(readKey(wallet));
+      if (cached) await state.set(readKey(wallet), cached.version, null).catch(() => null);
     } else (out.errors ??= []).push(res.error ?? "not stored");
   }
   return out;

@@ -4,7 +4,7 @@ import type { Address, Hex } from "viem";
 import type { Env } from "../env";
 import { onCloudflare } from "../platform";
 import { getSharedState, update } from "../state";
-import { livingBrainCall, livingBrainConfig, type FetchLike, type MemoryStatus } from "./livingbrain";
+import { livingBrainCall, livingBrainConfig, notConfiguredReason, type FetchLike, type MemoryStatus } from "./livingbrain";
 import { sponsorLogDir } from "./log";
 
 /**
@@ -152,7 +152,7 @@ export class SharedWalletMemory implements WalletMemory {
 export function walletMemoryFromEnv(env: Env = process.env, fetchImpl: FetchLike = fetch): WalletMemory {
   const cfg = livingBrainConfig(env);
   if (cfg.configured) return new LivingBrainWalletMemory(cfg, fetchImpl);
-  const reason = `Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"}. Using local memory.`;
+  const reason = notConfiguredReason(cfg);
   if (onCloudflare()) return new SharedWalletMemory(reason);
   return new LocalWalletMemory(path.join(sponsorLogDir(env), "wallets.jsonl"), reason);
 }

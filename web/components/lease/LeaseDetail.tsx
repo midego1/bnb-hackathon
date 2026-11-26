@@ -121,7 +121,7 @@ export function LeaseDetail({ address }: { address: Address }) {
           <Terms lease={lease} chainId={chainId} viewer={viewer} />
           {/* Each party's own record, as the dispute desk would see it (in a dispute, both cards show below). */}
           {lease.status !== LeaseStatus.Disputed && lease.startTime > BigInt(0) && (viewer === "landlord" || viewer === "tenant") && (
-            <WalletHistoryCard wallet={me!} party={viewer === "tenant" ? "renter" : "owner"} you />
+            <WalletHistoryCard wallet={me!} party={viewer === "tenant" ? "renter" : "owner"} you lazy />
           )}
         </aside>
       </div>

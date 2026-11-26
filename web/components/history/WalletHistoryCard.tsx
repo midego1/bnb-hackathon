@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Address, Hex } from "viem";
 import { TxLink } from "@/components/roles/shared";
 import { AddressTag, Card, Notice, Skeleton, useMoney } from "@/components/ui";
@@ -27,15 +27,20 @@ const share = (part: string, total: string) => (BigInt(total) > BigInt(0) ? pct(
 /**
  * One party's history for a dispute (wallet_history): the on-chain facts, then what Living Brain remembers, each entry
  * with its transaction. `you`: the party's own card on their rental page ("what the dispute desk sees about you").
+ * `lazy`: loads only when opened, so a plain page view never searches Living Brain (prepaid credit; the server caches
+ * each wallet's read for 10 minutes too).
  */
-export function WalletHistoryCard({ wallet, party, you = false }: { wallet: Address; party: "renter" | "owner"; you?: boolean }) {
+export function WalletHistoryCard({ wallet, party, you = false, lazy = false }: { wallet: Address; party: "renter" | "owner"; you?: boolean; lazy?: boolean }) {
   const t = useT();
   const money = useMoney();
   const { chainId } = useDeployment();
+  const [open, setOpen] = useState(!lazy);
   const { data, error } = useQuery({
     queryKey: ["walletHistory", chainId, wallet.toLowerCase()],
     queryFn: ({ signal }) => fetchHistory(wallet, chainId, signal),
-    staleTime: 30_000,
+    enabled: open,
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
     retry: 1,
   });
   const m = (v: string) => money(BigInt(v));
@@ -48,7 +53,11 @@ export function WalletHistoryCard({ wallet, party, you = false }: { wallet: Addr
   return (
     <div data-testid="history-card" data-party={party} className="min-w-0">
       <Card title={t.h(you ? "history.you" : `history.${party}`)} aside={<AddressTag address={wallet} chainId={chainId} />}>
-        {error ? (
+        {!open ? (
+          <button type="button" onClick={() => setOpen(true)} data-testid="history-open" className="text-sm font-medium underline underline-offset-2">
+            {t("history.show")}
+          </button>
+        ) : error ? (
           <Notice kind="warn">{t("history.error")}</Notice>
         ) : !data ? (
           <Skeleton className="h-32" />
@@ -59,7 +68,7 @@ export function WalletHistoryCard({ wallet, party, you = false }: { wallet: Addr
               <h3 className="font-semibold">{t(data.memory?.provider === "local" ? "history.memoryLocal" : "history.memory")}</h3>
               {data.memory?.error && (
                 <div className="mt-2">
-                  <Notice kind="warn">{t("history.memoryError")}</Notice>
+                  <Notice kind="warn">{t(data.memory.limited ? "history.memoryLimited" : "history.memoryError")}</Notice>
                 </div>
               )}
               {data.memory?.entries.length ? (

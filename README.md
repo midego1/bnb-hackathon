@@ -272,7 +272,8 @@ already existed: do not charge again"). After judging, `POST /api/settlement` st
 on-chain and under that rental's scooter, at most 20 writes an hour per IP. The agent's public faces only read.
 Living Brain also keeps the **dispute memory per wallet**: after each settled rental the web app writes one factual
 entry per party (label `wallet:<address>`, `originRef` = settling transaction + wallet), and the dispute desk, Ask AI
-and the `wallet_history` action read it back next to the on-chain facts. Wallet addresses only, factual entries only
+and the `wallet_history` action read it back next to the on-chain facts. Calls are budgeted: at most
+`LIVING_BRAIN_DAILY_CALLS` (default 200) a day, reads cached 10 minutes per wallet, never from CI or e2e. Wallet addresses only, factual entries only
 ([privacy](docs/ARCHITECTURE.md#dispute-memory-per-wallet)). The recalled history is part of the hashed report and is shown under the
 AI proposal as "Scooter memory". Without `LIVING_BRAIN_*`, a local file (`web/.sponsor-logs/inspections.jsonl`)
 stands in, labelled as such.

@@ -244,6 +244,8 @@ export const body: DeepPartial<typeof enBody> = {
     source: { "living-brain": "Living Brain", local: "本地" },
     memoryNone: "还没有记录：每笔租赁结算后，为每一方写入一条。",
     memoryError: "Living Brain 暂时不可用：只显示链上事实。",
+    memoryLimited: "Living Brain 今日调用上限已到：只显示链上事实。",
+    show: "查看争议处理台看到的内容",
     note: "AI 只做总结；由争议处理台决定。",
     privacy: "只有钱包地址，没有姓名。只有链上事实，没有评价。",
     error: "暂时无法加载这个钱包的记录。",

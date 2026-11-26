@@ -60,8 +60,8 @@ export async function integrationStatus(env: Env = process.env): Promise<Integra
       state: lb.configured ? "live" : "not-configured",
       detail: lb.configured
         ? "The AI inspector searches the scooter's history before judging. The web app captures the new inspection only for a rental it verified on-chain (20 an hour per IP); the agent only reads."
-        : `Missing ${lb.missing.join(", ")}: the inspector uses a local memory file instead (web/.sponsor-logs/inspections.jsonl).`,
-      env: ["LIVING_BRAIN_API_KEY", "LIVING_BRAIN_SUBJECT_ID", "LIVING_BRAIN_BRAIN_ID", "LIVING_BRAIN_BASE_URL"],
+        : lb.off ?? `Missing ${lb.missing.join(", ")}: the inspector uses a local memory file instead (web/.sponsor-logs/inspections.jsonl).`,
+      env: ["LIVING_BRAIN_API_KEY", "LIVING_BRAIN_SUBJECT_ID", "LIVING_BRAIN_BRAIN_ID", "LIVING_BRAIN_BASE_URL", "LIVING_BRAIN_DAILY_CALLS"],
       calls: await recentSponsorCalls("livingbrain", 25, env),
     },
   ];

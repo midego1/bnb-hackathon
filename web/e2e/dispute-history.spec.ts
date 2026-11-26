@@ -71,8 +71,8 @@ test("history cards in 中文 and on a phone", async ({ browser }) => {
   const kase = page.getByTestId("dispute-case").first();
   await expect(kase.locator('[data-testid="history-card"][data-party="renter"]').getByRole("heading", { name: "租客的记录" })).toBeVisible();
   await expect(kase.locator('[data-testid="history-card"][data-party="owner"]')).toContainText("AI 只做总结；由争议处理台决定。");
-  // Nothing wider than the phone.
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  // Nothing wider than the phone, once transient UI (the account-switch toast sliding in) has settled.
+  await expect.poll(() => page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await shot(page, "04-desk-zh-phone");
   expect(problems).toEqual([]);
   await context.close();

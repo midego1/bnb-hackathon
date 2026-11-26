@@ -6,7 +6,8 @@ import { runAction } from "@/lib/actions/run";
 import type { ChainEvent } from "@/lib/rentals";
 import { rememberSettlement, recordAiClaim, walletHistory } from "@/lib/server/history";
 import { MemoryState } from "@/lib/server/state";
-import { LivingBrainWalletMemory, type WalletMemory, type WalletMemoryEntry } from "@/lib/server/sponsors/walletMemory";
+import { livingBrainConfig } from "@/lib/server/sponsors/livingbrain";
+import { LivingBrainWalletMemory, walletMemoryFromEnv, type WalletMemory, type WalletMemoryEntry } from "@/lib/server/sponsors/walletMemory";
 import { ARBITER_TIMEOUT_BASIS, factsSummary, LANDLORD_TIMEOUT_BASIS, settledSentence, walletFacts } from "@/lib/walletHistory";
 import { summarizeRentals } from "@/lib/rentals";
 
@@ -122,7 +123,8 @@ function fakeMemory(): WalletMemory & { written: WalletMemoryEntry[] } {
 }
 
 describe("rememberSettlement: only verified settlements, once per transaction", () => {
-  const index = (evs = events) => async () => ({ events: evs, chainNow: NOW });
+  const settledAt = T0 + BigInt(85 * DAY);
+  const index = (evs = events, chainNow = settledAt + BigInt(DAY)) => async () => ({ events: evs, chainNow });
 
   it("writes one entry per party for a settled rental, and nothing the second time", async () => {
     const memory = fakeMemory();
@@ -142,6 +144,12 @@ describe("rememberSettlement: only verified settlements, once per transaction", 
     expect(memory.written).toEqual([]);
   });
 
+  it("never backfills: a settlement older than 7 days is not written", async () => {
+    const memory = fakeMemory();
+    expect(await rememberSettlement(L1, 31337, { memory, state: new MemoryState(), index: index(events, settledAt + BigInt(8 * DAY)) })).toMatchObject({ stored: 0, reason: "too-old" });
+    expect(memory.written).toEqual([]);
+  });
+
   it("retries a write Living Brain refused, and reports the error", async () => {
     const memory = fakeMemory();
     let fail = true;
@@ -153,7 +161,7 @@ describe("rememberSettlement: only verified settlements, once per transaction", 
   });
 });
 
-const cfg = { apiKey: "k", subjectId: "s", brainId: "keyescrow-scooters", base: "https://lb.test", missing: [], configured: true };
+const cfg = { apiKey: "k", subjectId: "s", brainId: "keyescrow-scooters", base: "https://lb.test", missing: [], off: undefined, dailyCalls: 200, configured: true };
 function lbFetch(handler: (url: string, body: Record<string, unknown>) => Response) {
   const calls: { url: string; body: Record<string, unknown>; headers: Record<string, string> }[] = [];
   const f = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -204,6 +212,50 @@ describe("Living Brain wallet memory (mocked fetch)", () => {
     const h = await walletHistory(RENTER, 31337, { memory: null, state, index: async () => ({ events, chainNow: NOW }) });
     expect(h.facts.claims[0]).toMatchObject({ ownerClaimBps: 4000, aiClaimBps: 2000 });
     expect(h.memory).toBeNull();
+  });
+});
+
+describe("Living Brain budget (prepaid credit)", () => {
+  it("is never live in tests, CI or e2e, whatever keys are set", () => {
+    const keys = { LIVING_BRAIN_API_KEY: "k", LIVING_BRAIN_SUBJECT_ID: "s", LIVING_BRAIN_BRAIN_ID: "b" };
+    expect(livingBrainConfig({ ...keys }).configured).toBe(true);
+    for (const flag of [{ CI: "true" }, { KEYESCROW_E2E: "1" }, { VITEST: "true" }]) {
+      const c = livingBrainConfig({ ...keys, ...flag });
+      expect(c.configured, JSON.stringify(flag)).toBe(false);
+      expect(walletMemoryFromEnv({ ...keys, ...flag }).status).toMatchObject({ provider: "local", reason: expect.stringContaining("off in tests, CI and e2e") });
+    }
+    expect(livingBrainConfig({ ...keys }).dailyCalls).toBe(200);
+    expect(livingBrainConfig({ ...keys, LIVING_BRAIN_DAILY_CALLS: "50" }).dailyCalls).toBe(50);
+  });
+
+  it("stops calling after LIVING_BRAIN_DAILY_CALLS in 24 h; the history then shows facts only, labelled", async () => {
+    const { f, calls } = lbFetch(() => Response.json([]));
+    const capped = { ...cfg, dailyCalls: 1 };
+    // The counter is server-wide (shared state): start this test at zero.
+    const { getSharedState } = await import("@/lib/server/state");
+    const cur = await getSharedState().get("rate:livingbrain:calls");
+    if (cur) await getSharedState().set("rate:livingbrain:calls", cur.version, null);
+    const m = new LivingBrainWalletMemory(capped, f);
+    const first = await walletHistory(RENTER, 31337, { memory: m, state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });
+    expect(first.memory).toMatchObject({ entries: [] });
+    const second = await walletHistory(OTHER, 31337, { memory: m, state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });
+    expect(second.memory).toMatchObject({ entries: [], limited: true, error: expect.stringContaining("daily limit") });
+    expect(second.facts.asOwner.rentals + second.facts.asRenter.rentals).toBeGreaterThan(0);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("reads a wallet from Living Brain at most once per 10 minutes, and again after a new entry is written", async () => {
+    const state = new MemoryState();
+    const memory = fakeMemory();
+    const recall = vi.fn(async () => [{ text: "x", source: "living-brain" as const }]);
+    memory.recall = recall;
+    const deps = { memory, state, index: async () => ({ events, chainNow: T0 + BigInt(86 * DAY) }) };
+    await walletHistory(RENTER, 31337, deps);
+    await walletHistory(RENTER, 31337, deps);
+    expect(recall).toHaveBeenCalledTimes(1);
+    await rememberSettlement(L1, 31337, deps);
+    await walletHistory(RENTER, 31337, deps);
+    expect(recall).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -107,6 +107,9 @@ export const E2E_WEB_ENV: Record<string, string> = {
   LIVING_BRAIN_SUBJECT_ID: "",
   LIVING_BRAIN_BRAIN_ID: "",
   LIVING_BRAIN_BASE_URL: "",
+  LIVING_BRAIN_DAILY_CALLS: "",
+  // Belt and braces: lib/server/sponsors/livingbrain.ts never calls Living Brain when this is set (prepaid credit).
+  KEYESCROW_E2E: "1",
   ATLAS_MAX_AGE_SECONDS: "",
   SPONSOR_LOG_DIR: "test-results/e2e-sponsor-logs",
   // Rental-action tools (/api/v1): no RPC override, so they read the e2e anvil via NEXT_PUBLIC_RPC_URL.
