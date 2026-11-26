@@ -2,7 +2,7 @@ import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { zeroHash, type Address, type Hex } from "viem";
 import { rentalCopyFor } from "@/components/lease/copy";
-import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, returnPlan } from "@/components/lease/story";
+import { banner, LANDLORD_TIMEOUT_BASIS, monthCells, moneyFlow, returnPlan, upcoming } from "@/components/lease/story";
 import { renterCopyFor, renterLine } from "@/components/roles/renterStory";
 import { en as enDictionary } from "@/lib/i18n/dictionaries/en";
 import { makeT as makeEnglishT } from "@/lib/i18n/t";
@@ -124,6 +124,37 @@ describe("months, money and the return plan", () => {
     const l = lease({ status: LeaseStatus.Settled });
     const events = [ev("SettlementProposed", {}), ev("Settled", { basis: LANDLORD_TIMEOUT_BASIS }, T0 + 12n * DAY)];
     expect(returnPlan(l, events, rentalCopy).steps.map((s) => s.state)).toEqual(["todo", "done", "warn", "skip", "done"]);
+  });
+});
+
+describe("the one timeline: what is still ahead", () => {
+  const ahead = (l: LeaseData, events: TimelineEvent[] = []) => upcoming(l, events, rentalCopy).map((s) => `${s.state}:${s.title}`);
+
+  it("awaiting funding: paying in is the step now, rent and the five return steps follow", () => {
+    const steps = ahead(lease({ status: LeaseStatus.Created, startTime: BigInt(0), periodsFunded: 0, periodsDue: 0, balance: BigInt(0) }));
+    expect(steps.slice(0, 2)).toEqual(["next:The renter pays in the deposit and the first rent", "todo:Rent is paid out as each period comes due"]);
+    expect(steps).toHaveLength(7);
+    expect(steps.filter((s) => s.startsWith("next:"))).toHaveLength(1);
+  });
+
+  it("running: rent is the step now; with all rent out, the return photos are", () => {
+    expect(ahead(lease())[0]).toBe("next:Rent is paid out as each period comes due");
+    expect(ahead(lease({ periodsReleased: 3, periodsFunded: 3 }))[0]).toBe("next:Return photos");
+  });
+
+  it("disputed without return photos: only the dispute desk and the fallback are left", () => {
+    const l = lease({ status: LeaseStatus.Disputed, arbiterDeadline: T0 + 20n * DAY });
+    expect(ahead(l, [ev("SettlementProposed", {}), ev("DisputeRaised", {})])).toEqual(["next:Dispute desk rules within 14 days", "todo:Otherwise the full deposit goes back"]);
+  });
+
+  it("reply window closed: the missed reply, then the deposit going back now", () => {
+    const l = lease({ status: LeaseStatus.MoveOut, timeoutAt: T0 + 10n * DAY, chainNow: T0 + 11n * DAY });
+    expect(ahead(l, [ev("SettlementProposed", {}, T0 + 3n * DAY)])).toEqual(["warn:The other side replies within 7 days", "next:Otherwise the full deposit goes back"]);
+  });
+
+  it("closed rentals have nothing ahead", () => {
+    expect(ahead(lease({ status: LeaseStatus.Settled }), [ev("Settled", {})])).toEqual([]);
+    expect(ahead(lease({ status: LeaseStatus.Cancelled }))).toEqual([]);
   });
 });
 

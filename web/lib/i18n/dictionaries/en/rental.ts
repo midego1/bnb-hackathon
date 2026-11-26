@@ -112,11 +112,10 @@ export const body = {
       afterFee: "After the one-time {fee} fee",
       feeLater: "The one-time fee comes out of the first payout",
       trust: "Only moves when you both agree, or the dispute desk rules.",
-      fee: "Fee: {pct}% of one month's rent, once, from the first payout. Never from the deposit.",
     },
 
     timeline: {
-      sub: "newest last · every step is a transaction",
+      sub: "every finished step is a transaction",
       none: "Nothing yet.",
       unavailable: "History is unavailable because this network's RPC refused the event query. Balances and actions above are still live.",
       payee: "The owner's rent goes to the Fleet Vault",
@@ -138,6 +137,24 @@ export const body = {
       settledBody: "renter {renter} · owner {owner}",
       fee: "One-time KeyEscrow fee taken from the owner's first payout",
       cancelled: "Offer cancelled by the owner",
+    },
+
+    money: {
+      now: "Where the money is now",
+      agreed: "Agreed amounts",
+      rent: "Rent per {per}",
+      periods: "{n} in total",
+      start: "To start",
+      startNote: "Deposit + rent for the first {per}",
+      rate: "1 USDT = {thb} = {usd} · {source}, {time}",
+    },
+
+    life: {
+      ahead: "Still ahead",
+      payIn: "The renter pays in the deposit and the first rent",
+      payInSub: "That starts the rental. Nothing is locked before.",
+      rent: "Rent is paid out as each period comes due",
+      rentSub: "From the escrow to the owner. The deposit stays locked.",
     },
 
     ret: {
@@ -176,15 +193,16 @@ export const body = {
     },
 
     terms: {
-      period: "Rental period",
-      periodValue: "{months} ({n} × rent per {per})",
-      started: "Started",
-      replyWindow: "Owner reply window",
-      deskDeadline: "Dispute desk deadline",
-      days: "{n} days",
+      runs: "{months}, rent paid every {per}",
+      reply: "A proposed deposit split gets an answer within {n} days",
+      replySub: "No answer from the owner in time: the renter can claim the full deposit.",
+      deskRule: "If disputed, the dispute desk rules within {n} days",
+      deskSub: "It can only split the deposit. No ruling in time: the full deposit goes back to the renter.",
+      feeRule: "KeyEscrow fee: {pct}% of one period's rent, once",
+      feeSub: "Taken from the owner's first payout. Never from the deposit.",
       fee: "KeyEscrow fee",
-      feeOncePaid: "Once: {pct}% of one month's rent, already paid",
-      feeOnce: "Once: {pct}% of one month's rent, taken from the owner's first payout",
+      feeOncePaid: "Once, already paid by the owner",
+      feeOnce: "Once, from the owner's first payout",
       owner: "Owner",
       renter: "Renter",
       desk: "Dispute desk",
@@ -208,12 +226,8 @@ export const body = {
       button: "Withdraw offer",
     },
 
-    settlement: { renter: "Renter received", owner: "Owner received" },
-
     fund: {
       deposit: "Deposit (stays locked)",
-      firstRent: "Rent for the first {per}",
-      total: "Total to fund",
       wallet: "Your wallet holds {balance}. Funding takes two wallet steps: approve, then fund. The owner can never withdraw the deposit alone; it only leaves the escrow when you both agree or the dispute desk rules.",
       walletAmount: "{amount} USDT",
       faucetTx: "Get test USDT",
@@ -357,7 +371,6 @@ export const body = {
       pickupEmpty: "None yet. The owner or renter can add them below; the AI inspection needs at least one.",
       returnEmpty: "None yet. Add them at return so the AI inspection can compare.",
       returnLater: "Added at return, once the rental is active.",
-      returnAfterFunding: "Return photos can be added once the renter has funded the rental.",
       notInStorage: "File not in storage",
       photoAlt: "{label} photo",
       /** lib/demoEvidence.ts labels (from the demo file names). */
@@ -415,6 +428,17 @@ export const body = {
     buffer: " · buffer ",
     split: " (CMC {cmc} + Cournot {cournot})",
     use: "Use this deposit",
+    tier: {
+      stable: "Stable: moves about {pct} a day",
+      moderate: "Moves about {pct} a day",
+      high: "Volatile: moves about {pct} a day",
+      rejected: "Too volatile to hold a deposit in",
+    },
+    bufferPct: "buffer {pct}",
+    why: "The deposit is set in baht. A coin whose price can fall needs extra on top, so the deposit still covers the scooter at return.",
+    cournotLine: "Cournot oracle: {p} that BNB falls through the buffer before return, which adds {added}.",
+    cournotNone: "Cournot oracle: no answer stored yet, so the buffer is CoinMarketCap volatility alone.",
+    details: "How this is worked out",
     cournot: {
       confirmTitle: "Ask Cournot live?",
       confirmBody: "\"{claim}\"\n\nThis uses one of the 3 free Cournot calls for this server's IP.",
@@ -474,13 +498,12 @@ export const head = {
       settledTitle: "Closed: all money is paid out.",
       cancelledTitle: "The owner withdrew this offer.",
     },
-    timeline: "What happened",
-    ret: "What happens at return",
-    terms: "Terms",
+    money: "Money",
+    timeline: "Timeline",
+    terms: "The agreement",
     deadlineYours: "Your deadline",
     deadlineWaiting: "Waiting for the dispute desk",
     waitingRenter: "Waiting for the renter",
-    settlement: "Final settlement",
     fund: "Fund the escrow",
     rent: "Rent",
     move: "Return & deposit",
@@ -491,6 +514,7 @@ export const head = {
     evidence: "Documents & photos",
   },
   risk: {
+    protection: "Deposit protection",
     title: "Deposit risk buffer",
     cournot: "Cournot Intelligence Oracle",
   },

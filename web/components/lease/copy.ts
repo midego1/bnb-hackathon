@@ -156,13 +156,13 @@ export function rentalCopyFor(t: T) {
       afterFee: (fee: string) => t("rental.strip.afterFee", { fee }),
       feeLater: t("rental.strip.feeLater"),
       trust: t("rental.strip.trust"),
-      fee: (pct: string) => t("rental.strip.fee", { pct }),
     },
 
     timeline: { title: h("rental.timeline"), sub: t("rental.timeline.sub"), none: t("rental.timeline.none"), payee: t("rental.timeline.payee") },
 
+    life: { ahead: t("rental.life.ahead"), payIn: t("rental.life.payIn"), payInSub: t("rental.life.payInSub"), rent: t("rental.life.rent"), rentSub: t("rental.life.rentSub") },
+
     ret: {
-      title: h("rental.ret"),
       planned: (at: bigint) => t("rental.ret.planned", { date: day(at) }),
       photos: t("rental.ret.photos"),
       photosSub: t("rental.ret.photosSub"),
