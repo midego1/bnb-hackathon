@@ -18,7 +18,8 @@
 #   BSC_TESTNET_RPC_URL        required for 97. Must answer chainId 97.
 #   BSC_MAINNET_RPC_URL        required for 56. Must answer chainId 56.
 #   MAINNET_I_UNDERSTAND       must be `yes` for `deploy` on 56 (on top of ALLOW_NON_LOCAL_BROADCAST and the prompt)
-#   MAX_DEPOSIT, MAX_RENT_PER_PERIOD, MAX_ACTIVE_VALUE   pilot caps in WHOLE tokens; default 5 / 2 / 25 on 56,
+#   MAX_DEPOSIT, MAX_RENT_PER_PERIOD, MAX_ACTIVE_VALUE   pilot caps in tokens, decimals allowed ("0.70"); default
+#                              0.70 / 0.30 / 5 on 56 (a stage rental of at most 1 USDT),
 #                              unlimited on the testnets (the factory owner can change them later with setCaps)
 #   OPBNB_TESTNET_RPC_URL      required for 5611. Must answer chainId 5611 (e.g. https://opbnb-testnet-rpc.bnbchain.org).
 #   DEPLOYER_ADDRESS           required. Public address of the deployer; cross-checked against the wallet.
@@ -163,7 +164,10 @@ preflight() {
     else
       ok "token: BSC-USD $BSC_USD (18 decimals; no MockUSDT, no Fleet Vault on mainnet)"
     fi
-    ok "pilot caps (whole USDT): max deposit ${MAX_DEPOSIT:-5}, max rent per period ${MAX_RENT_PER_PERIOD:-2}, max held in all escrows ${MAX_ACTIVE_VALUE:-25}"
+    for v in MAX_DEPOSIT MAX_RENT_PER_PERIOD MAX_ACTIVE_VALUE; do
+      [[ -z "${!v:-}" || "${!v}" =~ ^[0-9]*\.?[0-9]+$|^[0-9]+\.$ ]] || bad "$v must be a token amount like 0.70, got '${!v}'"
+    done
+    ok "pilot caps (USDT): max deposit ${MAX_DEPOSIT:-0.70}, max rent per period ${MAX_RENT_PER_PERIOD:-0.30}, max held in all escrows ${MAX_ACTIVE_VALUE:-5}"
     if [[ "${MAINNET_I_UNDERSTAND:-}" == yes ]]; then ok "MAINNET_I_UNDERSTAND=yes"; else warn "MAINNET_I_UNDERSTAND is not 'yes': fine for this check, deploy will refuse"; fi
   else
     [[ -n "${TOKEN_ADDRESS:-}" ]] && bad "TOKEN_ADDRESS is set: on testnet the deploy creates its own MockUSDT, unset it"

@@ -241,8 +241,10 @@ same rules as above, plus:
 - **Real USDT:** the token is BSC-USD `0x55d398326f99059fF775485246999027B3197955` (18 decimals, read from the token
   into `deployments/56.json`). `TOKEN_ADDRESS` may only be unset or that address; MockUSDT is never deployed on 56.
 - **No Fleet Vault** on mainnet: revenue-sharing shares are a testnet prototype ([PRODUCT.md](PRODUCT.md)).
-- **Pilot caps** (whole USDT, from env, default 5 / 2 / 25): `MAX_DEPOSIT` per rental, `MAX_RENT_PER_PERIOD` per rental,
-  `MAX_ACTIVE_VALUE` for everything all escrows hold together. The factory owner changes them later with
+- **Pilot caps** (USDT from env, decimals allowed and parsed exactly, e.g. `MAX_DEPOSIT=0.70`; default 0.70 / 0.30 / 5,
+  so one rental is at most 1 USD): `MAX_DEPOSIT` per rental, `MAX_RENT_PER_PERIOD` per rental, `MAX_ACTIVE_VALUE` for
+  everything all escrows hold together. A 1.01 USD rental (0.71 deposit or 0.31 rent) reverts with `DepositAboveCap` /
+  `RentAboveCap`, which the app shows as "Pilot limit: ...". The factory owner changes them later with
   `cast send <factory> 'setCaps(uint256,uint256,uint256)' <base units> ...` (18 decimals); `setCaps(0, 0, 0)` stops all
   new rentals and funding, payouts keep working.
 - **Second opt-in:** `MAINNET_I_UNDERSTAND=yes` on top of `ALLOW_NON_LOCAL_BROADCAST=true`, checked by the wrapper and
