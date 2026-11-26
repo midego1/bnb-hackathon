@@ -131,6 +131,13 @@ export function moneyBoard(s: StageStatus): { renter: bigint; escrow: bigint; ow
   return { renter: offer, escrow: zero, owner: zero, phase: "none" };
 }
 
+/** /duo's vault: empty, holding the money, coloured by a proposed split, or paid out (moneyBoard's phase, plus the split). */
+export type VaultPhase = "none" | "funded" | "split" | "settled";
+export function vaultPhase(s: StageStatus): VaultPhase {
+  const phase = moneyBoard(s).phase;
+  return phase === "funded" && s.lease?.status === "MoveOut" ? "split" : phase;
+}
+
 /**
  * /duo's phone pane: a judge renting on their own phone (another wallet than `me`) is shown read-only, until the
  * presenter resets the stage or the offer goes stale. Returns that judge's address, or undefined for the own flow.

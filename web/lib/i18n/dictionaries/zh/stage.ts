@@ -39,6 +39,12 @@ export const body: DeepPartial<typeof enBody> = {
   duo: {
     best: "在笔记本电脑或大屏幕上效果最佳：租客的手机和车主的视图并排显示。",
     phone: "租客的手机",
+    sound: {
+      label: "声音 (M)",
+      on: "声音开",
+      off: "声音关",
+      tap: "点按以启用声音",
+    },
     scan: "用你自己的手机租用",
     board: {
       label: "这笔租赁的资金现在在哪里",
