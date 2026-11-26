@@ -125,7 +125,7 @@ passport held for the whole stay. A **subscription** is that offer, built on the
 - Which rentals are subscriptions is off-chain (the booking carries the plan); money and state stay in the escrow.
 
 > **Status:** option A, built (web only). Roadmap:
-> - **Weekly and every-2-weeks plans (contract v2, deployed Thu 26 Nov):** v2 gives each rental its own rent period
+> - **Weekly and every-2-weeks plans (contract v2, deploying Thu 26 Nov):** v2 gives each rental its own rent period
 >   (7, 14 or 30 days) instead of the fixed 30-day `RENT_PERIOD`. The plan stays priced per month; each payment is the
 >   monthly price × days / 30. The plan data (`periodDays`) and the rhythm selector are ready; until v2 is live only
 >   "Monthly" is switched on. The one-time fee stays 10 % of one month's rent (the monthly equivalent).

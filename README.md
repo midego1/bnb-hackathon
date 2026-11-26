@@ -50,6 +50,8 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 | --- | --- | --- |
 | ![Guided /demo at step 7 of 10: the AI inspector's split in baht, live balances, every transaction hash](docs/submission/screenshots/4-demo-mid-run.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
 
+The screenshots come from a local run of the same build (hence `127.0.0.1` under the QR code).
+
 **Where each judging criterion is answered**
 
 | Criterion | Read |

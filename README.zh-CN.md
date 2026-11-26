@@ -43,6 +43,8 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 | --- | --- | --- |
 | ![引导式 /demo 第 7/10 步：AI 验车员以泰铢给出的分配方案、实时余额和每笔交易哈希](docs/submission/screenshots/4-demo-mid-run.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
 
+截图来自同一版本的本地运行（因此二维码下方显示 `127.0.0.1`）。
+
 **每项评审标准对应的说明**
 
 | 评审标准 | 参阅 |
@@ -50,7 +52,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 | 设计与易用性 | [docs/DESIGN.md](docs/DESIGN.md)；金额优先以泰铢显示；支持 EN、中文和 EN+中文；[一分钟动画](https://keyescrow-web.mdgooijer.workers.dev/how-it-works) |
 | 可扩展性 | [ARCHITECTURE.md 第 11 节](docs/ARCHITECTURE.md#11-scalability) 和 [第 7 节 Cloudflare](docs/ARCHITECTURE.md#7-cloudflare-deployment) |
 | 创新性 | AI 起草、人来决定、超时规则保护租客；每笔租约一个托管合约；每个操作都以 REST、MCP 和 A2A 提供（[docs/AGENT.md](docs/AGENT.md)） |
-| 开源质量 | MIT；[测试与 CI](README.md#tests-and-ci)；[安全评审](docs/SECURITY.md)；[CONTRIBUTING.md](CONTRIBUTING.md) |
+| 开源质量 | MIT；[测试与 CI](#测试与-ci)；[安全评审](docs/SECURITY.md)；[CONTRIBUTING.md](CONTRIBUTING.md) |
 | BNB Chain 集成 | [为什么说它是 BNB 原生的](#为什么说它是-bnb-原生的)：ERC-8004 #2921、BSC 测试网、可部署到 opBNB、BNB Greenfield 凭证存储 |
 | CoinMarketCap x Atlas 赛道 | [docs/WRITEUP.zh-CN.md](docs/WRITEUP.zh-CN.md) |
 | 商业模式与路线图 | [docs/BUSINESS.md](docs/BUSINESS.md)：一次性 10 % 手续费、争议处理台、Fleet Vault、订阅（每周、每两周、每月）、有上限的主网试点 |
