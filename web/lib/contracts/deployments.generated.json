@@ -1,4 +1,13 @@
 {
+  "56": {
+    "escrowFactory": "0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E",
+    "mockUsdt": "0x55d398326f99059fF775485246999027B3197955",
+    "disputeDesk": "0x8F51e4a5d6eF46Cb1d65E11a30ECF67078A55764",
+    "rentalEscrowImplementation": "0xB447F14A161077829489B79699eD5922b4594AF3",
+    "fromBlock": 135812550,
+    "tokenDecimals": 18,
+    "tokenSymbol": "USDT"
+  },
   "97": {
     "escrowFactory": "0x04D7dDCb72802aF82296110A90526342C1249315",
     "mockUsdt": "0x7aF0035c254bC760231BCcFF3403A714611c35B1",

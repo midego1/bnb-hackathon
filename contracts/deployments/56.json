@@ -1,0 +1,17 @@
+{
+  "chainId": 56,
+  "defaultArbiter": "0x8F51e4a5d6eF46Cb1d65E11a30ECF67078A55764",
+  "deployer": "0x8F51e4a5d6eF46Cb1d65E11a30ECF67078A55764",
+  "escrowFactory": "0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E",
+  "factoryOwner": "0x8F51e4a5d6eF46Cb1d65E11a30ECF67078A55764",
+  "feeBps": 1000,
+  "feeRecipient": "0x4309AefBD154147E65c0D2D8BA8246b99f294172",
+  "maxActiveValue": "5000000000000000000",
+  "maxDeposit": "700000000000000000",
+  "maxRentPerPeriod": "300000000000000000",
+  "rentalEscrowImplementation": "0xB447F14A161077829489B79699eD5922b4594AF3",
+  "startBlock": 135812550,
+  "token": "0x55d398326f99059fF775485246999027B3197955",
+  "tokenDecimals": 18,
+  "tokenSymbol": "USDT"
+}
