@@ -28,7 +28,8 @@ const STEPS = ["choose", "rent", "pickup", "return", "split", "settled"] as cons
  * the shop owner's phone (this rental as the owner sees it, with the presenter's Accept) right, and between them the
  * escrow as a vault: the amount in LED coins, a coin pile that fills, colours at the split and drains at settlement,
  * and the on-chain receipt under it. Everything follows the live rental (chain state, polled). Laptop and projector:
- * one screen. Phones: stacked, with a note that it is best on a laptop.
+ * one screen; an unfolded foldable gets that screen scaled to fit (FitFrame, Live.tsx). Phones: stacked, with a note
+ * that it is best on a laptop.
  * The phone starts on its chooser (step 0) and posts what it picked: the header, owner side and URL follow that item.
  */
 export function DuoView({ listing: first, chainId }: { listing: Listing; chainId: number }) {
@@ -42,6 +43,7 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
       setSlug(to);
       setChoosing(e.data.choosing === true);
       if (window.location.pathname !== `/duo/${to}`) window.history.replaceState(null, "", `/duo/${to}`);
+      if (window.parent !== window) window.parent.postMessage(e.data, window.location.origin); // the fit frame (Live.tsx)
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
