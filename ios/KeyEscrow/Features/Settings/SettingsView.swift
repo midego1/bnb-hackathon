@@ -108,7 +108,7 @@ struct SettingsView: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Group {
-                    if d == .led, let led = DotMatrix.image(asset: PhotoCatalog.hero, cols: 40) {
+                    if d == .led, let led = DotMatrix.image(asset: PhotoCatalog.hero, cols: 60) {
                         Image(uiImage: led).resizable().scaledToFill()
                     } else {
                         Image(PhotoCatalog.hero).resizable().scaledToFill()

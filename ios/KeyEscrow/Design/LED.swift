@@ -42,7 +42,7 @@ enum LEDPalette {
 enum DotMatrix {
     private static let cache = NSCache<NSString, UIImage>()
 
-    static func image(asset: String, cols: Int = 42) -> UIImage? {
+    static func image(asset: String, cols: Int = 70) -> UIImage? {
         let key = "\(asset)@\(cols)" as NSString
         if let hit = cache.object(forKey: key) { return hit }
         guard let src = UIImage(named: asset)?.cgImage else { return nil }
@@ -52,7 +52,7 @@ enum DotMatrix {
         return out
     }
 
-    static func render(_ src: CGImage, cols: Int, rows: Int, cell: CGFloat = 18) -> UIImage? {
+    static func render(_ src: CGImage, cols: Int, rows: Int, cell: CGFloat = 16) -> UIImage? {
         var px = [UInt8](repeating: 0, count: cols * rows * 4)
         let ok = px.withUnsafeMutableBytes { buf -> Bool in
             guard let ctx = CGContext(data: buf.baseAddress, width: cols, height: rows, bitsPerComponent: 8, bytesPerRow: cols * 4,

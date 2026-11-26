@@ -256,7 +256,7 @@ struct ListingThumb: View {
     var symbol = "key.horizontal.fill"
     var body: some View {
         Group {
-            if DesignMode.led, let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = DotMatrix.image(asset: asset, cols: 22) {
+            if DesignMode.led, let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = DotMatrix.image(asset: asset, cols: 34) {
                 Image(uiImage: img).resizable().scaledToFill()
             } else if let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = PhotoCatalog.thumbnail(asset, side: side * 3) {
                 Image(uiImage: img).resizable().scaledToFill()
