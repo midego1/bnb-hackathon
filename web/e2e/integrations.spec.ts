@@ -9,7 +9,9 @@ test("integrations page shows honest not-configured states and no fake risk numb
   await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
   await expect(page.getByTestId("cmc-not-configured")).toContainText("CMC_API_KEY");
   await expect(page.getByTestId("risk-BNB")).toHaveCount(0);
-  await expect(page.getByTestId("cournot-panel")).toContainText("No Cournot answer is stored yet");
+  // The committed proof of the real 26 Nov call (web/data/cournot-results.json) is shown, never a made-up number.
+  await expect(page.getByTestId("cournot-panel")).toContainText("Will BNB fall below $470 at any time before 2026-12-26 00:00 UTC?");
+  await expect(page.getByTestId("cournot-panel")).toContainText("7dcbb40bfbfdebad018e9bcad0d70c51");
   await expect(page.getByTestId("cournot-ask")).toHaveCount(0); // live calls are off
   await expect(page.getByTestId("integration-cmc")).toHaveAttribute("data-state", "not-configured");
   await expect(page.getByTestId("integration-cournot")).toHaveAttribute("data-state", "off");
