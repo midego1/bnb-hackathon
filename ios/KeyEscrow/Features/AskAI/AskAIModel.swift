@@ -35,6 +35,7 @@ final class AskAIModel: ObservableObject {
     @Published var items: [Item] = []
     @Published var running = false
     @Published var mock = false
+    @Published var signing = false
     private var chatId = AskAIModel.newChatId()
     private let api = APIClient()
     private let sender = TxSender()
@@ -56,27 +57,35 @@ final class AskAIModel: ObservableObject {
     private func context(_ address: String) -> [String: Any] { ["path": "/tenant", "address": address, "chainId": Chain.id] }
 
     func answer(_ a: Approval, approve: Bool, wallet: WalletStore) {
-        guard !running else { return }
+        guard !running, !signing, a.state == .waiting else { return }
         update(a.id) { $0.state = approve ? .signing : .declined }
+        signing = approve
         Task {
             var resume: [String: Any] = ["approvalId": a.id, "decision": approve ? "approve" : "decline"]
             if approve {
+                var hashes: [String] = []
                 do {
-                    var hashes: [String] = []
+                    // Check every step against the app's policy first, so nothing is sent if any step is refused.
+                    var calls: [(String, Data)] = []
                     for tx in a.txs {
                         guard let to = tx["to"], let data = Data(hex: tx["data"] ?? ""), BigUInt(tx["value"] ?? "0")?.isZero ?? false else { throw EthError.notAllowed("unexpected step") }
-                        guard await sender.isAllowedTarget(to, lease: a.lease) else { throw EthError.notAllowed("\(to) is not a KeyEscrow contract") }
+                        try await sender.checkPolicy(to: to, data: data, signer: wallet.guest.address)
+                        calls.append((to, data))
+                    }
+                    for (to, data) in calls {
                         hashes.append(try await sender.send(key: wallet.guest, to: to, data: data, value: BigUInt(), description: a.title).hash)
                     }
                     resume["txHashes"] = hashes
                     update(a.id) { $0.state = .approved }
                 } catch {
-                    resume["decision"] = "decline"
+                    // Report what did go out, so the server checks it on-chain instead of assuming nothing happened.
+                    if hashes.isEmpty { resume["decision"] = "decline" } else { resume["txHashes"] = hashes }
                     resume["error"] = String(error.localizedDescription.prefix(280))
                     update(a.id) { $0.state = .declined }
                     items.append(.error(UUID(), error.localizedDescription))
                 }
             }
+            signing = false
             await run(["chatId": chatId, "resume": resume, "context": context(wallet.address)])
             await wallet.refresh()
         }

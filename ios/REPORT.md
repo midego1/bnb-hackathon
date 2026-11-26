@@ -27,6 +27,9 @@ MVP 1-5 and stretch 6-7 are in; stretch 8 (WalletConnect) is not.
    proposal [`0x16c286…5048`](https://testnet.bscscan.com/tx/0x16c2868083d7c121335be6bbd98889d66fdf362b830fac11a6b341cba4985048),
    settled [`0xb3d492…da64`](https://testnet.bscscan.com/tx/0xb3d492c143c0aa250584952b984cc2aaae1c9f3be841c6c144dac6cc70b5da64)
    (฿9,000 paid in; ฿3,360 to the owner, ฿5,340 back to the renter, ฿300 fee).
+   Re-run after the review fixes, with the calldata policy enforced: a second rental
+   [`0xEC84093A…CCa3`](https://testnet.bscscan.com/address/0xEC84093A157192E4A31f0fc31B5edE806a97CCa3) settled
+   (this one also minted mUSDT from the faucet).
 5. **My rentals.** `list_leases` for the guest wallet; rental page with status banner, money strip (renter paid / in
    escrow / owner got / back to renter, baht + mUSDT), period strip, `explain_status`, timeline from
    `/api/chain/index` with BscScan links; pull to refresh; *Continue this rental* back into the flow.
@@ -55,7 +58,7 @@ MVP 1-5 and stretch 6-7 are in; stretch 8 (WalletConnect) is not.
 ## Tests
 
 ```
-xcodebuild -scheme KeyEscrow    -destination 'platform=iOS Simulator,name=iPhone 17' test   # 23 unit tests, offline: passed
+xcodebuild -scheme KeyEscrow    -destination 'platform=iOS Simulator,name=iPhone 17' test   # 27 unit tests, offline: passed
 xcodebuild -scheme KeyEscrowE2E -destination 'platform=iOS Simulator,name=iPhone 17' test   # 2 live tests on BSC testnet: passed
 ```
 
@@ -63,10 +66,27 @@ xcodebuild -scheme KeyEscrowE2E -destination 'platform=iOS Simulator,name=iPhone
   calldata equal to viem 2.58.6 output byte for byte, refusal of chains 1, 56, 5611, 31337.
 - `DecodingTests` (9): fixtures from the live endpoints (get_lease, list_leases, explain_status, prepare_fund,
   stage with the `{"$n"}` bigint codec, chain index + money flow balance, fleet, price, settlement, receipt).
+- `PolicyTests` (4): approve only to an escrow and capped, the real `prepare_fund` steps pass, `transfer` /
+  `transferFrom` / foreign contracts / non-actions refused, faucet only to self, factory only `createLease`.
 - `MoneyTests` (5): mUSDT 6 decimals, whole baht, THB → units same as the server's `thbToUnits`, tBNB, every string
   has Chinese.
 
+## Review
+
+An independent review of the signing code (before the second push) found that only the target address was checked,
+and that "is this an escrow" was asked of the same API that prepared the steps. Fixed: `TxPolicy` checks the calldata
+(selectors and arguments) and `EscrowFactory.isLease` on-chain; the proposal must match the inspection; lost send
+answers are looked up by hash; a pending shop offer is resumed, not duplicated; a partly sent Ask AI approval reports
+its hashes; only one approval signs at a time; a Keychain read error never replaces the key; number conversions from
+the network are range-checked.
+
 ## Notes for the coordinator
+
+- **Server issue seen at about 10:07 Bangkok time on 26 Nov:** `GET /api/chain/index?chainId=97` stopped refreshing
+  and answered with `stale: {error: "Invalid parameters were provided to the RPC method."}`, for every caller, so new
+  events stop appearing on the web timelines and the stage feed too. Probably the RPC refusing an `eth_getLogs` range.
+  The app no longer depends on it to move forward (it reads the escrow's own pickup/return hashes), but timelines in
+  the app and on the web lag until it recovers. Worth checking before the pitch.
 
 - No server code was changed. The stage API's origin check passes because a native app sends no `Origin` header.
 - Docs conflict to know about (not changed): `docs/PRODUCT.md` / `ACCEPTANCE.md` still describe the agent wallet

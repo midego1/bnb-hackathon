@@ -63,6 +63,11 @@ struct RPC {
 
     func sendRaw(_ raw: Data) async throws -> String { try await call("eth_sendRawTransaction", [raw.hex0x], as: String.self) }
 
+    /// eth_getTransactionByHash: nil when the node does not know the hash.
+    func transaction(_ hash: String) async throws -> [String: JSONValue]? {
+        do { return try await call("eth_getTransactionByHash", [hash], as: [String: JSONValue].self) } catch let e as RPCError where e.message == "null" { return nil }
+    }
+
     func receipt(_ hash: String) async throws -> TxReceipt? {
         do { return try await call("eth_getTransactionReceipt", [hash], as: TxReceipt.self) } catch let e as RPCError where e.message == "null" { return nil }
     }

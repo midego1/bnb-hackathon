@@ -202,6 +202,7 @@ enum L10n {
         "wallet.guestLabel": ("Guest wallet (testnet)", "临时钱包（测试网）"),
         "wallet.shopLabel": ("Demo shop wallet (testnet)", "演示车行钱包（测试网）"),
         "wallet.shopBody": ("A second test key on this phone that plays the scooter shop owner for the demo scooters: it creates the offer and accepts your split. The guest wallet lends it a little gas.", "这部手机上的第二个测试密钥，为演示摩托车扮演车行老板：创建报价并接受你的分配。临时钱包会借给它一点 Gas。"),
+        "wallet.keychain": ("The Keychain is locked, so a temporary wallet is shown. Unlock the phone and reopen the app: your saved test wallet comes back.", "钥匙串已锁定，所以显示的是临时钱包。请解锁手机并重新打开应用：你保存的测试钱包会恢复。"),
         "wallet.copy": ("Copy address", "复制地址"),
         "wallet.gas": ("for gas", "用于 Gas"),
         "wallet.getMoney": ("Get test money", "领取测试资金"),
