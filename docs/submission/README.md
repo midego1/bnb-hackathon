@@ -5,7 +5,7 @@ with the seeded demo world (`pnpm testnet:world rehearse`: 3 shops, 10 renters, 
 
 | File | What |
 | --- | --- |
-| [HACKQUEST.md](HACKQUEST.md) | Ready-to-paste form fields: name, one-liner, descriptions, BNB Chain and CMC x Atlas usage, links |
+| [HACKQUEST.md](HACKQUEST.md) | Ready-to-paste form fields: name, one-liner, descriptions, BNB Chain, the sponsor tracks, links, test counts |
 | [deck.pdf](deck.pdf) | 10-slide pitch deck, 1920×1080 ([deck.html](deck.html) is the source) |
 | [duo.mp4](duo.mp4) · [.webm](duo.webm) | **The hero video (59 s).** `/duo/mystery-box`: the renter's phone on the left, the rental company on the right. Rent, pickup photo, return photo, AI split, the owner accepts, settled |
 | [demo-guided.mp4](demo-guided.mp4) · [.webm](demo-guided.webm) | `/demo`, Guided, happy path, one click from start to the balanced final summary (90 s) |
@@ -24,8 +24,10 @@ Screenshots:
 | `05-backoffice.png` | Back office: the demo shops' rentals read from the chain |
 | `06-mobile-r.png` | `/r/mystery-box` on a phone: the AI inspection's split, ready to propose |
 | `07-ios.png` | The iOS app (from [ios/screenshots](../../ios/screenshots)) |
+| `08-sponsors.png` | `/sponsors`: one card per sponsor track with its live state (a local Worker preview with the public Atlas feeds and no CMC key, so the CMC sub-chip says *Waiting for key*; the live site has CMC live) |
 | `09-landing-dark.png` | Landing, dark |
 | `10-rental-dark.png` | Rental page, dark |
+| `11-sponsors-dark.png` | `/sponsors`, dark |
 
 Recorded with Playwright (Chromium, 1470×830, light, EN) against a local production build with the demo accounts on,
 then encoded with ffmpeg (H.264 CRF 30, VP9 CRF 40). The AI inspection is the deterministic demo inspector and

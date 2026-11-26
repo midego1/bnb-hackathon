@@ -1,7 +1,9 @@
 # HackQuest submission fields
 
 Ready to paste into the BNB Bangkok (HackQuest) form. Deadline: **Fri 27 Nov 2026, 09:00 ICT**.
-Tracks: **Developer Track** and **CoinMarketCap x Atlas**. State checked on the live site on 25 Nov 2026.
+Tracks: **Developer Track**, **CoinMarketCap x Atlas**, **ChatAndBuild / Living Brain**, **Cournot** and the **AWS startup
+pitch** (one card per track with its live state: <https://keyscrow.mdgooijer.workers.dev/sponsors>). State checked on the
+live sites on 26 Nov 2026.
 
 ## Project name
 
@@ -33,7 +35,8 @@ everyone. If they disagree, a neutral dispute desk rules within 14 days. If the 
 or the desk misses its deadline, the full deposit goes back to the renter. Neither party can move the deposit alone,
 and there is no admin key over funds. Every amount is shown in baht first.
 
-**What is live.** Contracts on BSC testnet; the web app and the agent on Cloudflare Workers. `/demo` plays a whole
+**What is live.** Contracts on BSC testnet, plus a capped pilot on BSC mainnet with real BSC-USD (at most 1 USD per
+rental, enforced by the factory); the web app and the agent on Cloudflare Workers. `/demo` plays a whole
 rental with real BSC testnet transactions and no wallet (server-side demo wallets, gas-capped). Roles in one app:
 renter, fleet owner, shareholders (Fleet Vault), back office and dispute desk. Every rental action is one definition
 served as REST (OpenAPI 3.1), as MCP tools on the agent and as the app's form validation; `prepare_*` actions return
@@ -45,7 +48,8 @@ from the deposit (a ฿3,400/month scooter pays ฿340 once). Rentals can pay in
 maintenance fee (10 % on testnet, capped at 30 %) before BKK-FLEET-1 shareholders claim the rest. The dispute desk as
 a paid service is planned.
 
-**Honest status.** BSC testnet only, test money, no token, no real users yet. The live AI inspection runs the
+**Honest status.** BSC testnet with test money, plus the mainnet pilot capped at 1 USD per rental and 5 USD in total;
+no token, no real users yet. The live AI inspection runs the
 deterministic *demo inspector* (no model key set on the live site); with a key, a vision LLM returns the same JSON.
 The Fleet Vault is a testnet prototype and not an offer of securities.
 
@@ -62,6 +66,9 @@ The Fleet Vault is a testnet prototype and not an offer of securities.
 - **BNB Greenfield for evidence.** Photos and the agreement are stored off-chain and only their hashes go on-chain.
   The Greenfield store (`@bnb-chain/greenfield-js-sdk`, delegated upload) is used when configured on a Node server;
   the Cloudflare deploy uses R2 or hashes the files in the browser.
+- **Mainnet pilot on BSC.** Factory [`0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)
+  on chain 56 with real BSC-USD, on-chain caps of 0.70 deposit + 0.30 rent per period (max 1 USD a rental) and 5 USD
+  across all open rentals; no Fleet Vault on mainnet. Site: <https://keyescrow-mainnet.mdgooijer.workers.dev>.
 - **opBNB-ready.** Plain Solidity, same bytecode; the deploy guard accepts opBNB testnet (5611) and the app lists it.
   Not deployed on opBNB yet.
 
@@ -76,41 +83,61 @@ What is **built** (in the repo, tested) versus what is **live** on the deployed 
 | Atlas push oracle, SingleFeed `latestRoundData()` | First price source for THB/USD amounts, with Atlas's staleness check (never-updated, negative or older than `ATLAS_MAX_AGE_SECONDS` is rejected). | **Live** on the testnet site and the mainnet pilot site: BSC push feeds BNB/USD + USDT/USD (18 decimals), `GET /api/price` returns `"source":"atlas"`. Feed addresses in [WRITEUP.md](../WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97). The Atlas Pull API key is available; not called yet. |
 
 The contracts themselves never read a price: they hold a stablecoin, so a price-feed outage cannot move funds. The
-one-page write-up is [docs/WRITEUP.md](../WRITEUP.md). To make CMC live, set `CMC_API_KEY` on the web Worker and
-run one risk quote; the call then shows on `/integrations`.
+one-page write-up is [docs/WRITEUP.md](../WRITEUP.md); every CMC call is logged on `/integrations`.
+
+## Other sponsor tracks
+
+| Track | What KeyScrow does | State (26 Nov) |
+| --- | --- | --- |
+| ChatAndBuild / Living Brain | The inspector reads each scooter's damage history before judging, so old scratches are never charged twice; after every settled rental each wallet gets one factual dispute-memory entry, shown on the dispute desk. The demo world's shops and renters come with histories. | **Live** on the testnet site; the mainnet pilot site runs without it |
+| Cournot | A prediction-market probability that BNB falls below a threshold before the return date raises the deposit buffer; the exact claim and the evidence are shown. | **Built**, waiting for a partner key (no live call yet) |
+| AWS startup pitch | A fee from day one (10 % of one month's rent, once per rental) and a roadmap from a testnet pilot to mainnet, asset pools, opBNB and native apps ([BUSINESS.md](../BUSINESS.md)). | Pitch |
+
+Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own) and Flap.
 
 ## Tech stack
 
 - **Contracts:** Solidity 0.8.28, Foundry, OpenZeppelin (`Clones`, `SafeERC20`, `ReentrancyGuardTransient`,
-  `Ownable2Step`). 305 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
+  `Ownable2Step`). 308 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
 - **Web:** Next.js (App Router), TypeScript, Tailwind, wagmi/viem, RainbowKit, on Cloudflare Workers (OpenNext)
-  with one Durable Object for shared state. Vitest (393 tests) and Playwright (108 tests in 20 files on a throwaway anvil). The web Worker is 2.70 MiB gzip (Free plan limit 3 MiB).
+  with one Durable Object for shared state. Vitest (544 tests in 39 files) and Playwright (152 tests in 26 spec files on a throwaway anvil). The web Worker is 2.88 MiB
+  gzip (Free plan limit 3 MiB).
 - **Agent:** TypeScript, ERC-8004 identity via the BNB Agent SDK, A2A + MCP (Streamable HTTP), Node server and
-  Cloudflare Worker. 21 tests.
+  Cloudflare Worker. 24 tests.
+- **iOS:** a native SwiftUI app on the same REST API ([ios/](../../ios)).
 - **AI:** a vision LLM for the return inspection (deterministic demo inspector without a key); Ask AI on Claude
   (Anthropic SDK), with an offline demo model.
 - **Data:** CoinMarketCap Pro API, Atlas push oracle, Cournot Intelligence Oracle, Living Brain memory (each with a
   labelled fallback). BNB Greenfield, R2 or local disk for evidence.
 - **CI:** GitHub Actions: contracts, web, agent and end-to-end, with no secrets and no testnet.
+- **Size:** ~74,000 lines of code and ~5,300 lines of Markdown docs (tracked files, without lockfiles, `contracts/lib`,
+  generated ABIs, JSON data and binaries).
+- **Built with Claude Code:** 2.47 billion tokens in total (8.13M output), on paseo-box + 10 boat VMs, counted from the
+  Claude Code transcripts on 26 Nov at ~15:50 ICT.
 
 ## Links
 
 | What | Link |
 | --- | --- |
-| Live app (landing) | <https://keyescrow-web.mdgooijer.workers.dev> |
-| App home | <https://keyescrow-web.mdgooijer.workers.dev/app> |
-| Live testnet demo (no wallet) | <https://keyescrow-web.mdgooijer.workers.dev/demo> |
-| 1-minute cartoon (ELI5) | <https://keyescrow-web.mdgooijer.workers.dev/how-it-works> |
-| Developers (REST, MCP, OpenAPI) | <https://keyescrow-web.mdgooijer.workers.dev/developers> |
+| Live app (landing, BSC testnet) | <https://keyscrow.mdgooijer.workers.dev> (same app as keyescrow-web.mdgooijer.workers.dev) |
+| Mainnet pilot (BSC, max 1 USD per rental) | <https://keyescrow-mainnet.mdgooijer.workers.dev> |
+| Sponsor tracks with live state | <https://keyscrow.mdgooijer.workers.dev/sponsors> |
+| Split screen: renter phone + rental company | <https://keyscrow.mdgooijer.workers.dev/duo/mystery-box> |
+| App home | <https://keyscrow.mdgooijer.workers.dev/app> |
+| Live testnet demo (no wallet) | <https://keyscrow.mdgooijer.workers.dev/demo> |
+| 1-minute cartoon (ELI5) | <https://keyscrow.mdgooijer.workers.dev/how-it-works> |
+| Developers (REST, MCP, OpenAPI) | <https://keyscrow.mdgooijer.workers.dev/developers> |
 | AI inspector agent (ERC-8004 #2921) | <https://keyescrow-agent.mdgooijer.workers.dev> |
 | Repo | <https://github.com/midego1/bnb-hackathon> |
-| Video: guided live demo on BSC testnet (4:45) | [demo-guided.mp4](demo-guided.mp4) · [webm](demo-guided.webm) |
-| Video: 85-second product tour | [tour.mp4](tour.mp4) · [webm](tour.webm) |
-| Video: ELI5 cartoon, happy ending (70 s) | [eli5.mp4](eli5.mp4) · [webm](eli5.webm) |
+| Video (hero): `/duo` full run, renter phone left, rental company right (59 s) | [duo.mp4](duo.mp4) · [webm](duo.webm) |
+| Video: `/demo` guided one-click run (90 s) | [demo-guided.mp4](demo-guided.mp4) · [webm](demo-guided.webm) |
+| Video: app tour, landing to Ask AI (77 s) | [tour.mp4](tour.mp4) · [webm](tour.webm) |
+| Video: ELI5 cartoon, happy ending (71 s) | [eli5.mp4](eli5.mp4) · [webm](eli5.webm) |
 | Pitch deck (10 slides) | [deck.pdf](deck.pdf) (source: [deck.html](deck.html)) |
 | Screenshots | [screenshots/](screenshots/) |
 
-Upload the MP4s to YouTube or similar if the form wants a URL; GitHub links to these files also play in the browser.
+The videos were recorded on a local anvil chain with the seeded demo world (same build as the live site). Upload the
+MP4s to YouTube or similar if the form wants a URL; GitHub links to these files also play in the browser.
 
 ### Contracts on BscScan (BSC testnet, chain 97)
 
@@ -120,15 +147,15 @@ it is the one place with the current addresses (contract v2, deployed Thu 26 Nov
 | Also on BscScan | Address |
 | --- | --- |
 | ERC-8004 Identity Registry (agent #2921) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
-| Rental settled in the recorded demo | [`0x09adDfd6c49A066b7122Cc5A8048bEd5af74ebA6`](https://testnet.bscscan.com/address/0x09adDfd6c49A066b7122Cc5A8048bEd5af74ebA6) |
+| Mainnet pilot `EscrowFactory` (BSC, chain 56) | [`0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E) |
 
 ## What's next
 
 1. **Testnet pilot (Q1 2027):** 10–20 real rentals with friendly shops in Chiang Mai and Phuket; tune the inspector
    on real photos; staff the dispute desk; evidence on Greenfield in production; an independent contract review.
-2. **Live market data:** a CoinMarketCap key on the live site, Atlas BSC feeds once onboarded, then on-chain
-   enforcement (the escrow reads the Atlas feed at funding and rejects stale prices).
-3. **Mainnet on BSC and opBNB (Q2–Q3 2027):** a widely held stablecoin, embedded wallets for non-crypto renters,
+2. **Market data on-chain:** Atlas Pull API signed reports (with `consensusScore`) verified in the contract, then
+   on-chain enforcement (the escrow reads the Atlas feed at funding and rejects stale prices).
+3. **Mainnet on BSC and opBNB (Q2–Q3 2027), past the 1 USD pilot cap:** asset pools, native apps, a widely held stablecoin, embedded wallets for non-crypto renters,
    legal review under Thai law, a keeper for monthly rent releases.
 4. **Shops and partners:** fleet tools as a B2B subscription, rental associations as named arbiters, booking sites
    and AI travel agents through the MCP / REST actions. Insurance priced from inspection history after mainnet.
