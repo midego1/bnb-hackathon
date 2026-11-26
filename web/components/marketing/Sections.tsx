@@ -149,7 +149,7 @@ export async function Listings({ search }: { search: ListingSearch }) {
           </Link>
         )}
       </p>
-      <p className="mt-2 max-w-[38rem] text-sm text-subtle" data-testid="mk-listing-demo">
+      <p className="mt-2 max-w-[32rem] text-sm text-subtle" data-testid="mk-listing-demo">
         {c.demo}
       </p>
       {found.length ? (
