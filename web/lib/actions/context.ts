@@ -16,12 +16,16 @@ export interface ActionContext {
   deployment: { escrowFactory: Address; token: Address; disputeDesk?: Address };
   /** Current fiat quote (GET /api/price's service); optional, actions degrade without it. */
   prices?: () => Promise<PriceQuote>;
+  /** A wallet's dispute history on this chain (lib/server/history): facts from the chain index + Living Brain memory. */
+  history?: (wallet: Address) => Promise<unknown>;
 }
 
 /** Everything a host (Next route, MCP server, test) supplies; the context for a given chain is derived from it. */
 export interface ActionHost {
   env: Env;
   prices?: () => Promise<PriceQuote>;
+  /** wallet_history's source (server only: it reads the chain index and Living Brain). Absent: the action says so. */
+  history?: (wallet: Address, chainId: SupportedChainId) => Promise<unknown>;
   /** Override the RPC transport per chain (tests). */
   transport?: (chainId: SupportedChainId) => Transport;
 }
@@ -81,5 +85,6 @@ export function actionContext(host: ActionHost, chainId?: number): ActionContext
     client: createPublicClient({ transport }) as PublicClient,
     deployment: { escrowFactory: d.escrowFactory, token: d.mockUsdt, disputeDesk: d.disputeDesk },
     prices: host.prices,
+    ...(host.history ? { history: (wallet: Address) => host.history!(wallet, cid) } : {}),
   };
 }

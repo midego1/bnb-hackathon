@@ -28,6 +28,7 @@ export type Intent =
   | { kind: "goto"; path: string; label: string }
   | { kind: "find" }
   | { kind: "decisions" }
+  | { kind: "history"; party: "renter" | "owner"; wallet?: string }
   | { kind: "simple" }
   | { kind: "help" };
 
@@ -55,6 +56,7 @@ export function parseIntent(text: string): Intent {
   if (/(go|take me|open)\b.*\b(owner|fleet owner) page/.test(t)) return { kind: "goto", path: "/landlord", label: "the fleet owner page" };
   if (/(go|take me|open)\b.*\brenter page/.test(t)) return { kind: "goto", path: "/tenant", label: "the renter page" };
   if (/needs? my decision|waiting for me|to decide/.test(t)) return { kind: "decisions" };
+  if (/\bhistory\b|track record/.test(t)) return { kind: "history", party: /\bowner\b/.test(t) ? "owner" : "renter", wallet: /0x[0-9a-fA-F]{40}/.exec(text)?.[0] };
   if (/find my rental|my rentals|list (my )?rentals/.test(t)) return { kind: "find" };
   return { kind: "help" };
 }
@@ -206,6 +208,26 @@ export function nextReply(ask: string, ctx: Ctx, turn: Turn): Reply {
         return { text: disputed ? `${disputed} rental(s) are in dispute and need your decision. Open one to rule on the split.` : "Nothing needs your decision right now." };
       }
 
+    case "history": {
+      // The wallet named in the message, else the renter / owner of this rental, or of the desk's first disputed rental.
+      const prev = turn.calls[n - 1]?.name;
+      if (n > 0 && failed(last)) return { text: outcome(last, "read the history", "") };
+      if (n === 0 && intent.wallet) return { tool: { name: "wallet_history", input: { wallet: intent.wallet } } };
+      if (n === 0 && lease) return { text: `Let me find this rental's ${intent.party}.`, tool: { name: "get_lease", input: { lease } } };
+      if (n === 0 && ctx.path === "/arbiter" && ctx.address) return { text: "Looking up your disputed rentals.", tool: { name: "list_leases", input: { role: "arbiter" } } };
+      if (n === 0) return { text: "Open the disputed rental first, or give me the wallet address (0x…)." };
+      const p = payload(last) as Record<string, unknown> | undefined;
+      if (prev === "list_leases") {
+        const disputed = ((p?.leases ?? []) as { address: string; status: string }[]).find((l) => l.status === "Disputed");
+        if (!disputed) return { text: "None of your rentals is in dispute right now." };
+        return { text: `Reading rental \`${disputed.address}\`.`, tool: { name: "get_lease", input: { lease: disputed.address } } };
+      }
+      if (prev === "get_lease") return { text: `Reading the ${intent.party}'s history.`, tool: { name: "wallet_history", input: { wallet: String(p?.[intent.party] ?? "") } } };
+      const h = p as { summary?: string[]; memory?: { entries?: { text: string }[] } | null; note?: string } | undefined;
+      const mem = h?.memory?.entries?.length ? `\n\nRemembered:\n${h.memory.entries.map((e) => `- ${e.text}`).join("\n")}` : "";
+      return { text: `${(h?.summary ?? []).map((l) => `- ${l}`).join("\n")}${mem}\n\n${h?.note ?? ""}`.trim() };
+    }
+
     case "simple":
       return {
         text:
@@ -223,7 +245,7 @@ export function nextReply(ask: string, ctx: Ctx, turn: Turn): Reply {
           "- **Where is my deposit?** or **What happens next?** on a rental\n" +
           "- **Create a rental for 3,400 baht a month with a 6,800 deposit for 0x…**\n" +
           "- **Propose the AI split**, **Open a dispute**, **Go to the dispute desk**\n" +
-          "- **Find my rental**, **What needs my decision?**, **Explain KeyEscrow simply**",
+          "- **Find my rental**, **What needs my decision?**, **What is this renter's history?**, **Explain KeyEscrow simply**",
       };
   }
 }

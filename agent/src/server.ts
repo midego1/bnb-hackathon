@@ -6,7 +6,7 @@ import { InspectorExecutor } from "./a2a.ts";
 import { buildAgentCard, buildRegistrationFile, parseAgentRegistry, SKILL_ID } from "./card.ts";
 import type { AgentConfig } from "./identity.ts";
 import { errorPayload, inspectMoveOut, type InspectDeps } from "./inspect.ts";
-import { nodeEvidenceStore, nodeInspectionMemory } from "./node-deps.ts";
+import { nodeEvidenceStore, nodeInspectionMemory, nodeWalletHistory } from "./node-deps.ts";
 import { buildMcpServer } from "./mcp.ts";
 import { inspectorLabel, PriceService, visionProviderFromEnv, type ActionHost, type VisionProvider } from "./shared.ts";
 
@@ -39,7 +39,7 @@ export function buildApp(cfg: AgentConfig, opts: BuildOptions = {}): Express {
 
   const prices = new PriceService();
   const actions: ActionHost | null =
-    opts.actions !== undefined ? opts.actions : { env: process.env, prices: () => prices.get() };
+    opts.actions !== undefined ? opts.actions : { env: process.env, prices: () => prices.get(), history: nodeWalletHistory };
 
   const a2a = new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps, actions));
 

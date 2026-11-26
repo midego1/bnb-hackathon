@@ -33,6 +33,9 @@ const ASSISTANT_NOTE: Record<string, string> = {
   list_leases: " `party` defaults to the connected wallet. A card with the exact totals is shown to the person; quote its TOTALS line, never count rows yourself.",
   get_lease: " A rental card is shown to the person; do not repeat every field.",
   explain_status: " The answer is phrased for the connected wallet. A rental card is shown to the person too.",
+  wallet_history:
+    " For \"what is this renter's / owner's history?\": read the rental with get_lease first to get the wallet. Quote the `summary` lines " +
+    "and the memory entries as facts; never judge the person. End with: The AI summarises; the dispute desk decides.",
 };
 
 const PREPARE_NOTE =
@@ -113,6 +116,7 @@ export function stepLabel(t: AssistantTool, done: boolean): string {
     list_leases: ["Looking up rentals…", "Looked up rentals"],
     explain_status: ["Checking where the deposit is…", "Checked the deposit"],
     quote: ["Converting the amount…", "Converted the amount"],
+    wallet_history: ["Reading the wallet's history…", "Read the wallet's history"],
     inspect_return: ["Comparing pickup and return photos…", "Ran the AI inspection"],
     open_page: ["Opening a page…", "Opened a page"],
   };

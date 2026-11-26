@@ -235,6 +235,28 @@ export const quote = read({
   },
 });
 
+export const walletHistory = read({
+  name: "wallet_history",
+  title: "Wallet history for the dispute desk",
+  description:
+    "A wallet's track record on KeyEscrow, for a dispute: rentals as renter and as owner, how many settled, every dispute (who " +
+    "opened it, who got what), the owner's deposit claims next to the AI inspection's proposal, rent paid on time vs late, and " +
+    "timeouts. Exact numbers from the chain; `summary` says it in plain sentences. `memory` lists what Living Brain remembers " +
+    "about the wallet (one factual entry per settled rental, with its transaction). Wallet addresses only, no names. The AI " +
+    "summarises; the dispute desk decides.",
+  roles: ["anyone"],
+  input: z.object({ wallet: field.address({ title: "Wallet", description: "The renter's or owner's wallet." }), chainId: chainId() }).strict(),
+  example: { wallet: EX.renter },
+  run: async ({ wallet }, ctx) => {
+    if (!ctx.history) throw new ActionError(503, "rpc_unavailable", "Wallet history needs the KeyEscrow web server (chain index + memory); call /api/v1/wallet_history there.");
+    try {
+      return await ctx.history(wallet);
+    } catch (err) {
+      throw rpcError(err);
+    }
+  },
+});
+
 async function priceQuote(ctx: ActionContext) {
   if (!ctx.prices) throw new ActionError(502, "rpc_unavailable", "No price source is configured on this server.");
   return ctx.prices();
@@ -606,6 +628,7 @@ export const ACTIONS: readonly Action[] = [
   listLeases,
   explainStatus,
   quote,
+  walletHistory,
   prepareCreateLease,
   prepareFund,
   prepareReleaseRent,

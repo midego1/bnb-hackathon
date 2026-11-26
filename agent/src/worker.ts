@@ -66,7 +66,12 @@ function appFor(env: AgentWorkerEnv, origin: string): App {
   const deps = (): InspectDeps => workerDeps(cfg, env);
   // Quotes are cached per isolate; no in-flight sharing, since one request must not await another request's I/O here.
   const prices = new PriceService({ env: vars, dedupe: false });
-  const actions: ActionHost = { env: vars, prices: () => prices.get() };
+  const actions: ActionHost = {
+    env: vars,
+    prices: () => prices.get(),
+    // wallet_history: the web app's code, with this Worker's own chain index (per isolate) and Living Brain secrets.
+    history: async (wallet, chainId) => (await import("../../web/lib/server/history/index.ts")).walletHistory(wallet, chainId, { env: vars }),
+  };
   const rpc = new JsonRpcTransportHandler(new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps, actions)));
   const app = { cfg, card, registration, rpc, actions };
   apps.set(publicUrl, app);
