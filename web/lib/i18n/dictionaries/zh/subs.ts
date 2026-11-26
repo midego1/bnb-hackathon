@@ -75,6 +75,8 @@ export const body: DeepPartial<typeof enBody> = {
     where: "地点",
     owner: "车主",
     demoOwner: "KeyEscrow 演示车主",
+    photoBy: "照片：{author}，{license}。照片展示的是车型，并非这件物品本身。",
+    credits: "照片署名",
     body: "租金和押金存入这笔租赁在 BNB Chain 上专属的托管合约。AI 验车员对比取车和还车照片；押金分配由双方商定。",
     demo: "演示租赁信息，并非真实租车行的报价。它运行在测试网络上，用测试资金支付。",
     how: "按月租用：演示车主先在链上向你发出这笔租赁，然后你把押金和第一个月的租金付入它的托管合约。",

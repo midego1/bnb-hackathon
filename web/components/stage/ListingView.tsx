@@ -10,7 +10,7 @@ import { WalletGate } from "@/components/WalletGate";
 import { formatFiat } from "@/lib/fiat";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
-import type { Listing } from "@/lib/listings";
+import { LISTING_PHOTOS, photoSrcSet, type Listing } from "@/lib/listings";
 import { judgeStep, same, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 
@@ -22,6 +22,7 @@ const never = () => () => {};
  */
 const useMounted = () => useSyncExternalStore(never, () => true, () => false);
 
+const SIZES = "(min-width: 768px) 30rem, 92vw";
 const LINK = "inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium";
 const PRIMARY = `${LINK} bg-primary text-primary-foreground hover:bg-primary-hover`;
 const SECONDARY = `${LINK} border border-border-strong`;
@@ -45,10 +46,24 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
       <PageTitle title={listing.name}>{listing.description}</PageTitle>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
-          {listing.photos.map((src) => (
-            // eslint-disable-next-line @next/next/no-img-element -- small static listing photo
-            <img key={src} src={src} alt={listing.name} {...(scooter ? { width: 960, height: 720 } : {})} className="h-auto w-full rounded-2xl border border-border object-cover" />
-          ))}
+          {listing.photos.map((src) => {
+            const p = LISTING_PHOTOS[src];
+            return (
+              <figure key={src} data-testid="listing-photo">
+                <picture>
+                  <source type="image/avif" srcSet={photoSrcSet(src, "avif")} sizes={SIZES} />
+                  <source type="image/webp" srcSet={photoSrcSet(src, "webp")} sizes={SIZES} />
+                  <img src={src} srcSet={photoSrcSet(src, "jpg")} sizes={SIZES} alt={p.alt} width={p.width} height={p.height} className="h-auto w-full rounded-2xl border border-border object-cover" />
+                </picture>
+                <figcaption className="mt-2 text-xs text-subtle">
+                  {t("listing.photoBy", { author: p.credit.author, license: p.credit.license })}{" "}
+                  <Link href="/credits" prefetch={false} className="underline">
+                    {t("listing.credits")}
+                  </Link>
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
         <Card title={t.h(scooter ? "listing.rentScooter" : "listing.rentTitle")}>
           <dl className="grid grid-cols-2 gap-y-2 text-sm" data-testid="listing-terms">
