@@ -82,7 +82,7 @@ run one risk quote; the call then shows on `/integrations`.
 ## Tech stack
 
 - **Contracts:** Solidity 0.8.28, Foundry, OpenZeppelin (`Clones`, `SafeERC20`, `ReentrancyGuardTransient`,
-  `Ownable2Step`). 120 tests including fuzz and invariants (305 with contract v2). Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
+  `Ownable2Step`). 305 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
 - **Web:** Next.js (App Router), TypeScript, Tailwind, wagmi/viem, RainbowKit, on Cloudflare Workers (OpenNext)
   with one Durable Object for shared state. Vitest (393 tests) and Playwright (108 tests in 20 files on a throwaway anvil). The web Worker is 2.70 MiB gzip (Free plan limit 3 MiB).
 - **Agent:** TypeScript, ERC-8004 identity via the BNB Agent SDK, A2A + MCP (Streamable HTTP), Node server and
@@ -115,7 +115,7 @@ Upload the MP4s to YouTube or similar if the form wants a URL; GitHub links to t
 ### Contracts on BscScan (BSC testnet, chain 97)
 
 Paste the contract table from the [README](../../README.md#bsc-testnet-contracts-chain-97) when you fill in the form:
-it is the one place with the current addresses (contract v2 replaces them on Thu 26 Nov, around 13:00 ICT).
+it is the one place with the current addresses (contract v2, deployed Thu 26 Nov).
 
 | Also on BscScan | Address |
 | --- | --- |

@@ -1,5 +1,5 @@
 import { parseEventLogs, parseUnits, zeroAddress, type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
-import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, type Deployment } from "../contracts";
+import { escrowFactoryAbi, EvidenceKind, fleetVaultAbi, LeaseStatus, mockUsdtAbi, rentalEscrowAbi, TOKEN, type Deployment } from "../contracts";
 import type { DevRole } from "../devAccounts";
 import type { UploadedFile } from "../evidence";
 import { hashText } from "../hash";
@@ -37,7 +37,7 @@ const TERM_MONTHS = 3;
 const RESPONSE_WINDOW = 7 * 86_400;
 const ARBITER_WINDOW = 14 * 86_400;
 const DEPOSIT_MONTHS = BigInt(2);
-const UNIT = BigInt(1_000_000); // 1 mUSDT (6 decimals)
+const UNIT = BigInt(10) ** BigInt(TOKEN.decimals); // 1 token
 
 const CHECK_IN = [
   { file: "checkin-left-side.png", label: "Left side" },
@@ -59,7 +59,7 @@ export type DemoCtx = {
   property: Property;
   rent: bigint;
   deposit: bigint;
-  termMonths: number;
+  termPeriods: number;
   leaseHash?: Hex;
   checkIn?: Photo[];
   checkInAnchored: number;
@@ -118,8 +118,8 @@ export type DemoStep = {
 export function newContext(path: DemoPath, run: number, thbPerUsdt: number | undefined): DemoCtx {
   const property = PROPERTIES[run % PROPERTIES.length];
   const rate = thbPerUsdt && thbPerUsdt > 0 ? thbPerUsdt : 33;
-  const rent = parseUnits((property.rentThb / rate).toFixed(2), 6);
-  return { path, property, rent, deposit: rent * DEPOSIT_MONTHS, termMonths: TERM_MONTHS, checkInAnchored: 0, checkOutAnchored: 0 };
+  const rent = parseUnits((property.rentThb / rate).toFixed(2), TOKEN.decimals);
+  return { path, property, rent, deposit: rent * DEPOSIT_MONTHS, termPeriods: TERM_MONTHS, checkInAnchored: 0, checkOutAnchored: 0 };
 }
 
 const need = (ctx: DemoCtx) => ctx.deposit + ctx.rent;
@@ -169,7 +169,7 @@ const createLease: DemoStep = {
   title: "Owner offers the rental",
   actor: "landlord",
   caption: (c, m) =>
-    `${c.property.name}: ${m(c.rent)} a month, ${m(c.deposit)} deposit held in escrow instead of the renter's passport, ${c.termMonths}-month rental period. ` +
+    `${c.property.name}: ${m(c.rent)} a month, ${m(c.deposit)} deposit held in escrow instead of the renter's passport, ${c.termPeriods}-month rental period. ` +
     `The rental agreement PDF and pickup photos are stored off-chain; only their SHA-256 fingerprints go on-chain. The KeyEscrow dispute desk is the default referee.`,
   async run(api, ctx) {
     await api.as("landlord");
@@ -193,7 +193,8 @@ const createLease: DemoStep = {
             arbiter: api.leaseArbiter, // address(0) = the factory's default arbiter, the KeyEscrow dispute desk
             rentAmount: ctx.rent,
             depositAmount: ctx.deposit,
-            termMonths: ctx.termMonths,
+            termPeriods: ctx.termPeriods,
+            rentPeriod: 0, // factory default: monthly (30 days)
             responseWindow: RESPONSE_WINDOW,
             arbiterWindow: ARBITER_WINDOW,
             leaseHash: ctx.leaseHash,
@@ -367,7 +368,7 @@ const dispute: DemoStep = {
   },
 };
 
-/** The desk's ruling for the scripted dispute: half again the AI's repair estimate, in whole mUSDT. */
+/** The desk's ruling for the scripted dispute: half again the AI's repair estimate, in whole tokens. */
 export function deskRuling(ctx: DemoCtx) {
   const ai = ctx.inspection ? BigInt(ctx.inspection.landlordClaim) : ctx.deposit / BigInt(5);
   let landlordClaim = ((ai * BigInt(3)) / BigInt(2) / UNIT) * UNIT;

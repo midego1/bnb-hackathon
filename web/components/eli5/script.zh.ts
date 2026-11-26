@@ -6,7 +6,7 @@ import type { copy, ENDINGS, Rental, RentalKind, SceneDef } from "./script";
  * the money and the rented thing from script.ts, which imports this file.
  */
 
-type Money = { rent: bigint; deposit: bigint; paidIn: bigint; termMonths: number; fee: bigint; rentToLandlord: bigint; aiLandlord: bigint; aiTenant: bigint; deskLandlord: bigint; deskTenant: bigint };
+type Money = { rent: bigint; deposit: bigint; paidIn: bigint; termPeriods: number; fee: bigint; rentToLandlord: bigint; aiLandlord: bigint; aiTenant: bigint; deskLandlord: bigint; deskTenant: bigint };
 type SceneText = Pick<SceneDef, "text" | "detail" | "calendar">;
 
 export const zhRentals: Record<RentalKind, DeepPartial<Rental>> = {
@@ -47,7 +47,7 @@ export function zhEli5(kind: RentalKind, M: Money, baht: (v: bigint) => string) 
     rent: {
       text: `每个月，租金滚到${owner}那里。KeyEscrow 的罐子里只放进一枚小硬币，仅此一次。`,
       detail: `RentalEscrow.releaseRent()：第 1 个月付给${owner} ${baht(M.rentToLandlord)}，一次性手续费 ${baht(M.fee)}（一个月租金的 10%）进入 KeyEscrow 金库。之后的月份不收手续费。`,
-      calendar: months(M.termMonths),
+      calendar: months(M.termPeriods),
     },
     moveout: {
       text: "还车的日子到了！第一天和最后一天的照片都在。",

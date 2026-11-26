@@ -9,6 +9,7 @@ import {
   executeAction,
   inspectorLabel,
   jsonSafe,
+  TOKEN,
   toolDescription,
   verifyInspectorReport,
   type ActionHost,
@@ -23,8 +24,8 @@ const photo = z.object({
 });
 
 export const INSPECT_INPUT = {
-  deposit: z.string().describe("Deposit held in escrow, integer string in token base units (MockUSDT: 6 decimals)"),
-  decimals: z.number().int().optional().describe("Token decimals (default 6)"),
+  deposit: z.string().describe(`Deposit held in escrow, integer string in token base units (${TOKEN.symbol}: ${TOKEN.decimals} decimals)`),
+  decimals: z.number().int().optional().describe(`Token decimals (default ${TOKEN.decimals}, the deployment's token)`),
   currency: z.string().optional().describe("Token symbol (default USDT)"),
   checkIn: z.array(photo).describe("Pickup photos (1-20)"),
   checkOut: z.array(photo).describe("Return photos (1-20)"),

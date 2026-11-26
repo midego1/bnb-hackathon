@@ -1,4 +1,6 @@
 import { deskRuling, newContext } from "@/lib/demo/script";
+import { parseUnits } from "viem";
+import { TOKEN } from "@/lib/contracts";
 import { formatFiat, toFiat, type PriceResponse } from "@/lib/fiat";
 import { localized, type Lang } from "@/lib/i18n/locales";
 import { zhEli5 } from "./script.zh";
@@ -63,7 +65,7 @@ export const RENTALS: Record<RentalKind, Rental> = {
 export const RENTAL: Rental = RENTALS.scooter;
 
 // ---------------------------------------------------------------------------------------------------------------
-// Money: the /demo numbers, in mUSDT base units (6 decimals), shown in baht with a small dollar line.
+// Money: the /demo numbers, in token base units (TOKEN.decimals), shown in baht with a small dollar line.
 // ---------------------------------------------------------------------------------------------------------------
 
 /** The demo's fallback rate (lib/demo/script.ts newContext, lib/server/price MOCK_RATES): fixed, so this page works offline. */
@@ -80,9 +82,9 @@ export const DEMO_PRICES: PriceResponse = {
 export const FEE_BPS = 1000;
 /**
  * What the demo's AI inspector (the deterministic mock, lib/server/settlement/mock.ts) suggests the landlord keeps for
- * the bundled move-out photos: 39 mUSDT. tests/eli5-script.test.ts recomputes it from the photo files.
+ * the bundled move-out photos: 39 tokens. tests/eli5-script.test.ts recomputes it from the photo files.
  */
-export const AI_LANDLORD_CLAIM = BigInt(39_000_000);
+export const AI_LANDLORD_CLAIM = parseUnits("39", TOKEN.decimals);
 
 const ctx = newContext("happy", 0, THB_PER_USD);
 ctx.inspection = { landlordClaim: AI_LANDLORD_CLAIM.toString() } as NonNullable<typeof ctx.inspection>;
@@ -92,7 +94,7 @@ export const MONEY = {
   rent: ctx.rent,
   deposit: ctx.deposit,
   paidIn: ctx.deposit + ctx.rent,
-  termMonths: ctx.termMonths,
+  termPeriods: ctx.termPeriods,
   fee: (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   rentToLandlord: ctx.rent - (ctx.rent * BigInt(FEE_BPS)) / BigInt(10_000),
   aiLandlord: AI_LANDLORD_CLAIM,
@@ -201,7 +203,7 @@ const shared: SceneDef[] = [
     detail: `RentalEscrow.releaseRent(): month 1 pays ${baht(MONEY.rentToLandlord)} to the ${owner} and the one-time fee of ${baht(MONEY.fee)} (10% of one month) to the KeyEscrow treasury. Later months: no fee.`,
     duration: 9000,
     cues: { rental: 0, safe: 0, locks: 0, keys: 0, closed: 0, jar: 400, calendar: 0 },
-    calendar: months(MONEY.termMonths),
+    calendar: months(MONEY.termPeriods),
     flows: [
       { from: "safe", to: "landlord", amount: MONEY.rentToLandlord, at: 1000, coins: 4 },
       { from: "safe", to: "jar", amount: MONEY.fee, at: 2600, coins: 1 },

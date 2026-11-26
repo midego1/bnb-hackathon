@@ -95,16 +95,16 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 
 ### BSC testnet contracts (chain 97)
 
-From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144828181). This table is the one
-place in the docs with these addresses; every other document links here. **Contract v2** (per-rental rent periods,
-pilot caps, audit fixes) replaces them on Thu 26 Nov, around 13:00 ICT: then only this table and `97.json` change.
+From [contracts/deployments/97.json](contracts/deployments/97.json) (start block 144891362). This table is the one
+place in the docs with these addresses; every other document links here. These are **contract v2** (per-rental rent
+periods of 7, 14 or 30 days, pilot caps, audit fixes), deployed Thu 26 Nov 2026.
 
 | Contract | Address |
 | --- | --- |
-| `EscrowFactory` | [`0xd33b4dfF8C09e0079918fD987953c8f65F1363D8`](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8) |
-| `RentalEscrow` implementation (cloned per rental) | [`0x63f174fE3E80442c95b82a811a7D0d13f34D2314`](https://testnet.bscscan.com/address/0x63f174fE3E80442c95b82a811a7D0d13f34D2314) |
-| `FleetVault` (`BKK-FLEET-1` shares, 10 % operator fee) | [`0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB`](https://testnet.bscscan.com/address/0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB) |
-| `MockUSDT` (mUSDT, 6 decimals, test stablecoin) | [`0x46e69984A52233980F1CAeABB4571555e4c8fE37`](https://testnet.bscscan.com/address/0x46e69984A52233980F1CAeABB4571555e4c8fE37) |
+| `EscrowFactory` | [`0x04D7dDCb72802aF82296110A90526342C1249315`](https://testnet.bscscan.com/address/0x04D7dDCb72802aF82296110A90526342C1249315) |
+| `RentalEscrow` implementation (cloned per rental) | [`0xEAaDe62c3255dAc5EB38952a80fa375618c34E53`](https://testnet.bscscan.com/address/0xEAaDe62c3255dAc5EB38952a80fa375618c34E53) |
+| `FleetVault` (`BKK-FLEET-1` shares, 10 % operator fee) | [`0x2EB2CDAc4868798Af22e64ad70D433f28E422eA4`](https://testnet.bscscan.com/address/0x2EB2CDAc4868798Af22e64ad70D433f28E422eA4) |
+| `MockUSDT` (mUSDT, 6 decimals, test stablecoin) | [`0x7aF0035c254bC760231BCcFF3403A714611c35B1`](https://testnet.bscscan.com/address/0x7aF0035c254bC760231BCcFF3403A714611c35B1) |
 | ERC-8004 Identity Registry (agent #2921, the KeyEscrow Inspector) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
 | Deployer, factory owner, fee recipient and default dispute desk | [`0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D`](https://testnet.bscscan.com/address/0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D) |
 
@@ -168,7 +168,7 @@ artifact; `pnpm coverage` measures all three locally and rewrites the coverage b
 number covers `lib/` and the API routes, the pages are covered by Playwright).
 
 ```bash
-cd contracts && forge build && forge test   # 120 tests (unit, fuzz, invariants; 305 with contract v2): factory, escrow, Fleet Vault, MockUSDT
+cd contracts && forge build && forge test   # 305 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT
 pnpm -C web lint && pnpm -C web test        # eslint + 393 vitest tests in 30 files (server routes, actions, demo, sponsors, i18n; offline)
 pnpm -C web build                           # production build
 pnpm agent:test                             # 21 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil

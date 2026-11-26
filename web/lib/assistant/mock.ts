@@ -22,7 +22,7 @@ export type Intent =
   | { kind: "deposit" }
   | { kind: "next" }
   | { kind: "explain" }
-  | { kind: "create"; rent?: string; deposit?: string; renter?: string; termMonths: number }
+  | { kind: "create"; rent?: string; deposit?: string; renter?: string; termPeriods: number }
   | { kind: "ai_split" }
   | { kind: "dispute" }
   | { kind: "goto"; path: string; label: string }
@@ -47,7 +47,7 @@ export function parseIntent(text: string): Intent {
     const addr = /0x[0-9a-fA-F]{40}/.exec(text)?.[0];
     const renter = addr ?? (/(demo|anvil|test) renter/.test(t) ? DEV_RENTER : undefined);
     const months = /for (\d{1,2}) months?/.exec(t)?.[1];
-    return { kind: "create", rent, deposit, renter, termMonths: months ? Number(months) : 1 };
+    return { kind: "create", rent, deposit, renter, termPeriods: months ? Number(months) : 1 };
   }
   if (/\bai\b.*\bsplit\b|\binspection\b|propose the (ai )?split/.test(t)) return { kind: "ai_split" };
   if (/(open|start|raise) a dispute|^dispute\b/.test(t)) return { kind: "dispute" };
@@ -163,7 +163,7 @@ export function nextReply(ask: string, ctx: Ctx, turn: Turn): Reply {
           text: `I'll prepare a rental of ฿${Number(intent.rent).toLocaleString("en-US")} a month with a ฿${Number(intent.deposit).toLocaleString("en-US")} deposit. It needs your approval.`,
           tool: {
             name: "prepare_create_lease",
-            input: { renter: intent.renter, rent: intent.rent, deposit: intent.deposit, currency: "THB", termMonths: intent.termMonths },
+            input: { renter: intent.renter, rent: intent.rent, deposit: intent.deposit, currency: "THB", termPeriods: intent.termPeriods },
           },
         };
       }

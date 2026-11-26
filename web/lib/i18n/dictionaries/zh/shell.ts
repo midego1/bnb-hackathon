@@ -80,6 +80,7 @@ export const body: DeepPartial<typeof enBody> = {
       address: "地址无效（0x 加 40 位十六进制字符）。",
       amount: "请输入 {symbol} 金额，例如 “441.18”（最多 {decimals} 位小数）。",
       moreThan0: "必须大于 0。",
+      rentPeriod: "7、14 或 30 天。",
       positive: "请输入正数金额，例如 “18000” 或 “441.18”。",
       whole: "请输入整数。",
       range: "{min} 到 {max}。",

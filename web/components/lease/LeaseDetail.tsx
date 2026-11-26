@@ -19,6 +19,7 @@ import { dateTimeIn } from "./copy";
 import { EvidencePanel } from "./EvidencePanel";
 import { FundingPanel, Stat } from "./FundingPanel";
 import { viewerRole, type Viewer } from "./model";
+import { countIn, oneTimeFee, perIn } from "@/lib/rentals";
 import { MoveOutPanel } from "./MoveOutPanel";
 import { RentPanel } from "./RentPanel";
 import { RentalHero } from "./RentalHero";
@@ -125,13 +126,13 @@ function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; 
   const t = lease.terms;
   const money = useMoney();
   const i = useT();
-  const fee = (t.rentAmount * BigInt(t.feeBps)) / BigInt(10_000);
+  const fee = oneTimeFee(t.rentAmount, t.rentPeriod, t.feeBps);
   const you = i("rental.terms.you");
   return (
     <>
       <Card title={i.h("rental.terms")}>
         <dl className="space-y-3 text-sm">
-          <Row label={i("rental.terms.period")}>{i("rental.terms.periodValue", { n: t.termMonths })}</Row>
+          <Row label={i("rental.terms.period")}>{i("rental.terms.periodValue", { n: t.termPeriods, months: countIn(i, t.termPeriods, t.rentPeriod), per: perIn(i, t.rentPeriod) })}</Row>
           {lease.startTime > BigInt(0) && <Row label={i("rental.terms.started")}>{dateTimeIn(i)(lease.startTime)}</Row>}
           <Row label={i("rental.terms.replyWindow")}>{i("rental.terms.days", { n: t.responseWindow / 86400 })}</Row>
           <Row label={i("rental.terms.deskDeadline")}>{i("rental.terms.days", { n: t.arbiterWindow / 86400 })}</Row>
@@ -201,7 +202,7 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
   const label = t("rental.cancel.tx");
   return (
     <Card title={t.h("rental.waitingRenter")}>
-      <p className="mb-4 text-sm text-muted-foreground">{t("rental.cancel.body")}</p>
+      <p className="mb-4 text-sm text-muted-foreground">{t("rental.cancel.body", { per: perIn(t, lease.terms.rentPeriod) })}</p>
       <ActionButton variant="danger" busy={pending === label} onClick={() => send(label, { address: lease.address, abi: rentalEscrowAbi, functionName: "cancel" })}>
         {t("rental.cancel.button")}
       </ActionButton>

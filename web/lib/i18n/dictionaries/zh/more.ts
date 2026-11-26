@@ -116,7 +116,7 @@ export const body: DeepPartial<typeof enBody> = {
     approveFirst: "请先授权。",
     approve: "授权 {amount} USDT",
     fundBoth: "支付押金 + 租金",
-    payMonth: "支付一个月",
+    payPeriod: "支付一期",
     qrLabel: "演示用 PromptPay 二维码",
   },
 
@@ -129,7 +129,7 @@ export const body: DeepPartial<typeof enBody> = {
     notes: {
       openapi: "OpenAPI 3.1：",
       mcp: "。MCP：同样的操作也是 KeyEscrow Inspector 智能体上的工具（",
-      config: "，Claude 配置见 docs/AGENT.md）。金额：mUSDT 有 6 位小数；输入使用常规金额，例如 ",
+      config: "，Claude 配置见 docs/AGENT.md）。金额：{symbol} 有 {decimals} 位小数；输入使用常规金额，例如 ",
       outputs: "，输出给出 ",
       base: "（基本单位）和 ",
       end: "。",
@@ -196,11 +196,11 @@ export const body: DeepPartial<typeof enBody> = {
 
     rental: "租赁 {address}",
     deposit: "押金",
-    rentMonth: "月租",
+    rentPeriod: "每{per}租金",
     inEscrow: "当前托管中",
     parties: "车主 {owner} · 租客 {renter}",
     you: " · 你：{you}",
-    monthsPaid: " · 已付 {funded}/{term} 个月",
+    periodsPaid: " · 已付 {funded}/{term} 期",
     next: "下一步 · {who}：",
     rentals: { one: "{n} 笔租赁 · {open} 笔进行中", other: "{n} 笔租赁 · {open} 笔进行中" },
     statusCount: "{status} {n} 笔",
@@ -262,8 +262,8 @@ export const head: DeepPartial<typeof enHead> = {
   promptpay: {
     title: "用 PromptPay 支付（演示）",
     banner: "演示，不涉及真实资金",
-    fundCard: "押金 + 第一个月",
-    rentCard: "一个月租金",
+    fundCard: "押金 + 首期租金",
+    rentCard: "一期租金",
     step1: "1. 扫码付款（模拟）",
     step2: "2. 从你的钱包向托管合约付款",
   },

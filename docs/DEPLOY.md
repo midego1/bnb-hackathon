@@ -12,6 +12,7 @@ Everything goes through `contracts/script/testnet.sh`:
 | `pnpm deploy:testnet` | the one broadcast: preflight again, typed confirmation, deploy, post-deploy checks, verify | **yes (only after OK)** |
 | `pnpm deploy:testnet:verify` | (re)verify the three contracts from `deployments/97.json` | no (calls the BscScan API) |
 | `pnpm deploy:testnet:rehearse` | the whole path against throwaway **local** anvil nodes with `--chain-id 97` / `56` | local only |
+| `pnpm deploy:mainnet:*` | the same four for BSC mainnet (56), see [BSC mainnet](#bsc-mainnet-chainid-56-the-capped-pilot-prepared-not-deployed) | `deploy` only, with a second opt-in |
 
 Safety rails, all enforced in `contracts/script/Deploy.s.sol` / `utils/ScriptBase.sol` and not only in the wrapper:
 
@@ -231,6 +232,38 @@ step's call and posts it to `/api/demo-testnet/tx`, and the server signs it with
   start if that wallet is the factory's default arbiter (the deployer and factory owner), the funder, or a party.
 - **Cost.** About 0.0012 tBNB of gas per run. "Owner ignores it" is disabled on testnet (it needs 7 days of real
   time); play it on the local demo.
+
+## BSC mainnet (chainId 56): the capped pilot, prepared, not deployed
+
+For the jury demo only: one release, deployed **after** the testnet pass and only with Michiel's OK. Same wrapper,
+same rules as above, plus:
+
+- **Real USDT:** the token is BSC-USD `0x55d398326f99059fF775485246999027B3197955` (18 decimals, read from the token
+  into `deployments/56.json`). `TOKEN_ADDRESS` may only be unset or that address; MockUSDT is never deployed on 56.
+- **No Fleet Vault** on mainnet: revenue-sharing shares are a testnet prototype ([PRODUCT.md](PRODUCT.md)).
+- **Pilot caps** (whole USDT, from env, default 5 / 2 / 25): `MAX_DEPOSIT` per rental, `MAX_RENT_PER_PERIOD` per rental,
+  `MAX_ACTIVE_VALUE` for everything all escrows hold together. The factory owner changes them later with
+  `cast send <factory> 'setCaps(uint256,uint256,uint256)' <base units> ...` (18 decimals); `setCaps(0, 0, 0)` stops all
+  new rentals and funding, payouts keep working.
+- **Second opt-in:** `MAINNET_I_UNDERSTAND=yes` on top of `ALLOW_NON_LOCAL_BROADCAST=true`, checked by the wrapper and
+  again inside `Deploy.s.sol`; the typed confirmation is `deploy 56 with real money`.
+- Use separate keys per role (owner, treasury, dispute desk) and a real wallet with a little BNB for gas (the deploy is
+  about 3.7M gas).
+
+```bash
+pnpm deploy:mainnet:rehearse      # local anvil --chain-id 56 with an 18-decimal BSC-USD mock at the real address
+# .env (repo root): BSC_MAINNET_RPC_URL, DEPLOYER_ADDRESS, DEPLOYER_ACCOUNT, FACTORY_OWNER, FEE_RECIPIENT,
+#                   DEFAULT_ARBITER, BSCSCAN_API_KEY (one Etherscan V2 key), optional MAX_* caps
+pnpm deploy:mainnet:check         # preflight + simulation, sends nothing
+ALLOW_NON_LOCAL_BROADCAST=true MAINNET_I_UNDERSTAND=yes pnpm deploy:mainnet   # ONLY AFTER OK
+pnpm deploy:mainnet:verify        # EscrowFactory + RentalEscrow implementation on bscscan.com (Etherscan API V2)
+pnpm -C web sync:contracts        # picks up deployments/56.json (tokenDecimals 18)
+```
+
+The web app serves BSC mainnet only in a build with `NEXT_PUBLIC_CHAIN_ID=56` (optional `NEXT_PUBLIC_BSC_RPC_URL`,
+default PublicNode; explorer bscscan.com). That build lists no testnet, shows no faucet, and every amount uses the
+deployment's 18 decimals; the action API and the agent refuse a chain whose token has other decimals, so set
+`NEXT_PUBLIC_CHAIN_ID=56` (and `KEYESCROW_CHAIN_ID=56`) on the agent too.
 
 ## opBNB testnet (chainId 5611): prepared, not deployed
 

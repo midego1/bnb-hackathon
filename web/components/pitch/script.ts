@@ -1,4 +1,6 @@
+import { parseUnits } from "viem";
 import { baht, FEE_BPS } from "@/components/eli5/script";
+import { TOKEN } from "@/lib/contracts";
 import type { Flow, Holdings } from "@/components/eli5/script";
 import type { HeadKey, Key, T } from "@/lib/i18n/t";
 
@@ -10,10 +12,10 @@ import type { HeadKey, Key, T } from "@/lib/i18n/t";
  * the 3:00 we have on stage.
  *
  * Holders reuse the /how-it-works stage positions: "landlord" is us (the box owner, left), "tenant" the judge (right).
- * Amounts are test USDT in 6-decimal base units, shown in baht at the ELI5 demo rate.
+ * Amounts are test USDT in token base units (TOKEN.decimals), shown in baht at the ELI5 demo rate.
  */
 
-const usdt = (n: number) => BigInt(Math.round(n * 1_000_000));
+const usdt = (n: number) => parseUnits(String(n), TOKEN.decimals);
 
 /** The Mystery Box rental, in test USDT. */
 const rent = usdt(5);

@@ -21,7 +21,7 @@ export const zhSteps: Record<string, Partial<StepText>> = {
   create: {
     title: "车主发布租赁",
     caption: (c, m) =>
-      `${zhPropertyName(c.property.name)}：每月 ${m(c.rent)}，押金 ${m(c.deposit)} 存入托管，而不是扣下租客的护照，租期 ${c.termMonths} 个月。` +
+      `${zhPropertyName(c.property.name)}：每月 ${m(c.rent)}，押金 ${m(c.deposit)} 存入托管，而不是扣下租客的护照，租期 ${c.termPeriods} 个月。` +
       `租赁协议 PDF 和取车照片存放在链下，只有它们的 SHA-256 指纹上链。默认由 KeyEscrow 争议处理台担任仲裁方。`,
   },
   checkin: {

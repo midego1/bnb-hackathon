@@ -8,6 +8,7 @@ import { Amount, Skeleton, StatusBadge } from "@/components/ui";
 import { shortAddress } from "@/lib/format";
 import { useLease } from "@/lib/hooks/useLease";
 import { useT } from "@/lib/i18n/client";
+import { perIn } from "@/lib/rentals";
 import { nextStep, viewerRole } from "./model";
 
 export function LeaseCard({ address }: { address: Address }) {
@@ -47,7 +48,7 @@ export function LeaseCard({ address }: { address: Address }) {
       </div>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-xs text-subtle">{t("rental.card.rent")}</p>
+          <p className="text-xs text-subtle">{t("rental.card.rent", { per: perIn(t, lease.terms.rentPeriod) })}</p>
           <Amount value={lease.terms.rentAmount} />
         </div>
         <div>

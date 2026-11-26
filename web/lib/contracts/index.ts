@@ -17,9 +17,23 @@ export type Deployment = {
   fleetVault?: Address;
   /** First block worth scanning for events (factory deployment). */
   fromBlock: bigint;
+  /** The stablecoin's decimals() and symbol(), read from the token by the deploy script. */
+  tokenDecimals: number;
+  tokenSymbol: string;
 };
 
-const table = deployments as Record<string, { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fleetVault?: string; fromBlock?: number }>;
+type Row = { escrowFactory: string; mockUsdt: string; disputeDesk?: string; fleetVault?: string; fromBlock?: number; tokenDecimals: number; tokenSymbol?: string };
+const table = deployments as Record<string, Row>;
+
+/**
+ * The stablecoin of the chain this build targets (NEXT_PUBLIC_CHAIN_ID): MockUSDT (6 decimals) on anvil and the
+ * testnets, BSC-USD (18) on BSC mainnet. Every amount in the app is parsed and formatted with it. Without a
+ * deployment for the target chain nothing can be priced; the ERC-20 default (18) is then only a placeholder.
+ */
+export const TOKEN = {
+  symbol: table[String(targetChainId)]?.tokenSymbol ?? "USDT",
+  decimals: table[String(targetChainId)]?.tokenDecimals ?? 18,
+} as const;
 
 function envAddress(v: string | undefined): Address | undefined {
   return v && isAddress(v) ? getAddress(v) : undefined;
@@ -41,7 +55,7 @@ export function getDeployment(chainId: number | undefined): Deployment | undefin
   const override = envOverride(chainId);
   const file = table[String(chainId)];
   const raw = override
-    ? { ...override, disputeDesk: undefined, fromBlock: 0, ...(file && file.escrowFactory.toLowerCase() === override.escrowFactory.toLowerCase() ? file : {}) }
+    ? { ...override, disputeDesk: undefined, fromBlock: 0, tokenDecimals: TOKEN.decimals, tokenSymbol: TOKEN.symbol, ...(file && file.escrowFactory.toLowerCase() === override.escrowFactory.toLowerCase() ? file : {}) }
     : file;
   if (!raw) return undefined;
   return {
@@ -54,11 +68,10 @@ export function getDeployment(chainId: number | undefined): Deployment | undefin
       (chainId === targetChainId ? envAddress(process.env.NEXT_PUBLIC_FLEET_VAULT_ADDRESS) : undefined) ??
       (raw.fleetVault ? getAddress(raw.fleetVault) : undefined),
     fromBlock: BigInt(raw.fromBlock ?? 0),
+    tokenDecimals: raw.tokenDecimals,
+    tokenSymbol: raw.tokenSymbol ?? "USDT",
   };
 }
-
-/** USDT (and MockUSDT) use 6 decimals. */
-export const USDT_DECIMALS = 6;
 
 /** Mirrors RentalEscrow.Status. */
 export const LeaseStatus = {

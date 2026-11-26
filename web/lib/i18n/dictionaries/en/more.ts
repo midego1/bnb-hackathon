@@ -118,7 +118,7 @@ export const body = {
     approveFirst: "Approve first.",
     approve: "Approve {amount} USDT",
     fundBoth: "Fund deposit + rent",
-    payMonth: "Pay one month",
+    payPeriod: "Pay one {per}",
     qrLabel: "Demo PromptPay QR code",
   },
 
@@ -132,7 +132,7 @@ export const body = {
     notes: {
       openapi: "OpenAPI 3.1: ",
       mcp: ". MCP: the same actions are tools on the KeyEscrow Inspector agent (",
-      config: ", see docs/AGENT.md for the Claude config). Amounts: mUSDT has 6 decimals; inputs take human amounts like ",
+      config: ", see docs/AGENT.md for the Claude config). Amounts: {symbol} has {decimals} decimals; inputs take human amounts like ",
       outputs: ", outputs give ",
       base: " (base units) and ",
       end: ".",
@@ -199,11 +199,11 @@ export const body = {
 
     rental: "Rental {address}",
     deposit: "Deposit",
-    rentMonth: "Rent / month",
+    rentPeriod: "Rent / {per}",
     inEscrow: "In escrow now",
     parties: "Owner {owner} · Renter {renter}",
     you: " · You: {you}",
-    monthsPaid: " · {funded}/{term} month(s) paid",
+    periodsPaid: " · {funded}/{term} rent periods paid",
     next: "Next · {who}:",
     rentals: { one: "{n} rental · {open} open", other: "{n} rentals · {open} open" },
     statusCount: "{n} {status}",
@@ -267,8 +267,8 @@ export const head = {
   promptpay: {
     title: "Pay with PromptPay (demo)",
     banner: "Demo, no real money",
-    fundCard: "Deposit + first month",
-    rentCard: "One month's rent",
+    fundCard: "Deposit + first rent",
+    rentCard: "One rent payment",
     step1: "1. Scan and pay (simulated)",
     step2: "2. Fund the escrow from your wallet",
   },

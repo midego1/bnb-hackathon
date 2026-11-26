@@ -5,7 +5,8 @@ external audit. Product context: [PRODUCT.md](PRODUCT.md); how the contracts fit
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Status:** review done on branch `kb/security` (base `main` at `8eec39b`). KE-01, KE-02 and KE-03 are fixed in
-the source with regression tests. **None of the fixes is on the deployed BSC testnet contracts yet**: they need
+the source with regression tests; KE-12, KE-14 and KE-15 (audit findings #1, #9 and #10) were fixed later on
+`kb/audit-fixes` and `kb/contract-v2`, also with regression tests. **None of the fixes is on the deployed BSC testnet contracts yet**: they need
 a redeploy (see [Redeploy needed](#redeploy-needed)). Everything else is acknowledged and listed below.
 
 ## 1. Scope
@@ -60,6 +61,8 @@ Line numbers refer to the fixed code on this branch.
 | KE-11 | Info | `RentalEscrow.sol:378-383`, `:446-465` | Month 1 is due at funding, so every settlement pays it to the owner (non-refundable first month) and the one-time fee is always charged eventually. | By design; worth saying in the renter UI. |
 | KE-12 | High | `FleetVault.sol:173-180` | **Income in an empty vault could be taken.** Income that arrived while no shares existed waited for the next sync and was then credited to the first depositor(s). `claim` has no lock (KE-01 locks only redeem and transfer), so a 1-unit `deposit` followed by `claim` took all of it, e.g. 900 of 1,000 USDT of rent, or front-ran the first real investor. | Fixed (needs a vault redeploy): with no shares, `_sync` sends that income to the operator (`test_orphanIncome_cannotBeTakenByATinyDeposit`). |
 | KE-13 | Info | `EscrowFactory.sol:106` | A payee that cannot use the token (e.g. the escrow's own address, predictable from the factory nonce) only hurts the owner who chose it; renter funds are unaffected. | Acknowledged (self-harm only). |
+| KE-14 | Medium | `RentalEscrow.sol` `monthsDue`, `propose`, `dispute`, `_settle` (audit #9; now `periodsDue`) | **Delaying settlement turned prepaid rent into rent due.** How much prepaid rent was refunded depended on *when* settlement ran, and the owner controls that: stay silent for the response window (up to 60 days), counter-propose, or dispute and let the arbiter window (up to 90 days) run out. Example: 3 months prepaid, the renter returns on day 10, the owner disputes on day 14 and the arbiter stays silent: `claimArbiterTimeout` paid the owner all 3 months instead of 1. | **Fixed** (needs a factory redeploy): the rent clock stops when the move-out starts, i.e. the first `propose` or `dispute` (`moveOutAt`); `periodsDue` is computed at that moment from then on. Product rule: starting the move-out ends the rental, for either party. The owner who thinks the renter ended it early to save rent claims that from the deposit (dispute desk). Tests: `test_KE14_*`. |
+| KE-15 | Medium | `FleetVault.sol` `_update` (audit #10) | **A share transfer handed the seller's unsynced income to the buyer.** `deposit`, `redeem` and `claim` sync income first, a plain `transfer` did not: Alice holds all shares, 100 USDT of rent arrives, nobody syncs, Alice transfers to Bob, and Bob gets Alice's 90 USDT. | **Fixed** (needs a vault redeploy): `_update` runs `_sync()` before a transfer (not on mint/burn, which sync in `deposit`/`redeem`). Test: `test_KE15_transferKeepsUnsyncedIncomeWithSeller`. |
 
 Checked and found sound (no finding):
 
@@ -98,13 +101,15 @@ Checked and found sound (no finding):
 
 Tested in `contracts/test/invariant/` (handlers drive real role addresses with random calls and time jumps
 of up to 45 days; 64 runs x 64 calls per suite) and in the fuzz tests of `RentalEscrow.t.sol` /
-`FleetVault.t.sol`.
+`FleetVault.t.sol`. Every escrow suite also runs with weekly rent and an 18-decimal token (`*Weekly18InvariantTest`),
+the vault suite with an 18-decimal asset (`FleetVault18DecimalsInvariantTest`); the KE-14 and KE-15 invariants were
+checked to fail with their fix removed.
 
 | Invariant | Where |
 | --- | --- |
 | **Funds conservation (escrow):** everything the renter paid in == escrow balance + paid to renter + paid to payee + fee. | `invariant_fundsConserved` |
-| **Escrow book:** while live, balance == deposit + (monthsFunded - monthsReleased) x rent; 0 once settled; monthsReleased <= monthsFunded <= termMonths. | `invariant_balanceMatchesBook` |
-| **Rent follows the schedule:** rent paid out (net + fee) == monthsReleased x rent, and monthsReleased never exceeds the months due or what the renter released early; the fee is exactly 10 % of one month's rent, at most once. | `invariant_rentFollowsSchedule` |
+| **Escrow book:** while live, balance == deposit + (periodsFunded - periodsReleased) x rent per period == the factory's `activeValue`; 0 once settled; periodsReleased <= periodsFunded <= termPeriods. | `invariant_balanceMatchesBook` |
+| **Rent follows the schedule:** rent paid out (net + fee) == periodsReleased x rent, and periodsReleased never exceeds the periods due or what the renter released early; the fee is exactly 10 % of one month's rent (monthly equivalent: rent x 30 days / period), at most once. | `invariant_rentFollowsSchedule` |
 | **No party can move funds alone:** the deposit is split exactly once; the owner gets any of it only through `accept` (renter consented) or `resolve` (by the arbiter); keeper-triggered timeouts return the full deposit to the renter. | `invariant_depositNeedsConsent` |
 | Owner acting alone (plus keepers) never gets any deposit. | `LandlordAloneInvariantTest` |
 | Renter acting alone (plus keepers) cannot skip rent that fell due: at settlement every funded, due month went to the owner. | `TenantAloneInvariantTest` |
@@ -112,6 +117,8 @@ of up to 45 days; 64 runs x 64 calls per suite) and in the fuzz tests of `Rental
 | **Vault solvency:** balance >= totalPrincipal + reservedIncome, and >= everything investors can claim now (incl. unsynced income). | `invariant_solvent` |
 | **Vault books:** totalSupply == totalPrincipal == deposits - redeems; income in == distributed + operator fees + unsynced; reservedIncome == distributed - claimed. | `invariant_principalBook`, `invariant_incomeBook` |
 | **Share lock:** no shares ever left an account within `SHARE_LOCK` of its deposit. | `invariant_shareLockHolds` |
+| **Rent clock stops at the move-out (KE-14):** once a propose/dispute started the move-out, rent that falls due later never goes to the owner (only the renter's own early release can pay out more). | `invariant_rentClockStopsAtMoveOut` |
+| **Transfers move no income (KE-15):** a share transfer never changes what the seller or the buyer can claim, unsynced income included. | `invariant_transferMovesNoIncome` |
 | **Everyone can exit:** after any history, all investors can claim and redeem everything; only rounding dust (< 1,000 base units) stays behind. | `afterInvariant` in `FleetVaultInvariantTest` |
 
 ## 5. Static analysis (Slither)
@@ -125,7 +132,7 @@ Slither 0.11.6, 102 detectors, `lib/`, `test/` and `script/` filtered: 15 result
 | `missing-zero-check` | 1 | `RentalEscrow.initialize` (`payee_`) | False positive: only the factory initializes, in the creation transaction, with the owner or a checked non-zero payee. |
 | `reentrancy-benign` | 1 | `EscrowFactory._createLease` | False positive: the only external call is `initialize` on the freshly cloned escrow (our code, no external calls). |
 | `reentrancy-events` | 1 | `EscrowFactory._createLease` | False positive, same reason (also suppressed for `forge lint`). |
-| `timestamp` | 10 | `RentalEscrow` deadlines / `monthsDue`, `FleetVault._update` | Accepted: windows are days long, validator timestamp drift is seconds; every boundary is tested at `deadline - 1` and `deadline`. Also excluded in `foundry.toml` `[lint]`. |
+| `timestamp` | 10 | `RentalEscrow` deadlines / `periodsDue`, `FleetVault._update` | Accepted: windows are days long, validator timestamp drift is seconds; every boundary is tested at `deadline - 1` and `deadline`. Also excluded in `foundry.toml` `[lint]`. |
 | `unindexed-event-address` | 2 | `EscrowFactory.FeeUpdated`, `DefaultArbiterUpdated` | Info: rare admin events; indexing would change the ABI the web decodes. Not changed. |
 
 `forge lint src` is clean; `forge fmt --check` is clean for `src/` and `test/`.
@@ -133,11 +140,21 @@ Slither 0.11.6, 102 detectors, `lib/`, `test/` and `script/` filtered: 15 result
 ## 6. Known limitations
 
 - **Testnet token.** MockUSDT has an open faucet (10,000 per call, unlimited calls): anyone can mint, so
-  testnet balances mean nothing. Never deploy it to mainnet. Mainnet USDT on BNB Chain has 18 decimals, not
-  6; the contracts are decimal-agnostic but the deployment JSON and UI must use the real decimals.
+  testnet balances mean nothing. Never deploy it to mainnet. Mainnet USDT on BNB Chain (BSC-USD) has 18 decimals,
+  not 6. The contracts are decimal-agnostic (every escrow test also runs with an 18-decimal token,
+  `RentalEscrow18DecimalsTest`); `Deploy.s.sol` reads `decimals()` and `symbol()` from the token into the deployment
+  JSON, and the web app and agent parse and format every amount with those (`TOKEN` in `web/lib/contracts`).
 - **Admin keys.** On BSC testnet one EOA is factory owner, fee recipient, default arbiter (dispute desk) and
   fleet operator. The owner can only change the fee (capped) and default arbiter for future rentals; it has
   no power over existing escrows or the vault. The fleet operator is immutable per vault.
+- **Pilot caps.** For the capped mainnet pilot the factory owner sets `maxDeposit`, `maxRentPerPeriod` (checked
+  in `createLease`) and `maxActiveValue` (checked when an escrow takes funds in `fund` / `payRent`, against
+  `activeValue`, the deposits + unreleased rent all escrows hold, booked by the escrows through `lockValue` /
+  `unlockValue`). Payouts never check a cap and `unlockValue` cannot revert for a lease, so lowering a cap (even
+  to 0, the emergency stop for new funding) never locks money already in escrow. Anyone who funds escrows between
+  two of their own addresses can fill `maxActiveValue` with their own money and block other renters until they
+  settle; the owner can raise the cap. Unlimited (`type(uint256).max`) on anvil and testnet.
+  Tests: `test_caps_*`, `invariant_balanceMatchesBook` (`activeValue` == escrow balance).
 - **Arbiter trust.** The arbiter decides the whole deposit split of a disputed rental. Its only limits are
   the deadline and that funds go to owner or renter. The renter must trust the named arbiter (KE-07).
 - **Timeout policy.** Both timeouts return the full deposit to the renter (burden of proof on the owner). A
@@ -164,6 +181,8 @@ fixes reach users only through new deployments. The ABI changes are additive (ne
 | KE-02 hard response deadline | New `EscrowFactory` (deploys a new `RentalEscrow` implementation) | Existing rentals keep the old, raceable deadline. |
 | KE-03 payee check | New `EscrowFactory` | The current factory still accepts any non-zero payee. |
 | KE-12 empty-vault income to the operator | New `FleetVault` (no ABI change) | The current vault still credits income that reaches it with no shares to the next depositor, who can claim it at once. |
+| KE-14 rent clock stops at the move-out | New `EscrowFactory` (new `moveOutAt` view) | Existing rentals still count rent due up to the settlement moment. |
+| KE-15 sync before a share transfer | New `FleetVault` (no ABI change) | Shares transferred on the current vault still carry the seller's unsynced income to the buyer. |
 
 After a redeploy: update `contracts/deployments/97.json`, run `pnpm -C web sync:contracts`, and re-seed the
 testnet demo.

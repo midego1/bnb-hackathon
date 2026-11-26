@@ -10,7 +10,7 @@ import { formatDate, shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
-import type { FlagLevel, RentalFlag } from "@/lib/rentals";
+import { countIn, DEFAULT_RENT_PERIOD, type FlagLevel, type RentalFlag } from "@/lib/rentals";
 import { CopyButton } from "@/components/ui";
 
 /** A transaction hash: links to the block explorer on testnet; on local anvil, short hash + copy. */
@@ -39,7 +39,7 @@ const flagStyle: Record<FlagLevel, string> = {
 /** A flag's sentence in the active language, from its code and numbers (lib/rentals.ts flagsFor). */
 function flagText({ code, text, vars = {} }: RentalFlag, t: T) {
   const n = vars.n ?? 0;
-  const plural = (k: "roles.flag.failedTx" | "roles.flag.rentDue") => t(`${k}.${n === 1 ? "one" : "other"}`, { n });
+  const plural = (k: "roles.flag.failedTx") => t(`${k}.${n === 1 ? "one" : "other"}`, { n });
   const secs = vars.secs ?? 0;
   const d = Math.floor(secs / 86_400);
   const left = d >= 1 ? t(`roles.flag.days.${d === 1 ? "one" : "other"}`, { n: d }) : t("roles.flag.hours", { n: Math.max(1, Math.round(secs / 3600)) });
@@ -47,7 +47,7 @@ function flagText({ code, text, vars = {} }: RentalFlag, t: T) {
     case "failed-tx":
       return plural("roles.flag.failedTx");
     case "rent-due":
-      return plural("roles.flag.rentDue");
+      return t("roles.flag.rentDue", { count: countIn(t, n, vars.period ?? DEFAULT_RENT_PERIOD) });
     case "arbiter-overdue":
       return t("roles.flag.arbiterOverdue");
     case "disputed":

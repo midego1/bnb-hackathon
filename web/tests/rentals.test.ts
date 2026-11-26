@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Hex } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
-import { summarizeRentals, worstFlag, type ChainEvent } from "@/lib/rentals";
+import { oneTimeFee, periodCount, periodName, rentPerPeriod, summarizeRentals, worstFlag, type ChainEvent } from "@/lib/rentals";
 import { incomeOf, scooterState, type Scooter } from "@/lib/fleet";
 
 const FACTORY = "0x00000000000000000000000000000000000000f1" as Address;
@@ -24,7 +24,7 @@ function ev(address: Address, name: string, args: Record<string, unknown>, times
 const created = (ts = T0) =>
   ev(FACTORY, "LeaseCreated", {
     escrow: LEASE, landlord: OWNER, tenant: RENTER, arbiter: DESK, rentAmount: RENT, depositAmount: DEPOSIT,
-    termMonths: 3, responseWindow: 7 * 86_400, arbiterWindow: 14 * 86_400, leaseHash: "0x" + "11".repeat(32),
+    termPeriods: 3, rentPeriod: 30 * 86_400, responseWindow: 7 * 86_400, arbiterWindow: 14 * 86_400, leaseHash: "0x" + "11".repeat(32),
   }, ts);
 
 describe("summarizeRentals", () => {
@@ -34,7 +34,7 @@ describe("summarizeRentals", () => {
       ev(FACTORY, "PayeeSet", { escrow: LEASE, payee: VAULT }, T0),
       ev(LEASE, "EvidenceAdded", { kind: 0, contentHash: "0x" + "aa".repeat(32), by: OWNER }, T0),
       ev(LEASE, "Funded", { tenant: RENTER, deposit: DEPOSIT, firstRent: RENT, startTime: T0 + BigInt(10) }, T0 + BigInt(10)),
-      ev(LEASE, "RentReleased", { caller: RENTER, months: 1, toLandlord: BigInt(90_000_000), fee: BigInt(10_000_000) }, T0 + BigInt(20)),
+      ev(LEASE, "RentReleased", { caller: RENTER, periods: 1, toLandlord: BigInt(90_000_000), fee: BigInt(10_000_000) }, T0 + BigInt(20)),
       ev(LEASE, "EvidenceAdded", { kind: 1, contentHash: "0x" + "bb".repeat(32), by: RENTER }, T0 + BigInt(30)),
       ev(LEASE, "SettlementProposed", { proposer: RENTER, nonce: 1, tenantRefund: BigInt(150_000_000), landlordClaim: BigInt(50_000_000), reportHash: "0x" + "cc".repeat(32) }, T0 + BigInt(40)),
       ev(LEASE, "Settled", { tenantRefund: BigInt(150_000_000), landlordClaim: BigInt(50_000_000), rentToLandlord: BigInt(0), rentToTenant: BigInt(0), fee: BigInt(0), basis: "0x" + "cc".repeat(32) }, T0 + BigInt(50)),
@@ -47,6 +47,22 @@ describe("summarizeRentals", () => {
     expect(r.totals).toMatchObject({ rentToOwner: BigInt(90_000_000), fees: BigInt(10_000_000), slashed: BigInt(50_000_000), refunded: BigInt(150_000_000), depositLocked: BigInt(0) });
     expect(r.flags).toEqual([]);
     expect(incomeOf([r]).total).toBe(BigInt(140_000_000));
+  });
+
+  it("stops the rent clock at the move-out, like the contract", () => {
+    const [r] = summarizeRentals(
+      [
+        created(),
+        ev(LEASE, "Funded", { deposit: DEPOSIT, firstRent: RENT, startTime: T0 }, T0),
+        ev(LEASE, "RentPaid", { periods: 1, amount: RENT, periodsFunded: 2 }, T0),
+        ev(LEASE, "RentReleased", { caller: RENTER, periods: 1, toLandlord: RENT, fee: BigInt(0) }, T0),
+        ev(LEASE, "SettlementProposed", { proposer: RENTER, nonce: 1, tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: "0x" + "cc".repeat(32) }, T0 + BigInt(10) * DAY),
+        ev(LEASE, "DisputeRaised", { by: OWNER }, T0 + BigInt(12) * DAY),
+      ],
+      T0 + BigInt(40) * DAY, // month 2 would be due by now, but the renter returned on day 10
+    );
+    expect(r.moveOutAt).toBe(T0 + BigInt(10) * DAY);
+    expect(r.flags.map((f) => f.code)).not.toContain("rent-due");
   });
 
   it("flags disputes, overdue arbiters, stale offers, unreleased rent and failed txs", () => {
@@ -79,5 +95,19 @@ describe("summarizeRentals", () => {
     expect(scooterState(scooter, map([created(), ev(LEASE, "Funded", { deposit: DEPOSIT, firstRent: RENT }, T0), ev(LEASE, "SettlementProposed", { proposer: RENTER }, T0)])).state).toBe("inspection");
     expect(scooterState(scooter, map([created(), ev(LEASE, "Cancelled", {}, T0)])).state).toBe("available");
     expect(scooterState({ ...scooter, rentals: [] }, new Map(), [{ id: "b", scooterId: "s", renter: RENTER, createdAt: "", status: "requested" }]).state).toBe("booked");
+  });
+});
+
+describe("rent periods", () => {
+  const W = 7 * 86_400;
+  it("names periods and counts them", () => {
+    expect([periodName(W), periodName(2 * W), periodName(30 * 86_400)]).toEqual(["week", "2 weeks", "month"]);
+    expect([periodCount(1, W), periodCount(3, 2 * W), periodCount(12, 30 * 86_400)]).toEqual(["1 week", "6 weeks", "12 months"]);
+  });
+  it("derives rent per period from a monthly price, rounded down, and the fee from the monthly equivalent", () => {
+    expect(rentPerPeriod(BigInt(3_000_000_000), W)).toBe(BigInt(700_000_000));
+    expect(rentPerPeriod(BigInt(100), W)).toBe(BigInt(23)); // 23.33 -> 23
+    expect(oneTimeFee(BigInt(700_000_000), W, 1000)).toBe(BigInt(300_000_000)); // 10% of 3,000
+    expect(oneTimeFee(BigInt(500_000_000), 30 * 86_400, 1000)).toBe(BigInt(50_000_000));
   });
 });

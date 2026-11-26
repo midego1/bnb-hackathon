@@ -1,5 +1,5 @@
 import { defineChain } from "viem";
-import { bscTestnet as viemBscTestnet, foundry, opBNBTestnet as viemOpBNBTestnet } from "viem/chains";
+import { bsc as viemBsc, bscTestnet as viemBscTestnet, foundry, opBNBTestnet as viemOpBNBTestnet } from "viem/chains";
 
 /** RPC of the local anvil node the browser talks to. */
 export const anvilRpcUrl =
@@ -34,20 +34,31 @@ export const opBNBTestnet = defineChain({
   blockExplorers: { default: { name: "opBNBScan", url: "https://testnet.opbnbscan.com" } },
 });
 
+/** BSC mainnet RPC for the browser (the capped mainnet pilot, NEXT_PUBLIC_CHAIN_ID=56). */
+export const bscRpcUrl = process.env.NEXT_PUBLIC_BSC_RPC_URL || "https://bsc-rpc.publicnode.com";
+
+/** BSC mainnet (chainId 56), explorer BscScan (bscscan.com). Only a build with NEXT_PUBLIC_CHAIN_ID=56 lists it. */
+export const bsc = defineChain({
+  ...viemBsc,
+  rpcUrls: { default: { http: [bscRpcUrl] } },
+  blockExplorers: { default: { name: "BscScan", url: "https://bscscan.com" } },
+});
+
 /**
- * The chain this build targets: NEXT_PUBLIC_CHAIN_ID = 31337 (local anvil, default), 97 (BSC testnet) or
- * 5611 (opBNB testnet).
+ * The chain this build targets: NEXT_PUBLIC_CHAIN_ID = 31337 (local anvil, default), 97 (BSC testnet),
+ * 5611 (opBNB testnet) or 56 (BSC mainnet, the capped pilot).
  * Addresses come from contracts/deployments/<chainId>.json (see lib/contracts).
  */
 export const targetChainId: number = Number(process.env.NEXT_PUBLIC_CHAIN_ID || anvil.id);
 
 /**
- * Supported chains, target first (wagmi's default when no wallet is connected). Testnets and a local anvil
- * node only: KeyEscrow is never deployed to mainnet as part of the hackathon. A testnet build does not list
- * anvil at all.
+ * Supported chains, target first (wagmi's default when no wallet is connected). A testnet build does not list
+ * anvil at all; a mainnet build (56) lists BSC mainnet only, and a testnet build never lists mainnet.
  */
 export const supportedChains =
-  targetChainId === anvil.id
+  targetChainId === bsc.id
+    ? ([bsc] as const)
+    : targetChainId === anvil.id
     ? ([anvil, bscTestnet, opBNBTestnet] as const)
     : targetChainId === opBNBTestnet.id
       ? ([opBNBTestnet, bscTestnet] as const)

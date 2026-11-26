@@ -8,12 +8,12 @@ import { checkRate, ONRAMP_MAX, onRampPlan } from "@/lib/server/onramp";
 const U = BigInt(1_000_000);
 const TOKEN = "0x00000000000000000000000000000000000000aa" as Address;
 const TENANT = "0x00000000000000000000000000000000000000bb" as Address;
-const lease = (o: Partial<{ status: number; monthsFunded: number; deposit: bigint; rent: bigint; token: Address; isLease: boolean }> = {}) => ({
+const lease = (o: Partial<{ status: number; periodsFunded: number; deposit: bigint; rent: bigint; token: Address; isLease: boolean }> = {}) => ({
   isLease: o.isLease ?? true,
   token: o.token ?? TOKEN,
   status: o.status ?? LeaseStatus.Created,
-  monthsFunded: o.monthsFunded ?? 0,
-  terms: { tenant: TENANT, depositAmount: o.deposit ?? BigInt(200) * U, rentAmount: o.rent ?? BigInt(100) * U, termMonths: 3 },
+  periodsFunded: o.periodsFunded ?? 0,
+  terms: { tenant: TENANT, depositAmount: o.deposit ?? BigInt(200) * U, rentAmount: o.rent ?? BigInt(100) * U, termPeriods: 3 },
 });
 const refusal = (fn: () => unknown) => {
   try {
@@ -54,8 +54,8 @@ describe("PromptPay amount math", () => {
 
   it("owes deposit + first month before funding, one month while active, nothing after the term or once closed", () => {
     expect(amountDue(lease())).toEqual({ amount: BigInt(300) * U, what: "fund" });
-    expect(amountDue(lease({ status: LeaseStatus.Active, monthsFunded: 1 }))).toEqual({ amount: BigInt(100) * U, what: "rent" });
-    expect(amountDue(lease({ status: LeaseStatus.Active, monthsFunded: 3 }))).toBeUndefined();
+    expect(amountDue(lease({ status: LeaseStatus.Active, periodsFunded: 1 }))).toEqual({ amount: BigInt(100) * U, what: "rent" });
+    expect(amountDue(lease({ status: LeaseStatus.Active, periodsFunded: 3 }))).toBeUndefined();
     expect(amountDue(lease({ status: LeaseStatus.MoveOut }))).toBeUndefined();
   });
 });
@@ -63,7 +63,7 @@ describe("PromptPay amount math", () => {
 describe("demo on-ramp guards", () => {
   it("mints exactly what is due, to the lease's renter, on 31337 and 97", () => {
     expect(onRampPlan(31337, lease(), TOKEN)).toEqual({ to: TENANT, amount: BigInt(300) * U });
-    expect(onRampPlan(97, lease({ status: LeaseStatus.Active, monthsFunded: 1 }), TOKEN)).toEqual({ to: TENANT, amount: BigInt(100) * U });
+    expect(onRampPlan(97, lease({ status: LeaseStatus.Active, periodsFunded: 1 }), TOKEN)).toEqual({ to: TENANT, amount: BigInt(100) * U });
   });
 
   it("refuses other chains, foreign contracts, other tokens, nothing due and amounts over the cap", () => {

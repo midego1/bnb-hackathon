@@ -8,7 +8,9 @@ import { parseEventLogs, parseUnits, zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Card, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
-import { escrowFactoryAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, TOKEN } from "@/lib/contracts";
+import { countIn } from "@/lib/rentals";
+import { planRent } from "@/lib/subscriptions";
 import { incomeOf, postFleet, scooterState, type Booking, type Scooter, type ScooterState } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { hashText } from "@/lib/hash";
@@ -21,8 +23,8 @@ import { usePrices } from "@/lib/usePrices";
 import type { RentalSummary } from "@/lib/rentals";
 import { FlagBadge, Kpi, useFleet } from "./shared";
 
-/** Scooter rentals are offered month by month; the renter funds deposit + the month up front. */
-export const BOOKING_TERM_MONTHS = 1;
+/** Booked scooters are offered for one monthly rent period; the renter funds deposit + the month up front. */
+export const BOOKING_TERM_PERIODS = 1;
 
 export const stateStyle: Record<ScooterState, string> = {
   available: "bg-success-soft text-success-fg ring-success-border",
@@ -47,7 +49,7 @@ export function ScooterStateBadge({ state }: { state: ScooterState }) {
  */
 export function thbToUsdt(thb: number, thbPerUsdt: number | undefined) {
   const rate = thbPerUsdt && thbPerUsdt > 0 ? thbPerUsdt : 33;
-  return parseUnits((thb / rate).toFixed(2), 6);
+  return parseUnits((thb / rate).toFixed(2), TOKEN.decimals);
 }
 
 /** Fleet owner dashboard: scooters with live status, income, booking requests, rentals and disputes. */
@@ -187,7 +189,8 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
   const sub = booking.subscription;
   const rentThb = sub?.priceThb ?? scooter.rentThb;
   const depositThb = sub?.depositThb ?? scooter.depositThb;
-  const rent = thbToUsdt(rentThb, rate);
+  // A plan's price is monthly; the escrow takes rent per period (monthly x days / 30).
+  const rent = sub ? planRent(thbToUsdt(rentThb, rate), sub) : thbToUsdt(rentThb, rate);
   const deposit = thbToUsdt(depositThb, rate);
 
   async function offer() {
@@ -197,7 +200,8 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
       arbiter: zeroAddress,
       rentAmount: rent,
       depositAmount: deposit,
-      termMonths: sub?.maxPeriods ?? BOOKING_TERM_MONTHS,
+      termPeriods: sub?.maxPeriods ?? BOOKING_TERM_PERIODS,
+      rentPeriod: sub ? sub.periodDays * 86_400 : 0, // 0 = factory default: monthly
       responseWindow: 0,
       arbiterWindow: 0,
       leaseHash: hashText(JSON.stringify({ scooter: scooter.id, name: scooter.name, renter: booking.renter, rentThb, depositThb, months: sub?.maxPeriods, thbPerUsdt: rate, booking: booking.id })),
@@ -226,7 +230,7 @@ function BookingRequest({ booking, scooter, chainId, vault }: { booking: Booking
         <p className="text-xs text-subtle">
           {t("fleet.renter")} <span className="font-mono">{shortAddress(booking.renter)}</span>
           {t("fleet.requestTerms", { rent: rentThb.toLocaleString("en-US"), deposit: depositThb.toLocaleString("en-US") })}
-          {sub ? t("fleet.subscriptionTerm", { n: sub.maxPeriods }) : ""}
+          {sub ? t("fleet.subscriptionTerm", { count: countIn(t, sub.maxPeriods, sub.periodDays * 86_400) }) : ""}
           {toVault ? t("fleet.paysVault") : ""}
         </p>
         {error && <p className="text-xs text-danger">{error}</p>}

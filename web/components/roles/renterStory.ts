@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { LeaseStatus } from "@/lib/contracts";
 import type { T } from "@/lib/i18n/t";
-import type { RentalSummary } from "@/lib/rentals";
+import { nthIn, perIn, type RentalSummary } from "@/lib/rentals";
 
 /**
  * The renter page's words and its card sentence, from the dictionary (lib/i18n/dictionaries/en/roles.ts). Kept apart
@@ -12,7 +12,8 @@ export function renterCopyFor(t: T) {
   return {
     fallbackTitle: t("renter.fallbackTitle"),
     pay: (total: string) => t("renter.pay", { total }),
-    payMonth: (n: number) => t("renter.payMonth", { n }),
+    payPeriod: (n: number, rentPeriod: number) => t("renter.payPeriod", { nth: nthIn(t, n, rentPeriod) }),
+    per: (rentPeriod: number) => t("renter.perPeriod", { per: perIn(t, rentPeriod) }),
     open: t("renter.open"),
     propose: t("renter.propose"),
     claim: t("renter.claim"),
@@ -43,8 +44,8 @@ export function renterLine(rental: RentalSummary, now: bigint, fmt: (v: bigint) 
     case LeaseStatus.Active:
       if (rental.returnPhotos.length > 0) return { sentence: s.returned, action: c.propose };
       return {
-        sentence: s.active(fmt(rental.depositAmount), rental.monthsFunded, rental.termMonths, you),
-        action: rental.monthsFunded < rental.termMonths ? c.payMonth(rental.monthsFunded + 1) : c.open,
+        sentence: s.active(fmt(rental.depositAmount), rental.periodsFunded, rental.termPeriods, you),
+        action: rental.periodsFunded < rental.termPeriods ? c.payPeriod(rental.periodsFunded + 1, rental.rentPeriod) : c.open,
       };
     case LeaseStatus.MoveOut: {
       const p = rental.proposal;

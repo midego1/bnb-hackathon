@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# KeyEscrow: BSC testnet (chainId 97) and opBNB testnet (chainId 5611) deploy helper. See docs/DEPLOY.md.
-# DEPLOY_CHAIN_ID picks the network: 97 (default, pnpm deploy:testnet*) or 5611 (pnpm deploy:opbnb*). Same rules on both.
+# KeyEscrow: BSC testnet (chainId 97), opBNB testnet (5611) and BSC mainnet (56, the capped pilot) deploy helper.
+# See docs/DEPLOY.md. DEPLOY_CHAIN_ID picks the network: 97 (default, pnpm deploy:testnet*), 5611 (pnpm deploy:opbnb*)
+# or 56 (pnpm deploy:mainnet*). Same rules on all three; 56 additionally needs MAINNET_I_UNDERSTAND=yes to broadcast,
+# uses the real BSC-USD (never MockUSDT), deploys no Fleet Vault and caps the factory (MAX_* below).
 #
 #   contracts/script/testnet.sh check      preflight; NEVER sends a transaction       (pnpm deploy:testnet:check)
 #   contracts/script/testnet.sh deploy     the one broadcast; needs ALLOW_NON_LOCAL_BROADCAST=true and a typed
@@ -12,8 +14,12 @@
 #                                                                                       (pnpm deploy:testnet:rehearse)
 #
 # Env (repo-root .env is loaded for names that are not already set; KEYESCROW_NO_DOTENV=1 skips it):
-#   DEPLOY_CHAIN_ID            97 (default) or 5611. Taken from the command line only, never from .env.
+#   DEPLOY_CHAIN_ID            97 (default), 5611 or 56. Taken from the command line only, never from .env.
 #   BSC_TESTNET_RPC_URL        required for 97. Must answer chainId 97.
+#   BSC_MAINNET_RPC_URL        required for 56. Must answer chainId 56.
+#   MAINNET_I_UNDERSTAND       must be `yes` for `deploy` on 56 (on top of ALLOW_NON_LOCAL_BROADCAST and the prompt)
+#   MAX_DEPOSIT, MAX_RENT_PER_PERIOD, MAX_ACTIVE_VALUE   pilot caps in WHOLE tokens; default 5 / 2 / 25 on 56,
+#                              unlimited on the testnets (the factory owner can change them later with setCaps)
 #   OPBNB_TESTNET_RPC_URL      required for 5611. Must answer chainId 5611 (e.g. https://opbnb-testnet-rpc.bnbchain.org).
 #   DEPLOYER_ADDRESS           required. Public address of the deployer; cross-checked against the wallet.
 #   one deployer wallet:
@@ -37,8 +43,12 @@ CHAIN_ID="${DEPLOY_CHAIN_ID:-97}"
 case "$CHAIN_ID" in
   97) NET="BSC testnet" RPC_VAR=BSC_TESTNET_RPC_URL PNPM=deploy:testnet ;;
   5611) NET="opBNB testnet" RPC_VAR=OPBNB_TESTNET_RPC_URL PNPM=deploy:opbnb ;;
-  *) echo "DEPLOY_CHAIN_ID must be 97 (BSC testnet) or 5611 (opBNB testnet), got '$CHAIN_ID'" >&2; exit 64 ;;
+  56) NET="BSC mainnet" RPC_VAR=BSC_MAINNET_RPC_URL PNPM=deploy:mainnet ;;
+  *) echo "DEPLOY_CHAIN_ID must be 97 (BSC testnet), 5611 (opBNB testnet) or 56 (BSC mainnet), got '$CHAIN_ID'" >&2; exit 64 ;;
 esac
+MAINNET=0 CUR=tBNB SYMBOL=mUSDT
+[[ "$CHAIN_ID" == 56 ]] && MAINNET=1 CUR=BNB SYMBOL=USDT
+BSC_USD=0x55d398326f99059fF775485246999027B3197955
 CONTRACTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT="$(cd "$CONTRACTS/.." && pwd)"
 cd "$CONTRACTS"
@@ -147,7 +157,17 @@ preflight() {
   else
     ok "FEE_BPS default 1000 (10% of one month's rent, once per lease)"
   fi
-  [[ -n "${TOKEN_ADDRESS:-}" ]] && bad "TOKEN_ADDRESS is set: on testnet the deploy creates its own MockUSDT, unset it"
+  if ((MAINNET)); then
+    if [[ -n "${TOKEN_ADDRESS:-}" && "$(tr 'A-F' 'a-f' <<<"$TOKEN_ADDRESS")" != "$(tr 'A-F' 'a-f' <<<"$BSC_USD")" ]]; then
+      bad "TOKEN_ADDRESS must be BSC-USD ($BSC_USD) on mainnet, or unset"
+    else
+      ok "token: BSC-USD $BSC_USD (18 decimals; no MockUSDT, no Fleet Vault on mainnet)"
+    fi
+    ok "pilot caps (whole USDT): max deposit ${MAX_DEPOSIT:-5}, max rent per period ${MAX_RENT_PER_PERIOD:-2}, max held in all escrows ${MAX_ACTIVE_VALUE:-25}"
+    if [[ "${MAINNET_I_UNDERSTAND:-}" == yes ]]; then ok "MAINNET_I_UNDERSTAND=yes"; else warn "MAINNET_I_UNDERSTAND is not 'yes': fine for this check, deploy will refuse"; fi
+  else
+    [[ -n "${TOKEN_ADDRESS:-}" ]] && bad "TOKEN_ADDRESS is set: on testnet the deploy creates its own MockUSDT, unset it"
+  fi
   if [[ -n "${BSCSCAN_API_KEY:-}" ]]; then ok "BSCSCAN_API_KEY set (verification)"; else warn "BSCSCAN_API_KEY not set: deploy works, verification will be skipped"; fi
   if [[ "${ALLOW_NON_LOCAL_BROADCAST:-}" == true ]]; then ok "ALLOW_NON_LOCAL_BROADCAST=true"; else warn "ALLOW_NON_LOCAL_BROADCAST is not 'true': fine for this check, deploy will refuse"; fi
   if [[ -f "$(deployment_file)" ]]; then
@@ -163,7 +183,7 @@ preflight() {
   # this process so the script's chain guard lets the dry run through; output goes to <chainId>.dry-run.json.
   echo "  … simulating Deploy.s.sol against the RPC (forge script, no --broadcast)"
   local out
-  if ! out="$(ALLOW_NON_LOCAL_BROADCAST=true forge script script/Deploy.s.sol --rpc-url "$RPC" \
+  if ! out="$(ALLOW_NON_LOCAL_BROADCAST=true MAINNET_I_UNDERSTAND=yes forge script script/Deploy.s.sol --rpc-url "$RPC" \
     --sender "$DEPLOYER_ADDRESS" 2>&1)"; then
     bad "simulation failed:"
     grep -E "Error|revert|error" <<<"$out" | head -8 | sed 's/^/      /'
@@ -178,8 +198,9 @@ preflight() {
     return 1
   fi
   ESTIMATE_WEI="$(cast to-wei "$est_bnb" ether)"
-  ok "simulation OK: MockUSDT + EscrowFactory (+ RentalEscrow implementation)"
-  ok "estimate: ${B}$est_bnb tBNB${N} ($gas gas at ${price:-?}; includes forge's 130% gas margin)"
+  if ((MAINNET)); then ok "simulation OK: EscrowFactory (+ RentalEscrow implementation) on BSC-USD"
+  else ok "simulation OK: MockUSDT + EscrowFactory (+ RentalEscrow implementation) + FleetVault"; fi
+  ok "estimate: ${B}$est_bnb $CUR${N} ($gas gas at ${price:-?}; includes forge's 130% gas margin)"
   if [[ "$CHAIN_ID" == 5611 ]]; then
     # forge prices L2 execution gas only; opBNB adds an L1 data fee (about 0.000002 tBNB for this deploy, Nov 2026).
     ESTIMATE_WEI="$(node -e 'console.log(String(BigInt(process.argv[1]) + 10n ** 14n))' "$ESTIMATE_WEI")"
@@ -190,9 +211,9 @@ preflight() {
   local bal
   bal="$(cast balance "$DEPLOYER_ADDRESS" --rpc-url "$RPC")"
   if wei_gte "$bal" "$ESTIMATE_WEI"; then
-    ok "deployer balance $(fmt_bnb "$bal") tBNB >= estimate"
+    ok "deployer balance $(fmt_bnb "$bal") $CUR >= estimate"
   else
-    bad "deployer balance $(fmt_bnb "$bal") tBNB < estimate $est_bnb tBNB: fund it (docs/DEPLOY.md, step 1; opBNB: bridge)"
+    bad "deployer balance $(fmt_bnb "$bal") $CUR < estimate $est_bnb $CUR: fund it (docs/DEPLOY.md, step 1; opBNB: bridge)"
   fi
 
   if ((FAILS > 0)); then echo "${R}Preflight failed ($FAILS problem(s)).${N}"; return 1; fi
@@ -208,6 +229,9 @@ cmd_deploy() {
   if [[ "$allow" != true ]]; then
     die "Refusing to broadcast: set ALLOW_NON_LOCAL_BROADCAST=true for this one command (docs/DEPLOY.md, step 6)." 4
   fi
+  if ((MAINNET)) && [[ "${MAINNET_I_UNDERSTAND:-}" != yes ]]; then
+    die "Refusing to broadcast to BSC MAINNET (real money): also set MAINNET_I_UNDERSTAND=yes (docs/DEPLOY.md, mainnet pilot)." 4
+  fi
   if [[ -f "$(deployment_file)" && "${FORCE_REDEPLOY:-}" != true ]]; then
     die "$(deployment_file) exists. Refusing to overwrite a live deployment (FORCE_REDEPLOY=true to replace it)." 4
   fi
@@ -216,8 +240,10 @@ cmd_deploy() {
   if ((yes == 0)); then
     [[ -t 0 ]] || die "No TTY for the confirmation prompt; nothing was sent (pass --yes only if you really mean it)." 4
     local answer
-    read -r -p "Broadcast to chainId $CHAIN_ID from $DEPLOYER_ADDRESS? Type 'deploy $CHAIN_ID' to continue: " answer
-    [[ "$answer" == "deploy $CHAIN_ID" ]] || die "Not confirmed; nothing was sent." 4
+    local want="deploy $CHAIN_ID"
+    ((MAINNET)) && want="deploy 56 with real money"
+    read -r -p "Broadcast to chainId $CHAIN_ID ($NET) from $DEPLOYER_ADDRESS? Type '$want' to continue: " answer
+    [[ "$answer" == "$want" ]] || die "Not confirmed; nothing was sent." 4
   fi
 
   echo "${B}Broadcasting Deploy.s.sol to chainId $CHAIN_ID …${N}"
@@ -242,7 +268,7 @@ post_check() {
   echo "${B}Post-deploy check of $f${N}"
   local k a
   [[ "$(jq -r .chainId "$f")" == "$CHAIN_ID" ]] && ok "chainId $CHAIN_ID" || bad "chainId in $f is not $CHAIN_ID"
-  for k in token escrowFactory rentalEscrowImplementation fleetVault; do
+  for k in token escrowFactory rentalEscrowImplementation $( ((MAINNET)) || echo fleetVault); do
     a="$(jq -r ".$k" "$f")"
     if [[ "$(cast code "$a" --rpc-url "$RPC")" != 0x ]]; then ok "$k $a has code"; else bad "$k $a has no code"; fi
   done
@@ -255,8 +281,14 @@ post_check() {
   check_eq "factory.feeRecipient()" "$(cast call "$factory" 'feeRecipient()(address)' --rpc-url "$RPC")" "$(jq -r .feeRecipient "$f")"
   check_eq "factory.defaultArbiter()" "$(cast call "$factory" 'defaultArbiter()(address)' --rpc-url "$RPC")" "$(jq -r .defaultArbiter "$f")"
   check_eq "factory.token()" "$(cast call "$factory" 'token()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
-  check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
-  check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$RPC" | tr -d '"')" "mUSDT"
+  local cap
+  for cap in maxDeposit maxRentPerPeriod maxActiveValue; do
+    check_eq "factory.$cap()" "$(cast call "$factory" "$cap()(uint256)" --rpc-url "$RPC" | cut -d' ' -f1)" "$(jq -r ".$cap" "$f")"
+  done
+  ((MAINNET)) || check_eq "fleetVault.asset()" "$(cast call "$(jq -r .fleetVault "$f")" 'asset()(address)' --rpc-url "$RPC")" "$(jq -r .token "$f")"
+  ((MAINNET)) && check_eq "token (BSC-USD)" "$(jq -r .token "$f")" "$BSC_USD"
+  check_eq "token.symbol()" "$(cast call "$(jq -r .token "$f")" 'symbol()(string)' --rpc-url "$RPC" | tr -d '"')" "$SYMBOL"
+  check_eq "token.decimals() = tokenDecimals" "$(cast call "$(jq -r .token "$f")" 'decimals()(uint8)' --rpc-url "$RPC")" "$(jq -r .tokenDecimals "$f")"
   ((FAILS == 0)) || die "post-deploy check failed ($FAILS problem(s))" 1
 }
 
@@ -268,11 +300,12 @@ ${B}For web/.env.local (public identifiers only):${N}
 NEXT_PUBLIC_CHAIN_ID=$CHAIN_ID
 NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS=$(jq -r .escrowFactory "$f")
 NEXT_PUBLIC_MOCK_USDT_ADDRESS=$(jq -r .token "$f")
-NEXT_PUBLIC_FLEET_VAULT_ADDRESS=$(jq -r .fleetVault "$f")
 EOF
+  ((MAINNET)) || echo "NEXT_PUBLIC_FLEET_VAULT_ADDRESS=$(jq -r .fleetVault "$f")"
 }
 
-# Verify MockUSDT, EscrowFactory, the RentalEscrow implementation and FleetVault from deployments/<chainId>.json.
+# Verify (MockUSDT,) EscrowFactory, the RentalEscrow implementation (and FleetVault) from deployments/<chainId>.json,
+# on BscScan / opBNBScan through the Etherscan V2 API (one key for 97, 5611 and 56).
 # VERIFY_DRY_RUN=1 prints the commands and builds each standard-JSON input locally without contacting any API.
 cmd_verify() {
   local f
@@ -283,19 +316,23 @@ cmd_verify() {
   if [[ "$dry" != 1 && -z "${BSCSCAN_API_KEY:-}" ]]; then die "BSCSCAN_API_KEY is not set" 2; fi
 
   local ctor
-  ctor="$(cast abi-encode 'constructor(address,address,uint16,address,address)' \
+  ctor="$(cast abi-encode 'constructor(address,address,uint16,address,address,uint256,uint256,uint256)' \
     "$(jq -r .token "$f")" "$(jq -r .factoryOwner "$f")" "$(jq -r .feeBps "$f")" \
-    "$(jq -r .feeRecipient "$f")" "$(jq -r .defaultArbiter "$f")")"
-  local vctor
-  vctor="$(cast abi-encode 'constructor(address,string,string,address,uint16)' \
-    "$(jq -r .token "$f")" "${FLEET_NAME:-KeyEscrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
-    "$(jq -r .fleetOperator "$f")" "$(jq -r .fleetOperatorFeeBps "$f")")"
+    "$(jq -r .feeRecipient "$f")" "$(jq -r .defaultArbiter "$f")" \
+    "$(jq -r .maxDeposit "$f")" "$(jq -r .maxRentPerPeriod "$f")" "$(jq -r .maxActiveValue "$f")")"
   local -a targets=(
-    "$(jq -r .token "$f")|src/mocks/MockUSDT.sol:MockUSDT|"
     "$(jq -r .escrowFactory "$f")|src/EscrowFactory.sol:EscrowFactory|$ctor"
     "$(jq -r .rentalEscrowImplementation "$f")|src/RentalEscrow.sol:RentalEscrow|"
-    "$(jq -r .fleetVault "$f")|src/FleetVault.sol:FleetVault|$vctor"
   )
+  # Mainnet: BSC-USD is Tether's own (verified) contract and there is no Fleet Vault.
+  if ((!MAINNET)); then
+    local vctor
+    vctor="$(cast abi-encode 'constructor(address,string,string,address,uint16)' \
+      "$(jq -r .token "$f")" "${FLEET_NAME:-KeyEscrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
+      "$(jq -r .fleetOperator "$f")" "$(jq -r .fleetOperatorFeeBps "$f")")"
+    targets=("$(jq -r .token "$f")|src/mocks/MockUSDT.sol:MockUSDT|" "${targets[@]}"
+      "$(jq -r .fleetVault "$f")|src/FleetVault.sol:FleetVault|$vctor")
+  fi
   local extra=()
   [[ -n "${VERIFIER_URL:-}" ]] && extra=(--verifier-url "$VERIFIER_URL")
   echo "${B}Verifying on $NET (chainId $CHAIN_ID, Etherscan API V2)${N}$([[ "$dry" == 1 ]] && echo ' [dry run: nothing is submitted]')"

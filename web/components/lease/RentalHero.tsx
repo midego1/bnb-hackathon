@@ -16,7 +16,7 @@ import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { JarArt, SafeArt } from "./Art";
 import { useRentalCopy } from "./copy";
-import { RENT_PERIOD, type Viewer } from "./model";
+import { type Viewer } from "./model";
 import { banner, monthCells, moneyFlow, type Banner, type BannerAction } from "./story";
 
 const TONE_TEXT: Record<Banner["tone"], string> = { ok: "text-banner-ok", warn: "text-banner-warn", danger: "text-banner-danger", neutral: "text-banner-muted" };
@@ -32,7 +32,7 @@ export function RentalHero({ lease, viewer, events, chainId, scooter, wallet }: 
   const sub = [
     scooter?.location,
     c.ownerShort(shortAddress(t.landlord)),
-    lease.startTime > BigInt(0) ? c.period(lease.startTime, lease.startTime + BigInt(t.termMonths) * RENT_PERIOD) : c.notStarted,
+    lease.startTime > BigInt(0) ? c.period(lease.startTime, lease.startTime + BigInt(t.termPeriods) * BigInt(t.rentPeriod)) : c.notStarted,
   ].filter(Boolean);
 
   return (
@@ -91,13 +91,13 @@ function Months({ lease }: { lease: LeaseData }) {
   const c = useRentalCopy();
   const cells = monthCells(lease);
   if (!cells.length) return null;
-  const end = lease.startTime + BigInt(lease.terms.termMonths) * RENT_PERIOD;
+  const end = lease.startTime + BigInt(lease.terms.termPeriods) * BigInt(lease.terms.rentPeriod);
   return (
     <ol className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs text-banner-muted" aria-label={c.monthsLabel} data-testid="rental-months">
       {cells.map((m) => (
         <li key={m.n} className="min-w-20 flex-1" data-state={m.state}>
           <span className={cn("mb-1 block h-1.5 rounded-full", m.state === "out" ? "bg-banner-ok" : m.state === "in" ? "bg-banner-ok/50" : "bg-banner-line")} />
-          <b className="text-banner-foreground">{c.month(m.n)}</b> {m.state === "out" ? c.monthPaidOut : m.state === "in" ? c.monthPaidIn : c.monthDue(m.due)}
+          <b className="text-banner-foreground">{c.month(m.n, lease.terms.rentPeriod)}</b> {m.state === "out" ? c.monthPaidOut : m.state === "in" ? c.monthPaidIn : c.monthDue(m.due)}
         </li>
       ))}
       <li className="self-end">{c.returnOn(end)}</li>
@@ -142,7 +142,7 @@ function MoneyStrip({ lease, viewer, events }: { lease: LeaseData; viewer: Viewe
   const t = lease.terms;
   const f = moneyFlow(events);
   const s = c.strip;
-  const toPay = t.rentAmount * BigInt(t.termMonths - lease.monthsFunded);
+  const toPay = t.rentAmount * BigInt(t.termPeriods - lease.periodsFunded);
   const settled = lease.status === LeaseStatus.Settled;
   const escrowNote =
     lease.status === LeaseStatus.Created

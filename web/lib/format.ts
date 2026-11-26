@@ -1,6 +1,6 @@
 import { formatUnits } from "viem";
 import { parseTokenAmount } from "./actions/fields";
-import { USDT_DECIMALS } from "./contracts";
+import { TOKEN } from "./contracts";
 
 export function shortAddress(a: string | undefined): string {
   if (!a) return "";
@@ -8,7 +8,7 @@ export function shortAddress(a: string | undefined): string {
 }
 
 export function usdtNumber(amount: bigint): number {
-  return Number(formatUnits(amount, USDT_DECIMALS));
+  return Number(formatUnits(amount, TOKEN.decimals));
 }
 
 export function formatUsdt(amount: bigint): string {

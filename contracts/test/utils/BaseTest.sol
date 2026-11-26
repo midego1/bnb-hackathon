@@ -6,8 +6,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EscrowFactory} from "../../src/EscrowFactory.sol";
 import {RentalEscrow} from "../../src/RentalEscrow.sol";
 import {MockUSDT} from "../../src/mocks/MockUSDT.sol";
+import {MockBscUsd} from "../mocks/MockBscUsd.sol";
 
 abstract contract BaseTest is Test {
+    /// MockUSDT (6 decimals), or MockBscUsd (18) when a suite overrides {_decimals}: same faucet + ERC-20 calls.
     MockUSDT internal usdt;
     EscrowFactory internal factory;
 
@@ -19,22 +21,43 @@ abstract contract BaseTest is Test {
     address internal stranger = makeAddr("stranger");
     address internal disputeDesk = makeAddr("disputeDesk");
 
-    uint256 internal constant RENT = 500e6; // 500 mUSDT / month
-    uint256 internal constant DEPOSIT = 1_000e6; // 2 months' rent
+    // Amounts follow the token's decimals (set in setUp): 1 UNIT = 1 token.
+    uint256 internal UNIT;
+    uint256 internal RENT; // 500 tokens / month
+    uint256 internal DEPOSIT; // 2 months' rent
+    uint256 internal FEE; // 10% of one month's rent (monthly equivalent) = 50 tokens for monthly rent
+    uint32 internal PERIOD; // rent period of the suite's leases (_rentPeriod)
     uint32 internal constant TERM = 12;
     uint32 internal constant WINDOW = 5 days; // landlord-response window (non-default on purpose)
     uint32 internal constant ARB_WINDOW = 10 days; // arbiter window (non-default on purpose)
+    uint256 internal constant NO_CAP = type(uint256).max; // pilot caps off
     uint16 internal constant FEE_BPS = 1_000; // 10% of one month's rent, once per lease
-    uint256 internal constant FEE = (RENT * FEE_BPS) / 10_000; // 50 mUSDT
     bytes32 internal constant LEASE_HASH = keccak256("lease.pdf");
     bytes32 internal constant REPORT_HASH = keccak256("ai-report.json");
 
     function setUp() public virtual {
         // Lease timestamps start at a realistic date so `startTime != 0` checks are meaningful.
         vm.warp(1_790_000_000);
-        usdt = new MockUSDT();
-        factory = new EscrowFactory(IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk);
-        usdt.faucet(tenant, 10_000e6);
+        usdt = _decimals() == 6 ? new MockUSDT() : MockUSDT(address(new MockBscUsd()));
+        assertEq(usdt.decimals(), _decimals());
+        UNIT = 10 ** _decimals();
+        (RENT, DEPOSIT) = (500 * UNIT, 1_000 * UNIT);
+        PERIOD = _rentPeriod();
+        FEE = (RENT * 30 days * FEE_BPS) / (uint256(PERIOD) * 10_000);
+        factory = new EscrowFactory(
+            IERC20(address(usdt)), owner, FEE_BPS, treasury, disputeDesk, NO_CAP, NO_CAP, NO_CAP
+        );
+        usdt.faucet(tenant, 10_000 * UNIT);
+    }
+
+    /// @dev Rent period of the suite's leases: 30 days by default; 7 or 14 in the weekly suites.
+    function _rentPeriod() internal pure virtual returns (uint32) {
+        return 30 days;
+    }
+
+    /// @dev Token decimals for the suite: 6 (MockUSDT, testnet) by default; 18 (BSC-USD) in the *18Decimals suites.
+    function _decimals() internal pure virtual returns (uint8) {
+        return 6;
     }
 
     function _params() internal view returns (EscrowFactory.LeaseParams memory) {
@@ -43,7 +66,8 @@ abstract contract BaseTest is Test {
             arbiter: arbiter,
             rentAmount: RENT,
             depositAmount: DEPOSIT,
-            termMonths: TERM,
+            termPeriods: TERM,
+            rentPeriod: PERIOD,
             responseWindow: WINDOW,
             arbiterWindow: ARB_WINDOW,
             leaseHash: LEASE_HASH

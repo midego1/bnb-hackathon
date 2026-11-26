@@ -18,7 +18,9 @@ export type LeaseSnapshot = {
     arbiter: Address;
     rentAmount: bigint;
     depositAmount: bigint;
-    termMonths: number;
+    termPeriods: number;
+    /** Seconds per rent period: 7, 14 or 30 days. */
+    rentPeriod: number;
     responseWindow: number;
     arbiterWindow: number;
     leaseHash: Hex;
@@ -26,9 +28,9 @@ export type LeaseSnapshot = {
     feeRecipient: Address;
   };
   startTime: bigint;
-  monthsFunded: number;
-  monthsReleased: number;
-  monthsDue: number;
+  periodsFunded: number;
+  periodsReleased: number;
+  periodsDue: number;
   checkInHash: Hex;
   checkOutHash: Hex;
   proposal: { tenantRefund: bigint; landlordClaim: bigint; reportHash: Hex; proposer: Address; proposedAt: bigint; nonce: number };
@@ -37,7 +39,7 @@ export type LeaseSnapshot = {
   feeCharged: boolean;
   /** Where the owner's payouts go: the owner, or e.g. a Fleet Vault. */
   payee: Address;
-  /** mUSDT held by the escrow right now. */
+  /** Stablecoin held by the escrow right now. */
   balance: bigint;
   /** Timestamp of the block the snapshot was read at (anvil time jumps included). */
   chainNow: bigint;
@@ -64,15 +66,15 @@ export async function readLease(ctx: ActionContext, address: Address): Promise<L
   const r = <T>(functionName: string) =>
     c.readContract({ address, abi: rentalEscrowAbi, functionName: functionName as never }) as Promise<T>;
   try {
-    const [block, terms, status, startTime, monthsFunded, monthsReleased, monthsDue, checkInHash, checkOutHash, proposal, timeoutAt, arbiterDeadline, feeCharged, payee] =
+    const [block, terms, status, startTime, periodsFunded, periodsReleased, periodsDue, checkInHash, checkOutHash, proposal, timeoutAt, arbiterDeadline, feeCharged, payee] =
       await Promise.all([
         c.getBlock(),
-        r<{ token: Address; landlord: Address; tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termMonths: number; responseWindow: number; arbiterWindow: number; leaseHash: Hex; feeBps: number; feeRecipient: Address }>("terms"),
+        r<{ token: Address; landlord: Address; tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termPeriods: number; rentPeriod: number; responseWindow: number; arbiterWindow: number; leaseHash: Hex; feeBps: number; feeRecipient: Address }>("terms"),
         r<number>("status"),
         r<bigint>("startTime"),
-        r<number>("monthsFunded"),
-        r<number>("monthsReleased"),
-        r<number>("monthsDue"),
+        r<number>("periodsFunded"),
+        r<number>("periodsReleased"),
+        r<number>("periodsDue"),
         r<Hex>("checkInHash"),
         r<Hex>("checkOutHash"),
         r<LeaseSnapshot["proposal"]>("proposal"),
@@ -89,9 +91,9 @@ export async function readLease(ctx: ActionContext, address: Address): Promise<L
       status: STATUS_NAMES[status],
       terms: { ...rest, owner: landlord, renter: tenant },
       startTime,
-      monthsFunded,
-      monthsReleased,
-      monthsDue,
+      periodsFunded,
+      periodsReleased,
+      periodsDue,
       checkInHash,
       checkOutHash,
       proposal: { ...proposal },
@@ -141,15 +143,16 @@ export function leaseJson(l: LeaseSnapshot) {
     token: l.terms.token,
     rent: amt(l.terms.rentAmount),
     deposit: amt(l.terms.depositAmount),
-    termMonths: l.terms.termMonths,
+    termPeriods: l.terms.termPeriods,
+    rentPeriodDays: l.terms.rentPeriod / 86400,
     responseWindowDays: l.terms.responseWindow / 86400,
     arbiterWindowDays: l.terms.arbiterWindow / 86400,
     leaseHash: l.terms.leaseHash,
     feeBps: l.terms.feeBps,
     startedAt: l.startTime > BigInt(0) ? isoTime(l.startTime) : null,
-    monthsFunded: l.monthsFunded,
-    monthsReleased: l.monthsReleased,
-    monthsDue: l.monthsDue,
+    periodsFunded: l.periodsFunded,
+    periodsReleased: l.periodsReleased,
+    periodsDue: l.periodsDue,
     checkInHash: l.checkInHash,
     checkOutHash: l.checkOutHash,
     proposal:

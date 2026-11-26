@@ -9,8 +9,9 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
+import { countIn, perIn } from "@/lib/rentals";
 import { dateTimeIn } from "./copy";
-import { nextDue, releasableMonths, type Viewer } from "./model";
+import { nextDue, releasablePeriods, type Viewer } from "./model";
 import { Stat } from "./FundingPanel";
 
 /** Rent schedule: release funded rent; renter can prepay further months. */
@@ -21,13 +22,15 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
   const [months, setMonths] = useState("1");
   const money = useMoney();
   const t = useT();
+  const per = perIn(t, lease.terms.rentPeriod);
+  const count = (k: number) => countIn(t, k, lease.terms.rentPeriod);
   const date = dateTimeIn(t);
   const tx = { release: t("rental.rent.releaseTx"), approve: t("rental.rent.approveTx"), prepay: t("rental.rent.prepayTx") };
 
-  const releasable = releasableMonths(lease, viewer);
+  const releasable = releasablePeriods(lease, viewer);
   const due = nextDue(lease);
-  const fundedAhead = lease.monthsFunded - lease.monthsReleased;
-  const remainingToFund = lease.terms.termMonths - lease.monthsFunded;
+  const fundedAhead = lease.periodsFunded - lease.periodsReleased;
+  const remainingToFund = lease.terms.termPeriods - lease.periodsFunded;
   const n = Number(months);
   const prepay = Number.isInteger(n) && n > 0 ? lease.terms.rentAmount * BigInt(n) : BigInt(0);
   const canPrepay = viewer === "tenant" && lease.status === LeaseStatus.Active;
@@ -35,24 +38,24 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
   const releaseReason =
     releasable > 0
       ? null
-      : lease.monthsReleased >= lease.terms.termMonths
+      : lease.periodsReleased >= lease.terms.termPeriods
         ? t("rental.rent.allOut")
         : fundedAhead === 0
-          ? t("rental.rent.noneInEscrow")
+          ? t("rental.rent.noneInEscrow", { per })
           : due
-            ? t("rental.rent.notDue", { date: date(due) })
+            ? t("rental.rent.notDue", { date: date(due), per })
             : t("rental.rent.nothingYet");
 
   return (
-    <Card title={t.h("rental.rent")} aside={<span className="text-xs text-subtle">{t("rental.rent.perMonth", { amount: money(lease.terms.rentAmount) })}</span>}>
+    <Card title={t.h("rental.rent")} aside={<span className="text-xs text-subtle">{t("rental.rent.perPeriod", { amount: money(lease.terms.rentAmount), per })}</span>}>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <Stat label={t("rental.rent.paidOut")}>
-          <span className="font-semibold" data-testid="months-released">{lease.monthsReleased}</span>
-          {t("rental.rent.ofMonths", { n: lease.terms.termMonths })}
+          <span className="font-semibold" data-testid="months-released">{lease.periodsReleased}</span>
+          {t("rental.rent.ofPeriods", { n: lease.terms.termPeriods })}
         </Stat>
         <Stat label={t("rental.rent.paidIn")}>
-          <span className="font-semibold">{lease.monthsFunded}</span>
-          {t("rental.rent.ofMonths", { n: lease.terms.termMonths })}
+          <span className="font-semibold">{lease.periodsFunded}</span>
+          {t("rental.rent.ofPeriods", { n: lease.terms.termPeriods })}
         </Stat>
         <Stat label={t("rental.rent.nextDue")}>
           {due ? (
@@ -71,9 +74,9 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
           onClick={() => send(tx.release, { address: lease.address, abi: rentalEscrowAbi, functionName: "releaseRent" })}
           data-testid="release-rent"
         >
-          {releasable > 0 ? t(releasable > 1 ? "rental.rent.releaseMonths.other" : "rental.rent.releaseMonths.one", { n: releasable }) : t("rental.rent.releaseRent")}
+          {releasable > 0 ? t("rental.rent.release", { count: count(releasable) }) : t("rental.rent.releaseRent")}
         </ActionButton>
-        {viewer === "tenant" && releasable > 0 && lease.monthsDue < lease.monthsFunded && (
+        {viewer === "tenant" && releasable > 0 && lease.periodsDue < lease.periodsFunded && (
           <p className="text-xs text-subtle sm:col-span-2">{t("rental.rent.early")}</p>
         )}
       </div>
@@ -82,7 +85,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
           <p className="mb-1 text-sm font-medium">{t("rental.rent.prepay")}</p>
           <p className="mb-2 text-xs text-subtle">{t("rental.rent.prepayHint")}</p>
           <div className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr] sm:items-start">
-            <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label={t("rental.rent.monthsInput")} />
+            <input type="number" min={1} max={remainingToFund} className={inputClass} value={months} onChange={(e) => setMonths(e.target.value)} aria-label={t("rental.rent.periodsInput")} />
             <ActionButton
               variant="secondary"
               busy={pending === tx.approve}
@@ -90,7 +93,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
                 remainingToFund === 0
                   ? t("rental.rent.wholeTerm")
                   : prepay === BigInt(0)
-                    ? t("rental.rent.enterMonths")
+                    ? t("rental.rent.enterPeriods")
                     : !token
                       ? t("rental.rent.loadingBalance")
                       : token.allowance >= prepay
@@ -107,9 +110,9 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
                 remainingToFund === 0
                   ? t("rental.rent.wholeTerm")
                   : prepay === BigInt(0)
-                    ? t("rental.rent.enterMonths")
+                    ? t("rental.rent.enterPeriods")
                   : n > remainingToFund
-                    ? t("rental.rent.onlyLeft", { n: remainingToFund })
+                    ? t("rental.rent.onlyLeft", { count: count(remainingToFund) })
                     : !token || token.allowance < prepay
                       ? t("rental.rent.approveFirst")
                       : token.balance < prepay
@@ -118,7 +121,7 @@ export function RentPanel({ lease, viewer }: { lease: LeaseData; viewer: Viewer 
               }
               onClick={() => send(tx.prepay, { address: lease.address, abi: rentalEscrowAbi, functionName: "payRent", args: [n] })}
             >
-              {t(n === 1 ? "rental.rent.pay.one" : "rental.rent.pay.other", { n: n || 0 })}
+              {t("rental.rent.pay", { count: count(n || 0) })}
             </ActionButton>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { decodeFunctionData, getAddress, isAddress, isHex, parseEther, zeroAddress, type Address, type Hex } from "viem";
-import { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
+import { escrowFactoryAbi, mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
 import type { Env } from "../env";
 
 /**
@@ -265,8 +265,8 @@ export type DemoAddresses = { factory: Address; token: Address; accounts: Record
 type DemoAbi = typeof escrowFactoryAbi | typeof mockUsdtAbi | typeof rentalEscrowAbi;
 export type SignedCall = { role: DemoRole; address: Address; abi: DemoAbi; functionName: string; args: readonly unknown[] };
 
-const MUSDT = BigInt(1_000_000);
-/** Per-call ceilings in mUSDT base units: a demo lease is a few hundred dollars a month. */
+const MUSDT = BigInt(10) ** BigInt(TOKEN.decimals);
+/** Per-call ceilings in token base units: a demo lease is a few hundred dollars a month. */
 const MAX_RENT = BigInt(5_000) * MUSDT;
 const MAX_DEPOSIT = BigInt(15_000) * MUSDT;
 const MAX_MINT = BigInt(10_000) * MUSDT; // MockUSDT.FAUCET_LIMIT
@@ -296,7 +296,7 @@ export function vetCall(req: { role: string; address: string; data: string }, ru
     if (functionName !== "createLease") refuse(`The demo does not call factory.${functionName}.`);
     if (role !== "landlord") refuse("Only the demo landlord creates the lease.");
     if (run.lease) refuse("This run already created its lease.");
-    const p = (args as readonly [{ tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termMonths: number }])[0];
+    const p = (args as readonly [{ tenant: Address; arbiter: Address; rentAmount: bigint; depositAmount: bigint; termPeriods: number }])[0];
     if (!same(p.tenant, a.accounts.tenant)) refuse("The lease tenant must be the demo tenant.");
     if (!same(p.arbiter, a.accounts.arbiter)) refuse("The lease referee must be the demo dispute desk.");
     if (p.rentAmount > MAX_RENT || p.depositAmount > MAX_DEPOSIT) refuse("Demo rent or deposit too large.");

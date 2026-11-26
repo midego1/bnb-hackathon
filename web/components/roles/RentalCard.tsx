@@ -33,7 +33,7 @@ export function RentalCard({ r, scooter, now, you }: { r: RentalSummary; scooter
           </div>
           <div>
             <Amount value={r.rentAmount} size="lg" />
-            <p className="text-sm text-subtle">{t("renter.perMonth")}</p>
+            <p className="text-sm text-subtle">{c.per(r.rentPeriod)}</p>
           </div>
         </div>
       </div>

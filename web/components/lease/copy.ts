@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
+import { countIn, nthIn } from "@/lib/rentals";
 
 /**
  * Every sentence of the rental page, built from the dictionary (lib/i18n/dictionaries/en/rental.ts and zh/rental.ts)
@@ -36,7 +37,6 @@ const roleKey = (by: string | null): Role => (by === "arbiter" || by === "landlo
 
 export function rentalCopyFor(t: T) {
   const day = dayIn(t);
-  const months = monthsIn(t);
   const h = (key: Parameters<T["h"]>[0], vars?: Record<string, string | number>): ReactNode => t.h(key, vars);
   return {
     day,
@@ -51,7 +51,7 @@ export function rentalCopyFor(t: T) {
 
     pill: {
       created: t("rental.pill.created"),
-      month: (m: number, term: number) => t("rental.pill.month", { m, term }),
+      month: (m: number, term: number, p: number) => t("rental.pill.month", { nth: nthIn(t, m, p), term }),
       proposal: t("rental.pill.proposal"),
       closed: (at: bigint) => t("rental.pill.closed", { date: day(at) }),
       disputed: t("rental.pill.disputed"),
@@ -69,17 +69,18 @@ export function rentalCopyFor(t: T) {
       waitFundOther: t("rental.banner.waitFundOther"),
 
       lockedTitle: (deposit: string, you: boolean) => h(you ? "rental.banner.lockedTitleYou" : "rental.banner.lockedTitle", { deposit }),
-      payBody: (paidThrough: number, next: number, due: bigint) => t("rental.banner.payBody", { paid: paidThrough, next, due: day(due) }),
-      payAction: (next: number, rent: string) => t("rental.banner.payAction", { next, rent }),
+      payBody: (paidThrough: number, next: number, due: bigint, p: number) =>
+        t("rental.banner.payBody", { paid: nthIn(t, paidThrough, p), next: nthIn(t, next, p), due: day(due) }),
+      payAction: (next: number, rent: string, p: number) => t("rental.banner.payAction", { next: nthIn(t, next, p), rent }),
       payNote: t("rental.banner.payNote"),
-      allPaidBody: (term: number) => t("rental.banner.allPaidBody", { months: months(term) }),
+      allPaidBody: (term: number, p: number) => t("rental.banner.allPaidBody", { months: countIn(t, term, p) }),
       returnedTitle: h("rental.banner.returnedTitle"),
       returnedBody: (days: number) => t("rental.banner.returnedBody", { days }),
       proposeAction: t("rental.banner.proposeAction"),
 
       collectTitle: (amount: string) => h("rental.banner.collectTitle", { amount }),
       collectBody: (fee: string | null) => (fee ? t("rental.banner.collectBodyFee", { fee }) : t("rental.banner.collectBodyNoFee")),
-      collectAction: (month: number, amount: string) => t("rental.banner.collectAction", { month, amount }),
+      collectAction: (n: number, amount: string, p: number) => t("rental.banner.collectAction", { month: nthIn(t, n, p), amount }),
       paidOwnerTitle: (n: number, net: string) => h(n === 1 ? "rental.banner.paidOwnerTitle.one" : "rental.banner.paidOwnerTitle.other", { n, net }),
       runningTitle: h("rental.banner.runningTitle"),
       nextDueBody: (due: bigint) => t("rental.banner.nextDueBody", { due: day(due) }),
@@ -89,7 +90,7 @@ export function rentalCopyFor(t: T) {
       noDisputeTitle: h("rental.banner.noDisputeTitle"),
       noDisputeBody: t("rental.banner.noDisputeBody"),
       nothingToRule: t("rental.banner.nothingToRule"),
-      monthOf: (m: number, term: number) => t("rental.banner.monthOf", { m, term }),
+      monthOf: (m: number, term: number, p: number) => t("rental.banner.monthOf", { m: nthIn(t, m, p, true), term }),
 
       /** `by`: the proposer's role (model.ts Viewer). */
       proposedTitle: (by: string | null, back: string, kept: string) => h(`rental.banner.proposedTitle.${roleKey(by)}`, { back, kept }),
@@ -133,7 +134,7 @@ export function rentalCopyFor(t: T) {
     },
 
     monthsLabel: t("rental.monthsLabel"),
-    month: (n: number) => t("rental.month", { n }),
+    month: (n: number, p: number) => nthIn(t, n, p, true),
     monthPaidOut: t("rental.monthPaidOut"),
     monthPaidIn: t("rental.monthPaidIn"),
     monthDue: (at: bigint) => t("rental.monthDue", { date: day(at) }),

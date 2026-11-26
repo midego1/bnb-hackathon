@@ -237,7 +237,7 @@ Example chat (what Claude does with the tools, abridged):
 
 > **Owner:** Rent my scooter to 0x3C44…93BC for 6 months, 3,500 baht a month, 2 months deposit. My wallet is 0x7099…79C8.
 >
-> **Claude** (calls `prepare_create_lease` with `rent: "3500", currency: "THB", depositMonths: 2, termMonths: 6`):
+> **Claude** (calls `prepare_create_lease` with `rent: "3500", currency: "THB", depositMonths: 2, termPeriods: 6`):
 > Here is the rental, ready to sign: rent 106.06 mUSDT a month (3,500 THB at 33 THB/USDT, demo rate), deposit
 > 212.12 mUSDT (2 months). You have 7 days to answer the renter's return proposal; the KeyEscrow dispute desk has 14
 > days to rule on a dispute. One transaction to sign with your wallet: *Create the rental offer*. Next, the renter
@@ -286,7 +286,7 @@ MCP http://127.0.0.1:40147/mcp: tools/list
    | …
 
 "Rent my scooter to 0x3C44…93BC for 6 months, 3,500 baht a month, 2 months deposit"
-> tools/call prepare_create_lease {"from":"0x7099…79C8","renter":"0x3C44…93BC","rent":"3500","currency":"THB","depositMonths":2,"termMonths":6}
+> tools/call prepare_create_lease {"from":"0x7099…79C8","renter":"0x3C44…93BC","rent":"3500","currency":"THB","depositMonths":2,"termPeriods":6}
    | summary: Create a 6-month rental for renter 0x3C44…93BC: rent 106.06 mUSDT a month (THB 3500 at 33.00 THB/USDT,
    | demo rate), deposit 212.12 mUSDT (2 months of rent). … Next: the renter funds 318.18 mUSDT with prepare_fund.
    | steps:   Create the rental offer

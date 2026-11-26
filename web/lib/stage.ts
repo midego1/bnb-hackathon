@@ -1,4 +1,5 @@
-import { zeroHash, type Address } from "viem";
+import { formatUnits, zeroHash, type Address } from "viem";
+import { TOKEN } from "@/lib/contracts";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
 import type { Translate } from "@/lib/i18n/keys";
 import type { Listing } from "@/lib/listings";
@@ -89,7 +90,7 @@ export function eventLabel(e: ChainEvent, t: Translate): string {
   }
 }
 
-/** mUSDT base units -> THB at the listing's rate (display only). */
-export const unitsToThb = (units: bigint, thbPerUsdt: number) => (Number(units) / 1e6) * thbPerUsdt;
+/** Token base units -> THB at the listing's rate (display only). */
+export const unitsToThb = (units: bigint, thbPerUsdt: number) => Number(formatUnits(units, TOKEN.decimals)) * thbPerUsdt;
 /** "฿1,201": whole baht, big-screen friendly. */
 export const thbText = (units: bigint, thbPerUsdt: number) => `฿${Math.round(unitsToThb(units, thbPerUsdt)).toLocaleString("en-US")}`;

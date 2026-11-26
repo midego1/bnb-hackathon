@@ -38,7 +38,7 @@ contract SecurityRegressionTest is BaseTest {
         escrow.fund();
         escrow.payRent(2);
         vm.stopPrank();
-        skip(2 * escrow.RENT_PERIOD()); // three funded months are due; anyone may release them
+        skip(2 * PERIOD); // three funded months are due; anyone may release them
         skip(1);
     }
 
@@ -177,6 +177,71 @@ contract SecurityRegressionTest is BaseTest {
         // Any other payee (a vault, the owner's own cold wallet) still works.
         factory.createLeaseWithPayee(p, address(vault));
         vm.stopPrank();
+    }
+
+    // =============================================================================================
+    // KE-14 (audit #9): delaying settlement must not turn the renter's prepaid rent into rent due
+    // =============================================================================================
+
+    /// Three months prepaid, the renter returns on day 10. Settled that day, months 1 and 2 are refunded.
+    function _prepaidLease(uint32 responseWindow, uint32 arbiterWindow)
+        internal
+        returns (RentalEscrow escrow)
+    {
+        EscrowFactory.LeaseParams memory p = _params();
+        (p.responseWindow, p.arbiterWindow) = (responseWindow, arbiterWindow);
+        vm.prank(landlord);
+        escrow = RentalEscrow(factory.createLease(p));
+        vm.startPrank(tenant);
+        usdt.approve(address(escrow), type(uint256).max);
+        escrow.fund();
+        escrow.payRent(2);
+        vm.stopPrank();
+    }
+
+    function test_KE14_disputeAndSilentArbiterDoNotMakePrepaidRentDue() public {
+        RentalEscrow escrow = _prepaidLease(WINDOW, 90 days);
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+        skip(10 days);
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH); // the return
+        skip(4 days);
+        vm.prank(landlord);
+        escrow.dispute(); // then nobody rules for 90 days
+        vm.warp(escrow.arbiterDeadline());
+        escrow.claimArbiterTimeout();
+
+        assertEq(usdt.balanceOf(landlord), RENT - FEE); // only month 0 was due at the return
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
+    }
+
+    function test_KE14_silentLandlordDoesNotMakePrepaidRentDue() public {
+        RentalEscrow escrow = _prepaidLease(60 days, ARB_WINDOW);
+        uint256 tenantBefore = usdt.balanceOf(tenant);
+        skip(25 days);
+        vm.prank(tenant);
+        escrow.propose(DEPOSIT, REPORT_HASH);
+        vm.warp(escrow.timeoutAt()); // day 85: two more due dates passed while the landlord stayed silent
+        escrow.claimTimeout();
+
+        assertEq(usdt.balanceOf(landlord), RENT - FEE);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
+    }
+
+    // =============================================================================================
+    // KE-15 (audit #10): a share transfer must not hand the seller's unsynced income to the buyer
+    // =============================================================================================
+
+    function test_KE15_transferKeepsUnsyncedIncomeWithSeller() public {
+        address bob = makeAddr("bob");
+        skip(vault.SHARE_LOCK());
+        usdt.faucet(address(vault), 100e6); // rent arrives; nobody syncs
+        vm.prank(alice);
+        vault.transfer(bob, 1_000e6);
+
+        assertEq(vault.claimable(bob), 0);
+        vm.prank(alice);
+        assertEq(vault.claim(), 90e6); // 100 minus the 10 % operator fee
     }
 
     // =============================================================================================

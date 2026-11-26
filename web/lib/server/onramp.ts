@@ -1,5 +1,5 @@
 import { getAddress, type Address, type PublicClient } from "viem";
-import { escrowFactoryAbi, rentalEscrowAbi } from "../contracts";
+import { escrowFactoryAbi, rentalEscrowAbi, TOKEN } from "../contracts";
 import { amountDue } from "../promptpay";
 import { DemoError, RateLimiter } from "./demoTestnet/guards";
 
@@ -15,7 +15,7 @@ import { DemoError, RateLimiter } from "./demoTestnet/guards";
 
 export const ONRAMP_CHAINS = [31337, 97] as const;
 /** MockUSDT.FAUCET_LIMIT: one simulated payment never mints more. */
-export const ONRAMP_MAX = BigInt(10_000) * BigInt(1_000_000);
+export const ONRAMP_MAX = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals);
 
 // shortcut: per-process (per-isolate on Workers) limit, enough for a demo; move to the shared Durable Object if abused.
 const limiter = new RateLimiter({ minGapMs: 5_000, runsPerHour: 60 });
@@ -33,8 +33,8 @@ export function onRampPlan(
     isLease: boolean;
     token: Address;
     status: number;
-    monthsFunded: number;
-    terms: { tenant: Address; depositAmount: bigint; rentAmount: bigint; termMonths: number };
+    periodsFunded: number;
+    terms: { tenant: Address; depositAmount: bigint; rentAmount: bigint; termPeriods: number };
   },
   deploymentToken: Address,
 ): { to: Address; amount: bigint } {
@@ -43,22 +43,22 @@ export function onRampPlan(
   if (lease.token.toLowerCase() !== deploymentToken.toLowerCase()) throw new DemoError(400, "wrong-token", "This rental is not paid in the demo mUSDT.");
   const due = amountDue(lease);
   if (!due) throw new DemoError(409, "nothing-due", "Nothing is due on this rental right now.");
-  if (due.amount > ONRAMP_MAX) throw new DemoError(400, "over-cap", "The demo on-ramp covers at most 10,000 mUSDT per payment.");
+  if (due.amount > ONRAMP_MAX) throw new DemoError(400, "over-cap", `The demo on-ramp covers at most 10,000 ${TOKEN.symbol} per payment.`);
   return { to: lease.terms.tenant, amount: due.amount };
 }
 
 /** Reads the lease from the chain, vets it (onRampPlan) and takes a rate-limit slot: what to mint, to whom. */
 export async function planOnRamp(client: PublicClient, chainId: number, a: { factory: Address; token: Address }, leaseInput: string) {
   const lease = getAddress(leaseInput);
-  const [isLease, terms, status, monthsFunded] = await Promise.all([
+  const [isLease, terms, status, periodsFunded] = await Promise.all([
     client.readContract({ address: a.factory, abi: escrowFactoryAbi, functionName: "isLease", args: [lease] }),
     client.readContract({ address: lease, abi: rentalEscrowAbi, functionName: "terms" }).catch(() => undefined),
     client.readContract({ address: lease, abi: rentalEscrowAbi, functionName: "status" }).catch(() => 99),
-    client.readContract({ address: lease, abi: rentalEscrowAbi, functionName: "monthsFunded" }).catch(() => 0),
+    client.readContract({ address: lease, abi: rentalEscrowAbi, functionName: "periodsFunded" }).catch(() => 0),
   ]);
-  const t = terms as { token: Address; tenant: Address; depositAmount: bigint; rentAmount: bigint; termMonths: number } | undefined;
+  const t = terms as { token: Address; tenant: Address; depositAmount: bigint; rentAmount: bigint; termPeriods: number } | undefined;
   if (!t) throw new DemoError(400, "not-a-lease", "That is not a KeyEscrow rental of this deployment.");
-  const plan = onRampPlan(chainId, { isLease: isLease as boolean, token: t.token, status: Number(status), monthsFunded: Number(monthsFunded), terms: t }, a.token);
+  const plan = onRampPlan(chainId, { isLease: isLease as boolean, token: t.token, status: Number(status), periodsFunded: Number(periodsFunded), terms: t }, a.token);
   checkRate();
   return plan;
 }

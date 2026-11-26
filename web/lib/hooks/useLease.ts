@@ -13,7 +13,9 @@ export type LeaseTerms = {
   arbiter: Address;
   rentAmount: bigint;
   depositAmount: bigint;
-  termMonths: number;
+  termPeriods: number;
+  /** Seconds per rent period: 7, 14 or 30 days. */
+  rentPeriod: number;
   responseWindow: number;
   arbiterWindow: number;
   leaseHash: Hex;
@@ -35,9 +37,9 @@ export type LeaseData = {
   terms: LeaseTerms;
   status: LeaseStatus;
   startTime: bigint;
-  monthsFunded: number;
-  monthsReleased: number;
-  monthsDue: number;
+  periodsFunded: number;
+  periodsReleased: number;
+  periodsDue: number;
   checkInHash: Hex;
   checkOutHash: Hex;
   proposal: LeaseProposal;
@@ -83,15 +85,15 @@ export function useLease(address: Address | undefined) {
       const r = <T,>(functionName: string, args: unknown[] = []) =>
         c.readContract({ address: a, abi: rentalEscrowAbi, functionName: functionName as never, args: args as never }) as Promise<T>;
       const balanceIn = (token: Address) => c.readContract({ address: token, abi: mockUsdtAbi, functionName: "balanceOf", args: [a] });
-      const [block, terms, status, startTime, monthsFunded, monthsReleased, monthsDue, checkInHash, checkOutHash, proposal, timeoutAt, arbiterDeadline, disputedAt, feeCharged, tokenBalance] =
+      const [block, terms, status, startTime, periodsFunded, periodsReleased, periodsDue, checkInHash, checkOutHash, proposal, timeoutAt, arbiterDeadline, disputedAt, feeCharged, tokenBalance] =
         await Promise.all([
           chainHead(queryClient, chainId, c as PublicClient),
           r<LeaseTerms>("terms"),
           r<number>("status"),
           r<bigint>("startTime"),
-          r<number>("monthsFunded"),
-          r<number>("monthsReleased"),
-          r<number>("monthsDue"),
+          r<number>("periodsFunded"),
+          r<number>("periodsReleased"),
+          r<number>("periodsDue"),
           r<Hex>("checkInHash"),
           r<Hex>("checkOutHash"),
           r<LeaseProposal>("proposal"),
@@ -109,9 +111,9 @@ export function useLease(address: Address | undefined) {
         terms,
         status: status as LeaseStatus,
         startTime,
-        monthsFunded,
-        monthsReleased,
-        monthsDue,
+        periodsFunded,
+        periodsReleased,
+        periodsDue,
         checkInHash,
         checkOutHash,
         proposal,
