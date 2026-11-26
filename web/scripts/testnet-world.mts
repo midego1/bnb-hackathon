@@ -163,7 +163,9 @@ async function api<T>(ctx: Ctx, p: string, init?: RequestInit, tries = 4): Promi
     }
   }
 }
-const postJson = <T,>(ctx: Ctx, p: string, body: unknown) => api<T>(ctx, p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+/** `tries` 1 for calls that must not repeat (a paid AI inspection, adding a scooter): a re-run of the world retries. */
+const postJson = <T,>(ctx: Ctx, p: string, body: unknown, tries = 4) =>
+  api<T>(ctx, p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, tries);
 
 async function upload(ctx: Ctx, files: { name: string; bytes: Uint8Array }[]): Promise<Hex[]> {
   const form = new FormData();
@@ -250,7 +252,9 @@ async function callFor(ctx: Ctx, s: Extract<Step, { tx: unknown }>): Promise<Cal
     return short > BigInt(0) ? { who: ctx.funder, to: addr(ctx, s.to!), value: short } : null;
   }
   if (s.tx === "faucet") {
-    const need = world.rentals.filter((r) => r.renter === s.to).reduce((sum, r) => sum + amounts(r, catalogue, THB_PER_USDT).funded, BigInt(0));
+    // Only rentals whose last funding step is still to come (a resumed run must not mint for funded ones).
+    const toFund = world.rentals.filter((r) => r.renter === s.to && !ctx.state.steps[`${r.id}:${r.prepay ? "prepay" : "fund"}`]?.done);
+    const need = toFund.reduce((sum, r) => sum + amounts(r, catalogue, THB_PER_USDT).funded, BigInt(0));
     const have = (await pub.readContract({ address: ctx.d.token, abi: tokenAbi, functionName: "balanceOf", args: [addr(ctx, s.to!)] })) as bigint;
     return need > have ? { who: ctx.funder, address: ctx.d.token, abi: tokenAbi, functionName: "faucet", args: [addr(ctx, s.to!), need - have] } : null;
   }
@@ -314,6 +318,9 @@ async function txStep(ctx: Ctx, s: Extract<Step, { tx: unknown }>) {
   if (st.pending) {
     // Sent before a crash: its receipt decides (a dropped tx is sent again below).
     receipt = await ctx.c.wait(st.pending as Hash).catch(() => undefined);
+    if (!receipt && (await ctx.c.pub.getTransaction({ hash: st.pending as Hash }).catch(() => null))) {
+      throw new Error(`${s.key}: ${st.pending} is still pending; run again once it is mined (sending again could do it twice)`);
+    }
     if (receipt?.status !== "success") delete st.pending;
   }
   if (!receipt || receipt.status !== "success") {
@@ -354,7 +361,7 @@ async function offStep(ctx: Ctx, s: Extract<Step, { off: unknown }>) {
       const bytes = new Uint8Array(await sharp()(path.join(WEB, "public", l.photos[0])).resize(960, 720).jpeg({ quality: 78 }).toBuffer());
       const [hash] = await upload(ctx, [{ name: `${l.slug}.jpg`, bytes }]);
       const add = { action: "addScooter", owner, name: l.name, location: l.location, rentThb: l.monthThb, depositThb: l.depositThb, vault: !!shop.vault, photo: `/api/evidence/${hash}` };
-      const { status, body } = await postJson<{ scooters: never[]; error?: string }>(ctx, `/api/fleet${q}`, add);
+      const { status, body } = await postJson<{ scooters: never[]; error?: string }>(ctx, `/api/fleet${q}`, add, 1);
       if (status !== 200) throw new Error(`addScooter ${status}: ${body.error}`);
       found = find(body);
     }
@@ -378,7 +385,7 @@ async function offStep(ctx: Ctx, s: Extract<Step, { off: unknown }>) {
       : "DEMO rental. Renter's note at return: no incidents.";
     const req = { deposit: String(amounts(r, catalogue, THB_PER_USDT).deposit), checkIn: set("pickup"), checkOut: set("return"), notes, lease: escrowOf(ctx, r.id), chainId: ctx.chainId };
     for (let i = 0; ; i++) {
-      const { status, body } = await postJson<Record<string, unknown> & { error?: string }>(ctx, "/api/settlement", req);
+      const { status, body } = await postJson<Record<string, unknown> & { error?: string }>(ctx, "/api/settlement", req, 1);
       if (status === 200) {
         res = { tenantRefund: body.tenantRefund, landlordClaim: body.landlordClaim, reportHash: body.reportHash, mock: body.mock, fallback: body.fallback ?? null, reasons: body.reasons };
         break;
@@ -401,11 +408,11 @@ async function offStep(ctx: Ctx, s: Extract<Step, { off: unknown }>) {
       await api(ctx, `/api/chain/index${q}&minBlock=${block}`);
       const { status, body } = await postJson<{ stored?: number; skipped?: number; reason?: string; error?: string }>(ctx, "/api/history", { lease: escrowOf(ctx, r.id), chainId: ctx.chainId });
       if (status !== 200) throw new Error(`POST /api/history ${status}: ${body.error ?? ""}`);
-      if (body.reason === "rate-limited") {
-        console.log(`    --  ${s.key.padEnd(30)} memory writes rate limited (20/hour/IP): left for the next run`);
+      if (body.reason === "rate-limited" || (body.reason === "not-settled" && i >= 6)) {
+        console.log(`    --  ${s.key.padEnd(30)} ${body.reason === "rate-limited" ? "memory writes rate limited (20/hour/IP)" : "the server's chain index has not seen the settlement yet"}: left for the next run`);
         return;
       }
-      if (body.reason !== "not-settled" || i >= 6) {
+      if (body.reason !== "not-settled") {
         res = body as Record<string, unknown>;
         break;
       }
@@ -416,6 +423,11 @@ async function offStep(ctx: Ctx, s: Extract<Step, { off: unknown }>) {
   }
   ctx.state.steps[s.key] = { done: true, result: res };
   ctx.save();
+}
+
+/** Top-ups run again on every run (they send nothing when a wallet holds enough), so a wallet that ran dry refills. */
+function reopenTopUps(state: WorldState) {
+  for (const k of Object.keys(state.steps)) if (/^(gas|usdt):/.test(k)) delete state.steps[k];
 }
 
 async function runWorld(ctx: Ctx) {
@@ -507,6 +519,7 @@ async function cmdRun() {
 
   const file = stateFile();
   const state = loadState(existsSync(file) ? readFileSync(file, "utf8") : undefined, 97, d.escrowFactory);
+  reopenTopUps(state);
   const bals: Record<string, bigint> = {};
   for (const [id, a] of Object.entries(who)) bals[id] = await c.pub.getBalance({ address: a.address });
   console.log(`BSC testnet (97), server ${server}, funder/desk ${funder.address}`);
@@ -632,9 +645,11 @@ async function cmdRehearse() {
     // 2. Resume from the file, as a fresh process would.
     const resumed: Ctx = { ...ctx, crashAfter: undefined, state: loadState(readFileSync(file, "utf8"), 31337, d.escrowFactory) };
     resumed.save = () => writeFileSync(file, JSON.stringify(resumed.state));
+    reopenTopUps(resumed.state);
     await runWorld(resumed);
     // 3. A re-run sends nothing.
     const block = await c.pub.getBlockNumber();
+    reopenTopUps(resumed.state);
     await runWorld(resumed);
     assert((await c.pub.getBlockNumber()) === block, "a re-run of a finished world sends no transaction");
     await checks(resumed);
