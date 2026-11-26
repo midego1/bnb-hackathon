@@ -38,8 +38,14 @@ enum PhotoCatalog {
         "yamaha-grand-filano": "photo-grand-filano",
     ]
 
-    static func asset(forListing id: String) -> String? { byListing[id] }
-    static func credit(forListing id: String) -> PhotoCredit? { byListing[id].flatMap(credit(asset:)) }
+    /// Listing ids of app builds before the shared catalogue -> its slug (rentals stored on a phone keep the old id).
+    static let legacySlugs = [
+        "click-125i-cnx": "honda-click-125i", "scoopy-i-pai": "honda-scoopy", "nmax-155-patong": "yamaha-nmax-155",
+        "pcx-160-bkk": "honda-pcx-160", "fino-125-bkk": "yamaha-fino-125",
+    ]
+
+    static func asset(forListing id: String) -> String? { byListing[legacySlugs[id] ?? id] }
+    static func credit(forListing id: String) -> PhotoCredit? { asset(forListing: id).flatMap(credit(asset:)) }
     static func credit(asset: String) -> PhotoCredit? { credits.first { $0.asset == asset } }
     static var listingIds: [String] { Array(byListing.keys) }
 

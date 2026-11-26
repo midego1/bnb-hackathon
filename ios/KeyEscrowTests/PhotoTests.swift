@@ -50,6 +50,20 @@ final class PhotoTests: XCTestCase {
         for l in Listing.offline { XCTAssertNotNil(PhotoCatalog.asset(forListing: l.id), l.id) }
     }
 
+    func testRentalsOfOlderBuildsKeepTheirListing() {
+        // Phones that rented before the shared catalogue stored the old listing ids.
+        for (old, slug) in PhotoCatalog.legacySlugs {
+            XCTAssertNotNil(PhotoCatalog.asset(forListing: slug), slug)
+            XCTAssertEqual(PhotoCatalog.asset(forListing: old), PhotoCatalog.asset(forListing: slug), old)
+        }
+        let renter = "0x00000000000000000000000000000000000000aa"
+        ShopRentals.set("0x00000000000000000000000000000000000000b1", for: "click-125i-cnx", renter: renter)
+        XCTAssertEqual(ShopRentals.lease(for: "honda-click-125i", renter: renter), "0x00000000000000000000000000000000000000b1")
+        ShopRentals.set(nil, for: "honda-click-125i", renter: renter) // start over clears the old entry too
+        XCTAssertNil(ShopRentals.lease(for: "honda-click-125i", renter: renter))
+        XCTAssertNil(ShopRentals.lease(for: "click-125i-cnx", renter: renter))
+    }
+
     func testPlacesMatchTheCatalogueLocations() {
         func place(_ location: String) -> [String] {
             let l = Listing(id: "x", kind: .demoScooter, name: "x", location: location, description: "", photo: nil, rentThb: 1, depositThb: 1, perDay: false, symbol: "scooter", vault: false)

@@ -86,11 +86,16 @@ final class WalletStore: ObservableObject {
 enum ShopRentals {
     private static let key = "keyescrow.shopRentals.v1"
     static func lease(for scooter: String, renter: String) -> String? {
-        (UserDefaults.standard.dictionary(forKey: key) as? [String: String])?["\(renter.lowercased()):\(scooter)"]
+        let d = (UserDefaults.standard.dictionary(forKey: key) as? [String: String]) ?? [:]
+        // An older build stored the rental under the listing's old id (PhotoCatalog.legacySlugs).
+        let old = PhotoCatalog.legacySlugs.first { $0.value == scooter }?.key
+        return d["\(renter.lowercased()):\(scooter)"] ?? old.flatMap { d["\(renter.lowercased()):\($0)"] }
     }
     static func set(_ lease: String?, for scooter: String, renter: String) {
         var d = (UserDefaults.standard.dictionary(forKey: key) as? [String: String]) ?? [:]
         d["\(renter.lowercased()):\(scooter)"] = lease
+        // The new rental (or "start over") replaces one an older build stored under the old id.
+        for (old, slug) in PhotoCatalog.legacySlugs where slug == scooter { d["\(renter.lowercased()):\(old)"] = nil }
         UserDefaults.standard.set(d, forKey: key)
     }
     /// Escrow -> scooter id, to continue a rental from My rentals.

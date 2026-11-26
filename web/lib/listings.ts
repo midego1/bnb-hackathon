@@ -47,10 +47,9 @@ export type ListingPhoto = { width: number; height: number; alt: string; credit:
 export const LISTINGS: Listing[] = config.listings;
 /** Every catalogue photo by its path (a listing's `photos` entry). */
 export const LISTING_PHOTOS: Record<string, ListingPhoto> = config.photos;
-export const PHOTO_WIDTHS = [480, 960, 1200] as const;
 /** `srcset` of a catalogue photo in one format: its 480, 960 and 1200 px files. */
 export const photoSrcSet = (src: string, ext: "avif" | "webp" | "jpg") =>
-  PHOTO_WIDTHS.map((w) => `${src.replace(/-1200\.jpg$/, `-${w}.${ext}`)} ${w}w`).join(", ");
+  [480, 960, 1200].map((w) => `${src.replace(/-1200\.jpg$/, `-${w}.${ext}`)} ${w}w`).join(", ");
 /** Fixed demo rate for pricing stage rentals in mUSDT. shortcut: not the live CMC rate; switch to the price service if the Worker has room. */
 export const LISTING_THB_PER_USDT: number = config.thbPerUsdt;
 
