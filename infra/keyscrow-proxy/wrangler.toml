@@ -1,0 +1,5 @@
+name = "keyscrow"
+main = "worker.js"
+compatibility_date = "2025-11-01"
+workers_dev = true
+services = [{ binding = "APP", service = "keyescrow-web" }]
