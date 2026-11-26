@@ -209,8 +209,7 @@ html.dark .mk section.mk-night {
   left: -7%;
   right: -7%;
   container-type: size;
-  animation: mk-pan 80s ease-in-out infinite alternate;
-  will-change: transform;
+  /* Stands still (owner, 26 Nov): no sideways drift. */
 }
 .mk-art img {
   width: 100%;
