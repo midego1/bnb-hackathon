@@ -131,9 +131,9 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await phone.getByTestId(`judge-pick-${HONDA}`).click();
   await step(phone, "wallet");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "1");
-  // Rent: the renter still holds the Honda's month + deposit (฿3,400 + ฿6,800; on-chain mUSDT, so ±฿1), nothing moves yet.
+  // Rent: the renter still holds the Honda's day + deposit (฿250 + ฿6,800; on-chain mUSDT, so ±฿1), nothing moves yet.
   await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "none");
-  await expect(held(page, "renter")).toHaveText(/^฿10,20[01]\s*$/);
+  await expect(held(page, "renter")).toHaveText(/^฿7,05[01]\s*$/);
   await expect(held(page, "escrow")).toHaveText(/^฿0\s*$/);
   await expect(held(page, "owner")).toHaveText(/^฿0\s*$/);
   await expect(track(page, 0)).toHaveAttribute("data-flow", "off");
@@ -145,6 +145,9 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await step(phone, "money");
   await phone.getByTestId("judge-drip").click();
   await step(phone, "rent");
+  // On stage a scooter rents for one day at its day price, like the box.
+  await expect(phone.getByRole("heading", { level: 2 })).toContainText(/Rent it for ฿25[01]/);
+  await expect(phone.getByText("Rent (1 day)")).toBeVisible();
   await phone.getByTestId("judge-rent").click();
   await step(phone, "pickup");
 
@@ -154,9 +157,9 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("stage-headline")).toContainText("locked in escrow");
   await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "funded");
   await expect(held(page, "renter")).toHaveText(/^฿0\s*$/);
-  await expect(held(page, "escrow")).toHaveText(/^฿10,20[01]\s*$/);
+  await expect(held(page, "escrow")).toHaveText(/^฿7,05[01]\s*$/);
   await expect(track(page, 0)).toHaveAttribute("data-flow", "fwd");
-  await expect(track(page, 0)).toContainText(/฿10,20[01]/);
+  await expect(track(page, 0)).toContainText(/฿7,05[01]/);
   await expect(track(page, 1)).toHaveAttribute("data-flow", "off");
   await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(2);
   await page.screenshot({ path: path.join(SHOTS, "duo-1470x830-funded.png") });

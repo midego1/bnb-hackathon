@@ -78,7 +78,6 @@ export const body = {
     },
     rent: {
       rent: "Rent (1 day)",
-      month: "Rent (1 month)",
       deposit: "Deposit (comes back)",
       body: "The money goes into this rental's own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.",
       preparing: "The owner is preparing your rental…",

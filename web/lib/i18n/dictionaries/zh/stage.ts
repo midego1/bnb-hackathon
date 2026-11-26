@@ -75,7 +75,6 @@ export const body: DeepPartial<typeof enBody> = {
     },
     rent: {
       rent: "租金（1 天）",
-      month: "租金（1 个月）",
       deposit: "押金（会退还）",
       body: "这笔钱进入这笔租赁专属的 BNB Chain 托管合约，不会付给车主。任何一方都不能单方面拿走押金。",
       preparing: "车主正在准备你的租赁…",

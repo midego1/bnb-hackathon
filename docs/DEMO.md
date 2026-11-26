@@ -164,13 +164,16 @@ We bring a physical **KeyScrow Mystery Box** (฿200/day, ฿1,000 deposit; edit
 Notes: photos are compressed on the phone to ≤ 200 KB; on Cloudflare without R2 they live in the Durable Object for
 7 days. Every step is read back from the chain, so reloading either screen continues where it was. One rental at a
 time; an offer left unfunded for 5 minutes may be taken by the next renter. The contracts' shortest term is one month:
-the stage rental is "one day" in the UI and settles the same day.
+the stage rental is "one day" in the UI and settles the same day. Every stage item, box or scooter, rents for one day at
+its listing's day price (Honda Click ฿250) plus its deposit.
 
 **Both sides on one screen (`/duo/mystery-box`, unlisted), for the pitch and the video:** left the renter's phone (the
 real `/r` flow in a phone frame, with this browser's own guest wallet), right the rental company's view (headline,
 money strip, photos, timeline, a small QR, *Accept* / *Reset*), under a step bar Choose → Rent → Pickup photos → Return → AI split → Settled. The phone opens on its chooser;
-picking e.g. the Honda Click switches the header, the owner pane and the URL to `/duo/honda-click-125i`. Cards light up
-and a ฿ coin runs along the arrows when money moves (still with reduced motion). When a judge scans the QR and rents on
+picking e.g. the Honda Click switches the header, the owner pane and the URL to `/duo/honda-click-125i`. The owner pane's money
+is the landing page's LED board, live: Renter → Escrow ("this rental's own contract") → Owner, the on-chain amounts in
+BNB-coin dots; on each real transfer the coins chase along the track (three times; lit but still with reduced motion)
+and the amount tag flies in; at settlement it shows what came back and *KeyScrow fee ฿X, once*. When a judge scans the QR and rents on
 their own phone, the left pane mirrors that rental read-only until *Reset stage*. One screen on a laptop or projector
 (1280×720 and up); stacked on a phone. Rehearse: `cd web && npx playwright test duo`.
 
@@ -179,11 +182,11 @@ their own phone, the left pane mirrors that rental read-only until *Reset stage*
 The landing page's grid shows seven **demo scooters** from `web/data/listings.json` (not real shops' offers) next to the
 Mystery Box. The search above it (where, when, how long) filters the grid by city; every demo listing is open on every
 date. A card opens `/app/listings/<slug>`, and **Rent it** there starts a real rental with the wallet connected in the
-app: *Get test money* if the wallet is short (the same once-per-address drip as on stage), then the demo owner offers
+app: *Get test money* if the wallet is short (the same top-up drip as on stage), then the demo owner offers
 that wallet the rental (the same server-signed `createLease`), and the rental page `/lease/<escrow>` takes over:
-approve, fund the deposit and the first month's rent, photos, return. A scooter is rented by the month (its `monthThb`
-is the escrow's rent, so the one-time fee is 10 % of that month); the price per day on the card is the shop's day
-rate, shown for comparison. Amounts are priced at the fixed demo rate and rounded up to the cent, so the rental
+approve, fund the deposit and one day's rent, photos, return. Like every stage rental, a scooter rents for one day at
+its day price (the escrow's one rent period; the one-time fee is 10 % of it); the month price on the listing is shown
+for comparison. Amounts are priced at the fixed demo rate and rounded up to the cent, so the rental
 page's baht total can be one baht above the listed sum. A rented scooter says *Rented right now* until its rental is
 settled; the owner's side (accept the split, or reset the listing) is the presenter's buttons at `/stage/<slug>`.
 
