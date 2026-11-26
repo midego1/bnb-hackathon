@@ -163,6 +163,11 @@ export default async function SponsorsPage() {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
       <PageTitle title={t.head(sponsorsCopy, (x) => x.title)}>{c.lead}</PageTitle>
+      <p className="-mt-3 mb-6 text-sm">
+        <Link href="/media" className="inline-block py-0.5 underline underline-offset-2" data-testid="sponsors-media">
+          {c.media}
+        </Link>
+      </p>
       <div className="grid gap-4 md:grid-cols-2">
         {tracks.map((tr) => (
           <Card key={tr.id} title={c.tracks[tr.id].name} aside={chip(tr.state, `sponsor-${tr.id}-state`)} className="flex flex-col">

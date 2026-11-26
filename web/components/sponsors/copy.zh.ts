@@ -8,6 +8,7 @@ export const zh: DeepPartial<SponsorsCopy> = {
   lead: "KeyScrow 在 BNB Bangkok 2026 参加的赛道、每个赛道用到了什么，以及它在本服务器上的当前状态。状态标签读取的数据与 /api/integrations 相同。",
   see: "查看",
   proof: "证明",
+  media: "媒体资料：可下载全部视频、幻灯片、截图和文档",
   state: { live: "已上线", built: "已完成", waiting: "等待密钥", done: "已完成", pending: "待完成" },
   tracks: {
     bnb: {

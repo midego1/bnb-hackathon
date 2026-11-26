@@ -685,6 +685,7 @@ export async function SiteFooter({ demo }: { demo: boolean }) {
         ["/developers", l.developers],
         ["/integrations", l.integrations],
         ["/sponsors", l.sponsors],
+        ["/media", l.media],
         [docsUrl("AGENT.md"), l.agent, true],
         [docsUrl("API.md"), l.api, true],
         [docsUrl("ARCHITECTURE.md"), l.architecture, true],

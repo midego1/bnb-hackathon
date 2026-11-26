@@ -19,6 +19,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import { buildMedia } from "./media.mjs";
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = join(WEB, "..");
@@ -132,6 +133,7 @@ function nextBuild() {
   assertPublicBuildEnv();
   const env = buildEnv();
   console.log(`cf: next build for chain ${CHAIN_ID} (factory ${env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS}, live testnet demo ${env.NEXT_PUBLIC_DEMO_TESTNET === "1" ? "on" : "off"})`);
+  buildMedia();
   process.exit(run("pnpm", ["exec", "next", "build"], { env: { ...env, ...openNextBuildVars() } }));
 }
 

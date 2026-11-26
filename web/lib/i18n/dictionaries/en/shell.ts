@@ -54,6 +54,7 @@ export const body = {
       website: "About KeyScrow",
       docs: "Docs",
       eli5: "How it works, explained simply",
+      media: "Media kit",
       secrets: "Secrets (local only)",
     },
     gate: {

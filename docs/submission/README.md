@@ -7,6 +7,7 @@ with the seeded demo world (`pnpm testnet:world rehearse`: 3 shops, 10 renters, 
 | --- | --- |
 | [HACKQUEST.md](HACKQUEST.md) | Ready-to-paste form fields: name, one-liner, descriptions, BNB Chain, the sponsor tracks, links, test counts |
 | [deck.pdf](deck.pdf) | 11-slide pitch deck, 1920×1080 ([deck.html](deck.html) is the source). Slide 4 shows the native iPhone app in CSS phone frames, so no live phone is needed on stage |
+| [deck-cover.jpg](deck-cover.jpg) | Slide 1 at 960×540, the deck preview on `/media` (`pdftoppm -f 1 -l 1 -scale-to-x 960 -scale-to-y -1 -jpeg -jpegopt quality=80 deck.pdf`) |
 | [duo.mp4](duo.mp4) · [.webm](duo.webm) | **The hero video (60 s).** `/duo`: the renter's phone on the left, the rental company with the LED money board on the right. The phone opens on the catalogue; picking the Honda Click 125i switches the whole screen to it (฿250 for a day + ฿6,800 deposit). Test money, pay into escrow (coins run renter → escrow), pickup photo, return photo, AI split, the owner accepts, settled (coins run back to the renter and on to the owner, KeyScrow fee ฿25, once). Script: [`web/scripts/record-duo.mjs`](../../web/scripts/record-duo.mjs) |
 | [demo-guided.mp4](demo-guided.mp4) · [.webm](demo-guided.webm) | `/demo`, Guided, happy path, one click from start to the balanced final summary (90 s) |
 | [eli5.mp4](eli5.mp4) · [.webm](eli5.webm) | `/how-it-works`, the cartoon with the "Both agree" ending (71 s) |
@@ -36,3 +37,6 @@ Ask AI the offline demo model (no model keys). Nothing touched a public chain.
 
 Render the deck again: open `deck.html` in Chromium at 1920×1080 and print to PDF with backgrounds, or with
 Playwright: `page.pdf({ width: "1920px", height: "1080px", printBackground: true })`.
+
+Everything here (and the iOS screenshots, brand icons and main docs) is downloadable on the app's `/media` page, one by one
+or as one .zip; `web/scripts/media.mjs` copies and zips them before every web build.

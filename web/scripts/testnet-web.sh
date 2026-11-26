@@ -62,6 +62,7 @@ RUNTIME_VARS+=(
 
 build() {
   echo "building $WEB/$DIST for chain 97"
+  node "$WEB/scripts/media.mjs"
   (cd "$WEB" && env -u NEXT_PUBLIC_ANVIL_RPC_URL -u NEXT_PUBLIC_RPC_URL "${ENV_VARS[@]}" pnpm exec next build >/dev/null)
 }
 
