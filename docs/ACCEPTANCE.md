@@ -37,7 +37,8 @@ Tests: `pnpm test` (Foundry), `pnpm -C web test` (Vitest), `pnpm agent:test`, `c
 - [x] The inspector reads the scooter's earlier inspections (memory) and does not charge logged damage again.
 - [x] Reports carry the agent identity (ERC-8004 #2921), so the on-chain report hash commits to the agent.
 - [ ] Camera-only capture with time and location stamps everywhere: only the judge phone (`/r`) forces the camera.
-- [ ] A vision LLM on the live site: no model key is set there; the demo inspector runs.
+- [x] A vision LLM on the live site (https://keyscrow.app, `ANTHROPIC_API_KEY` set); the demo inspector is the labelled
+      fallback (model busy, daily cap, photos not on the server, unusable answer).
 
 ## Dispute memory
 
@@ -55,7 +56,9 @@ Tests: `pnpm test` (Foundry), `pnpm -C web test` (Vitest), `pnpm agent:test`, `c
 - [x] Cournot claim, probability and evidence are stored and shown; the probability scales the BNB buffer.
 - [x] CoinMarketCap live on the deployed site (`/api/integrations` reports it live; calls show on `/integrations`).
 - [x] Atlas live: BSC testnet and mainnet push feeds are the first price source (`GET /api/price` → `"source":"atlas"`).
-- [ ] Atlas Pull API (signed reports): key available, not called by the code yet.
+- [x] Atlas Pull API live on https://keyscrow.app: signed reports verified against the official signer (consensus
+      HEALTHY), the Pay with BNB guard (`AtlasSwapGuard` `0xD26dBba1eE904c95d3467F479FC4410b0400b6bA` on testnet) and the
+      settlement price proof. The mainnet pilot site has no Pull API key: Pay with BNB is refused there.
 - [ ] Cournot live call with proof: waiting for a partner key / paid calls (`COURNOT_LIVE=1`).
 
 ## Fleet vault (testnet prototype)

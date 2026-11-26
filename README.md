@@ -88,7 +88,7 @@ flowchart LR
 | Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (59 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
 | Tests (26 Nov) | 314 Foundry · 558 vitest (40 files) · 24 agent · 154 Playwright tests in 27 spec files |
 | Size | ~74,000 lines of code + ~5,300 lines of Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries) |
-| Built with | Claude Code: 2.47 billion tokens in total (8.13M output), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~15:50 ICT |
+| Built with | Claude Code: ≈2.68 billion tokens in total (8.74M output, 10,441 messages), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~19:00 ICT |
 
 The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 [agent card](https://agent.keyscrow.app/.well-known/agent-card.json). The contracts are in
@@ -99,7 +99,7 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 | Real (BSC testnet, chain 97) | Test stand-in or mocked, and labelled in the UI |
 | --- | --- |
 | One escrow contract per rental; creating, funding, rent payouts, evidence hashes, proposals and settlements in `/demo` and `/stage` are real transactions | The money is MockUSDT test money with no value; `/demo` and `/stage` sign with throwaway server-side demo wallets and a guest wallet |
-| ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site is a deterministic *demo inspector* (no model key set); with a key, a vision LLM returns the same JSON |
+| ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site runs a vision LLM (Claude); when the model is busy, the daily cap is used up, the photos are not on the server or the answer is unusable, a deterministic *demo inspector* returns the same JSON, labelled |
 | The contracts, verified on BscScan | Prices are live: Atlas push feeds first, CoinMarketCap as fallback and for THB; Cournot is built but waits for a partner key ([state per sponsor](#sponsor-integrations)) |
 | Photo and document fingerprints (SHA-256) | The photos themselves are off-chain; the *Pay with PromptPay* page is a simulation that mints test USDT |
 
