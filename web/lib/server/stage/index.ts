@@ -7,7 +7,7 @@ import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi } from "@
 import { hashText } from "@/lib/hash";
 import { getListing, LISTING_THB_PER_USDT, type Listing } from "@/lib/listings";
 import { isFinal, MAINNET_STAGE_PRICE, replaceable, same, type StageRental, type StageStatus } from "@/lib/stage";
-import { createChain97, gasPriceFrom, type Chain97 } from "../chain97.mts";
+import { createChain97, gasPriceFrom, TxStalledError, type Chain97 } from "../chain97.mts";
 import { demoTestnetConfig } from "../demoTestnet/guards";
 import { loadDemoSecrets } from "../demoTestnet/keys";
 import type { Env } from "../env";
@@ -267,6 +267,8 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
         console.log(`[stage] drip to ${to}: ${txs.length} txs`);
         return { txs, repeat: false };
       } catch (e) {
+        // Sent but not mined yet: keep the claim pending (DRIP_PENDING_MS), so a retry cannot send the money twice.
+        if (e instanceof TxStalledError) throw new StageError(504, "The money is on its way but the chain is slow. Try again in two minutes.", 120);
         // Free the claim so the phone can retry.
         await update<DripRecord, void>(state(), key, (cur) => (cur?.state === "pending" ? { value: null, result: undefined } : { result: undefined }));
         throw e;

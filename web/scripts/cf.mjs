@@ -261,7 +261,7 @@ const fmt = (n) => `${(n / MiB).toFixed(2)} MiB`;
 
 function size() {
   for (const [name, dir] of [
-    ["keyescrow-web", WEB],
+    [readMarker()?.worker ?? "keyescrow-web", WEB],
     ["keyescrow-agent", AGENT],
   ]) {
     const s = bundleSize(dir);
