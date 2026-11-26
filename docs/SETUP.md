@@ -42,10 +42,14 @@ Only free, read-only calls, server-side, 10 s timeout, at most 10 tests per 5 mi
 | `CLOUDFLARE_API_TOKEN` | `GET /client/v4/user/tokens/verify` |
 | `CLOUDFLARE_ACCOUNT_ID` | `GET /client/v4/accounts/<id>` with the stored token (save the token first) |
 | `PINATA_JWT` | `GET api.pinata.cloud/data/testAuthentication` |
-| `BSC_TESTNET_RPC_URL`, `ATLAS_RPC_URL` | `eth_chainId` (97 expected for the BSC one) |
+| `BSC_TESTNET_RPC_URL`, `BSC_MAINNET_RPC_URL`, `ATLAS_RPC_URL` | `eth_chainId` (97 = `0x61` for testnet, 56 = `0x38` for mainnet) |
 | `GREENFIELD_RPC_URL`, `GREENFIELD_CHAIN_ID` | the node's Tendermint `/status` network (`greenfield_5600-1`) |
 | `INSPECTOR_PRIVATE_KEY`, `GREENFIELD_PRIVATE_KEY` | no network: the address is derived locally and shown (the inspector key is compared with `INSPECTOR_SIGNER_ADDRESS` and `agent/deployments/97.json` `reportSigner`) |
-| `COURNOT_API_KEY`, `LIVING_BRAIN_*`, `GREENFIELD_BUCKET`, `GREENFIELD_SP_ENDPOINT` | Can't test: no free check without spending credits (Cournot's free calls are limited, so it is never called) |
+| `LIVING_BRAIN_API_KEY` | `GET api.livingbrain.com/v1/brains` (lists brains; with the stored `LIVING_BRAIN_SUBJECT_ID` as `x-subject-id`) |
+| `LIVING_BRAIN_BRAIN_ID` | `GET api.livingbrain.com/v1/brains/<id>` with the stored key; without a stored key the format only |
+| `COURNOT_API_BASE` | one of the two bases the client allows (`https://interface.cournot.ai`, `https://dev-interface.cournot.ai`), then a `GET` of it must answer |
+| `COURNOT_API_KEY`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | format only (`ck_live_...`; 32 hex characters): Cournot's free calls are limited and WalletConnect has no free check |
+| `LIVING_BRAIN_SUBJECT_ID`, `GREENFIELD_BUCKET`, `GREENFIELD_SP_ENDPOINT` | Can't test (any UUID works; no free check) |
 
 ![Key test](screenshots/settings-secrets-key-test-light.png)
 
@@ -53,11 +57,13 @@ Only free, read-only calls, server-side, 10 s timeout, at most 10 tests per 5 mi
 
 | File | Read by | Names |
 | --- | --- | --- |
-| `web/.env.local` (main checkout) | the Next server: `keyescrow-web` (:3000, `next dev`) and `keyescrow-web-testnet` (:3001, `next start`), both run from that `web/` | `ANTHROPIC_API_KEY`, `CMC_API_KEY`, `COURNOT_API_KEY`, `ATLAS_RPC_URL`, `LIVING_BRAIN_*`, `GREENFIELD_*`, `PINATA_JWT`, `INSPECTOR_PRIVATE_KEY` |
-| `.env` (repo root, main checkout) | Foundry scripts (`pnpm deploy:testnet*`), `pnpm agent:register`, the live demo runner on :3001 | `BSC_TESTNET_RPC_URL`, `BSCSCAN_API_KEY`, `INSPECTOR_PRIVATE_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` |
+| `web/.env.local` (main checkout) | the Next server: `keyescrow-web` (:3000, `next dev`) and `keyescrow-web-testnet` (:3001, `next start`), both run from that `web/` | `ANTHROPIC_API_KEY`, `CMC_API_KEY`, `COURNOT_API_KEY`, `COURNOT_API_BASE`, `ATLAS_RPC_URL`, `LIVING_BRAIN_*`, `GREENFIELD_*`, `PINATA_JWT`, `INSPECTOR_PRIVATE_KEY`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (rebuild: see below) |
+| `.env` (repo root, main checkout) | Foundry scripts (`pnpm deploy:testnet*`), `pnpm agent:register`, the live demo runner on :3001 | `BSC_TESTNET_RPC_URL`, `BSC_MAINNET_RPC_URL`, `BSCSCAN_API_KEY`, `INSPECTOR_PRIVATE_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` |
 
-The allowlist is `web/lib/server/secrets/registry.ts`. Nothing else can be written, and never a `NEXT_PUBLIC_*` name
-(those end up in the browser bundle). `pnpm agent:dev` reads its shell env only, not a `.env` file.
+The allowlist is `web/lib/server/secrets/registry.ts`. Nothing else can be written. `NEXT_PUBLIC_*` names end up in the
+browser bundle, so the only one listed is the public `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (marked `public`; not a
+secret, but write-only here like the rest). It is baked in at build time: after saving, rebuild `:3001`
+(`pnpm testnet:web`) and restart `keyescrow-web` (:3000). `pnpm agent:dev` reads its shell env only, not a `.env` file.
 
 Every write is atomic (temp file + rename), keeps the file at mode 600 and every other line and comment as it was, and
 first copies the old file to `.orca/backup/env/` (mode 600, the newest 10 per file). An audit line (time, name,
@@ -86,6 +92,11 @@ The page and its API answer **404** unless the server runs with `SETTINGS_SECRET
 | `SETTINGS_SECRETS_AGENT_DEPLOYMENT` | `agent/deployments/97.json` next to `SECRETS_ENV_FILE` (registered report signer) |
 | `SETTINGS_SECRETS_TEST_ORIGIN` | unset; e2e only: `http://127.0.0.1:<port>` stub that stands in for every key-test API |
 | `SETTINGS_SECRETS_HOSTS` | extra allowed Host names, comma-separated (localhost, tailnet IPs and `*.ts.net` are always allowed) |
+
+**Empty page on :3000?** `next dev` serves its dev resources (`/_next/hmr`) only to the hosts in `allowedDevOrigins`
+(`next.config.ts`: tailnet IPs, `*.ts.net`, `SETTINGS_SECRETS_HOSTS`). From any other host the page never hydrates and
+shows its title without the passcode prompt. A host the guard refuses (e.g. a short MagicDNS name such as `paseo-box`
+without `SETTINGS_SECRETS_HOSTS`) gets a 404.
 
 ## Guards
 

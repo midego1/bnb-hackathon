@@ -198,6 +198,17 @@ export const body: DeepPartial<typeof enBody> = {
     restartTitle: "重启 {unit}（{label}）？",
     restartBody: "那边的页面会有几秒钟无法访问。",
     restartOk: "重启",
+    rebuild: "构建时写入的公开值：需重新构建后生效（:3001 运行 pnpm testnet:web，:3000 重启 keyescrow-web）",
+    rebuildToUse: " · 重新构建后生效（:3001 运行 pnpm testnet:web，:3000 重启 keyescrow-web）",
+    groups: {
+      prices: "价格",
+      wallet: "钱包连接",
+      rpc: "RPC",
+      storage: "存储",
+      sponsors: "赞助方",
+      ai: "AI 验车",
+      deploy: "部署",
+    },
     errors: {
       request: "请求失败（{status}）。",
       noAnswer: "服务器没有响应。",

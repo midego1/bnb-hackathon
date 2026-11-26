@@ -51,9 +51,10 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
   vars and secrets.
 - `cacheComponents` / `partialPrefetching` are off (with them every page render hangs under workerd; the Node build has
   them off too because every page reads the language cookie in the root layout; nothing uses `"use cache"`), and the
-  BNB Greenfield SDK is replaced by a stub (it adds ~5 MiB and evidence goes to R2 on Workers). Without
-  `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (only injected wallets) the MetaMask and Base Account SDKs, which wagmi's
-  connectors import lazily, are stubbed too (~0.38 MiB gzip).
+  BNB Greenfield SDK is replaced by a stub (it adds ~5 MiB and evidence goes to R2 on Workers). The MetaMask and
+  Base Account SDKs, which wagmi's connectors import lazily, are stubbed too (~0.38 MiB gzip), also with
+  `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` set: the Workers build then offers injected wallets, Rainbow and WalletConnect
+  (`lib/wagmi.ts`), and MetaMask connects as an injected wallet or through WalletConnect.
 
 `cf:build` ends by copying the prerendered pages into the static assets (`opennextjs-cloudflare populateCache local`,
 which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the
@@ -158,12 +159,14 @@ modules); `wrangler deploy --dry-run` reports `Total Upload` 2791 KiB gzip for t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 13.58 MiB | **2.70 MiB** | fits Free (3 MiB), 0.30 MiB headroom |
+| `keyescrow-web` | 13.86 MiB | **2.77 MiB** | fits Free (3 MiB), 0.23 MiB headroom |
 | `keyescrow-agent` | 4.34 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
 time (`Total Upload ... gzip`) may differ slightly. It reached 2.97 MiB (3043 KiB) before the MetaMask and Base
-Account SDKs were stubbed (-393 KiB, `Total Upload` 2650 KiB). The merges since the first build added
+Account SDKs were stubbed (-393 KiB, `Total Upload` 2650 KiB). With `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` set those
+SDKs used to come back (3.04 MiB gzip, over Free); they now stay stubbed, and the size is the same with or without the
+id (2.77 MiB gzip, 13.89 / 13.86 MiB raw). The merges since the first build added
 0.43 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
 `pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
 ($5/month, 10 MiB limit), or a trim of the server bundle.

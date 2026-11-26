@@ -204,6 +204,17 @@ export const body = {
     restartTitle: "Restart {unit} ({label})?",
     restartBody: "The page there is unavailable for a few seconds.",
     restartOk: "Restart",
+    rebuild: "Public build-time value: rebuild to use it (pnpm testnet:web for :3001, restart keyescrow-web for :3000)",
+    rebuildToUse: " · rebuild to use it (pnpm testnet:web for :3001, restart keyescrow-web for :3000)",
+    groups: {
+      prices: "Prices",
+      wallet: "Wallet connect",
+      rpc: "RPC",
+      storage: "Storage",
+      sponsors: "Sponsors",
+      ai: "AI inspection",
+      deploy: "Deploy",
+    },
     errors: {
       request: "Request failed ({status}).",
       noAnswer: "The server did not answer.",

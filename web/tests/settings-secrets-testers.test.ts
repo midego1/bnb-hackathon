@@ -96,6 +96,26 @@ const cases: {
     timeout: "invalid",
   },
   {
+    name: "BSC_MAINNET_RPC_URL",
+    value: "https://bsc-mainnet.example/v1/SECRETMAINNETKEY1",
+    host: "bsc-mainnet.example",
+    ok: { status: 200, body: { jsonrpc: "2.0", id: 1, result: "0x38" } },
+    bad: { status: 200, body: { jsonrpc: "2.0", id: 1, result: "0x61" } },
+    validRe: /^Valid: chainId 56$/,
+    invalidRe: /^Invalid: chainId 97, expected 56$/,
+    timeout: "invalid",
+  },
+  {
+    name: "LIVING_BRAIN_API_KEY",
+    value: "lb_live_SECRETBRAINKEY0123456789",
+    host: "api.livingbrain.com/v1/brains",
+    ok: { status: 200, body: [{ id: "brain-1", name: "KeyEscrow scooters" }, { id: "brain-2" }] },
+    bad: { status: 401, body: { message: "invalid api key" } },
+    validRe: /^Valid: 2 brains listed$/,
+    invalidRe: /^Invalid: 401 unauthorized$/,
+    timeout: "untestable",
+  },
+  {
     name: "ATLAS_RPC_URL",
     value: "https://rpc.example/key/SECRETATLASKEY99",
     host: "rpc.example",
@@ -225,8 +245,93 @@ describe("local key checks (no network)", () => {
   });
 });
 
+describe("RPC URLs: wrong chain, 401, unreachable", () => {
+  it.each([
+    ["BSC_TESTNET_RPC_URL", "0x38", "Invalid: chainId 56, expected 97"],
+    ["BSC_MAINNET_RPC_URL", "0x61", "Invalid: chainId 97, expected 56"],
+  ])("%s on the other chain is invalid", async (name, chain, reason) => {
+    expect(await run(name, "https://rpc.example/k/SECRET42", ctx(stubFetch(() => ({ status: 200, body: { result: chain } })).fn))).toEqual({ status: "invalid", reason });
+  });
+  it.each(["BSC_TESTNET_RPC_URL", "BSC_MAINNET_RPC_URL"])("%s: 401 and a bad URL are invalid", async (name) => {
+    const r401 = await run(name, "https://rpc.example/k/SECRET42", ctx(stubFetch(() => ({ status: 401, body: {} })).fn));
+    expect(r401).toEqual({ status: "invalid", reason: "Invalid: the RPC answered 401 unauthorized" });
+    const bad = await run(name, "not-a-url-SECRET42", ctx(stubFetch(() => "network").fn));
+    expect(bad).toEqual({ status: "invalid", reason: "Invalid: the RPC could not be reached" });
+  });
+});
+
+describe("format checks (no free key check): WalletConnect id, Cournot key and base", () => {
+  const noNet = () => stubFetch(() => {
+    throw new Error("no network expected");
+  });
+  it("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: 32 hex characters, no call", async () => {
+    const s = noNet();
+    expect((await run("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "0123456789abcdef0123456789abcdef", ctx(s.fn))).status).toBe("valid");
+    expect(await run("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "0123456789abcdef0123456789abcdeg", ctx(s.fn))).toEqual({ status: "invalid", reason: "Invalid: expected 32 hex characters" });
+    expect(await run("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "0123456789abcdef", ctx(s.fn))).toEqual({ status: "invalid", reason: "Invalid: expected 32 hex characters" });
+    expect(s.calls.length).toBe(0);
+  });
+  it("COURNOT_API_KEY: a ck_live_ key as our client reads it, no call", async () => {
+    const s = noNet();
+    expect(await run("COURNOT_API_KEY", "ck_live_abcdefgh1234", ctx(s.fn))).toEqual({ status: "valid", reason: "Valid format: a ck_live_ key (no free Cournot key check)" });
+    expect((await run("COURNOT_API_KEY", "ck_test_abcdefgh1234", ctx(s.fn))).status).toBe("invalid");
+    expect((await run("COURNOT_API_KEY", "sk-SECRET123456789", ctx(s.fn))).status).toBe("invalid");
+    expect(s.calls.length).toBe(0);
+  });
+  it("COURNOT_API_BASE: only the two bases our client allows (no call otherwise); any HTTP answer below 500 is valid", async () => {
+    const s = noNet();
+    for (const bad of ["https://evil.example", "http://interface.cournot.ai", "https://interface.cournot.ai.evil.example"]) {
+      expect((await run("COURNOT_API_BASE", bad, ctx(s.fn))).status, bad).toBe("invalid");
+    }
+    expect(s.calls.length).toBe(0);
+    const ok = stubFetch(() => ({ status: 200, body: {} }));
+    expect(await run("COURNOT_API_BASE", "https://interface.cournot.ai", ctx(ok.fn))).toEqual({ status: "valid", reason: "Valid: answers HTTP 200" });
+    expect(ok.calls[0].url).toBe("https://interface.cournot.ai");
+    expect(ok.calls[0].init.redirect).toBe("manual");
+    expect((await run("COURNOT_API_BASE", "https://interface.cournot.ai", ctx(stubFetch(() => "timeout").fn))).status).toBe("untestable");
+    const r404 = stubFetch(() => ({ status: 404, body: {} }));
+    expect(await run("COURNOT_API_BASE", "https://dev-interface.cournot.ai/", ctx(r404.fn))).toEqual({ status: "valid", reason: "Valid: answers 404 not found" });
+    expect(r404.calls[0].init.method ?? "GET").toBe("GET");
+    expect((await run("COURNOT_API_BASE", "https://interface.cournot.ai", ctx(stubFetch(() => ({ status: 503, body: {} })).fn))).status).toBe("untestable");
+  });
+});
+
+describe("Living Brain: key and brain id", () => {
+  const key = "lb_live_STOREDKEY0123456789";
+  const subject = "3f1c2b8e-9d4a-4c7b-8e2f-0a1b2c3d4e5f";
+  const stored = (n: string) => (n === "LIVING_BRAIN_API_KEY" ? key : n === "LIVING_BRAIN_SUBJECT_ID" ? subject : undefined);
+  it("the key test sends x-api-key and the stored x-subject-id; 403 is invalid", async () => {
+    const s = stubFetch(() => ({ status: 200, body: { data: [{ id: "b" }] } }));
+    expect(await run("LIVING_BRAIN_API_KEY", "lb_typed_KEY0123456789", ctx(s.fn, { stored }))).toEqual({ status: "valid", reason: "Valid: 1 brain listed" });
+    expect(s.calls[0].init.headers).toEqual({ "x-api-key": "lb_typed_KEY0123456789", "x-subject-id": subject });
+    expect((await run("LIVING_BRAIN_API_KEY", "lb_typed_KEY0123456789", ctx(stubFetch(() => ({ status: 403, body: {} })).fn))).status).toBe("invalid");
+  });
+  it("brain id without a stored key: format check only, no call", async () => {
+    const s = stubFetch(() => ({ status: 200, body: {} }));
+    expect((await run("LIVING_BRAIN_BRAIN_ID", "brain_0123456789", ctx(s.fn))).status).toBe("valid");
+    expect((await run("LIVING_BRAIN_BRAIN_ID", "x", ctx(s.fn))).status).toBe("invalid");
+    expect(s.calls.length).toBe(0);
+  });
+  it("brain id with the stored key: found / not found / bad stored key / timeout; the key never shows up", async () => {
+    const ok = stubFetch(() => ({ status: 200, body: { id: "brain_0123456789" } }));
+    const r = await run("LIVING_BRAIN_BRAIN_ID", "brain_0123456789", ctx(ok.fn, { stored }));
+    expect(r).toEqual({ status: "valid", reason: "Valid: brain found with the stored key" });
+    expect(ok.calls[0].url).toContain("api.livingbrain.com/v1/brains/brain_0123456789");
+    expect((ok.calls[0].init.headers as Record<string, string>)["x-api-key"]).toBe(key);
+    expect(JSON.stringify(r)).not.toContain(key);
+    expect(await run("LIVING_BRAIN_BRAIN_ID", "brain_0123456789", ctx(stubFetch(() => ({ status: 404, body: {} })).fn, { stored }))).toEqual({
+      status: "invalid",
+      reason: "Invalid: 404 not found for the stored key",
+    });
+    expect((await run("LIVING_BRAIN_BRAIN_ID", "brain_0123456789", ctx(stubFetch(() => ({ status: 401, body: {} })).fn, { stored }))).reason).toBe(
+      "Can't test: the stored LIVING_BRAIN_API_KEY is not valid",
+    );
+    expect((await run("LIVING_BRAIN_BRAIN_ID", "brain_0123456789", ctx(stubFetch(() => "timeout").fn, { stored }))).status).toBe("untestable");
+  });
+});
+
 describe("names without a free test never call out", () => {
-  it.each(["COURNOT_API_KEY", "LIVING_BRAIN_API_KEY", "LIVING_BRAIN_BRAIN_ID", "LIVING_BRAIN_SUBJECT_ID", "GREENFIELD_BUCKET", "GREENFIELD_SP_ENDPOINT"])("%s", async (name) => {
+  it.each(["LIVING_BRAIN_SUBJECT_ID", "GREENFIELD_BUCKET", "GREENFIELD_SP_ENDPOINT"])("%s", async (name) => {
     const s = stubFetch(() => ({ status: 200, body: {} }));
     const r = await run(name, "some-value-123456789", ctx(s.fn));
     expect(r.status).toBe("untestable");
