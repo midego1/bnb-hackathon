@@ -51,6 +51,7 @@ export const body = {
     guestWalletMainnet: "Guest wallet · real money (BSC mainnet), max 1 USD",
     yourWallet: "Your wallet",
     another: "Use another wallet",
+    choose: { rented: "Rented right now", change: "Change scooter" },
     money: {
       body: "We send this wallet a little test BNB for gas and {amount} in test dollars (mUSDT) for the rent and the deposit. Testnet only, no real money.",
       button: "Get test money",
@@ -62,6 +63,7 @@ export const body = {
     },
     rent: {
       rent: "Rent (1 day)",
+      month: "Rent (1 month)",
       deposit: "Deposit (comes back)",
       body: "The money goes into this rental's own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.",
       preparing: "The owner is preparing your rental…",
@@ -81,8 +83,8 @@ export const body = {
       metamask: "Connect MetaMask",
     },
     photos: {
-      pickupBody: "Photograph the box as you get it (1 to 3 photos). Their fingerprints go on-chain, so nobody can swap them later.",
-      returnBody: "Give the box back to the presenter and photograph it again (1 to 3 photos). The AI inspector compares them with the pickup photos.",
+      pickupBody: "Photograph the {name} as you get it (1 to 3 photos). Their fingerprints go on-chain, so nobody can swap them later.",
+      returnBody: "Hand the {name} back and photograph it again (1 to 3 photos). The AI inspector compares them with the pickup photos.",
       alt: { pickup: "pickup photo", return: "return photo" },
       reading: "Reading photo…",
       another: "Take another photo",
@@ -125,13 +127,14 @@ export const head = {
     title: "One rental, both sides, live",
     renter: "Renter (phone)",
     owner: "Rental company (owner)",
-    step: { rent: "Rent", pickup: "Pickup photos", return: "Return", split: "AI split", settled: "Settled" },
+    step: { choose: "Choose", rent: "Rent", pickup: "Pickup photos", return: "Return", split: "AI split", settled: "Settled" },
   },
   /** The judge's phone: one title per step. */
   judge: {
     wallet: "Rent it with one tap",
     money: "Get test money",
     moneyMainnet: "Get 1 USD to rent with",
+    choose: "Choose what to rent",
     rent: "Rent it for {amount}",
     busy: "Someone else is renting it right now",
     pickup: "Take pickup photos",

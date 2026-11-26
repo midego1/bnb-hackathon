@@ -25,7 +25,7 @@ import { stateFor } from "@/lib/i18n/server";
 import { makeT } from "@/lib/i18n/t";
 import type { ChainEvent } from "@/lib/rentals";
 import { TOKEN } from "@/lib/contracts";
-import { duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, stageTerms, type StageStatus } from "@/lib/stage";
+import { duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, stageTerms, takenByOther, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -198,6 +198,20 @@ describe("duo: step bar and the mirrored phone", () => {
     expect(mirroredRenter(theirs(lease("Cancelled")), ME)).toBeUndefined();
     expect(mirroredRenter(theirs(lease("Created"), now), ME, now)).toBe(OTHER);
     expect(mirroredRenter(theirs(lease("Created"), now - STALE_OFFER_MS - 1), ME, now)).toBeUndefined();
+  });
+
+  it("chooser: a scooter is 'rented right now' only while someone else holds it", () => {
+    const now = Date.now();
+    expect(takenByOther(base, ME)).toBe(false);
+    expect(takenByOther(theirs(lease("Active")), ME)).toBe(true);
+    expect(takenByOther(theirs(lease("Active")), undefined)).toBe(true);
+    expect(takenByOther(theirs(lease("Active")), OTHER)).toBe(false); // my own rental: pick it to carry on
+    expect(takenByOther(theirs(lease("Settled")), ME)).toBe(false);
+    expect(takenByOther(theirs(lease("Cancelled")), ME)).toBe(false);
+    expect(takenByOther(theirs(lease("Created"), now), ME, now)).toBe(true);
+    expect(takenByOther(theirs(lease("Created"), now - STALE_OFFER_MS - 1), ME, now)).toBe(false);
+    expect(takenByOther({ ...base, creating: { renter: OTHER, at: now } }, ME, now)).toBe(true);
+    expect(takenByOther({ ...base, creating: { renter: ME, at: now } }, ME, now)).toBe(false);
   });
 });
 

@@ -97,7 +97,7 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
             <RentIt listing={listing} mounted={mounted} me={me} status={status} loadError={error} refresh={refresh} />
           ) : (
             <div className="mt-4 flex flex-wrap gap-3">
-              <a href={`/r/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover" data-testid="listing-rent">
+              <a href={`/r/${listing.slug}?chosen=1`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover" data-testid="listing-rent">
                 {t("listing.rentThis")}
               </a>
               <a href={`/stage/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg border border-border-strong px-4 py-2 text-sm font-medium">

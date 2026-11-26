@@ -5,7 +5,7 @@ import { noisyBmp } from "./photos";
 
 /**
  * The live judge demo on a throwaway anvil: the big screen (/stage/mystery-box) and a judge's phone (/r/mystery-box)
- * with a guest wallet, side by side. Phone: guest wallet -> test money -> pay into escrow -> pickup photo -> (reload,
+ * with a guest wallet, side by side. Phone: choose (the catalogue, this item preselected) -> guest wallet -> test money -> pay into escrow -> pickup photo -> (reload,
  * it resumes) -> return photo -> AI inspection -> propose. Big screen: accept -> settled, on both screens.
  */
 
@@ -123,7 +123,22 @@ for (const mobile of [true, false]) {
     phone.on("console", (m) => m.type() === "error" && problems.push(`phone console: ${m.text()}`));
     stage.on("console", (m) => m.type() === "error" && problems.push(`stage console: ${m.text()}`));
     await phone.goto(`/r/${SLUG}`);
+    // Step 0: the shared catalogue, this item highlighted; "Change scooter" comes back here.
+    await step(phone, "choose");
+    await expect(phone.getByTestId("judge-choose").getByRole("button")).toHaveCount(8);
+    await expect(phone.getByTestId(`judge-pick-${SLUG}`)).toHaveAttribute("aria-current", "true");
+    await expect(phone.getByTestId("judge-pick-honda-click-125i")).toContainText("Nimman, Chiang Mai");
+    await expect(phone.getByTestId("judge-pick-honda-click-125i")).toContainText("฿250 / day · ฿6,800 deposit");
+    if (mobile) await shot(phone, "stage-phone-0-choose");
+    await phone.getByTestId("judge-pick-honda-click-125i").click();
     await step(phone, "wallet");
+    await expect(phone.getByRole("heading", { level: 1 })).toHaveText("Honda Click 125i");
+    await expect(phone).toHaveURL(/\/r\/honda-click-125i\?chosen=1$/);
+    await phone.getByTestId("judge-change").click();
+    await step(phone, "choose");
+    await phone.getByTestId(`judge-pick-${SLUG}`).click();
+    await step(phone, "wallet");
+    await expect(phone).toHaveURL(new RegExp(`/r/${SLUG}\\?chosen=1$`));
     if (mobile) await shot(phone, "stage-phone-1-wallet");
     await phone.getByTestId("judge-guest").click();
     await expect(phone.getByText("Testnet guest wallet, no real money").first()).toBeVisible();
@@ -178,7 +193,8 @@ for (const mobile of [true, false]) {
     // One rental at a time: a second phone sees it is free again only because this one settled.
     const second = await judgePage(browser, true);
     await second.goto(`/r/${SLUG}`);
-    await step(second, "wallet");
+    await step(second, "choose");
+    await expect(second.getByTestId(`judge-pick-${SLUG}`)).toBeEnabled();
     await second.close();
     await phone.close();
     expect(problems).toEqual([]);
@@ -192,7 +208,8 @@ test("the listing page shows the item in the app shell and links to the phone fl
   await expect(page.getByTestId("listing-terms")).toContainText("฿200");
   await expect(page.getByTestId("listing-terms")).toContainText("฿1,000");
   await page.getByTestId("listing-rent").click();
-  await expect(page).toHaveURL(new RegExp(`/r/${SLUG}$`));
+  await expect(page).toHaveURL(new RegExp(`/r/${SLUG}\\?chosen=1$`));
+  await step(page, "wallet"); // picked on the listing page already: no chooser
 });
 
 test("a second renter is refused while someone rents the item", async ({ page, request }) => {
@@ -211,6 +228,13 @@ test("a second renter is refused while someone rents the item", async ({ page, r
   expect((await other.json()).error).toMatch(/Someone else is renting/);
   // The presenter cannot accept before there is a proposal.
   expect((await post({ action: "accept" })).status()).toBe(409);
+  // Another phone's chooser shows the item as rented right now, not pickable; the other items are free.
+  await page.goto(`/r/${SLUG}`);
+  await step(page, "choose");
+  await expect(page.getByTestId(`judge-pick-${SLUG}`)).toBeDisabled();
+  await expect(page.getByTestId(`judge-pick-${SLUG}`)).toContainText("Rented right now");
+  await expect(page.getByTestId("judge-pick-honda-scoopy")).toBeEnabled();
+  await page.goto(`/stage/${SLUG}`);
   await resetStage(page);
 });
 

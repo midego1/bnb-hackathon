@@ -128,6 +128,9 @@ for (const [vp, mode] of [
     const p = await phone(browser, vp, mode);
     const label = (s: string) => `${vp.width}-${mode}-judge-${s}`;
     await p.goto(`/r/${SLUG}`);
+    await step(p, "choose");
+    await check(p, label("0-choose"));
+    await p.getByTestId(`judge-pick-${SLUG}`).click();
     await step(p, "wallet");
     await check(p, label("1-wallet"));
     await p.getByTestId("judge-guest").click();

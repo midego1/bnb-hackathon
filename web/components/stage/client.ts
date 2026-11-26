@@ -70,5 +70,6 @@ export function useStageStatus(slug: string, renter?: Address, everyMs = 2_000) 
     };
   }, [tick, everyMs]);
 
-  return { status, error, offline, refresh: tick };
+  // The phone's chooser switches the slug: never show the last item's answer under the new one.
+  return { status: status?.listing.slug === slug ? status : undefined, error, offline, refresh: tick };
 }

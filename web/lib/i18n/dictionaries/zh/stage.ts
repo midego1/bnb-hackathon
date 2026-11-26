@@ -50,6 +50,7 @@ export const body: DeepPartial<typeof enBody> = {
     guestWalletMainnet: "临时钱包 · 真钱（BSC 主网），最多 1 美元",
     yourWallet: "你的钱包",
     another: "换一个钱包",
+    choose: { rented: "正在出租中", change: "换一辆" },
     money: {
       body: "我们会给这个钱包转一点测试 BNB 作为 Gas 费，再转 {amount} 测试美元（mUSDT）用于租金和押金。仅限测试网，不涉及真钱。",
       button: "领取测试资金",
@@ -60,6 +61,7 @@ export const body: DeepPartial<typeof enBody> = {
     },
     rent: {
       rent: "租金（1 天）",
+      month: "租金（1 个月）",
       deposit: "押金（会退还）",
       body: "这笔钱进入这笔租赁专属的 BNB Chain 托管合约，不会付给车主。任何一方都不能单方面拿走押金。",
       preparing: "车主正在准备你的租赁…",
@@ -79,8 +81,8 @@ export const body: DeepPartial<typeof enBody> = {
       metamask: "连接 MetaMask",
     },
     photos: {
-      pickupBody: "拿到盒子时给它拍照（1 到 3 张）。照片指纹会上链，之后谁也无法调包。",
-      returnBody: "把盒子还给演讲者，再拍一次照（1 到 3 张）。AI 验车员会和取件照片做对比。",
+      pickupBody: "拿到{name}时给它拍照（1 到 3 张）。照片指纹会上链，之后谁也无法调包。",
+      returnBody: "归还{name}，再拍一次照（1 到 3 张）。AI 验车员会和取件照片做对比。",
       alt: { pickup: "取件照片", return: "归还照片" },
       reading: "正在读取照片…",
       another: "再拍一张",
@@ -120,12 +122,13 @@ export const head: DeepPartial<typeof enHead> = {
     title: "同一笔租赁，双方实时呈现",
     renter: "租客（手机）",
     owner: "租赁公司（车主）",
-    step: { rent: "租用", pickup: "取件照片", return: "归还", split: "AI 押金分配", settled: "已结算" },
+    step: { choose: "选择", rent: "租用", pickup: "取件照片", return: "归还", split: "AI 押金分配", settled: "已结算" },
   },
   judge: {
     wallet: "一键租用",
     money: "领取测试资金",
     moneyMainnet: "领取 1 美元用于租用",
+    choose: "选择你想租的",
     rent: "以 {amount} 租用",
     busy: "现在有别人在租用",
     pickup: "拍取件照片",

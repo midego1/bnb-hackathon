@@ -1,7 +1,7 @@
 "use client";
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { type Address, type Hex, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
@@ -13,20 +13,27 @@ import { errorsIn } from "@/lib/errors.zh";
 import { uploadEvidence } from "@/lib/evidence";
 import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
-import type { Listing } from "@/lib/listings";
+import { decodeJson } from "@/lib/chainIndex";
+import { getListing, LISTINGS, photoSrcSet, type Listing } from "@/lib/listings";
 import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
-import { judgeStep, MAINNET_STAGE_CHAIN_ID, mirroredRenter, same, stageTerms, thbText, thbUsdText, type JudgeStep, type StageStatus } from "@/lib/stage";
+import { judgeStep, MAINNET_STAGE_CHAIN_ID, mirroredRenter, same, stageTerms, takenByOther, thbText, thbUsdText, type JudgeStep, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { anchorPhotos, fundLease, proposeSplit } from "./judgeTx";
 import { chooseExternal, createGuestKey, forgetGuestKey, guestWallet, loadExternal, loadGuestKey, stagePublicClient, subscribeGuestKey, subscribeNothing } from "./wallet";
 
 /**
- * The judge's phone (/r/<slug>): guest wallet -> test money (on BSC mainnet: real money, max 1 USD) -> rent (owner offers, judge funds) -> pickup photos ->
+ * The judge's phone (/r/<slug>): choose what to rent (the shared catalogue, this slug preselected) -> guest wallet -> test money (on BSC mainnet: real money, max 1 USD) -> rent (owner offers, judge funds) -> pickup photos ->
  * return photos -> AI inspection -> propose the split -> the presenter accepts on the big screen -> money back.
  * Every step is read back from the chain (via /api/stage), so reloading the phone continues where it was.
- * `duo`: the phone pane of /duo, which shows a judge renting on their own phone read-only (lib/stage mirroredRenter).
+ * `duo`: the phone pane of /duo, which shows a judge renting on their own phone read-only (lib/stage mirroredRenter),
+ * and tells /duo which item the phone has chosen (postMessage), so the owner pane follows it.
+ * The chooser is skipped while this phone's own rental of the item is under way, on BSC mainnet (only the stage item
+ * has the 1 USD price there) and after a pick (?chosen=1 in the URL, so a reload carries on).
  */
-export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing; chainId: number; duo?: boolean }) {
+export function JudgeFlow({ listing: first, chainId, duo = false }: { listing: Listing; chainId: number; duo?: boolean }) {
+  const [slug, setSlug] = useState(first.slug);
+  const [choosing, setChoosing] = useState(() => !new URLSearchParams(window.location.search).has("chosen"));
+  const listing = getListing(slug) ?? first;
   const guestKey = useSyncExternalStore(subscribeGuestKey, loadGuestKey, () => undefined);
   const external = useSyncExternalStore(subscribeGuestKey, loadExternal, () => false);
   const ready = useSyncExternalStore(subscribeNothing, () => true, () => false);
@@ -68,18 +75,39 @@ export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing;
   const step: JudgeStep | undefined = ready && status ? judgeStep(status, mirror ?? me) : undefined;
   const thb = (units: bigint) => thbText(units, status?.price.thbPerUsdt ?? 33);
   const mainnet = chainId === MAINNET_STAGE_CHAIN_ID;
+  const free = !mainnet && !mirror && !!step && !UNDER_WAY.has(step); // nothing of this phone's own is under way
+  const choose = choosing && free;
+  const canChange = free && !choosing;
+  const loaded = !!step;
+
+  useEffect(() => {
+    if (duo && loaded) window.parent.postMessage({ duoSlug: slug, choosing: choose }, window.location.origin);
+  }, [duo, loaded, slug, choose]);
+
+  /** Pick `to` (or go back to the chooser): the URL follows, so a reload or the QR's short link lands right. */
+  function pick(to: string, open: boolean) {
+    setSlug(to);
+    setChoosing(open);
+    setError(undefined);
+    setNote(undefined);
+    const q = [duo && "duo=1", !open && "chosen=1"].filter(Boolean).join("&");
+    window.history.replaceState(null, "", `/r/${to}${q ? `?${q}` : ""}`);
+  }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={step ?? "loading"} data-mirror={mirror ? "true" : undefined}>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={choose ? "choose" : (step ?? "loading")} data-mirror={mirror ? "true" : undefined}>
       <header className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL) */}
-        <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />
+        {!choose && <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />}
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><LogoMark className="size-6 shrink-0" />KeyScrow</p>
-          <h1 className="truncate text-xl font-semibold">{listing.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t("stage.terms", stageTerms(listing, chainId))}
-          </p>
+          <h1 className="truncate text-xl font-semibold">{choose ? t.h("judge.choose") : listing.name}</h1>
+          {!choose && <p className="text-sm text-muted-foreground">{t("stage.terms", stageTerms(listing, chainId))}</p>}
+          {canChange && (
+            <button type="button" className="text-sm text-info underline" onClick={() => pick(slug, true)} data-testid="judge-change">
+              {t("judge.choose.change")}
+            </button>
+          )}
           {mainnet && (
             <p className="text-sm font-semibold text-warning-fg" data-testid="judge-real-money">
               {t("stage.realMoney")}
@@ -97,7 +125,8 @@ export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing;
           <Notice>{t("judge.mirror", { address: shortAddress(mirror) })}</Notice>
         </div>
       )}
-      {status && step && (
+      {choose && <Chooser current={slug} me={me} chainId={chainId} onPick={(to) => pick(to, false)} />}
+      {status && step && !choose && (
         // Read-only mirror: its buttons and camera are disabled, its text stays readable (also to screen readers).
         <fieldset disabled={!!mirror} className="contents">
           <Step
@@ -144,6 +173,57 @@ export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing;
         </footer>
       )}
     </main>
+  );
+}
+
+/** Steps of this phone's own rental once it is paid for: the chooser stays away until it settles. */
+const UNDER_WAY = new Set<JudgeStep>(["fund", "pickup", "return", "inspect", "waiting"]);
+
+/**
+ * Step 0: the shared catalogue as compact cards, `current` highlighted. An item someone else holds right now is shown
+ * but cannot be picked; each item's stage is read once when the chooser opens (the next steps re-check it live).
+ */
+function Chooser({ current, me, chainId, onPick }: { current: string; me?: Address; chainId: number; onPick: (slug: string) => void }) {
+  const [taken, setTaken] = useState<Record<string, boolean>>({});
+  const t = useT();
+  useEffect(() => {
+    let alive = true;
+    for (const l of LISTINGS) {
+      fetch(`/api/stage/${l.slug}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.text() : undefined))
+        .then((text) => text && alive && setTaken((x) => ({ ...x, [l.slug]: takenByOther(decodeJson<StageStatus>(text), me) })))
+        .catch(() => {}); // unknown stays pickable: the rent step says "busy" if it is not
+    }
+    return () => {
+      alive = false;
+    };
+  }, [me]);
+  return (
+    <ul className="flex flex-col gap-2" data-testid="judge-choose">
+      {LISTINGS.map((l) => (
+        <li key={l.slug}>
+          <button
+            type="button"
+            disabled={taken[l.slug]}
+            aria-current={l.slug === current || undefined}
+            onClick={() => onPick(l.slug)}
+            data-testid={`judge-pick-${l.slug}`}
+            className={`flex w-full items-center gap-3 rounded-2xl border bg-surface p-2 text-left shadow-sm disabled:opacity-60 ${
+              l.slug === current ? "border-primary ring-2 ring-primary" : "border-border hover:border-border-strong"
+            }`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- small static catalogue photo */}
+            <img src={l.photos[0]} srcSet={photoSrcSet(l.photos[0], "jpg")} sizes="5rem" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold">{l.name}</span>
+              <span className="block truncate text-sm text-muted-foreground">{l.location}</span>
+              <span className="block text-sm">{t("stage.terms", stageTerms(l, chainId))}</span>
+              {taken[l.slug] && <span className="block text-sm font-semibold text-warning-fg">{t("judge.choose.rented")}</span>}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -210,7 +290,7 @@ function Step(p: StepProps) {
       return (
         <Big title={t.h("judge.rent", { amount: thb(status.price.rent) })}>
           <dl className="grid grid-cols-2 gap-y-1 text-lg">
-            <dt className="text-muted-foreground">{t("judge.rent.rent")}</dt>
+            <dt className="text-muted-foreground">{t(status.listing.monthThb ? "judge.rent.month" : "judge.rent.rent")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.rentAmount : status.price.rent)}</dd>
             <dt className="text-muted-foreground">{t("judge.rent.deposit")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.depositAmount : status.price.deposit)}</dd>
@@ -331,7 +411,7 @@ function PhotoStep(p: StepProps & { kind: "pickup" | "return" }) {
   const anchored = p.status.events.filter((e) => e.name === "EvidenceAdded").map((e) => String(e.args.contentHash).toLowerCase());
   return (
     <Big title={t.h(p.kind === "pickup" ? "judge.pickup" : "judge.return")}>
-      <p className="text-muted-foreground">{t(p.kind === "pickup" ? "judge.photos.pickupBody" : "judge.photos.returnBody")}</p>
+      <p className="text-muted-foreground">{t(p.kind === "pickup" ? "judge.photos.pickupBody" : "judge.photos.returnBody", { name: p.status.listing.name })}</p>
       <div className="grid grid-cols-3 gap-2">
         {photos.map((ph) => (
           // eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL)
@@ -399,7 +479,7 @@ function InspectStep(p: StepProps) {
                     checkIn: ev(0),
                     checkOut: ev(1),
                     scooterId: p.status.listing.slug,
-                    notes: `The item is "${p.status.listing.name}", a physical item rented for a day (not a scooter).`,
+                    notes: p.status.listing.stage ? `The item is "${p.status.listing.name}", a physical item rented for a day (not a scooter).` : `The scooter is a ${p.status.listing.name}.`,
                   }),
                 );
               })

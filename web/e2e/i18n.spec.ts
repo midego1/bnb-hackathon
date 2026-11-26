@@ -224,6 +224,12 @@ for (const mode of ["zh", "both"] as const) {
     await phoneCtx.addCookies([cookie]);
     const phone = await phoneCtx.newPage();
     await phone.goto("/r/mystery-box");
+    // Step 0, the chooser: its title, a card's "/ 天 · 押金" line, then the picked item's first step.
+    await expect(headline(phone.getByTestId("judge-flow").getByRole("heading", { level: 1 }))).toHaveText(han);
+    if (mode === "zh") await expect(phone.getByTestId("judge-pick-honda-click-125i")).toContainText("天"); // body text: English in EN+中文
+    expect(await phone.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    await phone.screenshot({ path: path.join(SHOTS, `${mode}-judge-choose.png`), fullPage: true });
+    await phone.getByTestId("judge-pick-mystery-box").click();
     await expect(headline(phone.getByTestId("judge-flow").getByRole("heading", { level: 2 }).first())).toHaveText(han);
     expect(await phone.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
     await phone.screenshot({ path: path.join(SHOTS, `${mode}-judge-phone.png`), fullPage: true });
