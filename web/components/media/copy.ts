@@ -20,6 +20,7 @@ const en = {
     links: "Links",
   },
   videos: {
+    pitch: { title: "The pitch: KeyScrow in 5 minutes", body: "Our submission video: the problem, the renter's side, the owner's side and the sponsors, with a drawn-on explanation while we talk." },
     duo: { title: "Renter and rental company, side by side", body: "The hero video. The renter's phone on the left, the rental company on the right: rent, pickup photo, return photo, the AI's split, the owner accepts, settled. With an English voice-over." },
     "demo-guided": { title: "The guided demo", body: "/demo on the happy path, one click from start to the final summary with every balance." },
     eli5: { title: "How it works, as a cartoon", body: "/how-it-works: the whole idea in plain words, with the ending where both sides agree." },

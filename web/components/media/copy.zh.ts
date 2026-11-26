@@ -20,6 +20,7 @@ export const zh: DeepPartial<MediaCopy> = {
     links: "链接",
   },
   videos: {
+    pitch: { title: "路演视频：5 分钟了解 KeyScrow", body: "我们的参赛视频：问题、租客一方、车主一方和赞助商，讲解时配有手绘动画说明。" },
     duo: { title: "租客与租车公司，左右并排", body: "主视频。左边是租客的手机，右边是租车公司：租车、取车照片、还车照片、AI 给出的分配、车主接受、结算完成。配有英文旁白。" },
     "demo-guided": { title: "引导式演示", body: "/demo 的顺利流程，一键从开始播放到包含每个余额的最终总结。" },
     eli5: { title: "动画讲解：它如何运作", body: "/how-it-works：用简单的话讲完整个想法，结局是双方同意。" },

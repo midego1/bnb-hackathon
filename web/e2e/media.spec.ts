@@ -26,7 +26,7 @@ test("landing footer → /media: the zip and every download respond 200", async 
   await expect(page.getByRole("heading", { level: 1, name: "Media kit" })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/media$/);
   await expect(page.getByTestId("media-zip")).toHaveText(/^Download everything \(\.zip, \d+\.\d MB\)$/);
-  await expect(page.getByTestId("media-video")).toHaveCount(4);
+  await expect(page.getByTestId("media-video")).toHaveCount(5);
   await expect(page.getByTestId("media-contract").first()).toHaveAttribute("href", /^https:\/\/testnet\.bscscan\.com\/address\/0x/);
 
   const zip = await page.request.head((await page.getByTestId("media-zip").getAttribute("href"))!);

@@ -20,9 +20,12 @@ const name = (f: File) => f.path.split("/").pop()!;
 const size = (bytes: number) => (bytes < 1e6 ? `${Math.max(1, Math.round(bytes / 1e3))} KB` : `${(bytes / 1e6).toFixed(1)} MB`);
 const inFolder = (folder: string) => manifest.files.filter((f) => f.path.startsWith(`${folder}/`) && f.path.indexOf("/", folder.length + 1) < 0);
 const file = (path: string) => manifest.files.find((f) => f.path === path)!;
+/** A file that only some entries have (the pitch has no .webm). */
+const maybe = (path: string) => manifest.files.find((f) => f.path === path);
 
 /** Length (ffprobe) and the screenshot of the same screen as poster. */
 const VIDEOS = [
+  ["pitch", "4:46", "videos/pitch-poster.jpg"],
   ["duo", "1:04", "screenshots/web/02-duo.png"],
   ["demo-guided", "1:30", "screenshots/web/demo-mid-run.png"],
   ["eli5", "1:11", "screenshots/web/how-it-works.png"],
@@ -94,13 +97,13 @@ export default async function MediaPage() {
           {VIDEOS.map(([id, length, poster]) => (
             <Card key={id} title={c.videos[id].title} aside={<span className="text-sm text-subtle tabular-nums">{length}</span>}>
               <video controls playsInline preload="none" poster={`/media/${poster}`} className="aspect-[1470/830] w-full rounded-lg bg-muted" data-testid="media-video">
-                <source src={href(file(`videos/${id}.webm`))} type="video/webm" />
+                {maybe(`videos/${id}.webm`) && <source src={href(maybe(`videos/${id}.webm`)!)} type="video/webm" />}
                 <source src={href(file(`videos/${id}.mp4`))} type="video/mp4" />
               </video>
               <p className="mt-3 text-sm text-muted-foreground">{c.videos[id].body}</p>
               <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
                 {dl(file(`videos/${id}.mp4`))}
-                {dl(file(`videos/${id}.webm`))}
+                {maybe(`videos/${id}.webm`) && dl(maybe(`videos/${id}.webm`)!)}
               </p>
             </Card>
           ))}

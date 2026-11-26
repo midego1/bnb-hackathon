@@ -33,7 +33,7 @@ describe("media manifest", () => {
     const inZip = execFileSync("unzip", ["-Z1", m.zip.path], { cwd: OUT, encoding: "utf8" }).trim().split("\n").sort();
     expect(inZip).toEqual(m.files.filter((f) => f.zip).map((f) => f.path).sort());
     expect(new Set(inZip.map((p) => p.slice(0, p.lastIndexOf("/"))))).toEqual(new Set(["videos", "deck", "screenshots/web", "screenshots/ios", "brand", "docs"]));
-    expect(m.files.filter((f) => !f.zip).every((f) => /\.(webm|gif|jpg)$/.test(f.path) || f.src.startsWith("docs/screenshots/"))).toBe(true);
+    expect(m.files.filter((f) => !f.zip).every((f) => /\.(webm|gif|jpg)$/.test(f.path) || f.path === "videos/pitch.mp4" || f.src.startsWith("docs/screenshots/"))).toBe(true);
   });
 
   it("has a label for every brand file and document the page lists", () => {
