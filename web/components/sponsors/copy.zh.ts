@@ -9,6 +9,29 @@ export const zh: DeepPartial<SponsorsCopy> = {
   see: "查看",
   proof: "证明",
   media: "媒体资料：可下载全部视频、幻灯片、截图和文档",
+  recipeLabels: { ingredients: "原料", steps: "步骤", combines: "组合" },
+  recipe: {
+    title: "一份食谱看懂赞助商",
+    sub: "每个赞助商带来什么、用在哪里。从左往右读：每个格子组合它左边的所有内容。",
+    ingredients: {
+      atlasPush: ["链上 BNB/USD", "Atlas 推送式喂价"],
+      cmc: ["泰铢汇率 + 波动率", "CoinMarketCap"],
+      cournot: ["p = 0.30（实时调用）", "Cournot：BNB 跌破底价的概率"],
+      atlasPull: ["签名报告，共识", "Atlas Pull API"],
+      livingBrain: ["租客 + 车主历史", "Living Brain"],
+      claude: ["视觉", "Claude：AI 验车员"],
+      erc8004: ["智能体 #2921", "ERC-8004 身份"],
+      bnb: ["测试网 97 + 主网 56", "BNB Chain：合约"],
+    },
+    steps: {
+      price: ["定价", "CMC + Atlas 推送 → 以泰铢计的金额"],
+      buffer: ["缓冲", "CMC 波动率 × (1 + Cournot p) → 押金缓冲"],
+      guard: ["把关", "Atlas Pull 报告验证通过才能用 BNB 支付"],
+      remember: ["记忆", "Living Brain → 争议处理台的历史卡片"],
+      inspect: ["验车", "Claude + ERC-8004 → 签名的报告哈希"],
+      escrow: ["BNB Chain 上的托管", "押金存放在独立合约中；任何人都无法单独动用"],
+    },
+  },
   state: { live: "已上线", built: "已完成", waiting: "等待密钥", done: "已完成", pending: "待完成" },
   tracks: {
     bnb: {

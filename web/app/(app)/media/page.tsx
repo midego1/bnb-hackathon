@@ -2,11 +2,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { mediaCopy } from "@/components/media/copy";
+import { RecipeGrid } from "@/components/RecipeGrid";
 import { Card, PageTitle } from "@/components/ui";
 import deployments from "@/lib/contracts/deployments.generated.json";
 import { getDictionary } from "@/lib/i18n/server";
 import { fmt } from "@/lib/i18n/locales";
 import { REPO_URL } from "@/lib/links";
+import { RENTAL_RECIPE } from "@/lib/recipes";
 // Generated before every build by scripts/media.mjs (gitignored): each file's path under /media and its size.
 import manifest from "@/public/media/manifest.json";
 
@@ -90,6 +92,8 @@ export default async function MediaPage() {
         {fmt(c.zip, { size: size(manifest.zip.bytes) })}
       </a>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{fmt(c.zipNote, { n: zipped })}</p>
+
+      <RecipeGrid id="recipe" recipe={RENTAL_RECIPE} text={c.recipe} title={t.head(mediaCopy, (x) => x.recipe.title)} labels={c.recipeLabels} />
 
       {section(
         "videos",

@@ -58,6 +58,13 @@ test("landing footer → /sponsors: five tracks, honest states, the checklist, s
   await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("Done");
   await expect(page.locator('[data-row="cmcWriteup"]').getByRole("link", { name: "WRITEUP.md" })).toHaveAttribute("href", "https://github.com/midego1/bnb-hackathon/blob/main/docs/WRITEUP.md");
   await expect(page.locator('[data-row="lbWallet"]').getByRole("link", { name: "Dispute desk" })).toHaveAttribute("href", "/arbiter");
+  // The recipe sits between the lead and the track cards: 8 ingredients, 6 steps, the escrow last.
+  const recipe = page.getByTestId("recipe");
+  await expect(recipe.getByRole("heading", { level: 2, name: "The sponsors in one recipe" })).toBeVisible();
+  await expect(recipe.getByTestId("recipe-ingredient")).toHaveCount(8);
+  expect(await recipe.getByTestId("recipe-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-step")))).toEqual(["price", "buffer", "guard", "remember", "inspect", "escrow"]);
+  await expect(recipe.locator('[data-step="escrow"]')).toContainText("nobody moves it alone");
+  expect((await recipe.boundingBox())!.y).toBeLessThan((await page.getByTestId("sponsor-track").first().boundingBox())!.y);
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("Four.meme");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("Flap");
   await expect(page.getByTestId("nav-sponsors")).toHaveAttribute("href", "/sponsors");
@@ -81,12 +88,23 @@ test("/sponsors in dark and in 中文", async ({ page }) => {
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("未参加");
   await expect(page.getByText("赛道要求 → KeyScrow 如何做到")).toHaveCount(5);
   await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("已完成");
+  await expect(page.getByTestId("recipe").getByRole("heading", { level: 2, name: "一份食谱看懂赞助商" })).toBeVisible();
+  await expect(page.locator('[data-step="guard"]')).toContainText("把关");
+  // EN+中文: the recipe's title gets its Chinese line.
+  await page.context().addCookies([{ name: "ke_lang", value: "both", url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
+  await page.reload();
+  await expect(page.locator("#recipe-title .i18n-zh")).toHaveText("一份食谱看懂赞助商");
+  await expect(page.locator('[data-step="guard"]')).toContainText("Guard");
 });
 
 test("/sponsors on a phone: no sideways scroll, tap targets and text pass the phone audit", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/sponsors");
   await expect(page.getByTestId("sponsor-track")).toHaveCount(5);
+  // The recipe is a list on a phone: ingredients, then numbered steps with what they combine.
+  await expect(page.getByTestId("recipe-grid")).toBeHidden();
+  await expect(page.getByTestId("recipe-list").locator("ol > li")).toHaveCount(6);
+  await expect(page.getByTestId("recipe-list").locator("ol > li").last()).toContainText("Combines: BNB Chain: the contracts + Guard + Remember + Inspect");
   await page.evaluate(() => document.fonts.ready);
   expect(await audit(page)).toEqual([]);
   await page.screenshot({ path: path.join(SHOTS, "sponsors-phone-390x844.png"), fullPage: true });

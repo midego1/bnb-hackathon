@@ -1,4 +1,5 @@
 import { localized } from "@/lib/i18n/locales";
+import type { SponsorRecipeText } from "@/lib/recipes";
 import { zh } from "./copy.zh";
 
 /** Every word of /sponsors (app/(app)/sponsors/page.tsx); the links and states live in the page. */
@@ -9,6 +10,29 @@ const en = {
   see: "See it",
   proof: "Proof",
   media: "Media kit: every video, the deck, screenshots and documents to download",
+  recipeLabels: { ingredients: "Ingredients", steps: "Steps", combines: "Combines" },
+  recipe: {
+    title: "The sponsors in one recipe",
+    sub: "What each sponsor brings and where it goes in. Read left to right: each box combines everything to its left.",
+    ingredients: {
+      atlasPush: ["BNB/USD on-chain", "Atlas push feed"],
+      cmc: ["THB rate + volatility", "CoinMarketCap"],
+      cournot: ["p = 0.30 (live call)", "Cournot: probability BNB breaks the floor"],
+      atlasPull: ["signed report, consensus", "Atlas Pull API"],
+      livingBrain: ["renter + owner history", "Living Brain"],
+      claude: ["vision", "Claude: the AI inspector"],
+      erc8004: ["agent #2921", "ERC-8004 identity"],
+      bnb: ["testnet 97 + mainnet 56", "BNB Chain: the contracts"],
+    },
+    steps: {
+      price: ["Price", "CMC + Atlas push → amounts in baht"],
+      buffer: ["Buffer", "CMC volatility × (1 + Cournot p) → deposit buffer"],
+      guard: ["Guard", "Pay with BNB only when the Atlas Pull report verifies"],
+      remember: ["Remember", "Living Brain → history cards at the dispute desk"],
+      inspect: ["Inspect", "Claude + ERC-8004 → signed report hash"],
+      escrow: ["Escrow on BNB Chain", "the deposit sits in its own contract; nobody moves it alone"],
+    },
+  } satisfies SponsorRecipeText,
   state: { live: "Live", built: "Built", waiting: "Waiting for key", done: "Done", pending: "Pending" },
   tracks: {
     bnb: {

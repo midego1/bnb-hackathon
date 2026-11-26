@@ -27,6 +27,15 @@ test("landing footer → /media: the zip and every download respond 200", async 
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/media$/);
   await expect(page.getByTestId("media-zip")).toHaveText(/^Download everything \(\.zip, \d+\.\d MB\)$/);
   await expect(page.getByTestId("media-video")).toHaveCount(5);
+  // The rental as a recipe, before the videos: 10 ingredients, 7 steps; Settle spans every row.
+  const recipe = page.getByTestId("recipe");
+  await expect(recipe.getByRole("heading", { level: 2, name: "KeyScrow: one rental, step by step" })).toBeVisible();
+  await expect(recipe.getByTestId("recipe-ingredient")).toHaveCount(10);
+  await expect(recipe.getByTestId("recipe-step")).toHaveCount(7);
+  const [grid, settle] = [await recipe.getByTestId("recipe-grid").boundingBox(), await recipe.locator('[data-step="settle"]').boundingBox()];
+  expect(Math.abs(settle!.height - (grid!.height - 2))).toBeLessThan(2);
+  await expect(recipe.locator('[data-step="settle"]')).toContainText("฿6,206 back to the renter");
+  expect((await recipe.boundingBox())!.y).toBeLessThan((await page.locator("#videos").boundingBox())!.y);
   await expect(page.getByTestId("media-contract").first()).toHaveAttribute("href", /^https:\/\/testnet\.bscscan\.com\/address\/0x/);
 
   const zip = await page.request.head((await page.getByTestId("media-zip").getAttribute("href"))!);
@@ -55,12 +64,14 @@ test("/sponsors links to /media; dark and 中文", async ({ page }) => {
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: "媒体资料" })).toBeVisible();
   await expect(page.getByTestId("media-zip")).toContainText("下载全部");
+  await expect(page.locator('[data-step="settle"]')).toContainText("结算");
   await page.screenshot({ path: path.join(SHOTS, "media-zh-1440.png") });
   // EN+中文: English body, the Chinese line under each headline.
   await page.context().addCookies([{ name: "ke_lang", value: "both", url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 }).locator(".i18n-zh")).toHaveText("媒体资料");
   await expect(page.locator("#videos-title .i18n-zh")).toHaveText("视频");
+  await expect(page.locator("#recipe-title .i18n-zh")).toHaveText("KeyScrow：一笔租赁，一步一步");
   await expect(page.getByTestId("media-zip")).toContainText("Download everything");
 });
 
@@ -68,6 +79,9 @@ test("/media on a phone: no sideways scroll, tap targets and text pass the phone
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/media");
   await expect(page.getByTestId("media-zip")).toBeVisible();
+  await expect(page.getByTestId("recipe-grid")).toBeHidden();
+  await expect(page.getByTestId("recipe-list").locator("ol > li")).toHaveCount(7);
+  await expect(page.getByTestId("recipe-list").locator("ol > li").nth(3)).toContainText("Combines: AI inspector (ERC-8004 #2921) + Anchor");
   await page.evaluate(() => document.fonts.ready);
   expect(await audit(page)).toEqual([]);
   await loadImages(page);
