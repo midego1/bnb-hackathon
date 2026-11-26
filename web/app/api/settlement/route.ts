@@ -64,9 +64,10 @@ function dailyCalls() {
 }
 
 /**
- * Same-origin photo urls (the /demo walkthrough photos) are this app's static files: on Workers from the ASSETS binding
- * (a fetch to the own workers.dev host is not allowed), under Node from public/ on disk. Never a network fetch: the
- * origin comes from the request's Host header, which the caller controls.
+ * Photo urls on the host the caller used (the /demo walkthrough photos) are this app's static files: on Workers from
+ * the ASSETS binding (a fetch to the own workers.dev host is not allowed), under Node from public/ on disk. Never a
+ * network fetch, so trusting the caller's Host header here is safe. (request.url is not: on a Worker OpenNext may
+ * report another host, e.g. localhost under wrangler dev.)
  */
 function photoSource(request: NextRequest): PhotoSource {
   const assets = cloudflareBinding<{ fetch: (url: string) => Promise<Response> }>("ASSETS");
@@ -76,7 +77,7 @@ function photoSource(request: NextRequest): PhotoSource {
     if (!file.startsWith(pub + path.sep)) return new Response(null, { status: 404 });
     return new Response(new Uint8Array(await readFile(file)));
   };
-  return { origin: new URL(request.url).origin, fetch: assets ? (url) => assets.fetch(url) : fromDisk };
+  return { host: request.headers.get("host") ?? new URL(request.url).host, fetch: assets ? (url) => assets.fetch(url) : fromDisk };
 }
 
 /** The verified scooter id to write this inspection under, or null (rate-limited, not a rental, chain unreachable). */

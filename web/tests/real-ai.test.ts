@@ -117,6 +117,19 @@ describe("/demo: static walkthrough photos by url", () => {
     ]);
   });
 
+  it("matches the host the browser used, not request.url (OpenNext on a Worker may report localhost)", async () => {
+    const url = "http://127.0.0.1:8787/demo/walkthrough/checkin-front.png";
+    const res = await settle(
+      new NextRequest(`${ORIGIN}/api/settlement`, {
+        method: "POST",
+        body: JSON.stringify({ deposit: "100000000", checkIn: [{ url }], checkOut: [{ url }] }),
+        headers: { host: "127.0.0.1:8787", "x-forwarded-for": `10.4.0.${++ip}` },
+      }),
+    );
+    expect(await res.json()).toMatchObject({ mock: false });
+    expect(images(calls[0])[0].source).toMatchObject({ type: "base64", media_type: "image/png" });
+  });
+
   it("does not trust a same-origin url whose bytes do not match the photo's hash: demo inspector, labelled", async () => {
     const photo = { hash: `0x${"ab".repeat(32)}`, url: `${ORIGIN}/demo/walkthrough/checkin-front.png` };
     const body = await (await post({ deposit: "100000000", checkIn: [photo], checkOut: [photo] })).json();
@@ -222,7 +235,7 @@ describe("fallback when Anthropic cannot answer", () => {
     const memory = { status: { provider: "local" as const, configured: false }, recall: async () => [], remember };
     const r = await proposeSettlement(SettlementRequestSchema.parse({ deposit: "100000000", checkIn: [await photo()], checkOut: [await photo()] }), {
       provider: visionProviderFromEnv(),
-      photoSource: { origin: ORIGIN, fetch: async (u) => new Response(new Uint8Array(await walkthrough(u.split("/").pop()!))) },
+      photoSource: { host: "localhost", fetch: async (u) => new Response(new Uint8Array(await walkthrough(u.split("/").pop()!))) },
       memory,
       rememberAs: { scooterId: "BKK-1", rental: "0x9f1ac54bef0dd2f6f3462ea0fa94fc62300d3a8e" },
     });

@@ -60,8 +60,8 @@ export class PhotoResolutionError extends Error {
 /** Largest photo the server fetches by url (Anthropic's per-image limit). */
 const MAX_PHOTO_FETCH_BYTES = 5 * 1024 * 1024;
 
-/** Where photos may be fetched from by url: this app's own origin, through `fetch` (on Workers: the ASSETS binding). */
-export type PhotoSource = { origin: string; fetch: (url: string) => Promise<Response> };
+/** This app's static files: photo urls on `host` are read through `fetch` (the ASSETS binding, or public/ on disk). */
+export type PhotoSource = { host: string; fetch: (url: string) => Promise<Response> };
 
 /** A same-origin photo's bytes, or null (missing, too big, not an image, or not the bytes its hash promises). */
 async function fetchPhoto(p: PhotoRef, source: PhotoSource): Promise<VisionImage | null> {
@@ -76,7 +76,7 @@ async function fetchPhoto(p: PhotoRef, source: PhotoSource): Promise<VisionImage
 
 /**
  * Turn photo refs into images a provider can consume: hashes are read from the evidence store; urls on this app's
- * own origin are fetched here (the model could not reach a local or private host); other urls go to the model as is.
+ * own host are read here (the model could not reach a local or private host); other urls go to the model as is.
  */
 async function resolvePhotos(photos: PhotoRef[], store: EvidenceStore | undefined, source: PhotoSource | undefined): Promise<VisionImage[]> {
   return Promise.all(
@@ -87,7 +87,7 @@ async function resolvePhotos(photos: PhotoRef[], store: EvidenceStore | undefine
           return { kind: "base64", mediaType: ev.contentType, data: Buffer.from(ev.bytes).toString("base64"), label: p.label };
         }
       }
-      if (p.url && source && new URL(p.url).origin === source.origin) {
+      if (p.url && source && new URL(p.url).host === source.host) {
         const img = await fetchPhoto(p, source);
         if (img) return img;
       } else if (p.url) return { kind: "url", url: p.url, label: p.label };
@@ -101,7 +101,7 @@ export interface ProposeOptions {
   provider?: VisionProvider | null;
   /** Evidence store used to resolve photo hashes for the live provider. */
   store?: EvidenceStore;
-  /** This app's origin and how to fetch from it: same-origin photo urls are fetched as bytes. */
+  /** This app's static files: photo urls on its host are read as bytes. */
   photoSource?: PhotoSource;
   /** The caller already decided the mock answers although a model is configured (POST /api/settlement's daily cap). */
   fallback?: SettlementFallback;
