@@ -57,7 +57,7 @@ final class RentFlowE2ETests: XCTestCase {
     func testRentDemoScooterEndToEnd() {
         app.launchArguments = ["-tab", "0", "-lang", "en", "-appearance", "light"]
         app.launch()
-        let scooter = app.staticTexts[ProcessInfo.processInfo.environment["E2E_SCOOTER"] ?? "Honda Scoopy-i"]
+        let scooter = app.staticTexts[ProcessInfo.processInfo.environment["E2E_SCOOTER"] ?? "Honda Scoopy"]
         XCTAssertTrue(scooter.waitForExistence(timeout: 30))
         for _ in 0..<10 where !scooter.isHittable { app.swipeUp() } // the cards are a screen tall each
         scooter.tap()

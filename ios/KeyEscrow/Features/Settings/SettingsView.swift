@@ -63,7 +63,7 @@ struct SettingsView: View {
                     row("camera.aperture", .KE.mutedText, .KE.muted, settings.t("credits.title"), detail: settings.t("credits.count", "\(PhotoCatalog.credits.count)"))
                 }
                 Link(destination: APIClient.defaultBase) {
-                    row("globe", .KE.mutedText, .KE.muted, "keyescrow-web.mdgooijer.workers.dev", external: true)
+                    row("globe", .KE.mutedText, .KE.muted, "keyscrow.mdgooijer.workers.dev", external: true)
                 }
                 Link(destination: Chain.addressURL(TxSender.factory)) {
                     row("building.columns.fill", .KE.mutedText, .KE.muted, settings.t("settings.factory"), external: true)
