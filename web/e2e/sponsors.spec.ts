@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import { E2E_WEB_PORT } from "./env";
 import { audit } from "./phoneAudit";
+import { SPONSOR_CHECKLIST } from "../lib/sponsorChecklist";
 
 /**
  * /sponsors: one card per sponsor track with its state from the server's integrations (the e2e server blanks every
@@ -19,7 +20,7 @@ function watchProblems(page: Page) {
 }
 const sideways = (page: Page) => page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth);
 
-test("landing footer → /sponsors: five tracks, honest states, see-it and proof links", async ({ page }) => {
+test("landing footer → /sponsors: five tracks, honest states, the checklist, see-it and proof links", async ({ page }) => {
   const problems = watchProblems(page);
   await page.setViewportSize({ width: 1470, height: 830 });
   await page.goto("/");
@@ -43,6 +44,20 @@ test("landing footer → /sponsors: five tracks, honest states, see-it and proof
   await expect(main.getByRole("link", { name: "Back office: demo shops" })).toHaveAttribute("href", "/backoffice");
   await expect(main.getByRole("link", { name: "Agent card (ERC-8004 #2921)" })).toHaveAttribute("href", /agent-card\.json$/);
   await expect(main.getByRole("link", { name: "Mainnet factory on BscScan" })).toHaveAttribute("href", "https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E");
+  // The checklist: every row of lib/sponsorChecklist.ts, in track order; rows whose integration is not live here
+  // (CMC, Atlas, Living Brain: blank on the e2e server) say pending and why, the rest keep their state.
+  const rows = Object.values(SPONSOR_CHECKLIST).flat();
+  expect(await page.getByTestId("sponsor-check").evaluateAll((els) => els.map((e) => e.getAttribute("data-row")))).toEqual(rows.map((r) => r.id));
+  for (const r of rows) await expect(page.getByTestId(`sponsor-check-${r.id}`)).toHaveAttribute("data-state", r.needs ? "pending" : r.state);
+  const guard = page.locator('[data-row="atlasGuard"]');
+  await expect(guard).toContainText("Deploy on BNB Chain");
+  await expect(guard.getByRole("link", { name: "AtlasSwapGuard on BscScan" })).toHaveAttribute("href", "https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA");
+  await expect(page.getByTestId("sponsor-check-atlasGuard")).toHaveText("Live");
+  await expect(page.locator('[data-row="cmcCore"]')).toContainText("Not live on this server.");
+  await expect(page.locator('[data-row="cournotCall"]')).toContainText("Not yet");
+  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("Pending");
+  await expect(page.locator('[data-row="cmcWriteup"]').getByRole("link", { name: "WRITEUP.md" })).toHaveAttribute("href", "https://github.com/midego1/bnb-hackathon/blob/main/docs/WRITEUP.md");
+  await expect(page.locator('[data-row="lbWallet"]').getByRole("link", { name: "Dispute desk" })).toHaveAttribute("href", "/arbiter");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("Four.meme");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("Flap");
   await expect(page.getByTestId("nav-sponsors")).toHaveAttribute("href", "/sponsors");
@@ -64,6 +79,8 @@ test("/sponsors in dark and in 中文", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "赞助赛道" })).toBeVisible();
   await expect(page.getByTestId("sponsor-bnb-state")).toHaveText("已上线");
   await expect(page.getByTestId("sponsor-not-entered")).toContainText("未参加");
+  await expect(page.getByText("赛道要求 → KeyScrow 如何做到")).toHaveCount(5);
+  await expect(page.getByTestId("sponsor-check-cournotCall")).toHaveText("待完成");
 });
 
 test("/sponsors on a phone: no sideways scroll, tap targets and text pass the phone audit", async ({ page }) => {
