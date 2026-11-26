@@ -29,6 +29,7 @@ opens the app in it.
 | LED sign: Home · EN | LED sign: a listing · 中文 | The switch in Settings |
 | --- | --- | --- |
 | ![](screenshots/led-home-en.png) | ![](screenshots/led-listing-zh.png) | ![](screenshots/led-settings-en.png) |
+| ![](screenshots/led-browse-en.png) | ![](screenshots/led-pay-en.png) | ![](screenshots/led-settled-en.png) |
 
 All screenshots (Simulator, iPhone 17, light + dark, EN + 中文) are in [`screenshots/`](screenshots). The rental shown is
 a real one the E2E test made on BSC testnet: escrow

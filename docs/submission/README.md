@@ -26,7 +26,7 @@ Screenshots:
 | `04-arbiter-history.png` | Dispute desk: the case with the renter's and the owner's history cards |
 | `05-backoffice.png` | Back office: the demo shops' rentals read from the chain |
 | `06-mobile-r.png` | `/r/mystery-box` on a phone: the AI inspection's split, ready to propose |
-| `07-ios.png` | The iOS app, four Simulator screens in CSS phone frames: browse the catalogue, a listing in 中文 (dark), pay into escrow, settled (from [ios/screenshots](../../ios/screenshots)) |
+| `07-ios.png` | The iOS app in its LED sign design (Settings > Design), four Simulator screens in CSS phone frames: browse the catalogue (prices in LED digits), a listing in 中文, pay into escrow, settled (from [ios/screenshots](../../ios/screenshots)) |
 | `ios/*.jpg` | JPEG copies of those four screens for the deck (Chromium embeds JPEGs as they are; the PNGs made deck.pdf 5 MB instead of 3) |
 | `08-sponsors.png` | `/sponsors`: one card per sponsor track with its live state (a local Worker preview with the public Atlas feeds and no CMC key, so the CMC sub-chip says *Waiting for key*; the live site has CMC live) |
 | `09-landing-dark.png` | Landing, dark |
