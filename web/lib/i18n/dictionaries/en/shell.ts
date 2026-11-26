@@ -15,6 +15,7 @@ export const body = {
     how: "How it works",
     developers: "Developers",
     integrations: "Integrations",
+    sponsors: "Sponsor tracks",
     settings: "Settings",
     settingsTitle: "Secrets settings (local only)",
   },
@@ -156,7 +157,7 @@ export const body = {
     env: "Env (server-side, web/.env.local):",
     calls: "Recent calls",
     noCalls: "No calls logged by this server yet.",
-    state: { live: "Live", "not-configured": "Not configured", blocked: "Blocked", off: "Live calls off" },
+    state: { live: "Live", "not-configured": "Not configured", off: "Live calls off" },
   },
   /** /settings/secrets. */
   secrets: {

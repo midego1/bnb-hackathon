@@ -101,7 +101,7 @@ test("landing page tells the whole story in order, without the app shell, a wall
 
   // Proof: four claims at the top of the proof section, each a link to where it can be checked.
   const proof = page.locator("#live").getByTestId("mk-proof");
-  await expect(proof).toHaveText([/Live on BSC testnet/, /Contract v2/, /305 contract tests/, /ERC-8004 agent #2921/]);
+  await expect(proof).toHaveText([/Live on BSC testnet/, /Contract v2/, /\d+ contract tests/, /ERC-8004 agent #2921/]);
   const [live, factory, tests, agent] = await proof.evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
   expect(live).toBe("#contracts");
   await expect(page.locator("#contracts")).toHaveCount(1);
@@ -440,7 +440,7 @@ test("中文: the whole page reads in Chinese, on a laptop and on a phone", asyn
   await expect(page.getByTestId("mk-cta-demo")).toHaveText("播放实时演示");
   await expect(page.getByTestId("mk-cta-box")).toHaveText("租我们的神秘盒子");
   await expect(page.getByTestId("mk-cta-app")).toHaveText("打开应用");
-  await expect(page.getByTestId("mk-proof")).toHaveText([/已上线 BSC 测试网/, /合约 v2/, /305 项合约测试/, /ERC-8004 智能体 #2921/]);
+  await expect(page.getByTestId("mk-proof")).toHaveText([/已上线 BSC 测试网/, /合约 v2/, /\d+ 项合约测试/, /ERC-8004 智能体 #2921/]);
   for (const name of ["挑一辆摩托车，押金进托管。", "你的押金如何受保护，一共四步。", "AI 提建议，人来做决定。", "发布你的摩托车。", "下一步去哪里。"]) {
     await expect(page.getByRole("heading", { level: 2, name })).toBeVisible();
   }

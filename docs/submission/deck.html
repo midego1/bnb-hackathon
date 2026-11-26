@@ -48,16 +48,21 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
 .flow .arrow { width: 54px; display: grid; place-items: center; font-size: 44px; color: var(--yellow); font-weight: 800; }
 .flow .step p { font-size: 25px; }
 .flow .step h3 { font-size: 29px; }
+.phone { border-radius: 30px; border: 2px solid var(--line); box-shadow: 0 18px 50px rgba(15, 20, 48, .22); height: 100%; max-height: 640px; width: auto; display: block; }
+.logo { width: 92px; height: 92px; border-radius: 22%; box-shadow: 0 0 40px rgba(64, 220, 255, .35); }
+.brand { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
+.brand span { font: 800 54px Kanit, Inter, sans-serif; }
+.state { float: right; }
 .who { font-size: 21px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
 </style>
 </head>
 <body>
 
 <!-- 1. Problem -->
-<section class="slide dark" style="background: linear-gradient(90deg, rgba(15,20,48,1) 42%, rgba(15,20,48,.55)), url('screenshots/1-landing.png') right center / cover;">
-  <div class="kicker">KeyScrow · BNB Bangkok 2026</div>
+<section class="slide dark" style="background: linear-gradient(90deg, rgba(15,20,48,1) 44%, rgba(15,20,48,.6)), url('screenshots/01-landing.png') right center / cover;">
+  <div class="brand"><img class="logo" src="../../web/public/icons/icon-512.png" alt=""><span>KeyScrow</span></div>
   <h1>Rent the scooter.<br>Keep your passport.</h1>
-  <div style="margin-top: 70px; max-width: 1050px;">
+  <div style="margin-top: 60px; max-width: 1050px;">
     <h3 style="color: var(--yellow);">The problem</h3>
     <ul>
       <li>Scooter shops in Thailand usually keep the tourist's <b>passport</b> (or a stack of cash) as the deposit.</li>
@@ -66,35 +71,43 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <li>Nobody neutral in between, and nobody goes to court over a few thousand baht.</li>
     </ul>
   </div>
-  <div class="foot"><span>Developer Track · CoinMarketCap x Atlas</span><span>1 / 10</span></div>
+  <div class="foot"><span>BNB Bangkok 2026 · keyscrow.mdgooijer.workers.dev</span><span>1 / 10</span></div>
 </section>
 
 <!-- 2. Solution -->
 <section class="slide">
   <div class="kicker">Solution</div>
-  <h2 style="font-size: 62px;">The deposit sits in a smart contract made for this one rental. Neither side can move it alone.</h2>
-  <div class="grid g3" style="margin-top: 10px;">
-    <div class="card"><div class="num">1</div><h3>The shop offers the scooter</h3><p class="muted">Rent, deposit and period in baht. Agreement and guided pickup photos stay off-chain; only their SHA-256 fingerprints go on-chain.</p></div>
-    <div class="card"><div class="num">2</div><h3>The renter funds the escrow</h3><p class="muted">Deposit + month 1 go into the rental's own contract instead of a passport at the counter. Rent is paid out to the shop month by month.</p></div>
-    <div class="card"><div class="num">3</div><h3>Return and settle in minutes</h3><p class="muted">An AI inspection drafts the split. One side proposes, the other accepts, the money moves at once. Disagree? The dispute desk rules.</p></div>
-  </div>
-  <p style="margin-top: 50px;"><b>Timeouts protect the renter:</b> owner silent for 7 days, or the desk misses its 14-day deadline → full deposit back. Every amount is shown in <b>baht first</b>.</p>
-  <div class="foot"><span><b>KeyScrow</b> · keyescrow-web.mdgooijer.workers.dev</span><span>2 / 10</span></div>
-</section>
-
-<!-- 3. Demo -->
-<section class="slide">
-  <div class="kicker">Live demo · no wallet needed</div>
-  <div class="grid" style="grid-template-columns: 1.55fr 1fr; gap: 60px; align-items: start;">
-    <img class="shot" src="screenshots/5-demo-summary.png" alt="Demo end screen: final balances">
+  <div class="grid" style="grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: start;">
     <div>
-      <h2 style="font-size: 64px;">One click plays a whole rental on BSC testnet</h2>
-      <p>Create → fund → month-1 payout → return photos → AI inspection → propose → accept. <b>Real testnet transactions</b>, each one opens on BscScan.</p>
-      <p style="margin-top: 26px;" class="muted">Recorded 25 Nov 2026: rental <span class="mono">0x09adDfd6…ebA6</span> settled. Renter ฿5,513 back, owner ฿4,347, KeyScrow ฿340, escrow ฿0.</p>
-      <p style="margin-top: 26px;"><b>/demo</b> · <b>/how-it-works</b> (1-minute cartoon)</p>
+      <h2 style="font-size: 50px; margin-bottom: 28px;">The deposit sits in a contract made for this one rental. Neither side can move it alone.</h2>
+      <ul style="font-size: 28px;">
+        <li><b>The shop offers</b> rent, deposit and period (7, 14 or 30 days) in baht. Agreement and pickup photos stay off-chain; only their SHA-256 fingerprints go on-chain.</li>
+        <li><b>The renter funds</b> deposit + first rent in a stablecoin. Rent is paid out period by period.</li>
+        <li><b>At return</b> an AI inspector drafts the split. One side proposes, the other accepts, one transaction pays everyone.</li>
+      </ul>
+      <p style="margin-top: 18px; font-size: 28px;"><b>Timeouts protect the renter:</b> owner silent 7 days, or the desk misses its 14-day deadline → full deposit back.</p>
+    </div>
+    <div style="position: relative; padding-bottom: 120px;">
+      <img class="shot" src="screenshots/03-rental.png" alt="The rental page: money in baht, timeline, the next action">
+      <img class="phone" src="screenshots/07-ios.png" alt="The iOS app" style="position: absolute; right: -40px; bottom: -40px; height: 520px;">
     </div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · keyescrow-web.mdgooijer.workers.dev/demo</span><span>3 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · every amount in baht first</span><span>2 / 10</span></div>
+</section>
+
+<!-- 3. Live demo: duo -->
+<section class="slide">
+  <div class="kicker">Live demo · a judge rents our Mystery Box</div>
+  <div class="grid" style="grid-template-columns: 1.6fr 1fr; gap: 56px; align-items: start;">
+    <img class="shot" src="screenshots/02-duo.png" alt="/duo: the renter's phone on the left, the rental company on the right">
+    <div>
+      <h2 style="font-size: 56px; margin-bottom: 30px;">Renter's phone left, rental company right</h2>
+      <p><b>/duo/mystery-box</b> shows both sides of one real rental on BSC testnet: guest wallet, test money, pickup photos, return photos, the AI split, propose, accept, settled.</p>
+      <p style="margin-top: 22px;" class="muted">On stage: <b>/stage</b> on the big screen, <b>/r</b> on the judge's phone (scan the QR). Or <b>/demo</b>: one click plays a whole rental, no wallet.</p>
+      <p style="margin-top: 22px;" class="muted">Every step links to BscScan.</p>
+    </div>
+  </div>
+  <div class="foot"><span><b>KeyScrow</b> · keyscrow.mdgooijer.workers.dev/duo/mystery-box</span><span>3 / 10</span></div>
 </section>
 
 <!-- 4. How it works -->
@@ -102,54 +115,51 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
   <div class="kicker">How it works</div>
   <h2>One rental, one contract, three ways out</h2>
   <div class="flow">
-    <div class="step"><div class="who" style="color: var(--violet);">Owner</div><h3>createLease</h3><p class="muted">Factory deploys an EIP-1167 clone with the terms and evidence hashes.</p></div>
+    <div class="step"><div class="who" style="color: var(--violet);">Owner</div><h3>createLease</h3><p class="muted">Factory deploys an EIP-1167 clone with the terms and the agreement hash.</p></div>
     <div class="arrow">→</div>
-    <div class="step"><div class="who" style="color: var(--teal);">Renter</div><h3>fund</h3><p class="muted">Deposit + month 1 in mUSDT, locked in the clone.</p></div>
+    <div class="step"><div class="who" style="color: var(--teal);">Renter</div><h3>fund</h3><p class="muted">Deposit + first rent period in the stablecoin, locked in the clone.</p></div>
     <div class="arrow">→</div>
-    <div class="step"><div class="who" style="color: var(--muted);">Anyone</div><h3>releaseRent</h3><p class="muted">Every 30 days. Month 1 pays the one-time 10% fee.</p></div>
+    <div class="step"><div class="who" style="color: var(--muted);">Anyone</div><h3>releaseRent</h3><p class="muted">Each due period. The first payout pays the one-time 10% fee.</p></div>
     <div class="arrow">→</div>
-    <div class="step"><div class="who" style="color: #0891b2;">AI inspector</div><h3>Draft split</h3><p class="muted">Compares pickup vs return photos. Report hash names agent #2921.</p></div>
+    <div class="step"><div class="who" style="color: #0891b2;">AI inspector</div><h3>Draft split</h3><p class="muted">Pickup vs return photos + scooter memory. Report hash names agent #2921.</p></div>
     <div class="arrow">→</div>
     <div class="step"><div class="who" style="color: var(--teal);">One party</div><h3>propose</h3><p class="muted">The split + report hash, on-chain.</p></div>
   </div>
   <div class="grid g3" style="margin-top: 46px;">
     <div class="card"><h3 style="color: var(--teal);">✓ Agree</h3><p class="muted">The other side calls <code>accept</code>: one transaction pays renter, owner and treasury.</p></div>
-    <div class="card"><h3 style="color: var(--red);">⚖ Dispute</h3><p class="muted"><code>dispute</code> → the named dispute desk calls <code>resolve</code> with a split, within 14 days.</p></div>
-    <div class="card"><h3 style="color: var(--violet);">⏱ Silence</h3><p class="muted"><code>claimTimeout</code> / <code>claimArbiterTimeout</code>: the full deposit goes back to the renter.</p></div>
+    <div class="card"><h3 style="color: var(--red);">⚖ Dispute</h3><p class="muted"><code>dispute</code> → the dispute desk sees both parties' history and calls <code>resolve</code> within 14 days.</p></div>
+    <div class="card"><h3 style="color: var(--violet);">⏱ Silence</h3><p class="muted">Owner silent 7 days or desk past 14 days: <code>claimTimeout</code> / <code>claimArbiterTimeout</code>, full deposit to the renter.</p></div>
   </div>
   <div class="foot"><span><b>KeyScrow</b> · docs/ARCHITECTURE.md</span><span>4 / 10</span></div>
 </section>
 
-<!-- 5. BNB-native -->
+<!-- 5. BNB Chain -->
 <section class="slide dark">
-  <div class="kicker">BNB-native</div>
-  <h2>Built on BNB Chain, not just deployed there</h2>
-  <div class="grid g2">
-    <div class="card"><h3>One escrow clone per rental</h3><p class="muted"><code>EscrowFactory</code> deploys a 45-byte EIP-1167 proxy of <code>RentalEscrow</code> per rental. Funds isolated per rental, no admin key, not upgradeable. On-chain indexes by owner, renter and desk: no backend database.</p></div>
-    <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyScrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A and MCP (17 tools).</p></div>
-    <div class="card"><h3>Evidence on BNB Greenfield</h3><p class="muted">Agreement and photos off-chain, SHA-256 on-chain. Greenfield store (delegated upload) when configured; the Workers deploy uses R2 or hashes in the browser.</p></div>
-    <div class="card"><h3>opBNB-ready</h3><p class="muted">Plain Solidity, no BSC-specific opcodes. Deploy guard accepts opBNB testnet (5611). Monthly rent releases are cheap on an L2. <i>Not deployed on opBNB yet.</i></p></div>
+  <div class="kicker">BNB Chain integration</div>
+  <h2>Live on BSC testnet, a capped pilot on BSC mainnet</h2>
+  <div class="grid g2" style="gap: 30px;">
+    <div class="card"><h3>One escrow clone per rental</h3><p class="muted"><code>EscrowFactory</code> deploys a 45-byte EIP-1167 proxy of <code>RentalEscrow</code> per rental. Funds isolated, no admin key over funds, not upgradeable. On-chain indexes by owner, renter and desk: no backend database.</p></div>
+    <div class="card"><h3>Mainnet pilot (chain 56)</h3><p class="muted">Factory <code>0x8d708713…0a2d3E</code>, real USDT (BSC-USD). Caps on the factory: deposit ≤ 0.70, rent ≤ 0.30 per period, so <b>one rental ≤ 1 USD</b>; 5 USDT in all escrows. Caps never block a payout.</p></div>
+    <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyScrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A, MCP and REST.</p></div>
+    <div class="card"><h3>Greenfield · opBNB-ready</h3><p class="muted">Evidence off-chain (Greenfield store when configured, R2 on Workers), SHA-256 on-chain. Plain Solidity: the deploy guard accepts opBNB testnet. <i>Not deployed on opBNB yet.</i></p></div>
   </div>
-  <div class="foot"><span>BSC testnet (chain 97) · mainnets refused by the deploy scripts</span><span>5 / 10</span></div>
+  <div class="foot"><span>BSC testnet (97): contracts v2, verified · BSC mainnet (56): capped pilot</span><span>5 / 10</span></div>
 </section>
 
-<!-- 6. AI inspection + dispute desk -->
+<!-- 6. Sponsors -->
 <section class="slide">
-  <div class="kicker">AI inspection + dispute desk</div>
-  <div class="grid" style="grid-template-columns: 1.45fr 1fr; gap: 60px; align-items: start;">
-    <img class="shot" src="screenshots/4-demo-mid-run.png" alt="Demo step 7: AI inspection drafts a split">
-    <div>
-      <h2 style="font-size: 62px;">The AI drafts. People decide.</h2>
-      <ul>
-        <li>Structured result: refund, claim, reasons, confidence. Bounded by the deposit.</li>
-        <li>Recalls each scooter's earlier inspections (Living Brain), so old damage is not charged twice.</li>
-        <li>A party submits it with their own wallet; the other accepts or disputes.</li>
-        <li>Dispute desk: a queue with photos, proposals and the AI report; a hard 14-day deadline.</li>
-      </ul>
-      <p class="muted" style="font-size: 24px; margin-top: 18px;">On the live site today the deterministic <i>demo inspector</i> answers (no model key set); with a key, a vision LLM returns the same JSON.</p>
+  <div class="kicker">Sponsor tracks · state on keyscrow.mdgooijer.workers.dev/sponsors</div>
+  <div class="grid" style="grid-template-columns: 1.25fr 1fr; gap: 56px; align-items: start;">
+    <div class="grid" style="gap: 12px;">
+      <div class="card" style="padding: 14px 28px;"><h3 style="font-size: 30px;">Developer Track · BNB Chain <span class="pill ok state">live</span></h3><p class="muted" style="font-size: 24px;">Escrow per rental on BSC testnet + mainnet pilot, ERC-8004 agent, REST/MCP/A2A, judge demo, iOS app.</p></div>
+      <div class="card" style="padding: 14px 28px;"><h3 style="font-size: 30px;">CoinMarketCap x Atlas <span class="pill ok state">Atlas + CMC live</span></h3><p class="muted" style="font-size: 24px;">Atlas push feeds on BSC (BNB/USD, USDT/USD) are the first price source, testnet and mainnet. CMC: fallback, USD/THB and the deposit volatility buffer. Every call logged.</p></div>
+      <div class="card" style="padding: 14px 28px;"><h3 style="font-size: 30px;">ChatAndBuild · Living Brain <span class="pill ok state">live</span></h3><p class="muted" style="font-size: 24px;">Scooter memory for the AI inspector + dispute memory per wallet on the dispute desk.</p></div>
+      <div class="card" style="padding: 14px 28px;"><h3 style="font-size: 30px;">Cournot <span class="pill state">built, waiting for key</span></h3><p class="muted" style="font-size: 24px;">"Will BNB fall below $X before the return date?" scales the deposit buffer.</p></div>
+      <div class="card" style="padding: 14px 28px;"><h3 style="font-size: 30px;">AWS startup pitch <span class="pill no state">pitch</span></h3><p class="muted" style="font-size: 24px;">Business model and roadmap: the next two slides.</p></div>
     </div>
+    <img class="shot" src="screenshots/08-sponsors.png" alt="The /sponsors page">
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · docs/AGENT.md</span><span>6 / 10</span></div>
+  <div class="foot"><span>Not entered: Four.meme / OpenFour, Flap (no own token)</span><span>6 / 10</span></div>
 </section>
 
 <!-- 7. Business model -->
@@ -158,7 +168,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
   <h2 style="font-size: 64px; margin-bottom: 36px;">10% of one month's rent, once. Never from the deposit.</h2>
   <div class="grid" style="grid-template-columns: 1.25fr 1fr; gap: 70px;">
     <div><table>
-      <tr><th>Honda Click 125i, 3 months</th><th class="r">mUSDT</th><th class="r">≈ THB</th></tr>
+      <tr><th>Honda Click 125i, 3 months</th><th class="r">USDT</th><th class="r">≈ THB</th></tr>
       <tr><td>Monthly rent</td><td class="r">100</td><td class="r">3,400</td></tr>
       <tr><td>Deposit (instead of the passport)</td><td class="r">200</td><td class="r">6,800</td></tr>
       <tr class="hl"><td>KeyScrow fee, once</td><td class="r">10</td><td class="r">340</td></tr>
@@ -168,39 +178,33 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <p class="muted" style="font-size: 24px; margin-top: 24px;">Illustrative rate 1 USDT = 34 THB. No yield on deposits. No token.</p></div>
     <div>
       <div class="card" style="margin-bottom: 20px; padding: 26px 32px;"><h3>Protocol fee <span class="pill ok">live</span></h3><p class="muted">From the owner's first payout. Hard-capped at 10% in the factory, copied per rental.</p></div>
-      <div class="card" style="margin-bottom: 20px; padding: 26px 32px;"><h3>FleetVault operator fee <span class="pill ok">testnet</span></h3><p class="muted">Rentals can pay a vault; the operator takes 10% (cap 30%) for maintenance, BKK-FLEET-1 holders share the rest.</p></div>
-      <div class="card" style="padding: 26px 32px;"><h3>Dispute desk as a service <span class="pill no">planned</span></h3><p class="muted">Per-dispute fee and paid tooling for insurers and associations as named arbiters.</p></div>
+      <div class="card" style="margin-bottom: 20px; padding: 26px 32px;"><h3>Fleet Vault operator fee <span class="pill ok">testnet</span></h3><p class="muted">Rentals can pay a vault; the operator takes 10% (cap 30%) for maintenance, BKK-FLEET-1 holders share the rest.</p></div>
+      <div class="card" style="padding: 26px 32px;"><h3>Dispute desk as a service <span class="pill no">planned</span></h3><p class="muted">Per-dispute fee and tooling for associations and insurers as named arbiters.</p></div>
     </div>
   </div>
   <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md</span><span>7 / 10</span></div>
 </section>
 
-<!-- 8. Traction / testnet proof -->
+<!-- 8. Traction / demo world -->
 <section class="slide">
-  <div class="kicker">Testnet proof</div>
-  <h2>Live on BSC testnet, open source, tested</h2>
-  <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap: 60px;">
-    <table style="font-size: 26px;">
-      <tr><th>Contract (chain 97)</th><th>Address</th></tr>
-      <tr><td>EscrowFactory</td><td class="mono">0xd33b4dfF…5F1363D8</td></tr>
-      <tr><td>RentalEscrow implementation</td><td class="mono">0x63f174fE…f34D2314</td></tr>
-      <tr><td>FleetVault (BKK-FLEET-1)</td><td class="mono">0xd046308B…6a824ecB</td></tr>
-      <tr><td>MockUSDT (test stablecoin)</td><td class="mono">0x46e69984…e4c8fE37</td></tr>
-      <tr><td>ERC-8004 Identity Registry</td><td class="mono">agent #2921</td></tr>
-    </table>
+  <div class="kicker">Traction · the demo world</div>
+  <div class="grid" style="grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: start;">
     <div>
-      <ul>
-        <li>Contracts verified on BscScan</li>
-        <li>Web app + agent live on Cloudflare Workers</li>
-        <li>REST + OpenAPI 3.1, MCP, A2A: one action layer</li>
-        <li><b>105</b> Foundry tests (incl. fuzz) · <b>241</b> web unit · <b>20</b> agent · <b>50</b> Playwright</li>
-        <li>CI on every push, no secrets · MIT</li>
-        <li>Internal pre-audit security review</li>
+      <h2 style="font-size: 58px; margin-bottom: 30px;">3 shops, 10 renters, 15 real rentals</h2>
+      <ul style="font-size: 28px;">
+        <li>5 clean returns, 2 damages settled by agreement, 3 disputes the desk resolved, 1 dispute still open, 3 active rentals, 1 unfunded offer.</li>
+        <li>Every rental with pickup and return photos anchored on-chain and an AI inspection.</li>
+        <li>The dispute desk sees each party's history card: on-chain facts + Living Brain memory.</li>
+        <li>Back office for the demo shops; iOS app on the same API.</li>
       </ul>
+      <p class="muted" style="font-size: 24px; margin-top: 18px;">Fictional people, test money. No real users yet. Open source (MIT), CI on every push.</p>
+    </div>
+    <div class="grid" style="gap: 24px;">
+      <img class="shot" src="screenshots/04-arbiter-history.png" alt="Dispute desk with history cards" style="height: 380px; object-fit: cover; object-position: top;">
+      <img class="shot" src="screenshots/05-backoffice.png" alt="Back office of the demo shops" style="height: 380px; object-fit: cover; object-position: top;">
     </div>
   </div>
-  <p class="muted" style="font-size: 25px; margin-top: 34px;"><b>Honest status:</b> testnet only, no real users yet, no token. CoinMarketCap and Atlas integrations are built and tested; the live site shows labelled <i>Demo rates</i> until a CMC key is set, and Atlas publishes no BSC testnet feed addresses yet.</p>
-  <div class="foot"><span><b>KeyScrow</b> · github.com/midego1/bnb-hackathon</span><span>8 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · pnpm testnet:world · docs/DEMO.md</span><span>8 / 10</span></div>
 </section>
 
 <!-- 9. Roadmap -->
@@ -208,19 +212,19 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
   <div class="kicker">Roadmap</div>
   <h2>From a Bangkok hackathon to the islands</h2>
   <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 24px;">
-    <div class="card" style="border-color: var(--yellow);"><div class="num">1</div><h3>MVP</h3><p class="muted"><b>Nov 2026, done.</b> Contracts, app, agent, live demo on BSC testnet.</p></div>
-    <div class="card"><div class="num">2</div><h3>Pilot</h3><p class="muted"><b>Q1 2027.</b> 10–20 rentals with shops in Chiang Mai and Phuket. Tune the inspector. External audit.</p></div>
-    <div class="card"><div class="num">3</div><h3>Mainnet</h3><p class="muted"><b>Q2–Q3 2027.</b> BSC + opBNB, real stablecoin, embedded wallets, Thai legal review, rent keeper.</p></div>
-    <div class="card"><div class="num">4</div><h3>Shops</h3><p class="muted"><b>2027 →</b> Fleet tools as B2B subscription, associations as arbiters, booking sites and AI agents via MCP.</p></div>
-    <div class="card"><div class="num">5</div><h3>Insurance</h3><p class="muted"><b>After mainnet.</b> Damage above the deposit, priced from inspection history.</p></div>
+    <div class="card" style="border-color: var(--yellow);"><div class="num">1</div><h3>MVP + pilot</h3><p class="muted"><b>Nov 2026, done.</b> BSC testnet, a capped BSC mainnet pilot, web + iOS + agent.</p></div>
+    <div class="card"><div class="num">2</div><h3>Shops</h3><p class="muted"><b>Q1 2027.</b> 10–20 rentals with shops in Chiang Mai and Phuket. Tune the inspector. External audit.</p></div>
+    <div class="card"><div class="num">3</div><h3>opBNB</h3><p class="muted"><b>Q2–Q3 2027.</b> BSC mainnet + opBNB for cheap rent payouts, embedded wallets, a licensed PromptPay on-ramp.</p></div>
+    <div class="card"><div class="num">4</div><h3>Native apps</h3><p class="muted"><b>2027.</b> The iOS app to the App Store, then Android. Booking sites and AI travel agents via MCP.</p></div>
+    <div class="card"><div class="num">5</div><h3>Asset pools</h3><p class="muted"><b>After a licensed route.</b> Shareholders co-own one big asset and share its rent. No token.</p></div>
   </div>
-  <p style="margin-top: 50px;" class="muted">Then the same passport-as-deposit problem in Bali and Vietnam.</p>
+  <p style="margin-top: 50px;" class="muted">Then insurance priced from inspection history, and the same passport-as-deposit problem in Bali and Vietnam.</p>
   <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md#roadmap</span><span>9 / 10</span></div>
 </section>
 
 <!-- 10. Team / ask -->
 <section class="slide dark">
-  <div class="kicker">Team and ask</div>
+  <div class="brand"><img class="logo" src="../../web/public/icons/icon-512.png" alt=""><span>KeyScrow</span></div>
   <h2>Keep your passport.</h2>
   <div class="grid g2" style="gap: 60px;">
     <div>
@@ -232,17 +236,17 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div>
       <h3 style="color: var(--yellow);">What we ask for</h3>
       <ul>
-        <li>Intros to scooter shops in Chiang Mai and Phuket for the testnet pilot</li>
-        <li>Atlas BSC feed onboarding; a CoinMarketCap API key</li>
-        <li>BNB Chain ecosystem support for the audit and opBNB launch</li>
+        <li>Intros to scooter shops in Chiang Mai and Phuket for the pilot</li>
+        <li>Atlas Pull API signed reports (key in hand); a Cournot partner key</li>
+        <li>BNB Chain support for the audit and the opBNB launch</li>
       </ul>
     </div>
   </div>
-  <div style="margin-top: 60px;">
-    <span class="big">keyescrow-web.mdgooijer.workers.dev</span>
-    <p class="muted" style="margin-top: 10px;">/demo · /how-it-works · /developers · agent: keyescrow-agent.mdgooijer.workers.dev</p>
+  <div style="margin-top: 50px;">
+    <span class="big">keyscrow.mdgooijer.workers.dev</span>
+    <p class="muted" style="margin-top: 10px;">/duo/mystery-box · /demo · /sponsors · mainnet pilot: keyescrow-mainnet.mdgooijer.workers.dev</p>
   </div>
-  <div class="foot"><span>Testnet prototype · no token · not an offer of securities</span><span>10 / 10</span></div>
+  <div class="foot"><span>Testnet prototype + capped mainnet pilot · no token · not an offer of securities</span><span>10 / 10</span></div>
 </section>
 
 </body>
