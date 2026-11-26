@@ -53,9 +53,10 @@ test("a renter rents a demo scooter from its listing: the owner's offer, then de
   await expect(terms).toContainText("Nimman, Chiang Mai");
   await expect(page.getByTestId("listing-demo")).toContainText("Demo listing");
   await expect(page.getByTestId("listing-demo")).toContainText("test money");
-  // The picture is there and sized, so nothing moves when it loads.
-  const photo = page.getByRole("img", { name: "Honda Click 125i" });
-  await expect(photo).toHaveAttribute("width", "960");
+  // The catalogue's real photo is there and sized (nothing moves when it loads), with its credit.
+  const photo = page.getByTestId("listing-photo").getByRole("img", { name: /Honda Click/ });
+  await expect(photo).toHaveAttribute("width", "1200");
+  await expect(page.getByTestId("listing-photo")).toContainText("Photo: Vyacheslav Argenberg, CC BY 4.0.");
   await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   // The Mystery Box's phone links belong to the stage item only.
   await expect(page.getByTestId("listing-rent")).toHaveCount(0);

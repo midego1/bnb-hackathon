@@ -162,7 +162,7 @@ the stage rental is "one day" in the UI and settles the same day.
 
 ### Demo scooter listings: rent one from the landing page
 
-The landing page's grid shows six **demo scooters** from `web/data/listings.json` (not real shops' offers) next to the
+The landing page's grid shows seven **demo scooters** from `web/data/listings.json` (not real shops' offers) next to the
 Mystery Box. The search above it (where, when, how long) filters the grid by city; every demo listing is open on every
 date. A card opens `/app/listings/<slug>`, and **Rent it** there starts a real rental with the wallet connected in the
 app: *Get test money* if the wallet is short (the same once-per-address drip as on stage), then the demo owner offers

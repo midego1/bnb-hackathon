@@ -388,7 +388,9 @@ describe("REST + OpenAPI are generated from the definitions", () => {
   it("has one route and one OpenAPI operation per action, with the right method", () => {
     const doc = buildOpenApi();
     expect(doc.openapi).toBe("3.1.0");
-    expect(Object.keys(doc.paths)).toHaveLength(ACTIONS.length);
+    // One per action, plus the listing catalogue's two reads.
+    expect(Object.keys(doc.paths)).toHaveLength(ACTIONS.length + 2);
+    expect(Object.keys(doc.paths)).toEqual(expect.arrayContaining(["/api/listings", "/api/listings/{slug}"]));
     for (const a of ACTIONS) {
       const method = a.kind === "read" ? "get" : "post";
       const op = (doc.paths[`/api/v1/${a.name}`] as Record<string, { operationId: string; description: string }>)[method];

@@ -54,6 +54,44 @@ const PREPARED = {
   },
 };
 
+const str = { type: "string" };
+/** GET /api/listings items (lib/listings.ts listingJson). */
+const LISTING = {
+  type: "object",
+  required: ["slug", "name", "description", "location", "city", "area", "rentThb", "monthThb", "depositThb", "stage", "demo", "photos"],
+  properties: {
+    slug: { type: "string", description: "The listing's id on the website (/app/listings/<slug>), the iOS app and /api/stage/<slug>." },
+    name: str,
+    description: str,
+    location: str,
+    city: str,
+    area: { type: ["string", "null"] },
+    rentThb: { type: "number", description: "Rent per day, THB." },
+    monthThb: { type: ["number", "null"], description: "Rent per month, THB, when the listing offers one." },
+    depositThb: { type: "number", description: "Deposit, THB." },
+    stage: { type: "boolean", description: "The live stage demo's item." },
+    demo: { type: "boolean", description: "A made-up offer to try the rental with." },
+    photos: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["url", "width", "height", "alt", "credit"],
+        properties: {
+          url: { type: "string", description: "Absolute URL of the 1200 px JPEG." },
+          width: { type: "integer" },
+          height: { type: "integer" },
+          alt: str,
+          credit: {
+            type: "object",
+            required: ["title", "author", "license", "licenseUrl", "source", "changes"],
+            properties: { title: str, author: str, license: str, licenseUrl: str, source: str, changes: str, note: str },
+          },
+        },
+      },
+    },
+  },
+};
+
 const errors = {
   "400": { description: "Invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
   "404": { description: "Unknown action, or not a KeyEscrow rental", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -95,6 +133,31 @@ export function buildOpenApi(serverUrl?: string) {
     }
     paths[`${API_BASE}/${a.name}`] = { [method]: op };
   }
+  // The listing catalogue: no chain and no MCP tool, but the public read the website and the iOS app share.
+  const listing = { content: { "application/json": { schema: { $ref: "#/components/schemas/Listing" } } } };
+  paths["/api/listings"] = {
+    get: {
+      operationId: "listings",
+      summary: "The listing catalogue",
+      description: "Every listing (demo scooters and the stage item) with prices in THB and its photos, each with its Wikimedia Commons credit. Cached for 5 minutes.",
+      tags: ["Reads"],
+      responses: {
+        "200": {
+          description: "The catalogue",
+          content: { "application/json": { schema: { type: "object", required: ["thbPerUsdt", "listings"], properties: { thbPerUsdt: { type: "number" }, listings: { type: "array", items: { $ref: "#/components/schemas/Listing" } } } } } },
+        },
+      },
+    },
+  };
+  paths["/api/listings/{slug}"] = {
+    get: {
+      operationId: "listing",
+      summary: "One listing of the catalogue",
+      tags: ["Reads"],
+      parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" }, description: "e.g. honda-click-125i" }],
+      responses: { "200": { description: "The listing", ...listing }, "404": { description: "No such listing", content: { "application/json": { schema: { type: "object", properties: { error: { type: "string" } } } } } } },
+    },
+  };
   return {
     openapi: "3.1.0",
     info: {
@@ -107,6 +170,6 @@ export function buildOpenApi(serverUrl?: string) {
     },
     ...(serverUrl ? { servers: [{ url: serverUrl }] } : {}),
     paths,
-    components: { schemas: { Error: ERROR, Prepared: PREPARED } },
+    components: { schemas: { Error: ERROR, Prepared: PREPARED, Listing: LISTING } },
   };
 }

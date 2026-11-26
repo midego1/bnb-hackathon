@@ -67,8 +67,8 @@ const en = {
     demoTag: "Demo listing",
     stageTag: "Live stage demo",
     onStage: "On stage, BNB Bangkok",
-    alt: (name: string, place: string) => `LED picture of a ${name} scooter in ${place}.`,
-    boxAlt: "Drawing of the KeyEscrow Mystery Box, the item rented live on stage.",
+    alt: (name: string, place: string) => `Photo of a ${name}, the model of this demo listing in ${place}.`,
+    boxAlt: "Photo of a closed cardboard box, standing in for the KeyEscrow Mystery Box rented live on stage.",
   },
   counter: {
     title: "The same counter, with nobody holding your passport.",
@@ -316,6 +316,7 @@ claude mcp add --transport http keyescrow \\
       business: "Business model",
       writeup: "CoinMarketCap x Atlas write-up",
       deploy: "Testnet deployment",
+      credits: "Photo credits",
     },
   },
 };

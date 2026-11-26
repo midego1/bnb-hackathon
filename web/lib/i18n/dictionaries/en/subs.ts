@@ -75,6 +75,8 @@ export const body = {
     where: "Where",
     owner: "Owner",
     demoOwner: "KeyEscrow demo owner",
+    photoBy: "Photo: {author}, {license}. It shows the model, not this exact item.",
+    credits: "Photo credits",
     body: "Rent and deposit go into this rental's own escrow on BNB Chain. The AI inspector compares pickup and return photos; both sides agree on the split.",
     /** A demo scooter: rented with the wallet connected in the app (the Mystery Box is rented from a phone, below). */
     demo: "Demo listing, not a real shop's offer. It runs on a test network and you pay with test money.",

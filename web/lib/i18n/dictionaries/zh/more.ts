@@ -120,6 +120,19 @@ export const body: DeepPartial<typeof enBody> = {
     qrLabel: "演示用 PromptPay 二维码",
   },
 
+  credits: {
+    metaTitle: "照片署名 · KeyEscrow",
+    lead: "本网站和 KeyEscrow iOS 应用中的房源照片都是来自 Wikimedia Commons 的真实照片，按下列许可免费使用。照片展示的是每条房源的车型，并非所列的那辆摩托车；照片中的店铺和地点与 KeyEscrow 无关。",
+    usedFor: "用于",
+    author: "作者",
+    license: "许可",
+    source: "Wikimedia Commons 上的文件",
+    changed: "我们的改动",
+    note: "说明",
+    sameLicense: "我们裁剪和缩放后的版本沿用各原图的同一许可。首页的 LED 图片是我们自己绘制的。",
+    api: "同一份列表的 JSON 版本：",
+  },
+
   dev: {
     metaTitle: "开发者 · KeyEscrow",
     lead: {
@@ -133,6 +146,7 @@ export const body: DeepPartial<typeof enBody> = {
       outputs: "，输出给出 ",
       base: "（基本单位）和 ",
       end: "。",
+      catalogue: "房源：网站和 iOS 应用共用的同一份目录，含泰铢价格和每张照片的署名。公开、无需密钥、缓存 5 分钟：",
     },
     field: "字段",
     type: "类型",
@@ -268,4 +282,5 @@ export const head: DeepPartial<typeof enHead> = {
     step2: "2. 从你的钱包向托管合约付款",
   },
   dev: { title: "开发者" },
+  credits: { title: "照片署名" },
 };

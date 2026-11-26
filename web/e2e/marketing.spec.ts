@@ -80,10 +80,10 @@ test("landing page tells the whole story in order, without the app shell, a wall
   expect(headings).toHaveLength(story.length);
   story.forEach((name, i) => expect(headings[i], `section ${i + 1}`).toMatch(name));
 
-  // The listings under the hero: six demo scooters and the Mystery Box, labelled as a demo, rating-free.
+  // The listings under the hero: seven demo scooters and the Mystery Box, labelled as a demo, rating-free.
   const cards = page.getByTestId("mk-listing");
-  await expect(cards).toHaveCount(7);
-  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
+  await expect(cards).toHaveCount(8);
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("8 demo listings.");
   await expect(page.getByTestId("mk-listing-demo")).toContainText("Demo listings on BSC testnet");
   await expect(page.getByTestId("mk-listing-demo")).toContainText("the deposit and the first month's rent into its own escrow, with test money");
   await expect(page.getByTestId("mk-listing-demo")).toContainText("not real shops' offers");
@@ -224,7 +224,7 @@ test("search: a city and a length filter the listings below, and the address car
   await page.goto("/");
   const cards = page.getByTestId("mk-listing");
   const search = page.getByRole("search", { name: "Find a scooter" });
-  await expect(cards).toHaveCount(7);
+  await expect(cards).toHaveCount(8);
   await expect(page.getByTestId("mk-search-pill")).toBeHidden(); // the single pill is the phone's
   await expect(search.getByLabel("When")).toHaveAttribute("type", "date");
 
@@ -241,10 +241,10 @@ test("search: a city and a length filter the listings below, and the address car
   // The search is still what the form shows.
   await expect(search.getByLabel("Where")).toHaveValue("Phuket");
 
-  // "Show all" brings back all seven, by the day.
+  // "Show all" brings back all eight, by the day.
   await page.getByTestId("mk-listing-all").click();
-  await expect(cards).toHaveCount(7);
-  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
+  await expect(cards).toHaveCount(8);
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("8 demo listings.");
   await expect(page.getByTestId("mk-listing-all")).toHaveCount(0);
   await expect(search.getByLabel("Where")).toHaveValue("");
   await expect(search.getByLabel("How long")).toHaveValue("day");
@@ -257,7 +257,7 @@ test("search: a city and a length filter the listings below, and the address car
   await expect(search.getByLabel("When")).toHaveValue("2026-12-24");
   // Anything unknown means everything.
   await page.goto("/?where=Atlantis&how=forever&when=soon");
-  await expect(cards).toHaveCount(7);
+  await expect(cards).toHaveCount(8);
   expect(await page.locator("form[role=search]").getAttribute("action")).toBe("/#listings");
   expect(problems).toEqual([]);
 });
@@ -444,7 +444,7 @@ test("中文: the whole page reads in Chinese, on a laptop and on a phone", asyn
   await expect(search.getByLabel("地点").locator("option")).toHaveText(["泰国任何地方", "清迈", "曼谷", "普吉", "拜县"]);
   await expect(search.getByLabel("租多久").locator("option")).toHaveText(["按天", "按周", "按月"]);
   await expect(search.getByRole("button", { name: "搜索" })).toBeVisible();
-  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 条演示租赁信息。");
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("8 条演示租赁信息。");
   const zhClick = page.locator('[data-testid="mk-listing"][data-slug="honda-click-125i"]');
   await expect(zhClick).toContainText("Nimman, 清迈");
   await expect(zhClick).toContainText("押金由托管合约保护");
@@ -487,7 +487,7 @@ test("EN+中文: a Chinese line under the headlines and the steps, English every
   await expect(page.locator("#shops-h .i18n-zh")).toHaveText("发布你的摩托车。");
   // The search and the cards stay English.
   await expect(page.getByRole("search").getByLabel("Where")).toBeVisible();
-  await expect(page.getByTestId("mk-listing-summary")).toHaveText("7 demo listings.");
+  await expect(page.getByTestId("mk-listing-summary")).toHaveText("8 demo listings.");
   // Body text and buttons stay English.
   await expect(page.getByTestId("mk-cta-box")).toHaveText("Rent our Mystery Box");
   await expect(page.getByTestId("mk-flow-step-2")).toContainText("goes into this rental's own contract");
@@ -519,6 +519,84 @@ test("reduced motion: the street stands still and the board waits to be pressed"
   await page.waitForTimeout(3200); // longer than one step of the autoplay
   await expect(flow).toHaveAttribute("data-step", "2");
   await expect(page.getByTestId("mk-flow-play")).toHaveText("Play the steps");
+});
+
+/** Screenshots of the one catalogue: CATALOGUE_SHOTS, default test-results/screenshots/catalogue. */
+const CATALOGUE_SHOTS = process.env.CATALOGUE_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/catalogue");
+
+test.describe("one catalogue with real photos", () => {
+  for (const vp of [DESKTOP, PHONE]) {
+    test(`the landing grid shows every listing's real photo, ${vp.width}x${vp.height}`, async ({ page }) => {
+      const problems = watchProblems(page);
+      await page.setViewportSize(vp);
+      await page.goto("/");
+      const cards = page.getByTestId("mk-listing");
+      await expect(cards).toHaveCount(8);
+      for (const card of await cards.all()) {
+        await card.scrollIntoViewIfNeeded();
+        const img = card.getByRole("img");
+        await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+        expect(await img.evaluate((i: HTMLImageElement) => i.currentSrc)).toMatch(/\/listings\/photos\/[a-z0-9-]+-(480|960|1200)\.(avif|webp|jpg)$/);
+      }
+      await expect(cards.first().getByRole("img")).toHaveAttribute("alt", "Photo of a Honda Click 125i, the model of this demo listing in Nimman, Chiang Mai.");
+      await page.locator("#listings").scrollIntoViewIfNeeded();
+      await page.locator("#listings").screenshot({ path: path.join(CATALOGUE_SHOTS, `landing-grid-${vp.width}x${vp.height}.png`) });
+      expect(await sideways(page)).toBeLessThanOrEqual(0);
+      expect(problems).toEqual([]);
+    });
+
+    test(`/credits lists every photo with its credit, linked from the footer, ${vp.width}x${vp.height}`, async ({ page, request }) => {
+      const problems = watchProblems(page);
+      await page.setViewportSize(vp);
+      await page.goto("/");
+      await page.getByRole("contentinfo").getByRole("link", { name: "Photo credits" }).click();
+      await page.waitForURL(/\/credits$/);
+      await expect(page.getByRole("heading", { level: 1, name: "Photo credits" })).toBeVisible();
+      const { listings } = await (await request.get("/api/listings")).json();
+      const photos: { url: string; credit: { title: string; author: string; license: string } }[] = listings.flatMap((l: { photos: unknown[] }) => l.photos);
+      await expect(page.getByTestId("credit")).toHaveCount(photos.length);
+      for (const p of photos) {
+        const item = page.locator(`[data-testid="credit"][data-src="${new URL(p.url).pathname}"]`);
+        await expect(item.getByRole("link", { name: p.credit.title, exact: true })).toHaveAttribute("href", /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
+        await expect(item).toContainText(p.credit.author);
+        await expect(item.getByRole("link", { name: p.credit.license })).toHaveAttribute("href", /^https:\/\/creativecommons\.org\//);
+      }
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({ path: path.join(CATALOGUE_SHOTS, `credits-${vp.width}x${vp.height}.png`) });
+      expect(await sideways(page)).toBeLessThanOrEqual(0);
+      expect(problems).toEqual([]);
+    });
+
+    test(`a listing page shows its photo and credit, ${vp.width}x${vp.height}`, async ({ page }) => {
+      const problems = watchProblems(page);
+      await page.setViewportSize(vp);
+      await page.goto("/app/listings/vespa-primavera-150");
+      await expect(page.getByRole("heading", { name: "Vespa Primavera 150" })).toBeVisible();
+      const figure = page.getByTestId("listing-photo");
+      const img = figure.getByRole("img", { name: "A cream Vespa Primavera with a top case, parked beside a white wooden house" });
+      await expect(img).toHaveAttribute("width", "1200");
+      await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+      await expect(figure).toContainText("Photo: Mr.choppers, CC BY-SA 3.0.");
+      await expect(figure.getByRole("link", { name: "Photo credits" })).toHaveAttribute("href", "/credits");
+      await page.screenshot({ path: path.join(CATALOGUE_SHOTS, `listing-vespa-${vp.width}x${vp.height}.png`) });
+      expect(await sideways(page)).toBeLessThanOrEqual(0);
+      expect(problems).toEqual([]);
+    });
+  }
+
+  test("/credits in 中文, and the API it is built from", async ({ page, request }) => {
+    await language(page, "zh");
+    await page.goto("/credits");
+    await expect(page.getByRole("heading", { level: 1, name: "照片署名" })).toBeVisible();
+    await expect(page.getByRole("main")).toContainText("Wikimedia Commons");
+    const res = await request.get("/api/listings/honda-click-125i");
+    expect(res.headers()["cache-control"]).toBe("public, max-age=300");
+    const click = await res.json();
+    expect(click.photos[0].url).toBe(`http://127.0.0.1:${E2E_WEB_PORT}/listings/photos/honda-click-125i-1200.jpg`);
+    const photo = await request.get(click.photos[0].url);
+    expect(photo.status()).toBe(200);
+    expect(photo.headers()["content-type"]).toBe("image/jpeg");
+  });
 });
 
 test.describe("screenshots", () => {
