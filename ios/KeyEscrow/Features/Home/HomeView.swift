@@ -328,10 +328,17 @@ struct ListingCard: View {
         Text(listing.name).font(Font.KE.headline).foregroundStyle(Color.KE.foreground).multilineTextAlignment(.leading)
     }
 
-    private var price: some View {
-        (Text(Money.thb(baht: listing.rentPerDayThb)).font(Font.KE.headline).foregroundColor(Color.KE.foreground)
-            + Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText))
-            .monospacedDigit().lineLimit(1)
+    @ViewBuilder private var price: some View {
+        if DesignMode.led {
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                LEDAmount(text: Money.thb(baht: listing.rentPerDayThb), dot: 2.2, framed: false)
+                Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText)
+            }
+        } else {
+            (Text(Money.thb(baht: listing.rentPerDayThb)).font(Font.KE.headline).foregroundColor(Color.KE.foreground)
+                + Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText))
+                .monospacedDigit().lineLimit(1)
+        }
     }
 
     private var promise: some View {

@@ -3,8 +3,13 @@ import UIKit
 
 /// KeyScrow's colour tokens (web/app/globals.css), light and dark.
 extension Color {
-    init(light: UInt32, dark: UInt32) {
-        self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) })
+    /// `led`: the token's colour in the LED design; by default the LED palette's match for the dark colour.
+    init(light: UInt32, dark: UInt32, led: UInt32? = nil) {
+        self.init(uiColor: UIColor {
+            // The LED design is always the night street.
+            if DesignMode.led { return UIColor(hex: led ?? LEDPalette.map[dark] ?? dark) }
+            return $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light)
+        })
     }
 
     enum KE {
@@ -14,10 +19,10 @@ extension Color {
         static let foreground = Color(light: 0x0F172A, dark: 0xF1F5F9)
         static let mutedText = Color(light: 0x475569, dark: 0xB4C0D0)
         static let subtle = Color(light: 0x556274, dark: 0x93A1B5)
-        static let border = Color(light: 0xE2E8F0, dark: 0x1E293B)
+        static let border = Color(light: 0xE2E8F0, dark: 0x1E293B, led: 0x2E2A6E)
         static let borderStrong = Color(light: 0xCBD5E1, dark: 0x334155)
         static let primary = Color(light: 0x0F172A, dark: 0xF8FAFC)
-        static let onPrimary = Color(light: 0xFFFFFF, dark: 0x0F172A)
+        static let onPrimary = Color(light: 0xFFFFFF, dark: 0x0F172A, led: 0x1C1917)
         /// The amber of the logo, for emphasis only.
         static let amber = Color(light: 0xF59E0B, dark: 0xFBBF24)
         /// Text and icons on an amber fill.
@@ -53,19 +58,19 @@ extension UIColor {
 /// Rounded for headings and amounts (the sign on the street), the system face for reading, monospaced for hashes.
 extension Font {
     enum KE {
-        static let hero = Font.system(.largeTitle, design: .rounded, weight: .heavy)
-        static let display = Font.system(.largeTitle, design: .rounded, weight: .bold)
-        static let title = Font.system(.title2, design: .rounded, weight: .bold)
-        static let section = Font.system(.title3, design: .rounded, weight: .bold)
-        static let headline = Font.system(.headline, design: .rounded, weight: .semibold)
-        static let amount = Font.system(.title, design: .rounded, weight: .bold)
-        static let amountSmall = Font.system(.title3, design: .rounded, weight: .bold)
+        static var hero: Font { DesignMode.led ? Font.system(.largeTitle, weight: .black).width(.expanded) : Font.system(.largeTitle, design: .rounded, weight: .heavy) }
+        static var display: Font { DesignMode.led ? Font.system(.largeTitle, weight: .heavy).width(.expanded) : Font.system(.largeTitle, design: .rounded, weight: .bold) }
+        static var title: Font { DesignMode.led ? Font.system(.title2, weight: .heavy).width(.expanded) : Font.system(.title2, design: .rounded, weight: .bold) }
+        static var section: Font { DesignMode.led ? Font.system(.title3, weight: .heavy).width(.expanded) : Font.system(.title3, design: .rounded, weight: .bold) }
+        static var headline: Font { DesignMode.led ? Font.system(.headline, weight: .bold).width(.expanded) : Font.system(.headline, design: .rounded, weight: .semibold) }
+        static var amount: Font { DesignMode.led ? Font.system(.title, weight: .heavy).width(.expanded) : Font.system(.title, design: .rounded, weight: .bold) }
+        static var amountSmall: Font { DesignMode.led ? Font.system(.title3, weight: .heavy).width(.expanded) : Font.system(.title3, design: .rounded, weight: .bold) }
         static let body = Font.body
         static let callout = Font.callout
         static let sub = Font.subheadline
         static let label = Font.footnote.weight(.semibold)
         static let caption = Font.caption
-        static let kicker = Font.system(.caption, design: .rounded, weight: .bold)
+        static var kicker: Font { DesignMode.led ? Font.system(.caption, weight: .heavy).width(.expanded) : Font.system(.caption, design: .rounded, weight: .bold) }
         static let mono = Font.system(.footnote, design: .monospaced)
         static let monoSmall = Font.system(.caption, design: .monospaced)
     }

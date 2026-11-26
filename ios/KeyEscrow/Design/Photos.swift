@@ -193,7 +193,13 @@ struct PhotoFill: View {
     let asset: String
     var body: some View {
         Color.KE.muted
-            .overlay { Image(asset).resizable().scaledToFill() }
+            .overlay {
+                if DesignMode.led, let led = DotMatrix.image(asset: asset) {
+                    Image(uiImage: led).resizable().scaledToFill()
+                } else {
+                    Image(asset).resizable().scaledToFill()
+                }
+            }
             .clipped()
             .accessibilityHidden(true)
     }
@@ -214,7 +220,8 @@ struct ListingPhoto: View {
             if let asset = PhotoCatalog.asset(forListing: listingId) { PhotoFill(asset: asset) } else { NightTile(symbol: symbol) }
         }
         .overlay {
-            if let url = APIClient().absolute(serverPhoto) {
+            // The LED design draws the bundled copy as a dot matrix; the server photo would cover it.
+            if !DesignMode.led, let url = APIClient().absolute(serverPhoto) {
                 AsyncImage(url: url) { phase in
                     if case .success(let img) = phase { img.resizable().scaledToFill() }
                 }
@@ -249,7 +256,9 @@ struct ListingThumb: View {
     var symbol = "key.horizontal.fill"
     var body: some View {
         Group {
-            if let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = PhotoCatalog.thumbnail(asset, side: side * 3) {
+            if DesignMode.led, let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = DotMatrix.image(asset: asset, cols: 22) {
+                Image(uiImage: img).resizable().scaledToFill()
+            } else if let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = PhotoCatalog.thumbnail(asset, side: side * 3) {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
                 NightTile(symbol: symbol)

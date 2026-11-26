@@ -45,6 +45,20 @@ struct SettingsView: View {
             }
             .listRowBackground(Color.KE.surface)
 
+            Section {
+                HStack(spacing: 12) {
+                    designCard(.photos, title: settings.t("design.photos"), id: "design-photos")
+                    designCard(.led, title: settings.t("design.led"), id: "design-led")
+                }
+                .padding(.vertical, 6)
+            } header: {
+                Text(settings.t("design.title"))
+            } footer: {
+                Text(settings.t(settings.design == .led ? "design.led.note" : "design.photos.note"))
+            }
+            .listRowBackground(Color.KE.surface)
+
+            if settings.design == .photos {
             Section(settings.t("settings.appearance")) {
                 Picker(settings.t("settings.appearance"), selection: $settings.appearance) {
                     Text(settings.t("settings.system")).tag(Appearance.system)
@@ -54,6 +68,7 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
             .listRowBackground(Color.KE.surface)
+            }
 
             Section {
                 row("testtube.2", .KE.info, .KE.infoSoft, settings.t("settings.testnet"))
@@ -81,6 +96,40 @@ struct SettingsView: View {
         .navigationDestination(item: $linked) { screen in
             if screen == "credits" { PhotoCreditsView() } else { WalletView() }
         }
+    }
+
+    /// One look to pick: a preview of the street on Home (the photo, or the same photo as an LED board) and its name.
+    private func designCard(_ d: Design, title: String, id: String) -> some View {
+        let on = settings.design == d
+        return Button {
+            guard !on else { return }
+            UISelectionFeedbackGenerator().selectionChanged()
+            settings.design = d
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Group {
+                    if d == .led, let led = DotMatrix.image(asset: PhotoCatalog.hero, cols: 40) {
+                        Image(uiImage: led).resizable().scaledToFill()
+                    } else {
+                        Image(PhotoCatalog.hero).resizable().scaledToFill()
+                    }
+                }
+                .frame(height: 96).frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                HStack(spacing: 6) {
+                    Image(systemName: on ? "checkmark.circle.fill" : "circle").foregroundStyle(on ? Color.KE.amber : Color.KE.subtle)
+                    Text(title).font(Font.KE.label).foregroundStyle(Color.KE.foreground).lineLimit(2).minimumScaleFactor(0.8)
+                }
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.KE.muted.opacity(on ? 1 : 0.4)))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(on ? Color.KE.amber : Color.KE.border, lineWidth: on ? 2 : 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(on ? [.isSelected] : [])
+        .accessibilityIdentifier(id)
     }
 
     private func row(_ icon: String, _ tint: Color, _ fill: Color, _ text: String, detail: String? = nil, external: Bool = false) -> some View {

@@ -153,9 +153,16 @@ struct ListingDetailView: View {
 
     private var rentBarPrice: some View {
         VStack(alignment: .leading, spacing: 2) {
-            (Text(Money.thb(baht: listing.rentPerDayThb)).font(Font.KE.amountSmall).foregroundColor(Color.KE.foreground)
-                + Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText))
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
+            if DesignMode.led {
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    LEDAmount(text: Money.thb(baht: listing.rentPerDayThb), dot: 2.6, framed: false)
+                    Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText)
+                }
+            } else {
+                (Text(Money.thb(baht: listing.rentPerDayThb)).font(Font.KE.amountSmall).foregroundColor(Color.KE.foreground)
+                    + Text(settings.t("unit.perDay")).font(.subheadline).foregroundColor(Color.KE.mutedText))
+                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
+            }
             Label(settings.t("card.deposit", Money.thb(baht: listing.depositThb)), systemImage: "lock.shield.fill")
                 .font(.caption.weight(.medium)).monospacedDigit().foregroundStyle(Color.KE.success)
                 .lineLimit(2).minimumScaleFactor(0.85)

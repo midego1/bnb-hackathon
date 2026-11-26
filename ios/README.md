@@ -20,6 +20,15 @@ and talks to the live KeyScrow API. Testnet only: the app refuses to sign for an
 | --- | --- |
 | ![](screenshots/catalogue-home-light-en.png) | ![](screenshots/catalogue-vespa-dark-zh.png) |
 
+**Design: LED sign** (Settings > Design). The same app as the night street of the website: every photo redrawn as a
+glowing LED dot matrix (`DotMatrix`, rendered on the phone from the bundled photos), prices in the marketing board's
+5x9 LED digits (`LEDFont`, the glyphs of `web/components/marketing/led.ts`), signage type, amber buttons, always dark.
+Photos (the default) and LED sign switch instantly; `-design led` opens the app in it.
+
+| LED sign: Home · EN | LED sign: a listing · 中文 | The switch in Settings |
+| --- | --- | --- |
+| ![](screenshots/led-home-en.png) | ![](screenshots/led-listing-zh.png) | ![](screenshots/led-settings-en.png) |
+
 All screenshots (Simulator, iPhone 17, light + dark, EN + 中文) are in [`screenshots/`](screenshots). The rental shown is
 a real one the E2E test made on BSC testnet: escrow
 [`0x0389…fe87`](https://testnet.bscscan.com/address/0x0389ED3e927165653ea482931C0eD17f3BD2fe87). The photos are real

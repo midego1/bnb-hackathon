@@ -296,6 +296,9 @@ struct RentFlowView: View {
         return Card(spacing: 16) {
             VStack(spacing: 12) {
                 SuccessCheck()
+                if DesignMode.led, let back = model.settledBack {
+                    LEDAmount(text: model.thb(back), dot: 4)
+                }
                 Group {
                     if let back = model.settledBack {
                         Text(settings.t("flow.settled.title", model.thb(back)))
