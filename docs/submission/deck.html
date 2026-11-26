@@ -1,9 +1,9 @@
 <!doctype html>
-<!-- KeyEscrow pitch deck: 10 slides at 1920x1080. Render: see docs/submission/README.md -->
+<!-- KeyScrow pitch deck: 10 slides at 1920x1080. Render: see docs/submission/README.md -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>KeyEscrow pitch deck</title>
+<title>KeyScrow pitch deck</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
@@ -55,7 +55,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
 
 <!-- 1. Problem -->
 <section class="slide dark" style="background: linear-gradient(90deg, rgba(15,20,48,1) 42%, rgba(15,20,48,.55)), url('screenshots/1-landing.png') right center / cover;">
-  <div class="kicker">KeyEscrow · BNB Bangkok 2026</div>
+  <div class="kicker">KeyScrow · BNB Bangkok 2026</div>
   <h1>Rent the scooter.<br>Keep your passport.</h1>
   <div style="margin-top: 70px; max-width: 1050px;">
     <h3 style="color: var(--yellow);">The problem</h3>
@@ -79,7 +79,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><div class="num">3</div><h3>Return and settle in minutes</h3><p class="muted">An AI inspection drafts the split. One side proposes, the other accepts, the money moves at once. Disagree? The dispute desk rules.</p></div>
   </div>
   <p style="margin-top: 50px;"><b>Timeouts protect the renter:</b> owner silent for 7 days, or the desk misses its 14-day deadline → full deposit back. Every amount is shown in <b>baht first</b>.</p>
-  <div class="foot"><span><b>KeyEscrow</b> · keyescrow-web.mdgooijer.workers.dev</span><span>2 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · keyescrow-web.mdgooijer.workers.dev</span><span>2 / 10</span></div>
 </section>
 
 <!-- 3. Demo -->
@@ -90,11 +90,11 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div>
       <h2 style="font-size: 64px;">One click plays a whole rental on BSC testnet</h2>
       <p>Create → fund → month-1 payout → return photos → AI inspection → propose → accept. <b>Real testnet transactions</b>, each one opens on BscScan.</p>
-      <p style="margin-top: 26px;" class="muted">Recorded 25 Nov 2026: rental <span class="mono">0x09adDfd6…ebA6</span> settled. Renter ฿5,513 back, owner ฿4,347, KeyEscrow ฿340, escrow ฿0.</p>
+      <p style="margin-top: 26px;" class="muted">Recorded 25 Nov 2026: rental <span class="mono">0x09adDfd6…ebA6</span> settled. Renter ฿5,513 back, owner ฿4,347, KeyScrow ฿340, escrow ฿0.</p>
       <p style="margin-top: 26px;"><b>/demo</b> · <b>/how-it-works</b> (1-minute cartoon)</p>
     </div>
   </div>
-  <div class="foot"><span><b>KeyEscrow</b> · keyescrow-web.mdgooijer.workers.dev/demo</span><span>3 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · keyescrow-web.mdgooijer.workers.dev/demo</span><span>3 / 10</span></div>
 </section>
 
 <!-- 4. How it works -->
@@ -117,7 +117,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><h3 style="color: var(--red);">⚖ Dispute</h3><p class="muted"><code>dispute</code> → the named dispute desk calls <code>resolve</code> with a split, within 14 days.</p></div>
     <div class="card"><h3 style="color: var(--violet);">⏱ Silence</h3><p class="muted"><code>claimTimeout</code> / <code>claimArbiterTimeout</code>: the full deposit goes back to the renter.</p></div>
   </div>
-  <div class="foot"><span><b>KeyEscrow</b> · docs/ARCHITECTURE.md</span><span>4 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/ARCHITECTURE.md</span><span>4 / 10</span></div>
 </section>
 
 <!-- 5. BNB-native -->
@@ -126,7 +126,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
   <h2>Built on BNB Chain, not just deployed there</h2>
   <div class="grid g2">
     <div class="card"><h3>One escrow clone per rental</h3><p class="muted"><code>EscrowFactory</code> deploys a 45-byte EIP-1167 proxy of <code>RentalEscrow</code> per rental. Funds isolated per rental, no admin key, not upgradeable. On-chain indexes by owner, renter and desk: no backend database.</p></div>
-    <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyEscrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A and MCP (17 tools).</p></div>
+    <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyScrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A and MCP (17 tools).</p></div>
     <div class="card"><h3>Evidence on BNB Greenfield</h3><p class="muted">Agreement and photos off-chain, SHA-256 on-chain. Greenfield store (delegated upload) when configured; the Workers deploy uses R2 or hashes in the browser.</p></div>
     <div class="card"><h3>opBNB-ready</h3><p class="muted">Plain Solidity, no BSC-specific opcodes. Deploy guard accepts opBNB testnet (5611). Monthly rent releases are cheap on an L2. <i>Not deployed on opBNB yet.</i></p></div>
   </div>
@@ -149,7 +149,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <p class="muted" style="font-size: 24px; margin-top: 18px;">On the live site today the deterministic <i>demo inspector</i> answers (no model key set); with a key, a vision LLM returns the same JSON.</p>
     </div>
   </div>
-  <div class="foot"><span><b>KeyEscrow</b> · docs/AGENT.md</span><span>6 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/AGENT.md</span><span>6 / 10</span></div>
 </section>
 
 <!-- 7. Business model -->
@@ -161,7 +161,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <tr><th>Honda Click 125i, 3 months</th><th class="r">mUSDT</th><th class="r">≈ THB</th></tr>
       <tr><td>Monthly rent</td><td class="r">100</td><td class="r">3,400</td></tr>
       <tr><td>Deposit (instead of the passport)</td><td class="r">200</td><td class="r">6,800</td></tr>
-      <tr class="hl"><td>KeyEscrow fee, once</td><td class="r">10</td><td class="r">340</td></tr>
+      <tr class="hl"><td>KeyScrow fee, once</td><td class="r">10</td><td class="r">340</td></tr>
       <tr><td>Owner gets for month 1</td><td class="r">90</td><td class="r">3,060</td></tr>
       <tr><td>Fee as share of total rent</td><td class="r" colspan="2">≈ 3.3%</td></tr>
     </table>
@@ -172,7 +172,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <div class="card" style="padding: 26px 32px;"><h3>Dispute desk as a service <span class="pill no">planned</span></h3><p class="muted">Per-dispute fee and paid tooling for insurers and associations as named arbiters.</p></div>
     </div>
   </div>
-  <div class="foot"><span><b>KeyEscrow</b> · docs/BUSINESS.md</span><span>7 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md</span><span>7 / 10</span></div>
 </section>
 
 <!-- 8. Traction / testnet proof -->
@@ -200,7 +200,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     </div>
   </div>
   <p class="muted" style="font-size: 25px; margin-top: 34px;"><b>Honest status:</b> testnet only, no real users yet, no token. CoinMarketCap and Atlas integrations are built and tested; the live site shows labelled <i>Demo rates</i> until a CMC key is set, and Atlas publishes no BSC testnet feed addresses yet.</p>
-  <div class="foot"><span><b>KeyEscrow</b> · github.com/midego1/bnb-hackathon</span><span>8 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · github.com/midego1/bnb-hackathon</span><span>8 / 10</span></div>
 </section>
 
 <!-- 9. Roadmap -->
@@ -215,7 +215,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><div class="num">5</div><h3>Insurance</h3><p class="muted"><b>After mainnet.</b> Damage above the deposit, priced from inspection history.</p></div>
   </div>
   <p style="margin-top: 50px;" class="muted">Then the same passport-as-deposit problem in Bali and Vietnam.</p>
-  <div class="foot"><span><b>KeyEscrow</b> · docs/BUSINESS.md#roadmap</span><span>9 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md#roadmap</span><span>9 / 10</span></div>
 </section>
 
 <!-- 10. Team / ask -->
@@ -225,7 +225,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
   <div class="grid g2" style="gap: 60px;">
     <div>
       <h3 style="color: var(--yellow);">Team</h3>
-      <p>KeyEscrow · built at BNB Bangkok 2026</p>
+      <p>KeyScrow · built at BNB Bangkok 2026</p>
       <p class="muted">Contact: hackathon@vanpeltventures.org</p>
       <p class="muted">github.com/midego1/bnb-hackathon (MIT)</p>
     </div>

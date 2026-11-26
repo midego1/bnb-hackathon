@@ -1,4 +1,4 @@
-/** KeyEscrow mark: a house with a keyhole (same glyph as app/icon.svg). */
+/** KeyScrow mark: a house with a keyhole (same glyph as app/icon.svg). */
 export function LogoMark({ className = "h-7 w-7" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" aria-hidden className={className}>

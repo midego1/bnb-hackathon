@@ -71,10 +71,10 @@ A visual redesign on top of the working app: the flow, the signing and the API c
 page), about 2 MB, bundled and mapped by listing id; the bundled photos are never fetched at runtime.
 [CREDITS.md](CREDITS.md) and the in-app credits list title, author, licence, source and changes. Honest labels: the
 Honda Click photo is an earlier Click (2007), the Scoopy is a Scoopy 110 from Bali, the Fino's page states neither
-place nor model year, the box is not the stage box, the shops in the street photo are not connected to KeyEscrow
+place nor model year, the box is not the stage box, the shops in the street photo are not connected to KeyScrow
 (their phone numbers and a T-shirt print are blurred).
 
-**Two changes that are not styling** (both because KeyEscrow's chain index is behind since 10:07 and was slow at
+**Two changes that are not styling** (both because KeyScrow's chain index is behind since 10:07 and was slow at
 times: one request took 16 s at about 11:15; see the notes for the coordinator):
 
 1. `RentFlowModel.refresh()` no longer waits for the chain index. The step always came from the escrow
@@ -108,7 +108,7 @@ Not every run was green. None of the failures was a fault of the redesign, and e
 - The first Ask AI run failed: the server now answers with a real model that takes seconds, and the test tapped
   *Send* while it was still disabled. The test waits for the button now (and the app keeps what was typed while
   the assistant is busy, instead of clearing it).
-- One run failed in both tests while the KeyEscrow server could not reach its chain node (HTTP 502, "Could not
+- One run failed in both tests while the KeyScrow server could not reach its chain node (HTTP 502, "Could not
   reach the blockchain node. Try again in a moment."). The Fino's offer had been created; the next run carried the
   same rental on to settled. The rent test now taps the step again on exactly that message (up to three times).
 - One Ask AI run failed because the real model asked for the rental's term instead of preparing it. The request in

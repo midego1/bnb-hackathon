@@ -23,7 +23,7 @@ export const body = {
       SettlementProposed: "AI split proposed",
       Settled: "Both agreed: money settled",
       RentReleased: "Rent paid out to the owner",
-      ProtocolFeePaid: "KeyEscrow fee paid",
+      ProtocolFeePaid: "KeyScrow fee paid",
       DisputeRaised: "Dispute raised",
       Cancelled: "Offer cancelled",
     },

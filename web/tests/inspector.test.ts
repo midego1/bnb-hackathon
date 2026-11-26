@@ -42,9 +42,9 @@ describe("inspector identity", () => {
 
   it("reads the identity from env and validates it", () => {
     const s = inspectorFromEnv({ INSPECTOR_PRIVATE_KEY: KEY, INSPECTOR_AGENT_ID: "7", INSPECTOR_AGENT_REGISTRY: REGISTRY });
-    expect(s?.identity).toEqual({ name: "KeyEscrow Inspector", address: ADDRESS, agentId: "7", agentRegistry: REGISTRY });
-    expect(inspectorLabel(s!.identity)).toBe("Signed by KeyEscrow Inspector, ERC-8004 agent #7");
-    expect(inspectorLabel({ name: "KeyEscrow Inspector", address: ADDRESS })).toBe("Signed by KeyEscrow Inspector");
+    expect(s?.identity).toEqual({ name: "KeyScrow Inspector", address: ADDRESS, agentId: "7", agentRegistry: REGISTRY });
+    expect(inspectorLabel(s!.identity)).toBe("Signed by KeyScrow Inspector, ERC-8004 agent #7");
+    expect(inspectorLabel({ name: "KeyScrow Inspector", address: ADDRESS })).toBe("Signed by KeyScrow Inspector");
     expect(() => inspectorFromEnv({ INSPECTOR_PRIVATE_KEY: "0x1234" })).toThrow(/64 hex/);
     expect(() => inspectorFromEnv({ INSPECTOR_PRIVATE_KEY: KEY, INSPECTOR_AGENT_ID: "-1" })).toThrow(/AGENT_ID/);
     expect(() => inspectorFromEnv({ INSPECTOR_PRIVATE_KEY: KEY, INSPECTOR_AGENT_REGISTRY: "0xabc" })).toThrow(/REGISTRY/);

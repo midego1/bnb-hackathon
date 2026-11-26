@@ -3,7 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { Env } from "../env";
 import { canonicalJson, sha256Hex, type Bytes32Hex } from "../hash";
 
-export const INSPECTOR_NAME = "KeyEscrow Inspector";
+export const INSPECTOR_NAME = "KeyScrow Inspector";
 
 /**
  * Who produced a settlement report. It goes into the hashed report, so `reportHash` (and with it the on-chain
@@ -70,7 +70,7 @@ export function inspectorFromEnv(env: Env = process.env): InspectorSigner | null
   });
 }
 
-/** Human label, e.g. "Signed by KeyEscrow Inspector, ERC-8004 agent #3". */
+/** Human label, e.g. "Signed by KeyScrow Inspector, ERC-8004 agent #3". */
 export function inspectorLabel(identity: InspectorIdentity): string {
   return `Signed by ${identity.name}${identity.agentId !== undefined ? `, ERC-8004 agent #${identity.agentId}` : ""}`;
 }

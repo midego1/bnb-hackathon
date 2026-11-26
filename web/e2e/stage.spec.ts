@@ -183,7 +183,7 @@ for (const mobile of [true, false]) {
 test("the listing page shows the item in the app shell and links to the phone flow", async ({ page }) => {
   await page.goto(`/app/listings/${SLUG}`);
   await expect(page.getByTestId("sidebar")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "KeyEscrow Mystery Box" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "KeyScrow Mystery Box" })).toBeVisible();
   await expect(page.getByTestId("listing-terms")).toContainText("฿200");
   await expect(page.getByTestId("listing-terms")).toContainText("฿1,000");
   await page.getByTestId("listing-rent").click();

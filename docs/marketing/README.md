@@ -1,7 +1,7 @@
 # Marketing page artwork
 
 The landing page at `/` (`web/app/(marketing)`) opens on an LED dot-matrix picture of a Thai street at night with a
-scooter rental shop and compares "Today" with "With KeyEscrow" in two LED tiles. Every dot of these pictures is a tiny
+scooter rental shop and compares "Today" with "With KeyScrow" in two LED tiles. Every dot of these pictures is a tiny
 BNB coin: a disc with the official BNB Chain logomark on it. The drawings are our own, not photos; the logomark is BNB
 Chain's (see "The BNB mark" below). The listing cards show real, credited photos instead (Wikimedia Commons; the
 catalogue `web/data/listings.json`, the files under `web/public/listings/photos/`, the credits on `/credits`).
@@ -9,7 +9,7 @@ catalogue `web/data/listings.json`, the files under `web/public/listings/photos/
 | Step | What | Where |
 | --- | --- | --- |
 | 1 | The street, drawn as vector art by `scene.py` (the scooter is the demo's Honda Click from `web/public/demo/checkin-left-side.svg`, redrawn for night) | `street-wide.svg` (2400x1200), `street-tall.svg` (1200x2000, phones) |
-| 2 | The two comparison tiles, drawn by `tiles.py` for an 80x60 LED grid: a passport and cash in a shop drawer, and the KeyEscrow mark under a ฿6,800 sign | `today.svg`, `escrow.svg` (960x720), not committed |
+| 2 | The two comparison tiles, drawn by `tiles.py` for an 80x60 LED grid: a passport and cash in a shop drawer, and the KeyScrow mark under a ฿6,800 sign | `today.svg`, `escrow.svg` (960x720), not committed |
 | 3 | Rasterised with `rsvg-convert`. The shop sign uses Kanit ExtraBold (OFL), which must be installed as a system font or the sign falls back to another face: Kanit from Google Fonts, or `web/app/(marketing)/fonts/kanit-800-latin.woff2` converted to TTF with fontTools and given the family name `Kanit` (name IDs 16 and 17) | not committed |
 | 4 | Turned into coins by `coins.py`: the colour treatment of [dotfx](https://github.com/thibaud360/dotfx)'s `led` preset, one coin per LED cell instead of a round dot: a disc in the picture's colour with the official BNB logomark (`web/public/marketing/bnb-symbol.svg`) on its face, as large as the coin allows. Lit marks are the official yellow `#F0B90B`, dim ones darker (with the square of the brightness, so the night keeps its colour); the bloom only lights the gaps, so a lit mark stays exactly `#F0B90B`. Cell 10 for the street, cell 12 for the tiles | not committed |
 | 5 | Resized and encoded by `coins.py` (Pillow): AVIF quality 44 at speed 2, WebP quality 60, one JPEG fallback at quality 74 | `web/public/marketing/street-{wide,tall}-*.{avif,webp,jpg}`, `{today,escrow}-{480,960}.{avif,webp}`, `{today,escrow}-960.jpg` |

@@ -14,7 +14,7 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///   forge script script/Seed.s.sol --rpc-url "$RPC_URL" --broadcast
 ///
 /// Roles use anvil's default dev accounts: landlord (the scooter rental shop owner) = #1, tenant (the renter) = #2,
-/// arbiter = #3 (the KeyEscrow dispute desk, picked up as the factory's default arbiter because the rental passes
+/// arbiter = #3 (the KeyScrow dispute desk, picked up as the factory's default arbiter because the rental passes
 /// address(0)). Treasury = #0 (deployer). The contracts keep the landlord/tenant/lease names.
 ///
 /// Numbers: a Honda Click 125i rented monthly from a shop in Chiang Mai at 3,400 THB/month. Assuming ~34 THB per
@@ -80,7 +80,7 @@ contract Seed is ScriptBase {
         escrow = factory.createLease(
             EscrowFactory.LeaseParams({
                 tenant: tenant,
-                arbiter: address(0), // KeyEscrow dispute desk (factory default)
+                arbiter: address(0), // KeyScrow dispute desk (factory default)
                 rentAmount: rent,
                 depositAmount: deposit,
                 termPeriods: TERM_PERIODS,

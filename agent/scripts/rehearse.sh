@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# LOCAL ONLY. Rehearses the ERC-8004 registration of KeyEscrow Inspector (agent/scripts/register.ts) end to end
+# LOCAL ONLY. Rehearses the ERC-8004 registration of KeyScrow Inspector (agent/scripts/register.ts) end to end
 # against throwaway anvil nodes on 127.0.0.1: one started with --chain-id 97 (pretends to be BSC testnet) and one with
 # --chain-id 56 (pretends to be BSC mainnet, to prove the refusal). Ports come from 28560-28569
 # (override: REHEARSAL_PORTS="a b c d"). Everything is killed and every temp file removed on exit.
@@ -63,7 +63,7 @@ for v in BSC_TESTNET_RPC_URL DEPLOYER_ADDRESS DEPLOYER_ACCOUNT DEPLOYER_KEYSTORE
   ANTHROPIC_API_KEY VISION_LLM_PROVIDER RPC_URL RPC_URL_BSC_TESTNET BNBAGENT_USE_PAYMASTER; do unset "$v"; done
 export KEYESCROW_NO_DOTENV=1 INSPECTOR_DEPLOYMENTS_DIR="$TMP/deployments"
 
-echo "${B}KeyEscrow Inspector ERC-8004 registration rehearsal (LOCAL anvil only)${N}"
+echo "${B}KeyScrow Inspector ERC-8004 registration rehearsal (LOCAL anvil only)${N}"
 echo "anvil --chain-id 97 on :$P97, anvil --chain-id 56 on :$P56, nothing on :$PDEAD, agent on :$PAGENT"
 start_anvil 97 "$P97"
 start_anvil 56 "$P56"
@@ -166,7 +166,7 @@ curl -sf "http://127.0.0.1:$PAGENT/health" | grep -q '"agentId":"0"' && pass "ag
 export AGENT_URL="http://127.0.0.1:$PAGENT"
 SHOW_LINES=40 expect 0 '"inspectorSignature": "0x' "MCP tools/call inspect_move_out" -- "${TSX[@]}" scripts/call-mcp.ts
 SHOW_LINES=12 expect 0 '"agentId": "0"' "A2A message/send inspect_move_out" -- "${TSX[@]}" scripts/call-a2a.ts
-SHOW_LINES=12 expect 0 "VERIFIED: signed by KeyEscrow Inspector, ERC-8004 agent #0" "verify against the registry" -- \
+SHOW_LINES=12 expect 0 "VERIFIED: signed by KeyScrow Inspector, ERC-8004 agent #0" "verify against the registry" -- \
   env BSC_TESTNET_RPC_URL="$RPC97" "${TSX[@]}" scripts/verify.ts
 expect 1 "lists reportSigner" "agent refuses a key that is not the registered reportSigner" -- \
   timeout 30 env AGENT_PORT="$PDEAD" INSPECTOR_PRIVATE_KEY="$OTHER_KEY" INSPECTOR_DEPLOYMENT="$F" "${TSX[@]}" src/main.ts

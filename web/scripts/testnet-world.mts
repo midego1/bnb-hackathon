@@ -1,6 +1,6 @@
 /**
  * The demo world: 3 fictional shops and 10 fictional renters (web/data/demo-world.json) with ~15 real rentals on
- * KeyEscrow: clean returns, small damages settled by agreement, disputes the desk resolved, one dispute still open,
+ * KeyScrow: clean returns, small damages settled by agreement, disputes the desk resolved, one dispute still open,
  * active rentals and one unfunded offer. Every rental has pickup (and return) photos uploaded to the server and
  * anchored on-chain; returns get the AI inspection (POST /api/settlement) and settled rentals the per-wallet memory
  * (POST /api/history). The script never calls Living Brain or Claude itself: the server does, under its own caps.
@@ -512,7 +512,7 @@ async function cmdRun() {
   if (getAddress(desk) !== funder.address) throw new Error(`the factory's dispute desk ${desk} is not the deployer: the script cannot resolve the disputes`);
 
   const dir = path.join(MAIN, ".orca/secrets/demo-world");
-  const note = "KeyEscrow DEMO world persona wallet, BSC testnet (97) only. Never fund on mainnet. Never commit.";
+  const note = "KeyScrow DEMO world persona wallet, BSC testnet (97) only. Never fund on mainnet. Never commit.";
   const who: Record<string, PrivateKeyAccount> = {};
   for (const p of [...world.shops, ...world.renters]) who[p.id] = loadWallets(path.join(dir, `${p.id}.json`), ["wallet"] as const, { create: true, note })!.accounts.wallet;
   if (saveAddresses(97, who)) console.log(`wrote the persona addresses to ${path.relative(ROOT, ADDRESSES_FILE)}: commit it so the app shows the demo persona badges`);

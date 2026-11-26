@@ -180,7 +180,7 @@ export function listTotalsText(c: LeaseListCard): string {
     .map(([r, n]) => `${n} as ${r}`)
     .join(", ");
   return (
-    `TOTALS (exact, counted by KeyEscrow; quote these): ${c.totals.all} rental(s)${c.totals.all ? ` (${status}; ${roles})` : ""}, ` +
+    `TOTALS (exact, counted by KeyScrow; quote these): ${c.totals.all} rental(s)${c.totals.all ? ` (${status}; ${roles})` : ""}, ` +
     `${c.totals.open} open, deposits locked in escrow: ${moneyText(c.totals.deposits)}.${c.truncated ? " Only the newest 50 per role are listed." : ""}`
   );
 }

@@ -74,7 +74,7 @@ export const body = {
     deposit: "Deposit",
     where: "Where",
     owner: "Owner",
-    demoOwner: "KeyEscrow demo owner",
+    demoOwner: "KeyScrow demo owner",
     photoBy: "Photo: {author}, {license}. It shows the model, not this exact item.",
     credits: "Photo credits",
     body: "Rent and deposit go into this rental's own escrow on BNB Chain. The AI inspector compares pickup and return photos; both sides agree on the split.",

@@ -1,5 +1,5 @@
 /**
- * KeyEscrow on the LIVE BSC testnet (chainId 97). Never any other chain: the RPC must answer 97 and every
+ * KeyScrow on the LIVE BSC testnet (chainId 97). Never any other chain: the RPC must answer 97 and every
  * transaction is signed for chain 97 (EIP-155), so it cannot be replayed on BSC mainnet.
  *
  *   pnpm e2e:testnet                 happy + dispute paths against contracts/deployments/97.json, with throwaway
@@ -119,7 +119,7 @@ type Wallets = { landlord: PrivateKeyAccount; tenant: PrivateKeyAccount; created
 
 /** Loads the throwaway landlord/tenant keys, creating them on first use (file mode 600, never printed). */
 function loadTestWallets(create: boolean): Wallets | undefined {
-  const note = "KeyEscrow BSC testnet (97) throwaway test wallets. Testnet only. Never fund on mainnet. Never commit.";
+  const note = "KeyScrow BSC testnet (97) throwaway test wallets. Testnet only. Never fund on mainnet. Never commit.";
   const w = loadWallets(WALLETS_FILE, ["landlord", "tenant"] as const, { create, note });
   return w && { ...w.accounts, created: w.created };
 }
@@ -229,7 +229,7 @@ async function createLease(r: Roles, step: string, opts: { arbiterWindow?: numbe
   const receipt = await send(step, r.landlord, deployment.escrowFactory, factoryAbi, "createLease", [
     {
       tenant: r.tenant.address,
-      arbiter: zeroAddress, // KeyEscrow dispute desk
+      arbiter: zeroAddress, // KeyScrow dispute desk
       rentAmount: RENT,
       depositAmount: DEPOSIT,
       termPeriods: 12,
@@ -243,7 +243,7 @@ async function createLease(r: Roles, step: string, opts: { arbiterWindow?: numbe
   const escrow = getAddress((ev as unknown as { args: { escrow: Address } }).args.escrow);
   names.set(escrow.toLowerCase(), "escrow");
   const t = await read<Record<string, unknown>>(escrow, escrowAbi, "terms");
-  eq(t.arbiter as string, r.desk.address, "lease arbiter = KeyEscrow dispute desk");
+  eq(t.arbiter as string, r.desk.address, "lease arbiter = KeyScrow dispute desk");
   eq(t.feeRecipient as string, r.treasury, "lease fee recipient = treasury");
   eq(BigInt(t.feeBps as number), r.feeBps, "lease fee bps");
   eq(await status(escrow), Status.Created, "status after create");
@@ -412,7 +412,7 @@ async function cmdRun(which: "e2e" | "seed") {
 function writeReport(which: string, results: { name: string; ok: boolean; detail: string }[], addrs: Address[], start: bigint[], end: bigint[]) {
   const gasCost = ledger.reduce((s, e) => s + e.cost, 0n);
   const L: string[] = [];
-  L.push(`# KeyEscrow BSC testnet (97) ${which} run`, "");
+  L.push(`# KeyScrow BSC testnet (97) ${which} run`, "");
   L.push(`- When: ${new Date().toISOString()}`, `- Command: \`pnpm ${which === "e2e" ? "e2e:testnet" : "testnet:seed"}\``);
   L.push(`- Factory [${deployment.escrowFactory}](${EXPLORER}/address/${deployment.escrowFactory}), token [${deployment.token}](${EXPLORER}/address/${deployment.token})`);
   L.push(`- Gas price ${formatUnits(GAS_PRICE, 9)} gwei (legacy, explicit), ${ledger.length} transactions, total gas cost **${formatEther(gasCost)} tBNB**`);

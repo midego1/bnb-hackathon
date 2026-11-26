@@ -29,7 +29,7 @@ export async function SiteHeader() {
       <nav aria-label="Site" className="mx-auto flex w-full max-w-7xl items-center gap-2 px-5 py-4 sm:gap-3 sm:px-8">
         <Link prefetch={false} href="/" className="flex items-center gap-2 text-lg sm:gap-2.5 sm:text-xl" aria-label={c.home}>
           <LogoMark className="h-8 w-8" />
-          <span className="mk-display">KeyEscrow</span>
+          <span className="mk-display">KeyScrow</span>
         </Link>
         <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] whitespace-nowrap text-muted-foreground xl:flex">
           {c.nav.map(([href, label]) => (

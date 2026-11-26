@@ -62,7 +62,7 @@ async function withRetry<T>(fn: () => Promise<T>, on: boolean): Promise<T> {
 }
 
 /**
- * One-click guided demo: plays the whole KeyEscrow story against the real contracts on the local anvil chain,
+ * One-click guided demo: plays the whole KeyScrow story against the real contracts on the local anvil chain,
  * switching the anvil demo accounts as it goes.
  *
  * On desktop it is a one-screen stage (the page never scrolls; app/globals.css pins it to the viewport): controls

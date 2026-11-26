@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// KeyEscrow's colour tokens (web/app/globals.css), light and dark.
+/// KeyScrow's colour tokens (web/app/globals.css), light and dark.
 extension Color {
     init(light: UInt32, dark: UInt32) {
         self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) })

@@ -6,13 +6,13 @@ let cfg: AgentConfig;
 try {
   cfg = loadConfig();
 } catch (err) {
-  console.error(`KeyEscrow Inspector: ${(err as Error).message}`);
+  console.error(`KeyScrow Inspector: ${(err as Error).message}`);
   process.exit(1);
 }
 const app = buildApp(cfg);
 const server = app.listen(cfg.port, cfg.host, () => {
   const id = cfg.inspector?.identity;
-  console.log(`KeyEscrow Inspector listening on http://${cfg.host}:${cfg.port}`);
+  console.log(`KeyScrow Inspector listening on http://${cfg.host}:${cfg.port}`);
   console.log(`  A2A card      ${cfg.publicUrl}/.well-known/agent-card.json  (JSON-RPC ${cfg.publicUrl}/a2a)`);
   console.log(`  MCP           ${cfg.publicUrl}/mcp`);
   console.log(`  REST          ${cfg.publicUrl}/inspect`);

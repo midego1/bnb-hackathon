@@ -1,7 +1,7 @@
 /**
- * KeyEscrow rental actions: each one defined ONCE here, then served everywhere from that definition:
+ * KeyScrow rental actions: each one defined ONCE here, then served everywhere from that definition:
  *   REST  GET/POST /api/v1/<name> + the OpenAPI 3.1 document  (lib/actions/rest.ts, lib/actions/openapi.ts)
- *   MCP   one tool per action on the KeyEscrow Inspector agent (agent/src/mcp.ts) and an A2A skill per action
+ *   MCP   one tool per action on the KeyScrow Inspector agent (agent/src/mcp.ts) and an A2A skill per action
  *   Web   the forms validate with the same input schemas (fieldError in lib/actions/fields.ts)
  *
  * Reads return JSON. Writes are NON-CUSTODIAL: prepare_* returns unsigned transactions, already dry-run on the
@@ -121,7 +121,7 @@ export const getLease = read({
   name: "get_lease",
   title: "Get a rental",
   description:
-    "Read one KeyEscrow rental straight from the chain: owner, renter, dispute desk, rent and deposit (in mUSDT, with baht/dollar " +
+    "Read one KeyScrow rental straight from the chain: owner, renter, dispute desk, rent and deposit (in mUSDT, with baht/dollar " +
     "equivalents), rent period, periods paid and paid out, the current deposit proposal and any running deadline. Use explain_status " +
     "for a plain-language summary instead.",
   roles: ["anyone"],
@@ -137,7 +137,7 @@ export const listLeases = read({
   name: "list_leases",
   title: "List rentals of a wallet",
   description:
-    "List the KeyEscrow rentals a wallet is part of, newest first, from the factory's on-chain index (no indexer needed). " +
+    "List the KeyScrow rentals a wallet is part of, newest first, from the factory's on-chain index (no indexer needed). " +
     "Give `role` to only list rentals where the wallet is the owner, the renter or the dispute desk.",
   roles: ["anyone"],
   input: z
@@ -239,7 +239,7 @@ export const walletHistory = read({
   name: "wallet_history",
   title: "Wallet history for the dispute desk",
   description:
-    "A wallet's track record on KeyEscrow, for a dispute: rentals as renter and as owner, how many settled, every dispute (who " +
+    "A wallet's track record on KeyScrow, for a dispute: rentals as renter and as owner, how many settled, every dispute (who " +
     "opened it, who got what), the owner's deposit claims next to the AI inspection's proposal, rent paid on time vs late, and " +
     "timeouts. Exact numbers from the chain; `summary` says it in plain sentences. `memory` lists what Living Brain remembers " +
     "about the wallet (one factual entry per settled rental, with its transaction). Wallet addresses only, no names. The AI " +
@@ -248,7 +248,7 @@ export const walletHistory = read({
   input: z.object({ wallet: field.address({ title: "Wallet", description: "The renter's or owner's wallet." }), chainId: chainId() }).strict(),
   example: { wallet: EX.renter },
   run: async ({ wallet }, ctx) => {
-    if (!ctx.history) throw new ActionError(503, "rpc_unavailable", "Wallet history needs the KeyEscrow web server (chain index + memory); call /api/v1/wallet_history there.");
+    if (!ctx.history) throw new ActionError(503, "rpc_unavailable", "Wallet history needs the KeyScrow web server (chain index + memory); call /api/v1/wallet_history there.");
     try {
       return await ctx.history(wallet);
     } catch (err) {
@@ -312,7 +312,7 @@ export const prepareCreateLease = prepare({
       arbiterWindowDays: field
         .int(1, 90, { title: "Dispute desk deadline", description: "Days the dispute desk has to rule on a dispute; after that the full deposit can go back to the renter.", "x-unit": "days" })
         .default(14),
-      arbiter: field.address({ title: "Dispute desk", description: "Optional: your own neutral reviewer. Omit to use the KeyEscrow dispute desk." }).optional(),
+      arbiter: field.address({ title: "Dispute desk", description: "Optional: your own neutral reviewer. Omit to use the KeyScrow dispute desk." }).optional(),
       leaseHash: field.bytes32({ title: "Rental agreement hash", description: "Optional sha256 of the signed agreement (from POST /api/evidence)." }).optional(),
       payee: field
         .address({ title: "Payout address", description: "Optional: where the owner's rent and any deposit claim are paid, e.g. a Fleet Vault whose shareholders own the scooter. The owner keeps every role. Default: the owner." })
@@ -352,7 +352,7 @@ export const prepareCreateLease = prepare({
         `Create a rental of ${periodCount(i.termPeriods, period)} for renter ${i.renter}: rent ${formatToken(rent)} per ${periodName(period)}${rate}, deposit ` +
         `${formatToken(deposit)}${i.depositMonths ? ` (${i.depositMonths} month${i.depositMonths > 1 ? "s" : ""} of rent)` : ""}. ` +
         `The owner has ${i.responseWindowDays} days to answer a return proposal; the dispute desk ${desk ?? "(factory default)"} has ` +
-        `${i.arbiterWindowDays} days to rule on a dispute.${i.payee ? ` Rent and any deposit claim are paid to ${i.payee}.` : ""} KeyEscrow's one-time fee comes out of the owner's first rent payout, never the deposit. ` +
+        `${i.arbiterWindowDays} days to rule on a dispute.${i.payee ? ` Rent and any deposit claim are paid to ${i.payee}.` : ""} KeyScrow's one-time fee comes out of the owner's first rent payout, never the deposit. ` +
         `Next: the renter funds ${formatToken(deposit + rent)} (deposit + the first ${periodName(period)}) with prepare_fund.`,
       pick: (r) => (typeof r[0]?.result === "string" ? { lease: r[0].result as Address, rent: amount(rent), deposit: amount(deposit) } : undefined),
     };
@@ -408,7 +408,7 @@ export const prepareReleaseRent = prepare({
     const what = `${periodCount(periods, l!.terms.rentPeriod)} of rent`;
     return {
       calls: [{ to: lease, abi: rentalEscrowAbi, functionName: "releaseRent", description: `Pay ${what} to the owner` }],
-      summary: `Pay ${what} (${formatToken(gross)}) to the owner${fee > 0 ? `, minus KeyEscrow's one-time fee of ${formatToken(fee)}` : ""}.`,
+      summary: `Pay ${what} (${formatToken(gross)}) to the owner${fee > 0 ? `, minus KeyScrow's one-time fee of ${formatToken(fee)}` : ""}.`,
     };
   },
 });

@@ -94,7 +94,7 @@ const LISTING = {
 
 const errors = {
   "400": { description: "Invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-  "404": { description: "Unknown action, or not a KeyEscrow rental", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+  "404": { description: "Unknown action, or not a KeyScrow rental", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
   "409": { description: "Wrong role or rental status", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
   "422": { description: "The transaction would revert (simulated); `error` says why", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
   "502": { description: "Chain node or price source unreachable", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -161,12 +161,12 @@ export function buildOpenApi(serverUrl?: string) {
   return {
     openapi: "3.1.0",
     info: {
-      title: "KeyEscrow rental actions",
+      title: "KeyScrow rental actions",
       version: "1.0.0",
       description:
         "Scooter-rental deposit and rent escrow on BNB Chain. Reads return JSON; prepare_* return UNSIGNED, simulated " +
         "transactions for the caller's own wallet: this API never holds a key and never sends a transaction. The same actions " +
-        `are MCP tools on the KeyEscrow Inspector agent (docs/AGENT.md). Amounts: ${TOKEN.symbol} has ${TOKEN.decimals} decimals; \`units\` fields are base units.`,
+        `are MCP tools on the KeyScrow Inspector agent (docs/AGENT.md). Amounts: ${TOKEN.symbol} has ${TOKEN.decimals} decimals; \`units\` fields are base units.`,
     },
     ...(serverUrl ? { servers: [{ url: serverUrl }] } : {}),
     paths,

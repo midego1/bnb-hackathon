@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws the two tiles of the landing page's "Today / With KeyEscrow" comparison (original vector art).
+"""Draws the two tiles of the landing page's "Today / With KeyScrow" comparison (original vector art).
 
     python3 docs/marketing/tiles.py OUT_DIR      # writes today.svg and escrow.svg (960x720)
 
@@ -110,7 +110,7 @@ def today() -> str:
 
 
 def mark(x: float, y: float, size: float) -> str:
-    """The KeyEscrow mark (web/components/LogoMark.tsx): a house with a keyhole on an amber tile."""
+    """The KeyScrow mark (web/components/LogoMark.tsx): a house with a keyhole on an amber tile."""
     s = size / 64
     return (
         f'<g transform="translate({x} {y}) scale({s})">'
@@ -136,7 +136,7 @@ def check(col: int, row: int, color: str) -> str:
 
 
 def escrow() -> str:
-    """With KeyEscrow: the deposit on the sign, held by the mark, and the passport still with its owner (the check)."""
+    """With KeyScrow: the deposit on the sign, held by the mark, and the passport still with its owner (the check)."""
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
         defs(),

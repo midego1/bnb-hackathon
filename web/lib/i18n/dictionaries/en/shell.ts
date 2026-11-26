@@ -49,8 +49,8 @@ export const body = {
       play: "Play the demo",
     },
     footer: {
-      about: "KeyEscrow · open source (MIT) · testnet demo, no token",
-      website: "About KeyEscrow",
+      about: "KeyScrow · open source (MIT) · testnet demo, no token",
+      website: "About KeyScrow",
       docs: "Docs",
       eli5: "How it works, explained simply",
       secrets: "Secrets (local only)",
@@ -58,7 +58,7 @@ export const body = {
     gate: {
       connect: "Connect a wallet to {what}.",
       devHint: "Local demo: pick Owner, Renter or Dispute desk in the yellow “Demo accounts” bar instead.",
-      notDeployed: "KeyEscrow is not deployed on {chain} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).",
+      notDeployed: "KeyScrow is not deployed on {chain} yet. Switch your wallet to the network this app runs on (local anvil or BSC testnet).",
     },
     read: {
       chain: "the chain",
@@ -122,7 +122,7 @@ export const body = {
   /** /app, the app's home page. */
   home: {
     kicker: "Scooter rental escrow on BNB Chain · built in Bangkok",
-    lead: "Rental shops often hold your passport as the deposit, and bogus damage claims at return are common. KeyEscrow keeps the deposit and rent in a smart contract made for each scooter rental, so it only moves when the shop owner and the renter agree, or a neutral dispute desk rules.",
+    lead: "Rental shops often hold your passport as the deposit, and bogus damage claims at return are common. KeyScrow keeps the deposit and rent in a smart contract made for each scooter rental, so it only moves when the shop owner and the renter agree, or a neutral dispute desk rules.",
     owner: "I rent out scooters",
     renter: "I'm renting a scooter",
     eli5: "Explain it simply",
@@ -137,7 +137,7 @@ export const body = {
     timeouts:
       "If the owner ignores a return proposal (7 days by default), or the dispute desk misses its deadline (14 days by default), the full deposit goes back to the renter. Neither party can move the money alone.",
     fee: {
-      strong: "KeyEscrow fee: 10% of one month's rent, once per rental",
+      strong: "KeyScrow fee: 10% of one month's rent, once per rental",
       rest: ", paid by the owner from the first rent payout. A scooter at 3,400 THB a month pays ฿340 once. The deposit is never charged and there is no token.",
     },
     roles: {

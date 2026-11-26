@@ -1,5 +1,5 @@
 /**
- * What an action runs against: one chain (public RPC client + KeyEscrow addresses), a clock and a price source.
+ * What an action runs against: one chain (public RPC client + KeyScrow addresses), a clock and a price source.
  * Built per call from plain env values, so it works the same in `next start`, the agent (Node) and Cloudflare
  * Workers: no fs, no process-global state, fetch-based RPC. Nothing here ever holds a private key.
  */
@@ -73,7 +73,7 @@ export function actionContext(host: ActionHost, chainId?: number): ActionContext
   }
   const cid = id as SupportedChainId;
   const d = getDeployment(cid);
-  if (!d) throw new ActionError(400, "unsupported_chain", `KeyEscrow is not deployed on chain ${cid}.`);
+  if (!d) throw new ActionError(400, "unsupported_chain", `KeyScrow is not deployed on chain ${cid}.`);
   // Every amount is parsed and formatted with the target chain's token; refuse a chain whose token differs.
   if (d.tokenDecimals !== TOKEN.decimals) {
     throw new ActionError(400, "unsupported_chain", `Chain ${cid}'s token has ${d.tokenDecimals} decimals; this server works in ${TOKEN.decimals}-decimal ${TOKEN.symbol}.`);

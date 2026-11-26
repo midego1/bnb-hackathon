@@ -109,7 +109,7 @@ const cases: {
     name: "LIVING_BRAIN_API_KEY",
     value: "lb_live_SECRETBRAINKEY0123456789",
     host: "api.livingbrain.com/v1/brains",
-    ok: { status: 200, body: [{ id: "brain-1", name: "KeyEscrow scooters" }, { id: "brain-2" }] },
+    ok: { status: 200, body: [{ id: "brain-1", name: "KeyScrow scooters" }, { id: "brain-2" }] },
     bad: { status: 401, body: { message: "invalid api key" } },
     validRe: /^Valid: 2 brains listed$/,
     invalidRe: /^Invalid: 401 unauthorized$/,

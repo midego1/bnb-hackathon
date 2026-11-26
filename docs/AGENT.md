@@ -1,10 +1,10 @@
-# KeyEscrow Inspector: the AI inspection as a BNB Chain agent
+# KeyScrow Inspector: the AI inspection as a BNB Chain agent
 
-KeyEscrow Inspector is the return inspection from `POST /api/settlement`, run as an agent that other software can
+KeyScrow Inspector is the return inspection from `POST /api/settlement`, run as an agent that other software can
 find and call. It has an on-chain identity on BNB Chain (ERC-8004), it exposes the inspection skill over A2A and MCP (plus every rental action as a tool, [below](#rental-actions-as-agent-tools)), and it
 signs every report it produces. The on-chain proposal therefore names the agent that made it: the renter or
 owner (`landlord`) passes `reportHash` to `RentalEscrow.propose()`, and that hash covers the inspector's ERC-8004 agent id.
-The UI shows this as "Signed by KeyEscrow Inspector, ERC-8004 agent #N".
+The UI shows this as "Signed by KeyScrow Inspector, ERC-8004 agent #N".
 
 It is built on the [BNB Agent SDK](https://github.com/bnb-chain/bnbagent-sdk) (`@bnbagent/sdk`, MIT), the same SDK
 that [BNB Agent Studio](https://www.bnbchain.org/en/bnb-agent-studio) generates agents from. Its two faces use the
@@ -35,7 +35,7 @@ inspection (ERC-8183 / x402) are on the [roadmap](#roadmap-pay-per-inspection-er
 
 ```mermaid
 flowchart LR
-  subgraph agent["agent/ (KeyEscrow Inspector)"]
+  subgraph agent["agent/ (KeyScrow Inspector)"]
     A2A["A2A: /.well-known/agent-card.json, POST /a2a"] --> S
     MCP["MCP: POST /mcp"] --> S
     REST["REST: POST /inspect"] --> S
@@ -75,7 +75,7 @@ Output in mock mode, without a signer key (trimmed):
 
 ```text
 $ pnpm agent:dev
-KeyEscrow Inspector listening on http://127.0.0.1:8790
+KeyScrow Inspector listening on http://127.0.0.1:8790
   A2A card      http://127.0.0.1:8790/.well-known/agent-card.json  (JSON-RPC http://127.0.0.1:8790/a2a)
   MCP           http://127.0.0.1:8790/mcp
   REST          http://127.0.0.1:8790/inspect
@@ -104,7 +104,7 @@ chainId-97 anvil), every result also carries:
 
 ```json
 "inspector": {
-  "name": "KeyEscrow Inspector",
+  "name": "KeyScrow Inspector",
   "address": "0x738A4b557D1d41AA56D74d7B573fD68826b3B4C2",
   "agentId": "0",
   "agentRegistry": "eip155:97:0x8004A818BFB912233c491871b3d84c89A494BD9e"
@@ -126,7 +126,7 @@ Agent env (all server-side; names are also in `.env.example`):
 
 The web app signs too: set the same `INSPECTOR_PRIVATE_KEY`, `INSPECTOR_AGENT_ID` and `INSPECTOR_AGENT_REGISTRY`
 in `web/.env.local`, and `POST /api/settlement` returns signed reports. The return panel then shows "Signed by
-KeyEscrow Inspector, ERC-8004 agent #N" under the inspector's suggestion.
+KeyScrow Inspector, ERC-8004 agent #N" under the inspector's suggestion.
 
 ## The skill
 
@@ -141,7 +141,7 @@ result. The input is validated with the same zod schema, and `tenantRefund + lan
 
 ## Rental actions as agent tools
 
-Besides the inspection, the agent serves every KeyEscrow rental action as a tool, so an AI assistant can run a scooter
+Besides the inspection, the agent serves every KeyScrow rental action as a tool, so an AI assistant can run a scooter
 rental for a person: read where the deposit is, create a rental from baht amounts, fund it, propose the deposit split,
 accept, dispute, rule, claim a missed deadline. **Each action is defined once** in
 [`web/lib/actions/definitions.ts`](../web/lib/actions/definitions.ts) and served from that one definition as:
@@ -218,20 +218,20 @@ then point Claude at it. Replace the URL with the agent's public URL once it is 
 Claude Code:
 
 ```bash
-claude mcp add --transport http keyescrow http://127.0.0.1:8790/mcp
+claude mcp add --transport http keyscrow http://127.0.0.1:8790/mcp
 ```
 
 or in a project's `.mcp.json`:
 
 ```json
-{ "mcpServers": { "keyescrow": { "type": "http", "url": "http://127.0.0.1:8790/mcp" } } }
+{ "mcpServers": { "keyscrow": { "type": "http", "url": "http://127.0.0.1:8790/mcp" } } }
 ```
 
 Claude Desktop (`claude_desktop_config.json`; the `mcp-remote` bridge turns the HTTP server into a local stdio one,
 or add the URL under Settings, Connectors when the agent has a public https URL):
 
 ```json
-{ "mcpServers": { "keyescrow": { "command": "npx", "args": ["-y", "mcp-remote", "http://127.0.0.1:8790/mcp"] } } }
+{ "mcpServers": { "keyscrow": { "command": "npx", "args": ["-y", "mcp-remote", "http://127.0.0.1:8790/mcp"] } } }
 ```
 
 Example chat (what Claude does with the tools, abridged):
@@ -240,7 +240,7 @@ Example chat (what Claude does with the tools, abridged):
 >
 > **Claude** (calls `prepare_create_lease` with `rent: "3500", currency: "THB", depositMonths: 2, termPeriods: 6`):
 > Here is the rental, ready to sign: rent 106.06 mUSDT a month (3,500 THB at 33 THB/USDT, demo rate), deposit
-> 212.12 mUSDT (2 months). You have 7 days to answer the renter's return proposal; the KeyEscrow dispute desk has 14
+> 212.12 mUSDT (2 months). You have 7 days to answer the renter's return proposal; the KeyScrow dispute desk has 14
 > days to rule on a dispute. One transaction to sign with your wallet: *Create the rental offer*. Next, the renter
 > funds 318.18 mUSDT.
 >
@@ -333,7 +333,7 @@ above). The price source for baht conversions is the same `PriceService` as `GET
 Registry whose `tokenURI` is a registration file listing the agent's name and endpoints. The BNB Agent SDK ships the
 BSC registry addresses (testnet `0x8004A818BFB912233c491871b3d84c89A494BD9e`).
 
-KeyEscrow ties a settlement report to that identity in three steps:
+KeyScrow ties a settlement report to that identity in three steps:
 
 1. **Registration.** `pnpm agent:register` calls the SDK's `ERC8004Agent.registerAgent` with a data-URI
    registration file (built by the SDK's `AgentURIGenerator`). The file lists the A2A card and the MCP endpoint and
@@ -359,10 +359,10 @@ report 0x3afa…76dd: tenantRefund 450000000, landlordClaim 50000000
   ✓ RPC chainId 97 matches the registry reference
   ✓ agent #0 exists, owner 0xA7CE…D59E
   ✓ on-chain reportSigner 0x738A…B4C2 signed this report
-  ✓ tokenURI registration file names "KeyEscrow Inspector"
+  ✓ tokenURI registration file names "KeyScrow Inspector"
   ✓ registered endpoints are on http://127.0.0.1:28563
   ✓ registration file points back at this agent id and registry
-VERIFIED: signed by KeyEscrow Inspector, ERC-8004 agent #0
+VERIFIED: signed by KeyScrow Inspector, ERC-8004 agent #0
 ```
 
 When no signer is configured, reports have no `inspector` field and hash exactly as before, so nothing changes for
@@ -472,7 +472,7 @@ bytes and the SDK's `getMetadata` (UTF-8 decode) reads it back as garbage. We re
 Not built. This is how payments would plug in without changing the identity or the escrow:
 
 - **ERC-8183 (escrowed job), for rental shops and fleet operators.** The owner (or renter) creates a job for
-  KeyEscrow Inspector's agent id and funds a fixed price, for example 2 USDT, into the ERC-8183 escrow. The agent
+  KeyScrow Inspector's agent id and funds a fixed price, for example 2 USDT, into the ERC-8183 escrow. The agent
   checks the funded job, runs `inspect_move_out`, and submits the signed report as the deliverable. The job settles
   after the dispute window. The `negotiate` + `notify_funded` skills from a Studio-generated seller wrap our skill
   unchanged. A rejected job (for example, a report that ignores the photos) refunds the payer, which gives the
@@ -480,9 +480,9 @@ Not built. This is how payments would plug in without changing the identity or t
 - **x402 (pay per HTTP request), for integrations.** `POST /inspect` returns `402 Payment Required` with a quote. A
   client such as a scooter-fleet management system pays per call over x402 and retries. This suits high-volume
   partners that do not need escrow.
-- **Who pays.** By default the fee is folded into the KeyEscrow rental fee ([BUSINESS.md](BUSINESS.md)), so renters
+- **Who pays.** By default the fee is folded into the KeyScrow rental fee ([BUSINESS.md](BUSINESS.md)), so renters
   and owners never pay the agent directly. Pay-per-inspection is for third parties that use the inspector
-  outside KeyEscrow rentals.
+  outside KeyScrow rentals.
 - **Prerequisites.** The agent must be hosted at its registered public endpoint. Pricing must stay in fixed code,
   never chosen by the model. Mainnet needs a funded payout wallet. None of this is part of the hackathon build: no
   live payments, no Pieverse, no managed trial.

@@ -1,9 +1,9 @@
 # Architecture
 
-KeyEscrow holds scooter rental deposits and rent in Thailand on BNB Chain (case study and scope:
+KeyScrow holds scooter rental deposits and rent in Thailand on BNB Chain (case study and scope:
 [PRODUCT.md](PRODUCT.md)). One `EscrowFactory` creates a small, non-upgradeable `RentalEscrow` contract for every
 rental. The escrow holds the renter's deposit and prepaid rent in a stablecoin. MockUSDT stands in for that
-stablecoin on testnet. KeyEscrow has no token of its own. A `FleetVault` can receive a rental's income on behalf of
+stablecoin on testnet. KeyScrow has no token of its own. A `FleetVault` can receive a rental's income on behalf of
 the shareholders of a scooter fleet.
 
 Documents and photos stay off-chain; only their content hashes go on-chain. An AI inspector (a vision LLM behind
@@ -36,7 +36,7 @@ flowchart LR
 
     subgraph CF["Cloudflare Workers"]
         WEB["keyescrow-web<br/>Next.js app + /api routes"]
-        AG["keyescrow-agent<br/>KeyEscrow Inspector<br/>A2A + MCP"]
+        AG["keyescrow-agent<br/>KeyScrow Inspector<br/>A2A + MCP"]
         DO[("KeyEscrowState<br/>Durable Object")]
     end
 
@@ -223,7 +223,7 @@ flowchart LR
 **Status:** live on both Workers: 14 REST routes on the web app, and the same 14 plus 3 inspector tools (17) on the
 agent's MCP server.
 
-## 5. Agent: KeyEscrow Inspector
+## 5. Agent: KeyScrow Inspector
 
 `agent/` runs the AI inspection as an agent that other software can find and call. It has two entry points: a Node
 server (`src/server.ts`, Express) and a Cloudflare Worker (`src/worker.ts`). Details: [AGENT.md](AGENT.md).
@@ -378,7 +378,7 @@ flowchart TB
 | Factory owner | Change the fee (up to the hard cap) and the default arbiter for **future** rentals | Touch existing escrows |
 | Shareholder | Deposit into the Fleet Vault, redeem shares 1:1, claim income | Move rental funds; income reaches the vault only from escrows that name it as payee |
 
-**Default arbiter.** The KeyEscrow dispute desk is the default arbiter. An owner may name another neutral arbiter,
+**Default arbiter.** The KeyScrow dispute desk is the default arbiter. An owner may name another neutral arbiter,
 such as a local rental association or a mediator. The arbiter is part of the rental terms (`terms().arbiter`). The
 renter sees it on the funding screen and agrees to it by funding. The factory rejects a rental in which owner, renter
 and arbiter are not three different addresses.

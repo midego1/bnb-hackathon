@@ -28,7 +28,7 @@ export const en = {
   },
   skip: "Skip to content",
   meta: {
-    title: "KeyEscrow · rental deposits on BNB Chain",
+    title: "KeyScrow · rental deposits on BNB Chain",
     description:
       "Rental deposit and rent escrow on BNB Chain: each rental gets its own escrow, rent is paid out monthly, an AI return inspection proposes the deposit split and a neutral dispute desk rules when the parties disagree.",
   },

@@ -5,7 +5,7 @@ Tracks: **Developer Track** and **CoinMarketCap x Atlas**. State checked on the 
 
 ## Project name
 
-KeyEscrow
+KeyScrow
 
 ## One-liner (≤ 100 characters)
 
@@ -13,7 +13,7 @@ Rent a scooter in Thailand without leaving your passport: the deposit sits in es
 
 ## Short description (≤ 300 characters)
 
-Thai scooter shops keep your passport as the deposit and alone decide what each scratch costs. KeyEscrow holds the
+Thai scooter shops keep your passport as the deposit and alone decide what each scratch costs. KeyScrow holds the
 deposit in its own contract on BNB Chain, one per rental. An AI inspector drafts the split; both sides agree or a
 dispute desk rules.
 
@@ -24,10 +24,10 @@ At return the shop alone decides what every scratch costs, and the renter pays o
 Shops have the opposite problem: real damage and no proof beyond a few chat photos. Nobody neutral sits in between,
 and nobody goes to court over a few thousand baht.
 
-**Solution.** KeyEscrow replaces the passport with a deposit held in a small smart contract on BNB Chain, one contract
+**Solution.** KeyScrow replaces the passport with a deposit held in a small smart contract on BNB Chain, one contract
 per rental (an EIP-1167 clone). The renter funds deposit plus the first month's rent; rent is paid out to the shop
 month by month. The rental agreement and guided pickup photos stay off-chain, and only their SHA-256 fingerprints go
-on-chain. At return, the KeyEscrow Inspector (an ERC-8004 agent, #2921) compares pickup and return photos and drafts
+on-chain. At return, the KeyScrow Inspector (an ERC-8004 agent, #2921) compares pickup and return photos and drafts
 a split with reasons. One party proposes it on-chain with the report hash, the other accepts, and one transaction pays
 everyone. If they disagree, a neutral dispute desk rules within 14 days. If the owner ignores a proposal for 7 days,
 or the desk misses its deadline, the full deposit goes back to the renter. Neither party can move the deposit alone,
@@ -37,7 +37,7 @@ and there is no admin key over funds. Every amount is shown in baht first.
 rental with real BSC testnet transactions and no wallet (server-side demo wallets, gas-capped). Roles in one app:
 renter, fleet owner, shareholders (Fleet Vault), back office and dispute desk. Every rental action is one definition
 served as REST (OpenAPI 3.1), as MCP tools on the agent and as the app's form validation; `prepare_*` actions return
-unsigned, simulated transactions, so KeyEscrow never holds a user key. An in-app assistant (Ask AI) uses the same
+unsigned, simulated transactions, so KeyScrow never holds a user key. An in-app assistant (Ask AI) uses the same
 actions and shows an approval card before any change.
 
 **Business model.** 10 % of one month's rent, once per rental, taken from the owner's first rent payout and never
@@ -54,7 +54,7 @@ The Fleet Vault is a testnet prototype and not an offer of securities.
 - **One escrow per rental on BSC testnet.** `EscrowFactory` deploys a 45-byte EIP-1167 clone of `RentalEscrow` for
   every rental. Funds are isolated per rental, nothing is upgradeable, and the factory indexes rentals by owner,
   renter and dispute desk on-chain, so the app needs no backend database to list them.
-- **On-chain AI agent.** The KeyEscrow Inspector is ERC-8004 agent **#2921** in the Identity Registry on BSC testnet,
+- **On-chain AI agent.** The KeyScrow Inspector is ERC-8004 agent **#2921** in the Identity Registry on BSC testnet,
   registered with the BNB Agent SDK. Its id goes into every report hash passed to `RentalEscrow.propose()`. It speaks
   A2A and MCP (17 tools).
 - **Real-world assets.** Scooters earn rent; with `createLeaseWithPayee`, rent and damage payouts flow into a
@@ -69,7 +69,7 @@ The Fleet Vault is a testnet prototype and not an offer of securities.
 
 What is **built** (in the repo, tested) versus what is **live** on the deployed site today:
 
-| Source | What it does in KeyEscrow | Status on the live site (25 Nov) |
+| Source | What it does in KeyScrow | Status on the live site (25 Nov) |
 | --- | --- | --- |
 | CoinMarketCap Pro API `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 24h/7d/30d percent changes → daily volatility → the **deposit risk buffer** (stablecoin 0 %, BNB moderate, > 60 % rejected). Server-side only, cached, every call logged (endpoint, status, credits, never the key) and shown on `/integrations`. | **Built and fixture-tested; not live.** No `CMC_API_KEY` is set on the live site yet, so the risk panel says CoinMarketCap is not configured. |
 | CoinMarketCap Pro API, same endpoint with `convert=THB` | THB price of USDT and BNB: every amount shown in baht first. | **Not live.** The site shows labelled **Demo rates** (fixed 1 USDT = 33 THB, 1 BNB = 650 USD; `GET /api/price` returns `"source":"mock"`). |
@@ -142,4 +142,4 @@ Guided, step-by-step mode, with a 30-second offline backup on a local chain.
 
 ## Team and contact
 
-KeyEscrow team · hackathon@vanpeltventures.org · team names: _owner to fill in before submitting_.
+KeyScrow team · hackathon@vanpeltventures.org · team names: _owner to fill in before submitting_.

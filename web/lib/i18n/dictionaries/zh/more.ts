@@ -16,7 +16,7 @@ export const body: DeepPartial<typeof enBody> = {
     goTo: "跳到第 {n} 幕（{mark}）",
     keys: "空格：播放 / 暂停 · ← →：切换场景",
     budget: "时间预算",
-    names: { landlord: "我们 · 盒主", tenant: "评委", safe: "盒子的保险箱", jar: "KeyEscrow 存钱罐", shop: "租车行", tourist: "游客" },
+    names: { landlord: "我们 · 盒主", tenant: "评委", safe: "盒子的保险箱", jar: "KeyScrow 存钱罐", shop: "租车行", tourist: "游客" },
     judgeBadge: "评委",
     bubbles: {
       grab: "谢谢！",
@@ -37,7 +37,7 @@ export const body: DeepPartial<typeof enBody> = {
       problem: { note: "讲：还车时，每道划痕赔多少全由租车行说了算。车主同样拿不出证据。" },
       oneliner: {
         note: "讲：每笔租赁一个小小的托管合约。任何一方都不能单独把钱取走。",
-        title: "KeyEscrow",
+        title: "KeyScrow",
         line1: "每笔租赁一个托管合约",
         line2: "任何一方都无法单独取走",
       },
@@ -87,15 +87,15 @@ export const body: DeepPartial<typeof enBody> = {
         line2: "争议处理台即服务",
         line3: "请求：清迈和普吉的试点租车行",
       },
-      end: { note: "结束。感谢评委，把盒子送给他们，开始答疑。", title: "护照自己留着。", line1: "KeyEscrow · 已上线 BSC 测试网" },
+      end: { note: "结束。感谢评委，把盒子送给他们，开始答疑。", title: "护照自己留着。", line1: "KeyScrow · 已上线 BSC 测试网" },
     },
   },
 
   promptpay: {
     banner: "这不是付款页面。没有连接任何银行或支付机构，二维码指向一个假的演示账号。点“我已付款”会改为在 {chain} 上铸造测试 mUSDT。",
     back: "← 返回租赁",
-    notDeployed: "KeyEscrow 尚未部署在 {chain} 上。",
-    noRental: "无法在 {chain} 上读取地址 {address} 的 KeyEscrow 租赁。",
+    notDeployed: "KeyScrow 尚未部署在 {chain} 上。",
+    noRental: "无法在 {chain} 上读取地址 {address} 的 KeyScrow 租赁。",
     notRenter: "请连接这笔租赁的租客钱包来付款。",
     done: "已从你自己的钱包付入托管合约。",
     openRental: "打开租赁",
@@ -121,8 +121,8 @@ export const body: DeepPartial<typeof enBody> = {
   },
 
   credits: {
-    metaTitle: "照片署名 · KeyEscrow",
-    lead: "本网站和 KeyEscrow iOS 应用中的房源照片都是来自 Wikimedia Commons 的真实照片，按下列许可免费使用。照片展示的是每条房源的车型，并非所列的那辆摩托车；照片中的店铺和地点与 KeyEscrow 无关。",
+    metaTitle: "照片署名 · KeyScrow",
+    lead: "本网站和 KeyScrow iOS 应用中的房源照片都是来自 Wikimedia Commons 的真实照片，按下列许可免费使用。照片展示的是每条房源的车型，并非所列的那辆摩托车；照片中的店铺和地点与 KeyScrow 无关。",
     usedFor: "用于",
     author: "作者",
     license: "许可",
@@ -134,14 +134,14 @@ export const body: DeepPartial<typeof enBody> = {
   },
 
   dev: {
-    metaTitle: "开发者 · KeyEscrow",
+    metaTitle: "开发者 · KeyScrow",
     lead: {
       before: "每个租赁操作只定义一次，同时用作 REST 端点、给 AI 智能体的 MCP 工具，以及网页表单的校验。读取类操作返回 JSON。",
-      after: " 操作返回未签名的交易（已在链上模拟过），由你自己的钱包签名：KeyEscrow 从不持有你的私钥。",
+      after: " 操作返回未签名的交易（已在链上模拟过），由你自己的钱包签名：KeyScrow 从不持有你的私钥。",
     },
     notes: {
       openapi: "OpenAPI 3.1：",
-      mcp: "。MCP：同样的操作也是 KeyEscrow Inspector 智能体上的工具（",
+      mcp: "。MCP：同样的操作也是 KeyScrow Inspector 智能体上的工具（",
       config: "，Claude 配置见 docs/AGENT.md）。金额：{symbol} 有 {decimals} 位小数；输入使用常规金额，例如 ",
       outputs: "，输出给出 ",
       base: "（基本单位）和 ",
@@ -260,7 +260,7 @@ export const head: DeepPartial<typeof enHead> = {
     heading: "我们如何路演",
     scenes: {
       problem: "在泰国租摩托车，租车行会扣下你的护照当押金。",
-      oneliner: "KeyEscrow 把每笔押金放进带两把锁的专属保险箱，就在 BNB Chain 上。",
+      oneliner: "KeyScrow 把每笔押金放进带两把锁的专属保险箱，就在 BNB Chain 上。",
       qr: "谁想租我们的神秘盒子？扫描大屏幕上的二维码。",
       wallet: "评委的手机拿到一个装着测试币的访客钱包。无需 App，无需助记词。",
       rent: "评委租下盒子：押金和租金进入盒子专属的保险箱。",
@@ -270,7 +270,7 @@ export const head: DeepPartial<typeof enHead> = {
       settle: "我们在大屏幕上点接受：两把锁打开，资金完成结算。",
       native: "保险箱清空，每人拿到自己那份，全程原生于 BNB Chain。",
       business: "每笔租赁我们收一个月租金的 10%。帮我们找真实的租车行试点。",
-      end: "护照自己留着。KeyEscrow。",
+      end: "护照自己留着。KeyScrow。",
     },
   },
   promptpay: {

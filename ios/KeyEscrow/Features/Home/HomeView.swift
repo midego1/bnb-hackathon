@@ -85,7 +85,7 @@ struct HomeView: View {
         }
         .keScreen()
         .toolbar(.hidden, for: .navigationBar)
-        .navigationTitle("KeyEscrow")
+        .navigationTitle("KeyScrow")
         // The photo is night in both themes and the status bar's dark text would be lost on it, so the clock steps
         // aside while the photo is up there and comes back with the page.
         .statusBarHidden(heroUnderStatusBar || !sensorHousing)
@@ -183,7 +183,7 @@ struct HomeHero: View {
     private var brand: some View {
         HStack(spacing: 8) {
             Image(systemName: "key.horizontal.fill").foregroundStyle(Color.KE.sign)
-            Text("KeyEscrow").foregroundStyle(.white).lineLimit(1).fixedSize()
+            Text("KeyScrow").foregroundStyle(.white).lineLimit(1).fixedSize()
             Spacer(minLength: 12)
             WalletChip(onPhoto: true)
         }

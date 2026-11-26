@@ -23,7 +23,7 @@ export const SettlementRouteRequestSchema = SettlementRequestSchema.extend({
  * escrow of this deployment's factory (EscrowFactory.isLease, read on-chain), so a made-up address writes nothing.
  * The id comes from the rental, never from request text: the catalogue scooter it is linked to when that scooter's
  * owner is the rental's on-chain landlord (so history carries over between rentals), else the rental address itself.
- * Null when the address is not a KeyEscrow rental; RPC failures throw.
+ * Null when the address is not a KeyScrow rental; RPC failures throw.
  */
 export async function leaseMemoryKey(
   lease: string,

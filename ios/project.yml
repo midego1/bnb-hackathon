@@ -27,12 +27,12 @@ targets:
     info:
       path: KeyEscrow/Info.plist
       properties:
-        CFBundleDisplayName: KeyEscrow
+        CFBundleDisplayName: KeyScrow
         UILaunchScreen:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight, UIInterfaceOrientationPortraitUpsideDown]
-        NSCameraUsageDescription: KeyEscrow takes pickup and return photos of the rental. Only their SHA-256 fingerprints go on-chain.
+        NSCameraUsageDescription: KeyScrow takes pickup and return photos of the rental. Only their SHA-256 fingerprints go on-chain.
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:

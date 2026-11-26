@@ -37,7 +37,7 @@ export const EXPLAIN: Record<string, Explain> = {
   create: {
     now: (c, m, w) =>
       `The ${w.landlord} offers the rental: ${c.property.name}, ${m(c.rent)} a month, ${m(c.deposit)} deposit. ` +
-      `KeyEscrow creates an escrow contract for this rental only, on-chain (on the public blockchain).`,
+      `KeyScrow creates an escrow contract for this rental only, on-chain (on the public blockchain).`,
     changed: () =>
       `The rental now has its own contract with the agreed terms. The signed agreement stays off-chain; ` +
       `only its fingerprint (a unique file code) goes on-chain, so nobody can swap it.`,
@@ -73,9 +73,9 @@ export const EXPLAIN: Record<string, Explain> = {
   rent: {
     now: (c, _m, w) =>
       `Month 1 rent is due. The ${w.tenant} releases it to ${payee(c, w)}. ` +
-      `KeyEscrow's only fee comes out of this first month: ${((c.feeBps ?? 1000) / 100).toFixed(0)}% of one month's rent.`,
+      `KeyScrow's only fee comes out of this first month: ${((c.feeBps ?? 1000) / 100).toFixed(0)}% of one month's rent.`,
     changed: (c, m, w) =>
-      `${payee(c, w).replace(/^t/, "T")} got ${m(c.rentToLandlord ?? c.rent - feeOf(c))} and the KeyEscrow treasury ${m(feeOf(c))}. ` +
+      `${payee(c, w).replace(/^t/, "T")} got ${m(c.rentToLandlord ?? c.rent - feeOf(c))} and the KeyScrow treasury ${m(feeOf(c))}. ` +
       `The deposit stays locked in escrow.`,
     to: ["landlord", "treasury"],
   },
@@ -167,7 +167,7 @@ export const EXPLAIN: Record<string, Explain> = {
   final: {
     now: (_c, _m, w) => `Last step: we read every balance and check the books. All the ${w.tenant} paid in must be accounted for.`,
     changed: (_c, _m, w) =>
-      `The escrow is empty. Every baht went to the ${w.landlord}, the KeyEscrow treasury, or back to the ${w.tenant}.`,
+      `The escrow is empty. Every baht went to the ${w.landlord}, the KeyScrow treasury, or back to the ${w.tenant}.`,
     to: [],
   },
 };

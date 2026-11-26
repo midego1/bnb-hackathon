@@ -5,10 +5,10 @@ import { inspectorSignerFromKey, type InspectorSigner } from "./shared.ts";
  * Cloudflare Workers (src/worker.ts). File access (reading agent/deployments/<chainId>.json) lives in config.ts.
  */
 
-export const AGENT_NAME = "KeyEscrow Inspector";
+export const AGENT_NAME = "KeyScrow Inspector";
 export const AGENT_VERSION = "0.1.0";
 export const AGENT_DESCRIPTION =
-  "Neutral return inspector for KeyEscrow scooter-rental deposit escrows on BNB Chain. Compares pickup and return " +
+  "Neutral return inspector for KeyScrow scooter-rental deposit escrows on BNB Chain. Compares pickup and return " +
   "photos of the scooter and proposes how the deposit is split (tenantRefund = renter, landlordClaim = owner), with reasons, a " +
   "confidence score and a reportHash that the renter or owner passes to RentalEscrow.propose(). Every report is signed by " +
   "this agent's ERC-8004 identity.";

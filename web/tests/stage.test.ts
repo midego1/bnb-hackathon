@@ -123,7 +123,7 @@ describe("prices and presenter", () => {
   });
 
   it("the seed listing is the Mystery Box at 200 / 1,000 THB", () => {
-    expect(getListing("mystery-box")).toMatchObject({ name: "KeyEscrow Mystery Box", rentThb: 200, depositThb: 1000 });
+    expect(getListing("mystery-box")).toMatchObject({ name: "KeyScrow Mystery Box", rentThb: 200, depositThb: 1000 });
   });
 
   it("presenter buttons are open without a code, closed with a wrong one", () => {

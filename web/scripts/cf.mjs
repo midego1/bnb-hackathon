@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// KeyEscrow on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
+// KeyScrow on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
 //
 //   node scripts/cf.mjs build        pnpm cf:build    chain 97 build into .open-next/ (refuses NEXT_PUBLIC_DEV_ACCOUNTS=1);
 //                                                     CF_CHAIN_ID=56: the BSC mainnet stage Worker (wrangler env "mainnet")

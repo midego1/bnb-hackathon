@@ -1,12 +1,12 @@
 [English](WRITEUP.md) | 简体中文
 
-# KeyEscrow：CoinMarketCap x Atlas 赛道说明（一页纸）
+# KeyScrow：CoinMarketCap x Atlas 赛道说明（一页纸）
 
-**团队：** KeyEscrow · 联系方式：hackathon@vanpeltventures.org（团队成员姓名：_待项目负责人填写_）· 代码：本仓库（[中文 README](../README.zh-CN.md)）· 演示：`/integrations` 页面，以及车主 / 租客的租约页面。
+**团队：** KeyScrow · 联系方式：hackathon@vanpeltventures.org（团队成员姓名：_待项目负责人填写_）· 代码：本仓库（[中文 README](../README.zh-CN.md)）· 演示：`/integrations` 页面，以及车主 / 租客的租约页面。
 
 ## 问题与目标用户
 
-在泰国租摩托车的游客要把护照押给车行，还车时还常被虚报损坏；车行车主遇到真实的损坏，却拿不出证据。KeyEscrow
+在泰国租摩托车的游客要把护照押给车行，还车时还常被虚报损坏；车行车主遇到真实的损坏，却拿不出证据。KeyScrow
 把租金和押金托管在 BNB Chain 上每笔租约独立的托管合约中，并根据 AI 照片验车结果结算押金。目标用户是小型租车行（车主）、
 游客和外籍长住者（租客），之后还有车队投资者。所有人都以**泰铢**思考，而押金却以代币形式存放，因此在整个租期内，
 押金必须始终足以覆盖一笔以泰铢计价的维修费用。这是一个风险问题，需要市场数据来解决。

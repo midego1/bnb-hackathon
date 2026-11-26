@@ -11,7 +11,7 @@ export { escrowFactoryAbi, fleetVaultAbi, mockUsdtAbi, rentalEscrowAbi } from ".
 export type Deployment = {
   escrowFactory: Address;
   mockUsdt: Address;
-  /** KeyEscrow dispute desk: the default arbiter suggested for new rentals. */
+  /** KeyScrow dispute desk: the default arbiter suggested for new rentals. */
   disputeDesk?: Address;
   /** Fleet Vault (BKK-FLEET-1 shares); absent on deployments made before the vault existed. */
   fleetVault?: Address;

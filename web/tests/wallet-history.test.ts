@@ -106,7 +106,7 @@ describe("settledSentence: one factual line per party", () => {
   it("names the outcome, amounts, rental and transaction; only wallet addresses", () => {
     const s = settledSentence(r, "renter")!;
     expect(s).toBe(
-      `Wallet ${RENTER} was the renter of KeyEscrow rental ${L1}: dispute opened by the renter, ruled by the dispute desk; 400.00 mUSDT of the 500.00 mUSDT deposit back to the renter, 100.00 mUSDT kept by the owner. Transaction ${r.settled!.txHash}.`,
+      `Wallet ${RENTER} was the renter of KeyScrow rental ${L1}: dispute opened by the renter, ruled by the dispute desk; 400.00 mUSDT of the 500.00 mUSDT deposit back to the renter, 100.00 mUSDT kept by the owner. Transaction ${r.settled!.txHash}.`,
     );
     expect(settledSentence(r, "owner")).toContain(`Wallet ${OWNER} was the owner`);
   });
@@ -176,7 +176,7 @@ describe("Living Brain wallet memory (mocked fetch)", () => {
   it("captures under label wallet:<address> with the tx as idempotency key and the subject header", async () => {
     const { f, calls } = lbFetch(() => Response.json({ id: "src_1" }, { status: 201 }));
     const m = new LivingBrainWalletMemory(cfg, f, () => new MemoryState());
-    const text = `Wallet ${RENTER} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
+    const text = `Wallet ${RENTER} was the renter of KeyScrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
     expect(await m.remember({ wallet: RENTER.toLowerCase(), lease: L1, txHash: H(9), text, at: "2026-11-26T00:00:00Z" })).toEqual({ stored: true });
     expect(calls[0].url).toBe("https://lb.test/v1/brains/keyescrow-scooters/captures");
     expect(calls[0].headers).toMatchObject({ "x-api-key": "k", "x-subject-id": "s" });
@@ -193,8 +193,8 @@ describe("Living Brain wallet memory (mocked fetch)", () => {
   it("reads its own captures back from the ingest sources by id: compiled ones as Living Brain, the rest as sent", async () => {
     const state = new MemoryState();
     const w = RENTER.toLowerCase();
-    const s1 = `Wallet ${w} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
-    const s2 = `Wallet ${w} was the renter of KeyEscrow rental ${L2}: the dispute desk ruled. Transaction ${H(10)}.`;
+    const s1 = `Wallet ${w} was the renter of KeyScrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
+    const s2 = `Wallet ${w} was the renter of KeyScrow rental ${L2}: the dispute desk ruled. Transaction ${H(10)}.`;
     let n = 0;
     const { f, calls } = lbFetch((url) =>
       url.endsWith("/captures")
@@ -219,7 +219,7 @@ describe("Living Brain wallet memory (mocked fetch)", () => {
   it("shows what it sent when Living Brain is unreachable, and finds older captures by label", async () => {
     const state = new MemoryState();
     const w = RENTER.toLowerCase();
-    const mine = `Wallet ${w} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
+    const mine = `Wallet ${w} was the renter of KeyScrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
     const down = lbFetch((url) => (url.endsWith("/captures") ? Response.json({ id: "src_1" }, { status: 201 }) : Response.json({ message: "busy" }, { status: 503 })));
     const m = new LivingBrainWalletMemory(cfg, down.f, () => state);
     await m.remember({ wallet: w, lease: L1, txHash: H(9), text: mine, at: "2026-11-26T01:00:00Z" });
@@ -310,7 +310,7 @@ describe("wallet_history action", () => {
   it("runs through the host's history source, and says so when the host has none", async () => {
     const history = vi.fn(async (w: Address, c: number) => ({ address: w, chainId: c }));
     expect(await runAction("wallet_history", { wallet: RENTER.toLowerCase(), chainId: "31337" }, { env: {}, history })).toEqual({ address: RENTER, chainId: 31337 });
-    await expect(runAction("wallet_history", { wallet: RENTER }, { env: {} })).rejects.toThrow(/needs the KeyEscrow web server/);
+    await expect(runAction("wallet_history", { wallet: RENTER }, { env: {} })).rejects.toThrow(/needs the KeyScrow web server/);
   });
 });
 

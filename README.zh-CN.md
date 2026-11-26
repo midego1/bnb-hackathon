@@ -1,6 +1,8 @@
 [English](README.md) | 简体中文
 
-# KeyEscrow
+# KeyScrow
+
+KeyScrow（开发期间曾名 KeyEscrow：在线网址和部分截图中仍为 keyescrow）。
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -8,7 +10,7 @@
 
 **在泰国租摩托车，不必再押护照。**
 
-在泰国，摩托车租车行通常把游客的护照扣下当押金，还车时每道划痕赔多少钱，全由车行说了算。KeyEscrow
+在泰国，摩托车租车行通常把游客的护照扣下当押金，还车时每道划痕赔多少钱，全由车行说了算。KeyScrow
 用 BNB Chain 上的一个小型智能合约来托管押金，取代护照：每笔租约一个独立合约。租金按月支付给车主。还车时，
 AI 验车会对比取车和还车的照片，起草一份押金分配方案。一方在链上提出，另一方接受，资金立即到账。若双方谈不拢，
 由中立的争议处理台裁决。任何一方都无法单独动用押金，超时规则保护租客。所有金额都优先以泰铢显示。
@@ -96,7 +98,7 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 - **每笔租约一个托管合约。** `EscrowFactory` 为每笔租约部署一个 `RentalEscrow` 的 EIP-1167 克隆。每笔租约的资金
   都隔离在自己的合约里，没有任何管理员密钥能动用，合约也不可升级。工厂合约还按车主、租客和争议处理台为租约建立索引，
   因此应用不需要后端数据库就能列出租约。
-- **链上 AI 代理。** KeyEscrow Inspector 是 BSC 测试网 Identity Registry 中的 ERC-8004 agent **#2921**，通过
+- **链上 AI 代理。** KeyScrow Inspector 是 BSC 测试网 Identity Registry 中的 ERC-8004 agent **#2921**，通过
   [BNB Agent SDK](https://github.com/bnb-chain/bnbagent-sdk)（v0.6.1）注册。当事方提交给 `RentalEscrow.propose()`
   的每份报告哈希都包含它的 agent id；配置签名密钥后，报告还会由该代理注册的 `reportSigner` 签名。它支持 A2A 和 MCP
   （[docs/AGENT.md](docs/AGENT.md)）。
@@ -158,7 +160,7 @@ cd web && npx playwright test               # 20 个文件共 108 个浏览器�
 费率（`feeBps`）在 `EscrowFactory` 中硬性封顶 10 %，测试网已按此上限运行，并已上线。
 
 其他收入来源：争议处理台作为服务（争议处理台本身已上线；转人工的争议按次收费和付费仲裁工具仍在路线图中），以及
-Fleet Vault 车队金库的运营方费用（运营方从进入金库的每笔收入中抽取固定比例作为维护费，测试网金库为 10 %）。KeyEscrow 不拿押金去生息，也不发币。
+Fleet Vault 车队金库的运营方费用（运营方从进入金库的每笔收入中抽取固定比例作为维护费，测试网金库为 10 %）。KeyScrow 不拿押金去生息，也不发币。
 详见 [docs/BUSINESS.md](docs/BUSINESS.md)（英文）。
 
 > **命名说明：** 界面和文档使用 *owner*（车主）、*renter*（租客）、*scooter rental*（摩托车租约）、*pickup*（取车）

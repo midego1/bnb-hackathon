@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { absolute: title },
     description,
     alternates: { canonical: "/" },
-    openGraph: { type: "website", siteName: "KeyEscrow", title, description, url: "/", images: [card] },
+    openGraph: { type: "website", siteName: "KeyScrow", title, description, url: "/", images: [card] },
     twitter: { card: "summary_large_image", title, description, images: [card] },
   };
 }

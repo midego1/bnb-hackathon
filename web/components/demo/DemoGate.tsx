@@ -18,7 +18,7 @@ export function DemoGate() {
     return <Blocked>Your wallet is on another network. Pick a role in the yellow Demo accounts bar (or switch to Anvil) to run the demo.</Blocked>;
   }
   if (!deployment) {
-    return <Blocked>KeyEscrow is not deployed on this anvil yet. Run <code>pnpm chain:deploy</code> (and <code>pnpm chain:seed</code>) first.</Blocked>;
+    return <Blocked>KeyScrow is not deployed on this anvil yet. Run <code>pnpm chain:deploy</code> (and <code>pnpm chain:seed</code>) first.</Blocked>;
   }
   return <DemoRunner />;
 }

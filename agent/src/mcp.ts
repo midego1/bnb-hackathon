@@ -54,7 +54,7 @@ export function buildMcpServer(deps: InspectDeps, identity: InspectorIdentity | 
     {
       title: "Scooter return inspection",
       description:
-        "Compare pickup vs return photos of a KeyEscrow scooter rental and propose the deposit split. Returns " +
+        "Compare pickup vs return photos of a KeyScrow scooter rental and propose the deposit split. Returns " +
         "{tenantRefund, landlordClaim, reasons[], confidence, reportHash, inspector, inspectorSignature, ...}. " +
         "tenantRefund + landlordClaim always equals the deposit; pass reportHash to RentalEscrow.propose().",
       inputSchema: INSPECT_INPUT,
@@ -76,7 +76,7 @@ export function buildMcpServer(deps: InspectDeps, identity: InspectorIdentity | 
       title: "Verify an inspection report",
       description:
         "Recompute a report's reportHash and recover who signed it. Compare `signer` with the reportSigner metadata " +
-        "of ERC-8004 agent `inspector.agentId` to confirm the report came from KeyEscrow Inspector.",
+        "of ERC-8004 agent `inspector.agentId` to confirm the report came from KeyScrow Inspector.",
       inputSchema: { report: z.record(z.string(), z.unknown()).describe("A full inspect_move_out result") },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

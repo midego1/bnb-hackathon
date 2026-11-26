@@ -24,7 +24,7 @@ export const zhExplain: DeepPartial<Record<string, Explain>> = {
   create: {
     now: (c, m, w) =>
       `${w.landlord}发布租赁：${zhPropertyName(c.property.name)}，每月 ${m(c.rent)}，押金 ${m(c.deposit)}。` +
-      `KeyEscrow 在链上（公开的区块链上）为这笔租赁单独创建一份托管合约。`,
+      `KeyScrow 在链上（公开的区块链上）为这笔租赁单独创建一份托管合约。`,
     changed: () => "这笔租赁现在有了自己的合约，写明约定的条款。签好的协议留在链下，只有它的指纹（文件的唯一编码）上链，谁也换不了。",
   },
   checkin: {
@@ -44,8 +44,8 @@ export const zhExplain: DeepPartial<Record<string, Explain>> = {
   },
   rent: {
     now: (c, _m, w) =>
-      `第 1 个月租金到期。${w.tenant}把它发放给${payee(c, w)}。KeyEscrow 唯一的手续费从第一个月里扣：一个月租金的 ${((c.feeBps ?? 1000) / 100).toFixed(0)}%。`,
-    changed: (c, m, w) => `${payee(c, w)}收到 ${m(c.rentToLandlord ?? c.rent - feeOf(c))}，KeyEscrow 金库收到 ${m(feeOf(c))}。押金继续锁在托管中。`,
+      `第 1 个月租金到期。${w.tenant}把它发放给${payee(c, w)}。KeyScrow 唯一的手续费从第一个月里扣：一个月租金的 ${((c.feeBps ?? 1000) / 100).toFixed(0)}%。`,
+    changed: (c, m, w) => `${payee(c, w)}收到 ${m(c.rentToLandlord ?? c.rent - feeOf(c))}，KeyScrow 金库收到 ${m(feeOf(c))}。押金继续锁在托管中。`,
   },
   checkout: {
     now: (_c, _m, w) => `租期结束，演示跳过中间的几个月。${w.tenant}从相同角度拍摄还车照片，其中两张显示了新的损伤。`,
@@ -102,6 +102,6 @@ export const zhExplain: DeepPartial<Record<string, Explain>> = {
   },
   final: {
     now: (_c, _m, w) => `最后一步：读取所有余额并核对账目。${w.tenant}付入的每一笔钱都必须有去处。`,
-    changed: (_c, _m, w) => `托管合约已清空。每一泰铢要么给了${w.landlord}和 KeyEscrow 金库，要么退回了${w.tenant}。`,
+    changed: (_c, _m, w) => `托管合约已清空。每一泰铢要么给了${w.landlord}和 KeyScrow 金库，要么退回了${w.tenant}。`,
   },
 };

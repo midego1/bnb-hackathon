@@ -109,7 +109,7 @@ export function rentPerPeriod(monthly: bigint, rentPeriod: number): bigint {
   return (monthly * BigInt(rentPeriod)) / BigInt(MONTH);
 }
 
-/** The one-time KeyEscrow fee: `feeBps` of the monthly-equivalent rent (rent x 30 days / period), rounded down. */
+/** The one-time KeyScrow fee: `feeBps` of the monthly-equivalent rent (rent x 30 days / period), rounded down. */
 export function oneTimeFee(rentAmount: bigint, rentPeriod: number, feeBps: number): bigint {
   return (rentAmount * BigInt(MONTH) * BigInt(feeBps)) / (BigInt(rentPeriod) * BigInt(10_000));
 }

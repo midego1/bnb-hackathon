@@ -15,7 +15,7 @@ export const INSPECT_SKILL: AgentSkill = {
     '"checkOut": [...], "notes"?: "..."} (an optional "skill": "inspect_move_out" key is ignored). Returns ' +
     "{tenantRefund, landlordClaim, reasons[], confidence, reportHash, inspector, inspectorSignature, ...}; " +
     "tenantRefund + landlordClaim always equals the deposit. Pass reportHash to RentalEscrow.propose().",
-  tags: ["keyescrow", "rental", "scooter", "deposit", "inspection", "escrow", "bnb-chain", "erc-8004"],
+  tags: ["keyscrow", "rental", "scooter", "deposit", "inspection", "escrow", "bnb-chain", "erc-8004"],
   examples: [
     '{"deposit":"200000000","checkIn":[{"hash":"0x0ed1…59ce","label":"Left side"}],"checkOut":[{"hash":"0xdaa4…3b85","label":"Left side"}]}',
   ],
@@ -31,7 +31,7 @@ export const ACTION_SKILLS: AgentSkill[] = ACTIONS.map((a) => ({
   id: a.name,
   name: a.title,
   description: toolDescription(a),
-  tags: ["keyescrow", "rental", "scooter", "deposit", "escrow", "bnb-chain", a.kind === "read" ? "read" : "unsigned-tx"],
+  tags: ["keyscrow", "rental", "scooter", "deposit", "escrow", "bnb-chain", a.kind === "read" ? "read" : "unsigned-tx"],
   examples: [JSON.stringify({ skill: a.name, ...a.example })],
   inputModes: ["application/json"],
   outputModes: ["application/json"],
@@ -48,7 +48,7 @@ export function buildAgentCard(publicUrl: string, identity: InspectorIdentity | 
     version: AGENT_VERSION,
     protocolVersion: "0.3.0",
     preferredTransport: "JSONRPC",
-    provider: { organization: "KeyEscrow", url: REPO_URL },
+    provider: { organization: "KeyScrow", url: REPO_URL },
     documentationUrl: `${REPO_URL}/blob/main/docs/AGENT.md`,
     capabilities: { streaming: false, pushNotifications: false },
     defaultInputModes: ["application/json"],

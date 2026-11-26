@@ -47,7 +47,7 @@ type State = {
 type SimCall = { from: Address; to: Address; data: Hex };
 
 /**
- * A fake JSON-RPC node: eth_call is decoded against the KeyEscrow ABIs and answered from `state`; eth_simulateV1
+ * A fake JSON-RPC node: eth_call is decoded against the KeyScrow ABIs and answered from `state`; eth_simulateV1
  * is answered by `simulate` (default: every call succeeds). Records the simulated calls.
  */
 function fakeHost(state: State, simulate?: (calls: SimCall[]) => { ok: boolean; data: Hex }[]) {

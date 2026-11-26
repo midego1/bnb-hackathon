@@ -54,7 +54,7 @@ export type HistoryDeps = {
 function indexFor(chainId: SupportedChainId, deps: HistoryDeps) {
   if (deps.index) return deps.index();
   const ix = chainIndexer(chainId, deps.env ?? process.env);
-  if (!ix) throw new Error(`KeyEscrow is not deployed on chain ${chainId}`);
+  if (!ix) throw new Error(`KeyScrow is not deployed on chain ${chainId}`);
   return ix.get();
 }
 

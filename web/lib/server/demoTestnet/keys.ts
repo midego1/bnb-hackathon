@@ -32,7 +32,7 @@ export type DemoSecrets = {
 export type DemoSecretsSource = () => Promise<DemoSecrets>;
 
 const WALLETS_FILE = "testnet-demo-wallets.json";
-const WALLETS_NOTE = "KeyEscrow BSC testnet (97) live-demo wallets (landlord, tenant, dispute desk). Testnet only. Never fund on mainnet. Never commit.";
+const WALLETS_NOTE = "KeyScrow BSC testnet (97) live-demo wallets (landlord, tenant, dispute desk). Testnet only. Never fund on mainnet. Never commit.";
 
 const keyOrThrow = (v: unknown, what: string): Hex => {
   if (typeof v !== "string" || !isHex(v) || v.length !== 66) throw new DemoError(503, "not-configured", `The live testnet demo's ${what} key is not a 32-byte hex key.`);

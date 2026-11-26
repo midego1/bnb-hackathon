@@ -1,10 +1,10 @@
-# KeyEscrow web
+# KeyScrow web
 
-Next.js (App Router) + wagmi/viem + RainbowKit frontend for the KeyEscrow contracts.
+Next.js (App Router) + wagmi/viem + RainbowKit frontend for the KeyScrow contracts.
 
 | Route | What |
 | --- | --- |
-| `/landlord` | Create a rental (renter wallet, rent, deposit, rental period, windows, arbiter = KeyEscrow dispute desk by default, rental agreement PDF + pickup photos → content hashes) and list my rentals |
+| `/landlord` | Create a rental (renter wallet, rent, deposit, rental period, windows, arbiter = KeyScrow dispute desk by default, rental agreement PDF + pickup photos → content hashes) and list my rentals |
 | `/tenant` | My rentals with the next step for each |
 | `/arbiter` | Dispute desk: rentals where this wallet is arbiter, disputed ones first |
 | `/lease/<escrow>` | Terms, live state, balances, rent schedule, return (AI inspection → proposal → accept), dispute + ruling, both timeout fallbacks with countdowns, event timeline, BscScan links on chain 97 |

@@ -11,7 +11,7 @@ final class RentFlowE2ETests: XCTestCase {
     private func el(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id] }
 
     /// Waits for one of `ids` (the flow advances on its own as the chain confirms); fails on a flow error.
-    /// One error is not the app's: the KeyEscrow server answering that its chain node is unreachable ("try again in a
+    /// One error is not the app's: the KeyScrow server answering that its chain node is unreachable ("try again in a
     /// moment"). Then the step's button (`after`) is tapped again, as a person would, up to three times.
     @discardableResult
     private func waitFor(_ ids: [String], after button: String? = nil, timeout: TimeInterval = 240) -> String {

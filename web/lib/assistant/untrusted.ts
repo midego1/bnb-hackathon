@@ -1,5 +1,5 @@
 /**
- * Everything the model reads that did not come from KeyEscrow's own prompt is DATA, not instructions: tool results,
+ * Everything the model reads that did not come from KeyScrow's own prompt is DATA, not instructions: tool results,
  * on-chain values, names and notes, and the page context the browser sends. It goes to the model inside a marked
  * block whose closing tag cannot be forged from inside (every "<" in the payload is escaped).
  */

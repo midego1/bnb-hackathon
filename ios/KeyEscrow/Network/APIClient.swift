@@ -7,7 +7,7 @@ struct APIError: LocalizedError, Equatable {
     var errorDescription: String? { message }
 }
 
-/// The live KeyEscrow web API. Read actions and prepare_* return JSON; nothing here ever signs.
+/// The live KeyScrow web API. Read actions and prepare_* return JSON; nothing here ever signs.
 struct APIClient {
     static let defaultBase = URL(string: "https://keyescrow-web.mdgooijer.workers.dev")!
     var base: URL = APIClient.defaultBase

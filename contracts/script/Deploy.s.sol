@@ -13,8 +13,8 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 /// On BSC mainnet (56, the capped pilot) it uses the real BSC-USD, never MockUSDT, deploys no FleetVault (a testnet
 /// prototype, docs/PRODUCT.md) and caps the factory by default (MAX_* below).
 ///
-/// Local anvil roles: deployer / factory owner / KeyEscrow treasury (fee recipient) = account 0,
-/// KeyEscrow dispute desk (default arbiter) = account 3.
+/// Local anvil roles: deployer / factory owner / KeyScrow treasury (fee recipient) = account 0,
+/// KeyScrow dispute desk (default arbiter) = account 3.
 ///
 ///   forge script script/Deploy.s.sol --rpc-url "$RPC_URL" --broadcast
 ///
@@ -27,8 +27,8 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///   PRIVATE_KEY                 deployer key; defaults to anvil account 0 on chain 31337 only. Off anvil prefer a
 ///                               forge keystore instead: `--account <name> --sender <address>` (PRIVATE_KEY unset)
 ///   FACTORY_OWNER               factory owner (default: the deployer, on anvil only)
-///   FEE_RECIPIENT               KeyEscrow treasury (default: the deployer, i.e. anvil account 0, on anvil only)
-///   DEFAULT_ARBITER             KeyEscrow dispute desk (default: anvil account 3, on anvil only)
+///   FEE_RECIPIENT               KeyScrow treasury (default: the deployer, i.e. anvil account 0, on anvil only)
+///   DEFAULT_ARBITER             KeyScrow dispute desk (default: anvil account 3, on anvil only)
 ///   TOKEN_ADDRESS               reuse an existing stablecoin instead of deploying MockUSDT (on 56: BSC-USD, the
 ///                               default; any other address is refused)
 ///   FEE_BPS                     one-time fee in bps of one month's rent (default 1000 = 10%, max 1000)
@@ -36,7 +36,7 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///   FLEET_OPERATOR              Fleet Vault operator, gets the maintenance fee (default: anvil account 1, the demo
 ///                               fleet owner, on anvil; FEE_RECIPIENT elsewhere)
 ///   FLEET_OPERATOR_FEE_BPS      operator fee in bps of vault income (default 1000 = 10%, max 3000)
-///   FLEET_NAME / FLEET_SYMBOL   share token metadata (default "KeyEscrow Bangkok Fleet 1" / "BKK-FLEET-1")
+///   FLEET_NAME / FLEET_SYMBOL   share token metadata (default "KeyScrow Bangkok Fleet 1" / "BKK-FLEET-1")
 ///   MAX_DEPOSIT                 pilot cap: max deposit per lease, in tokens, decimals allowed ("0.70"; default: 0.70
 ///                               on BSC mainnet (56), unlimited elsewhere)
 ///   MAX_RENT_PER_PERIOD         pilot cap: max rent per period per lease, in tokens (default 0.30 on 56, else unlimited)
@@ -118,7 +118,7 @@ contract Deploy is ScriptBase {
             d.fleetVault = address(
                 new FleetVault(
                     IERC20(d.token),
-                    vm.envOr("FLEET_NAME", string("KeyEscrow Bangkok Fleet 1")),
+                    vm.envOr("FLEET_NAME", string("KeyScrow Bangkok Fleet 1")),
                     vm.envOr("FLEET_SYMBOL", string("BKK-FLEET-1")),
                     d.fleetOperator,
                     d.fleetOperatorFeeBps

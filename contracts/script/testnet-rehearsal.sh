@@ -87,7 +87,7 @@ FREE=()
 pick_ports
 PNET="${FREE[0]}" PMAIN="${FREE[1]}" PDEAD="${FREE[2]}"
 RPCNET="http://127.0.0.1:$PNET" RPCMAIN="http://127.0.0.1:$PMAIN"
-echo "${B}KeyEscrow testnet deploy rehearsal for chainId $CID (LOCAL anvil only)${N}"
+echo "${B}KeyScrow testnet deploy rehearsal for chainId $CID (LOCAL anvil only)${N}"
 echo "anvil --chain-id $CID on :$PNET, anvil --chain-id $MAIN on :$PMAIN, nothing listening on :$PDEAD"
 start_anvil "$CID" "$PNET"
 start_anvil "$MAIN" "$PMAIN"

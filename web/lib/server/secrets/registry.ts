@@ -179,7 +179,7 @@ export const SECRETS: SecretSpec[] = [
   {
     name: "INSPECTOR_PRIVATE_KEY",
     group: "ai",
-    purpose: "Testnet key the KeyEscrow Inspector agent signs its settlement reports with (unsigned without it).",
+    purpose: "Testnet key the KeyScrow Inspector agent signs its settlement reports with (unsigned without it).",
     source: { label: "A fresh testnet wallet (cast wallet new), see docs/AGENT.md" },
     targets: ["web", "root"],
     format: "privateKey",

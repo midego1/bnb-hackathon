@@ -17,7 +17,7 @@ export type InspectionResult = {
   fallback?: "busy" | "limit" | "photos" | "error";
   reportHash: Hex;
   createdAt: string;
-  /** ERC-8004 identity of the KeyEscrow Inspector agent that signed reportHash (docs/AGENT.md). */
+  /** ERC-8004 identity of the KeyScrow Inspector agent that signed reportHash (docs/AGENT.md). */
   inspector?: { name: string; address: Hex; agentId?: string; agentRegistry?: string };
   inspectorSignature?: Hex;
   /** Per-scooter inspection memory the inspector read before judging (Living Brain, or the local stand-in). */

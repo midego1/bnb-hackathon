@@ -28,7 +28,7 @@ const NOW = new Date("2026-11-25T09:00:00Z");
 
 describe("agent card and ERC-8004 registration file", () => {
   it("advertises the inspection plus one A2A skill per rental action at /a2a", () => {
-    const card = buildAgentCard("http://localhost:8790", { name: "KeyEscrow Inspector", address: SIGNER, agentId: "4", agentRegistry: AGENT_REGISTRY });
+    const card = buildAgentCard("http://localhost:8790", { name: "KeyScrow Inspector", address: SIGNER, agentId: "4", agentRegistry: AGENT_REGISTRY });
     expect(card.url).toBe("http://localhost:8790/a2a");
     expect(card.skills.map((s) => s.id)).toEqual([SKILL_ID, ...ACTIONS.map((a) => a.name)]);
     expect(card.description).toContain("ERC-8004 agent #4");
@@ -37,7 +37,7 @@ describe("agent card and ERC-8004 registration file", () => {
   it("builds the SDK registration file with A2A + MCP services and the registry back-reference", () => {
     const file = buildRegistrationFile("https://inspector.example", { agentId: "4", identityRegistry: REGISTRY, chainId: 97 });
     expect(file.type).toBe("https://eips.ethereum.org/EIPS/eip-8004#registration-v1");
-    expect(file.name).toBe("KeyEscrow Inspector");
+    expect(file.name).toBe("KeyScrow Inspector");
     expect(file.services).toEqual([
       expect.objectContaining({ name: "A2A", endpoint: "https://inspector.example/.well-known/agent-card.json" }),
       expect.objectContaining({ name: "MCP", endpoint: "https://inspector.example/mcp" }),
@@ -147,7 +147,7 @@ describe("HTTP faces (A2A, MCP, REST) against a local server", () => {
 
   it("GET /health and the ERC-8004 registration file", async () => {
     const health = await (await fetch(`${url}/health`)).json();
-    expect(health).toMatchObject({ ok: true, provider: "mock", inspector: { agentId: "4", label: "Signed by KeyEscrow Inspector, ERC-8004 agent #4" } });
+    expect(health).toMatchObject({ ok: true, provider: "mock", inspector: { agentId: "4", label: "Signed by KeyScrow Inspector, ERC-8004 agent #4" } });
     const file = await (await fetch(`${url}/.well-known/agent-registration.json`)).json();
     expect(file.registrations).toEqual([{ agentId: 4, agentRegistry: AGENT_REGISTRY }]);
   });

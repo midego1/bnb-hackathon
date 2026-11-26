@@ -36,7 +36,7 @@ enum TxPolicy {
         if EthAddress.same(to, TxSender.token) {
             if sel == approve, let spender = address(data, 0), let w = word(data, 1) {
                 guard BigUInt(bytes: w) <= maxApprove else { throw EthError.notAllowed("approval above 10,000 mUSDT") }
-                guard await isEscrow(spender) else { throw EthError.notAllowed("approval for \(spender), which is not a KeyEscrow rental") }
+                guard await isEscrow(spender) else { throw EthError.notAllowed("approval for \(spender), which is not a KeyScrow rental") }
                 return
             }
             if sel == faucet, let dest = address(data, 0), EthAddress.same(dest, signer) { return }
@@ -47,7 +47,7 @@ enum TxPolicy {
             return
         }
         guard escrow.contains(sel) else { throw EthError.notAllowed("not a rental action") }
-        guard await isEscrow(to) else { throw EthError.notAllowed("\(to) is not a KeyEscrow rental") }
+        guard await isEscrow(to) else { throw EthError.notAllowed("\(to) is not a KeyScrow rental") }
     }
 }
 

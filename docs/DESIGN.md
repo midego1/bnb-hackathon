@@ -17,7 +17,7 @@ board (`MoneyFlow.tsx`). It renders per request because its words follow the lan
   night with a scooter rental shop, and the promise is written over it like a shop sign. The street comes back once,
   dimmer, behind the closing ask.
 - **Story, top to bottom.** Find a scooter (the search, then the demo listings it filters), why the deposit is safe
-  ("today" against "with KeyEscrow" as two LED tiles, the money board, AI inspection, deadlines), listing your own
+  ("today" against "with KeyScrow" as two LED tiles, the money board, AI inspection, deadlines), listing your own
   scooter (subscriptions, Fleet Vault, dispute desk), proof that it is real (four linked claims, then the contract
   table), the agent surface, the fee, the roadmap (each phase says "Live on testnet" or "Planned"), and the three
   ways in.

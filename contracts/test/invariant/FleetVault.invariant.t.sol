@@ -123,7 +123,7 @@ contract FleetVaultInvariantTest is Test {
         vm.warp(1_790_000_000);
         usdt = _decimals() == 6 ? new MockUSDT() : MockUSDT(address(new MockBscUsd()));
         vault = new FleetVault(
-            IERC20(address(usdt)), "KeyEscrow Bangkok Fleet 1", "BKK-FLEET-1", operator, OP_FEE
+            IERC20(address(usdt)), "KeyScrow Bangkok Fleet 1", "BKK-FLEET-1", operator, OP_FEE
         );
         handler = new VaultHandler(vault, usdt);
         targetContract(address(handler));

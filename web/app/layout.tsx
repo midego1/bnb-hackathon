@@ -21,9 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
   return {
     ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
-    title: { default: t("meta.title"), template: "%s · KeyEscrow" },
+    title: { default: t("meta.title"), template: "%s · KeyScrow" },
     description: t("meta.description"),
-    applicationName: "KeyEscrow",
+    applicationName: "KeyScrow",
   };
 }
 

@@ -296,7 +296,7 @@ const INDEXERS = Symbol.for("keyescrow.chainIndexers");
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
 
-/** The indexer for `chainId` (undefined when KeyEscrow is not deployed there). Env: CHAIN_INDEX_* (see .env.example). */
+/** The indexer for `chainId` (undefined when KeyScrow is not deployed there). Env: CHAIN_INDEX_* (see .env.example). */
 export function chainIndexer(chainId: SupportedChainId, env: Env = process.env): ChainIndexer | undefined {
   const d = getDeployment(chainId);
   if (!d) return undefined;

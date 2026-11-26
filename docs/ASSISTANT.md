@@ -1,6 +1,6 @@
 # Ask AI
 
-Ask AI is KeyEscrow's in-app assistant: a floating chat (a bubble bottom right) that answers questions about rentals and makes changes for you,
+Ask AI is KeyScrow's in-app assistant: a floating chat (a bubble bottom right) that answers questions about rentals and makes changes for you,
 as the connected wallet, through the same rental actions as the REST API and the agent's MCP / A2A tools. It never
 holds a key: every change is a transaction your own wallet signs after you approve a card.
 
@@ -41,7 +41,7 @@ model. It opens from the **Ask AI** bubble bottom right of every app page or wit
   there, never while you type in a field outside the panel or a dialog is open. Off, a "go there" link appears.
 - **Suggestions** per page (a rental: "Where is my deposit?", "What happens next?"; the renter page: "Find my rental";
   the owner page: "Create a rental"; the dispute desk: "What needs my decision?"; `/demo` and `/how-it-works`:
-  "Explain KeyEscrow simply") and **slash commands** `/status`, `/explain`, `/next`, `/new`.
+  "Explain KeyScrow simply") and **slash commands** `/status`, `/explain`, `/next`, `/new`.
 - **Stop** ends the run at once (and expires a change that waits); **New chat** starts over and keeps the old chat in
   the history.
 - **History** (the clock button): earlier chats, newest first, with search on their titles. A title is the first
@@ -84,7 +84,7 @@ model. It opens from the **Ask AI** bubble bottom right of every app page or wit
   that handles the demo prompts by calling the same tools through the same engine, approvals and cards: "Where is my
   deposit?", "What should I do next?", "Explain this rental", "Create a rental for 3,400 baht a month with a 6,800
   deposit for 0x…", "Propose the AI split", "Open a dispute", "Go to the dispute desk", "Find my rental", "What needs
-  my decision?", "Explain KeyEscrow simply". Offline, free; the panel shows a **Demo model** badge. All tests use it.
+  my decision?", "Explain KeyScrow simply". Offline, free; the panel shows a **Demo model** badge. All tests use it.
 - **Claude** (with a key): `claude-sonnet-5-5` by default, `claude-haiku-5-5` per chat or with `ASSISTANT_MODEL`.
   Streaming, low effort, the system prompt and tool list as a cached prefix (`cache_control`). No server-side refusal
   fallback: it could answer with a model outside the two allowed ones, so a refusal just says the model declined. Needs a real key: free-form questions, other wording, and every prompt the script does not know.
