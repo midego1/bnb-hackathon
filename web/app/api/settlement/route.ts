@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
+import { defaultChainId } from "@/lib/actions/context";
 import { getEvidenceStore } from "@/lib/server/evidence";
+import { recordAiClaim } from "@/lib/server/history";
 import { clientIp, jsonError, zodIssues } from "@/lib/server/http";
 import { cloudflareBinding } from "@/lib/server/platform";
 import { inspectionMemoryFromEnv } from "@/lib/server/sponsors/livingbrain";
@@ -14,7 +16,8 @@ import { leaseMemoryKey, SettlementRouteRequestSchema } from "@/lib/server/settl
  * Body: { deposit, decimals?, currency?, checkIn: Photo[], checkOut: Photo[], notes?, scooterId?, lease?, chainId? }
  * Before judging, the inspector reads the scooter's inspection memory (Living Brain, or local). Only an inspection of
  * a `lease` this deployment's factory created (checked on-chain) is written back, under that rental's scooter
- * (settlement/lease.ts); a bare scooterId is read-only.
+ * (settlement/lease.ts), and its proposal is recorded for the dispute desk's claim-vs-AI fact (lib/server/history); a
+ * bare scooterId is read-only.
  * Returns a proposal whose tenantRefund + landlordClaim always equals the deposit.
  * Rate limits per caller IP: 10 live-model inspections an hour (each is a paid model call), and 20 memory writes an
  * hour (over it the inspection still runs, read-only). Server-wide: SETTLEMENT_DAILY_CALLS live-model inspections per
@@ -41,6 +44,7 @@ export async function POST(request: NextRequest) {
       overDailyCap = !(await hitRateLimit(getSharedState(), "settlement:all", { limit: dailyCalls(), windowMs: 86_400_000 })).ok;
     }
     const { lease, chainId, ...req } = parsed.data;
+    const verified = lease ? await rememberAs(clientIp(request), lease, chainId) : null;
     const result = await proposeSettlement(req, {
       provider,
       fallback: overDailyCap ? "limit" : undefined,
@@ -48,8 +52,13 @@ export async function POST(request: NextRequest) {
       photoSource: photoSource(request),
       inspector: inspectorFromEnv(),
       memory: inspectionMemoryFromEnv(),
-      rememberAs: lease ? await rememberAs(clientIp(request), lease, chainId) : null,
+      rememberAs: verified,
     });
+    // The AI's proposal for this verified rental, so the dispute desk can compare it with the owner's claim.
+    if (verified) {
+      const claim = { reportHash: result.reportHash, landlordClaim: result.landlordClaim, deposit: result.deposit, mock: result.mock, at: result.createdAt };
+      await recordAiClaim(chainId ?? defaultChainId(process.env), verified.rental, claim).catch((err: Error) => console.warn("settlement: AI claim not recorded", err.message));
+    }
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("settlement failed", (err as Error).name, (err as Error).message);

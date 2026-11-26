@@ -19,7 +19,8 @@ model. It opens from the **Ask AI** bubble bottom right of every app page or wit
   and tucked into the corner, clear of the stage controls; the landing page and the live judge demo (`/stage`, `/r`)
   have none. A dot on the bubble: violet while a change waits for approval, or a reply that came in while it was
   closed. Messages are chat bubbles: yours on the right, Ask AI's answers, steps, cards and approvals on the left.
-- **Reads** run at once: `get_lease`, `list_leases`, `explain_status`, `quote`, and `inspect_return` (the AI return
+- **Reads** run at once: `get_lease`, `list_leases`, `explain_status`, `quote`, `wallet_history` ("what is this
+  renter's history?" on the dispute desk), and `inspect_return` (the AI return
   inspection over the photos anchored on the rental).
 - **Changes** (`prepare_create_lease`, `prepare_fund`, `prepare_propose_settlement`, `prepare_accept`,
   `prepare_dispute`, `prepare_resolve`, `prepare_claim_timeout`, `prepare_release_rent`, `prepare_add_evidence`,

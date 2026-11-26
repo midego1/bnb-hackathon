@@ -2,7 +2,7 @@ import { mkdir, readFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import type { Env } from "../env";
 import { onCloudflare } from "../platform";
-import { getSharedState, update } from "../state";
+import { getSharedState, hitRateLimit, update } from "../state";
 import { logSponsorCall, sponsorLogDir } from "./log";
 
 /**
@@ -42,7 +42,7 @@ export interface InspectionMemory {
   remember(entry: InspectionMemoryEntry): Promise<{ stored: boolean; id?: string; error?: string }>;
 }
 
-type FetchLike = typeof fetch;
+export type FetchLike = typeof fetch;
 
 export function livingBrainConfig(env: Env = process.env) {
   const apiKey = env.LIVING_BRAIN_API_KEY;
@@ -50,12 +50,64 @@ export function livingBrainConfig(env: Env = process.env) {
   const brainId = env.LIVING_BRAIN_BRAIN_ID;
   const base = (env.LIVING_BRAIN_BASE_URL || "https://api.livingbrain.com").replace(/\/+$/, "");
   const missing = [!apiKey && "LIVING_BRAIN_API_KEY", !subjectId && "LIVING_BRAIN_SUBJECT_ID", !brainId && "LIVING_BRAIN_BRAIN_ID"].filter(Boolean) as string[];
-  return { apiKey, subjectId, brainId, base, missing, configured: missing.length === 0 && !env.VITEST };
+  // Prepaid credit is small: never a real call from tests, CI or the e2e server, whatever keys leak into the env.
+  const off = env.VITEST || env.CI || env.KEYESCROW_E2E ? "Living Brain is off in tests, CI and e2e. Using local memory." : undefined;
+  const cap = Number(env.LIVING_BRAIN_DAILY_CALLS);
+  const dailyCalls = Number.isInteger(cap) && cap > 0 ? cap : 200;
+  return { apiKey, subjectId, brainId, base, missing, off, dailyCalls, configured: missing.length === 0 && !off };
+}
+
+/** Why Living Brain is not used: off in tests/CI/e2e, or which keys are missing (`where`: how to set them). */
+export function notConfiguredReason(cfg: ReturnType<typeof livingBrainConfig>, where = ""): string {
+  return cfg.off ?? `Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"}${where}. Using local memory.`;
+}
+
+/** Thrown instead of calling Living Brain once LIVING_BRAIN_DAILY_CALLS calls were made in the last 24 hours. */
+export class LivingBrainCapError extends Error {
+  constructor(cap: number) {
+    super(`Living Brain daily limit reached (${cap} calls in 24 h)`);
+    this.name = "LivingBrainCapError";
+  }
 }
 
 export function describeEntry(e: InspectionMemoryEntry): string {
   const what = e.findings.length ? e.findings.join("; ") : "no damage found";
   return `Scooter ${e.scooterId} inspection on ${e.at.slice(0, 10)}${e.rental ? ` (rental ${e.rental})` : ""}: ${e.newDamage ? "NEW damage" : "no new damage"}. Findings: ${what}.${e.reportHash ? ` Report ${e.reportHash}.` : ""}`;
+}
+
+/** One Living Brain REST call under /v1/brains/{brainId}, logged to the sponsor log; throws on a non-2xx answer. */
+export async function livingBrainCall<T>(
+  cfg: ReturnType<typeof livingBrainConfig>,
+  fetchImpl: FetchLike,
+  method: "POST" | "GET",
+  p: string,
+  body?: unknown,
+): Promise<T> {
+  const started = Date.now();
+  let status: number | null = null;
+  const endpoint = `${method} /v1/brains/{brainId}${p}`;
+  // Server-wide budget across isolates (KeyEscrowState Durable Object on Workers): every search and capture counts.
+  if (!(await hitRateLimit(getSharedState(), "livingbrain:calls", { limit: cfg.dailyCalls, windowMs: 86_400_000 })).ok) {
+    await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status: null, ok: false, ms: 0, note: "daily cap: not called" });
+    throw new LivingBrainCapError(cfg.dailyCalls);
+  }
+  try {
+    const res = await fetchImpl(`${cfg.base}/v1/brains/${encodeURIComponent(cfg.brainId!)}${p}`, {
+      method,
+      headers: { "x-api-key": cfg.apiKey!, "x-subject-id": cfg.subjectId!, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
+    });
+    status = res.status;
+    const json = (await res.json().catch(() => null)) as T & { message?: string };
+    await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: res.ok, ms: Date.now() - started, note: res.ok ? undefined : String(json?.message ?? "").slice(0, 160) });
+    if (!res.ok) throw new Error(`Living Brain ${res.status}: ${json?.message ?? "request failed"}`);
+    return json;
+  } catch (err) {
+    if (status === null) await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
+    throw err;
+  }
 }
 
 export class LivingBrainMemory implements InspectionMemory {
@@ -65,27 +117,8 @@ export class LivingBrainMemory implements InspectionMemory {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  private async call<T>(method: "POST" | "GET", p: string, body?: unknown): Promise<T> {
-    const started = Date.now();
-    let status: number | null = null;
-    const endpoint = `${method} /v1/brains/{brainId}${p}`;
-    try {
-      const res = await this.fetchImpl(`${this.cfg.base}/v1/brains/${encodeURIComponent(this.cfg.brainId!)}${p}`, {
-        method,
-        headers: { "x-api-key": this.cfg.apiKey!, "x-subject-id": this.cfg.subjectId!, "content-type": "application/json" },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
-        cache: "no-store",
-      });
-      status = res.status;
-      const json = (await res.json().catch(() => null)) as T & { message?: string };
-      await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: res.ok, ms: Date.now() - started, note: res.ok ? undefined : String(json?.message ?? "").slice(0, 160) });
-      if (!res.ok) throw new Error(`Living Brain ${res.status}: ${json?.message ?? "request failed"}`);
-      return json;
-    } catch (err) {
-      if (status === null) await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
-      throw err;
-    }
+  private call<T>(method: "POST" | "GET", p: string, body?: unknown): Promise<T> {
+    return livingBrainCall<T>(this.cfg, this.fetchImpl, method, p, body);
   }
 
   async recall(scooterId: string): Promise<RecalledMemory[]> {
@@ -185,7 +218,7 @@ export function inspectionMemoryFromEnv(env: Env = process.env, fetchImpl: Fetch
   const cfg = livingBrainConfig(env);
   if (cfg.configured) return new LivingBrainMemory(cfg, fetchImpl);
   if (onCloudflare()) {
-    return new SharedInspectionMemory(`Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"} as Worker secrets. Using local memory.`);
+    return new SharedInspectionMemory(notConfiguredReason(cfg, " as Worker secrets"));
   }
-  return new LocalInspectionMemory(path.join(sponsorLogDir(env), "inspections.jsonl"), `Living Brain not configured: set ${cfg.missing.join(", ") || "LIVING_BRAIN_*"} in web/.env.local. Using local memory.`);
+  return new LocalInspectionMemory(path.join(sponsorLogDir(env), "inspections.jsonl"), notConfiguredReason(cfg, " in web/.env.local"));
 }

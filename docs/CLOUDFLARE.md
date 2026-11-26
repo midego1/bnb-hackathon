@@ -131,6 +131,7 @@ without them the app runs in mock / read-only mode. **Never** put them in `wrang
 | `ATLAS_RPC_URL` | secret | Atlas on-chain price feeds; with the vars `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB`, `ATLAS_MAX_AGE_SECONDS` |
 | `COURNOT_API_KEY` | secret | Cournot oracle prepaid key; live calls also need the var `COURNOT_LIVE=1` (`COURNOT_MAX_LIVE_CALLS` optional) |
 | `LIVING_BRAIN_API_KEY` | secret | Living Brain inspection memory, with `LIVING_BRAIN_SUBJECT_ID` and `LIVING_BRAIN_BRAIN_ID` (secrets or vars) |
+| `LIVING_BRAIN_DAILY_CALLS` | var | Cap on Living Brain calls per 24 h, default 200 (counted in the Durable Object); over it the dispute desk shows on-chain facts only |
 | `DEMO_TESTNET_KEYS` | secret | JSON `{"landlord":"0x…","tenant":"0x…","arbiter":"0x…"}`: the three demo wallets' private keys |
 | `DEMO_TESTNET_RPC_URL` | secret | BSC testnet RPC the runner signs against (a secret because a provider URL may embed an API key) |
 | `DEMO_TESTNET_FUNDER_KEY` | secret | A **small dedicated** wallet that tops up demo wallets (never the deployer). Without it a low wallet refuses the run |

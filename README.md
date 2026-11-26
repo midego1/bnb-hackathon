@@ -240,7 +240,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
 | Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Blocked: no BSC testnet feed addresses published |
-| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
+| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
 ### CoinMarketCap
 
@@ -269,7 +269,12 @@ mainnet) feed addresses; Atlas assigns them during onboarding.
 searches the scooter's brain (`POST /v1/brains/{brainId}/search`) for its earlier inspections ("damage listed here
 already existed: do not charge again"). After judging, `POST /api/settlement` stores the new inspection
 (`POST /v1/brains/{brainId}/captures`, `originRef` = report hash for idempotency), only for a rental it verified
-on-chain and under that rental's scooter, at most 20 writes an hour per IP. The agent's public faces only read. The recalled history is part of the hashed report and is shown under the
+on-chain and under that rental's scooter, at most 20 writes an hour per IP. The agent's public faces only read.
+Living Brain also keeps the **dispute memory per wallet**: after each settled rental the web app writes one factual
+entry per party (label `wallet:<address>`, `originRef` = settling transaction + wallet), and the dispute desk, Ask AI
+and the `wallet_history` action read it back next to the on-chain facts. Calls are budgeted: at most
+`LIVING_BRAIN_DAILY_CALLS` (default 200) a day, reads cached 10 minutes per wallet, never from CI or e2e. Wallet addresses only, factual entries only
+([privacy](docs/ARCHITECTURE.md#dispute-memory-per-wallet)). The recalled history is part of the hashed report and is shown under the
 AI proposal as "Scooter memory". Without `LIVING_BRAIN_*`, a local file (`web/.sponsor-logs/inspections.jsonl`)
 stands in, labelled as such.
 

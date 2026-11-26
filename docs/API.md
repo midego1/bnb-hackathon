@@ -183,6 +183,11 @@ a `YYYY-MM-DD` date.
 State of each sponsor integration (`live`, `not-configured`, `blocked`, `off`), the env var names it needs, and its
 last calls (endpoint, time, status, duration, note). Never returns key values.
 
+`POST /api/history` `{lease, chainId?}`: after a rental settled (agreement, dispute ruling or timeout), writes one
+factual memory entry per party (Living Brain label `wallet:<address>`, else the local stand-in). The server reads the
+outcome from its chain index; the body only names the rental. Idempotent per transaction; 20 writes an hour per IP
+(over it: 200 with `reason: "rate-limited"`). Read it back with `GET /api/v1/wallet_history?wallet=0x…`.
+
 `POST /api/settlement` also takes an optional `scooterId`: the inspector then reads that scooter's earlier inspections
 (Living Brain, or the local stand-in) before judging and returns them under `memory`. That is read-only. To also store
 the inspection, send `lease` (the RentalEscrow address, optional `chainId`): the server checks on-chain that this

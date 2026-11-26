@@ -66,6 +66,8 @@ function appFor(env: AgentWorkerEnv, origin: string): App {
   const deps = (): InspectDeps => workerDeps(cfg, env);
   // Quotes are cached per isolate; no in-flight sharing, since one request must not await another request's I/O here.
   const prices = new PriceService({ env: vars, dedupe: false });
+  // No wallet_history here: a cold isolate would rescan the chain index past the Worker's subrequest limit, so the
+  // action points callers to the web app's /api/v1/wallet_history (its index lives in the Durable Object).
   const actions: ActionHost = { env: vars, prices: () => prices.get() };
   const rpc = new JsonRpcTransportHandler(new DefaultRequestHandler(card, new InMemoryTaskStore(), new InspectorExecutor(deps, actions)));
   const app = { cfg, card, registration, rpc, actions };

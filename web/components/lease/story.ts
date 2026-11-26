@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { keccak256, toBytes, zeroHash } from "viem";
+import { zeroHash } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
 import { oneTimeFee } from "@/lib/rentals";
+import { ARBITER_TIMEOUT_BASIS, LANDLORD_TIMEOUT_BASIS } from "@/lib/walletHistory";
 import { releasablePeriods, viewerRole, type Viewer } from "./model";
 
 /**
@@ -14,8 +15,7 @@ import { releasablePeriods, viewerRole, type Viewer } from "./model";
  * the escrow's own state and events; `fmt` formats a token amount (baht first).
  */
 
-export const LANDLORD_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.landlord-response"));
-export const ARBITER_TIMEOUT_BASIS = keccak256(toBytes("keyescrow.timeout.arbiter-deadline"));
+export { ARBITER_TIMEOUT_BASIS, LANDLORD_TIMEOUT_BASIS };
 
 type Fmt = (v: bigint) => string;
 const ZERO = BigInt(0);

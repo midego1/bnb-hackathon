@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
+import { PartyHistories, WalletHistoryCard } from "@/components/history/WalletHistoryCard";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, useMoney } from "@/components/ui";
 import { useFleet } from "@/components/roles/shared";
 import { chainName } from "@/lib/chains";
@@ -38,6 +40,7 @@ export function LeaseDetail({ address }: { address: Address }) {
   const { data: events, error: eventsError, refetch: refetchEvents, isFetching: eventsFetching } = useLeaseEvents(deployment ? address : undefined);
   const { data: fleet } = useFleet();
   const t = useT();
+  useRememberSettlement(lease?.status === LeaseStatus.Settled ? address : undefined, chainId);
 
   if (!deployment) return <Notice kind="warn">{t("rental.detail.notDeployed", { chain: chainName(chainId) })}</Notice>;
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
@@ -116,10 +119,38 @@ export function LeaseDetail({ address }: { address: Address }) {
         </div>
         <aside className="space-y-6">
           <Terms lease={lease} chainId={chainId} viewer={viewer} />
+          {/* Each party's own record, as the dispute desk would see it (in a dispute, both cards show below). */}
+          {lease.status !== LeaseStatus.Disputed && lease.startTime > BigInt(0) && (viewer === "landlord" || viewer === "tenant") && (
+            <WalletHistoryCard wallet={me!} party={viewer === "tenant" ? "renter" : "owner"} you lazy />
+          )}
         </aside>
       </div>
+      {lease.status === LeaseStatus.Disputed && <PartyHistories renter={lease.terms.tenant} owner={lease.terms.landlord} me={me} />}
     </div>
   );
+}
+
+/** Rentals this tab already reported as settled (POST /api/history is idempotent; this just saves the calls). */
+const reported = new Set<string>();
+
+/** Once a rental shows "Settled", ask the server to remember the outcome per party (it verifies on-chain itself). */
+function useRememberSettlement(lease: Address | undefined, chainId: number) {
+  useEffect(() => {
+    const key = lease && `${chainId}:${lease.toLowerCase()}`;
+    if (!key || reported.has(key)) return;
+    reported.add(key);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The server reads its chain index, which can be a few seconds behind this page: ask again while it says not settled.
+    const post = (tries: number): Promise<void> =>
+      fetch("/api/history", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lease, chainId }) })
+        .then((r) => r.json() as Promise<{ reason?: string }>)
+        .then((r) => {
+          if (r.reason === "not-settled" && tries > 1) timer = setTimeout(() => void post(tries - 1), 5_000);
+        })
+        .catch(() => void reported.delete(key));
+    void post(3);
+    return () => clearTimeout(timer);
+  }, [lease, chainId]);
 }
 
 function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; viewer: Viewer }) {

@@ -139,6 +139,10 @@ Slither 0.11.6, 102 detectors, `lib/`, `test/` and `script/` filtered: 15 result
 
 ## 6. Known limitations
 
+- **Dispute memory is personal data.** The per-wallet history (Living Brain label `wallet:<address>`) holds wallet
+  addresses and factual, code-written sentences only; `POST /api/history` takes only a rental address and reads the
+  outcome from the chain index, so a caller cannot write text into it. Deletion per wallet on request (Thai PDPA):
+  [ARCHITECTURE.md](ARCHITECTURE.md#dispute-memory-per-wallet).
 - **Testnet token.** MockUSDT has an open faucet (10,000 per call, unlimited calls): anyone can mint, so
   testnet balances mean nothing. Never deploy it to mainnet. Mainnet USDT on BNB Chain (BSC-USD) has 18 decimals,
   not 6. The contracts are decimal-agnostic (every escrow test also runs with an 18-decimal token,
