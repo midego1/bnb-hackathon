@@ -42,7 +42,7 @@ export interface InspectionMemory {
   remember(entry: InspectionMemoryEntry): Promise<{ stored: boolean; id?: string; error?: string }>;
 }
 
-type FetchLike = typeof fetch;
+export type FetchLike = typeof fetch;
 
 export function livingBrainConfig(env: Env = process.env) {
   const apiKey = env.LIVING_BRAIN_API_KEY;
@@ -58,6 +58,36 @@ export function describeEntry(e: InspectionMemoryEntry): string {
   return `Scooter ${e.scooterId} inspection on ${e.at.slice(0, 10)}${e.rental ? ` (rental ${e.rental})` : ""}: ${e.newDamage ? "NEW damage" : "no new damage"}. Findings: ${what}.${e.reportHash ? ` Report ${e.reportHash}.` : ""}`;
 }
 
+/** One Living Brain REST call under /v1/brains/{brainId}, logged to the sponsor log; throws on a non-2xx answer. */
+export async function livingBrainCall<T>(
+  cfg: ReturnType<typeof livingBrainConfig>,
+  fetchImpl: FetchLike,
+  method: "POST" | "GET",
+  p: string,
+  body?: unknown,
+): Promise<T> {
+  const started = Date.now();
+  let status: number | null = null;
+  const endpoint = `${method} /v1/brains/{brainId}${p}`;
+  try {
+    const res = await fetchImpl(`${cfg.base}/v1/brains/${encodeURIComponent(cfg.brainId!)}${p}`, {
+      method,
+      headers: { "x-api-key": cfg.apiKey!, "x-subject-id": cfg.subjectId!, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
+    });
+    status = res.status;
+    const json = (await res.json().catch(() => null)) as T & { message?: string };
+    await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: res.ok, ms: Date.now() - started, note: res.ok ? undefined : String(json?.message ?? "").slice(0, 160) });
+    if (!res.ok) throw new Error(`Living Brain ${res.status}: ${json?.message ?? "request failed"}`);
+    return json;
+  } catch (err) {
+    if (status === null) await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
+    throw err;
+  }
+}
+
 export class LivingBrainMemory implements InspectionMemory {
   readonly status: MemoryStatus = { provider: "living-brain", configured: true };
   constructor(
@@ -65,27 +95,8 @@ export class LivingBrainMemory implements InspectionMemory {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  private async call<T>(method: "POST" | "GET", p: string, body?: unknown): Promise<T> {
-    const started = Date.now();
-    let status: number | null = null;
-    const endpoint = `${method} /v1/brains/{brainId}${p}`;
-    try {
-      const res = await this.fetchImpl(`${this.cfg.base}/v1/brains/${encodeURIComponent(this.cfg.brainId!)}${p}`, {
-        method,
-        headers: { "x-api-key": this.cfg.apiKey!, "x-subject-id": this.cfg.subjectId!, "content-type": "application/json" },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
-        cache: "no-store",
-      });
-      status = res.status;
-      const json = (await res.json().catch(() => null)) as T & { message?: string };
-      await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: res.ok, ms: Date.now() - started, note: res.ok ? undefined : String(json?.message ?? "").slice(0, 160) });
-      if (!res.ok) throw new Error(`Living Brain ${res.status}: ${json?.message ?? "request failed"}`);
-      return json;
-    } catch (err) {
-      if (status === null) await logSponsorCall({ sponsor: "livingbrain", endpoint, at: new Date(started).toISOString(), status, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
-      throw err;
-    }
+  private call<T>(method: "POST" | "GET", p: string, body?: unknown): Promise<T> {
+    return livingBrainCall<T>(this.cfg, this.fetchImpl, method, p, body);
   }
 
   async recall(scooterId: string): Promise<RecalledMemory[]> {
