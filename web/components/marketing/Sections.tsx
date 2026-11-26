@@ -27,7 +27,8 @@ import {
 import { landingCopy, type LandingCopy } from "./copy";
 import { MYSTERY_BOX } from "./Hero";
 import { ArrowIcon, BoxIcon, CheckIcon, CrossIcon, ExternalIcon, PlayIcon, ShieldIcon } from "./icons";
-import { MoneyFlow, type FlowFrame } from "./MoneyFlow";
+import { type FlowFrame } from "./MoneyBoard";
+import { MoneyFlow } from "./MoneyFlow";
 
 const WRAP = "mx-auto w-full max-w-7xl px-5 sm:px-8";
 const H2 = "mk-display text-[clamp(2rem,1.3rem+2.6vw,3.25rem)]";

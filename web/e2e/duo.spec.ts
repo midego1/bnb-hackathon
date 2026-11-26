@@ -40,12 +40,30 @@ async function oneScreen(page: Page, at: string) {
   const m = await page.evaluate(() => ({ sw: document.scrollingElement!.scrollWidth, sh: document.scrollingElement!.scrollHeight, w: innerWidth, h: innerHeight }));
   expect(m.sw, `sideways scroll at ${at}`).toBeLessThanOrEqual(m.w);
   expect(m.sh, `page scroll at ${at}`).toBeLessThanOrEqual(m.h);
-  for (const id of ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "stage-qr", "stage-money", "stage-accept", "stage-reset"]) {
+  for (const id of ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "stage-qr", "duo-board", "stage-accept", "stage-reset"]) {
     await expect(page.getByTestId(id), `${id} at ${at}`).toBeInViewport({ ratio: 1 });
   }
-  for (const el of await page.getByTestId("stage-amount").all()) {
-    expect(await el.evaluate((e) => e.scrollWidth <= e.clientWidth), `amount overflows at ${at}`).toBe(true);
+  // The three LED panels sit inside their stations, side by side.
+  for (const el of await page.locator("[data-testid='duo-board'] .mk-dotnum").all()) {
+    expect(await el.evaluate((e) => e.getBoundingClientRect().right <= e.closest(".mk-station")!.getBoundingClientRect().right + 1), `LED panel overflows at ${at}`).toBe(true);
   }
+}
+
+/** The money board (the landing page's LED board, live): what a station holds, as its screen-reader text says it. */
+const held = (page: Page, tone: "renter" | "escrow" | "owner") => page.locator(`[data-testid='duo-board'] .mk-station-${tone} .mk-station-read .sr-only`);
+const track = (page: Page, i: 0 | 1) => page.locator("[data-testid='duo-board'] .mk-track").nth(i);
+const LED_SHOTS = process.env.DUO_LED_SHOTS ?? SHOTS;
+/** The board at 1440x900, light and dark, for the report; then back to the test's own size. */
+async function ledShots(page: Page, name: string) {
+  const size = page.viewportSize()!;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await page.waitForTimeout(1200); // the tag has flown in and the new amount has lit up
+    await page.screenshot({ path: path.join(LED_SHOTS, `duo-led-1440x900-${colorScheme}-${name}.png`) });
+  }
+  await page.emulateMedia({ colorScheme: null });
+  await page.setViewportSize(size);
 }
 
 async function screen(browser: Browser, width: number, height: number, scheme: "light" | "dark", lang: "en" | "zh" | "both" = "en") {
@@ -113,23 +131,39 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await phone.getByTestId(`judge-pick-${HONDA}`).click();
   await step(phone, "wallet");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "1");
+  // Rent: the renter still holds the Honda's day + deposit (฿250 + ฿6,800; on-chain mUSDT, so ±฿1), nothing moves yet.
+  await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "none");
+  await expect(held(page, "renter")).toHaveText(/^฿7,05[01]\s*$/);
+  await expect(held(page, "escrow")).toHaveText(/^฿0\s*$/);
+  await expect(held(page, "owner")).toHaveText(/^฿0\s*$/);
+  await expect(track(page, 0)).toHaveAttribute("data-flow", "off");
+  await expect(page.getByTestId("duo-board")).toContainText("Passport: still in your pocket");
+  await expect(page.getByTestId("duo-board")).toContainText("this rental's own contract");
+  await ledShots(page, "1-rent");
 
   await phone.getByTestId("judge-guest").click();
   await step(phone, "money");
   await phone.getByTestId("judge-drip").click();
   await step(phone, "rent");
+  // On stage a scooter rents for one day at its day price, like the box.
+  await expect(phone.getByRole("heading", { level: 2 })).toContainText(/Rent it for ฿25[01]/);
+  await expect(phone.getByText("Rent (1 day)")).toBeVisible();
   await phone.getByTestId("judge-rent").click();
   await step(phone, "pickup");
 
-  // Funded: the owner pane follows, the paid and escrow cards light up and a coin runs renter -> escrow.
+  // Funded: the owner pane follows; the escrow's live balance is on the board and the coins run renter -> escrow.
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Active");
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "2");
   await expect(page.getByTestId("stage-headline")).toContainText("locked in escrow");
-  await expect(page.getByTestId("stage-amount").first()).toHaveText(/^฿[\d,]+$/);
-  await expect(page.getByTestId("duo-flash")).toHaveCount(2);
-  await expect(page.locator("[data-testid='duo-flow'][data-moving]")).toHaveCount(1);
+  await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "funded");
+  await expect(held(page, "renter")).toHaveText(/^฿0\s*$/);
+  await expect(held(page, "escrow")).toHaveText(/^฿7,05[01]\s*$/);
+  await expect(track(page, 0)).toHaveAttribute("data-flow", "fwd");
+  await expect(track(page, 0)).toContainText(/฿7,05[01]/);
+  await expect(track(page, 1)).toHaveAttribute("data-flow", "off");
   await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(2);
   await page.screenshot({ path: path.join(SHOTS, "duo-1470x830-funded.png") });
+  await ledShots(page, "2-escrow");
 
   await photos(page, "pickup", 1);
   await step(phone, "return");
@@ -152,20 +186,31 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "5");
   await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(6);
   await expect(page.getByTestId("stage-timeline")).toContainText("Both agreed: money settled");
-  // Settled: owner and back-to-renter cards light up too, and a coin runs escrow -> owner.
-  await expect(page.getByTestId("duo-flash")).toHaveCount(4);
-  await expect(page.locator("[data-testid='duo-flow'][data-moving]")).toHaveCount(2);
+  // Settled: the escrow is empty, coins run back to the renter and on to the owner, and the one-time fee shows.
+  await expect(page.getByTestId("duo-board")).toHaveAttribute("data-phase", "settled");
+  await expect(held(page, "escrow")).toHaveText(/^฿0\s*$/);
+  await expect(track(page, 0)).toHaveAttribute("data-flow", "rev");
+  await expect(track(page, 1)).toHaveAttribute("data-flow", "fwd");
+  await expect(page.locator("[data-testid='duo-board'] .mk-station-owner .mk-station-note")).toHaveText(/^KeyScrow fee ฿[\d,]+, once$/);
+  await expect(page.locator("[data-testid='duo-board'] .mk-station-owner .mk-station-note")).not.toHaveClass(/invisible/);
   await step(phone, "settled");
   await expect(phone.getByTestId("judge-settled")).toContainText(/Your ฿[\d,]+ are back/);
+  // The board and the phone agree on what came back.
+  const back = (await phone.getByTestId("judge-settled").textContent())!.match(/฿[\d,]+/)![0];
+  await expect(held(page, "renter")).toHaveText(new RegExp(`^${back}\\s*$`));
+  await expect(held(page, "owner")).toHaveText(/^฿[1-9][\d,]*\s*$/);
   await expect(phone.getByTestId("judge-mirror")).toHaveCount(0);
   await oneScreen(page, "1470x830 settled");
-  // Reduced motion: the coins stand still on their arrows (visible), nothing runs.
+  await ledShots(page, "3-settled");
+  // Reduced motion: the active tracks are simply lit (no chase), the tag and the amounts sit still.
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const coin of await page.locator(".duo-coin").all()) {
-    expect(await coin.evaluate((e) => [getComputedStyle(e).animationName, getComputedStyle(e).opacity])).toEqual(["none", "1"]);
-  }
+  const still = (sel: string, pseudo?: string) => page.locator(`[data-testid='duo-board'] ${sel}`).first().evaluate((e, p) => getComputedStyle(e, p).animationName, pseudo);
+  expect(await still(".mk-track[data-flow='fwd']", "::after")).toBe("none");
+  expect(await still(".mk-track-tag")).toBe("none");
+  expect(await still(".mk-dot-on")).toBe("none");
 
   for (const [w, h] of [
+    [1280, 720],
     [1470, 830],
     [1920, 1080],
   ]) {

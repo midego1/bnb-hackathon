@@ -6,6 +6,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { getDictionary } from "@/lib/i18n/server";
 import { docsUrl, REPO_URL } from "@/lib/links";
 import { integrationStatus } from "@/lib/server/sponsors/status";
+import { SPONSOR_CHECKLIST, type CheckNeeds } from "@/lib/sponsorChecklist";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).of(sponsorsCopy).metaTitle, alternates: { canonical: "/sponsors" } };
@@ -16,6 +17,8 @@ const CHIP: Record<Chip, string> = {
   live: "bg-success-soft text-success-fg ring-success-border",
   built: "bg-muted text-muted-foreground ring-border",
   waiting: "bg-warning-soft text-warning-fg ring-warning-border",
+  done: "bg-success-soft text-success-fg ring-success-border",
+  pending: "bg-warning-soft text-warning-fg ring-warning-border",
 };
 type L = keyof SponsorsCopy["links"];
 type Track = { id: keyof SponsorsCopy["tracks"]; state: Chip; see: [string, L][]; proof: [string, L][]; sub?: ["cmc" | "atlas", Chip][] };
@@ -33,6 +36,13 @@ export default async function SponsorsPage() {
   const t = await getDictionary();
   const c = t.of(sponsorsCopy);
   const live = new Set((await integrationStatus()).filter((i) => i.state === "live").map((i) => i.id));
+  // The checklist's live rows need their integration live here; the Pull API also needs its key (as in status.ts).
+  const on: Record<CheckNeeds, boolean> = {
+    cmc: live.has("cmc"),
+    atlas: live.has("atlas"),
+    atlasPull: live.has("atlas") && !!process.env.ATLAS_API_KEY,
+    livingbrain: live.has("livingbrain"),
+  };
   const tracks: Track[] = [
     {
       id: "bnb",
@@ -106,23 +116,47 @@ export default async function SponsorsPage() {
       {c.state[state]}
     </span>
   );
+  const anchor = (href: string, text: string, className: string) =>
+    href.startsWith("/") && !href.startsWith("/api/") ? (
+      <Link prefetch={false} href={href} className={className}>
+        {text}
+      </Link>
+    ) : (
+      <a href={href} className={className}>
+        {text}
+      </a>
+    );
   const links = (label: string, list: [string, L][]) => (
     <div className="mt-3">
       <p className="text-xs font-semibold text-subtle">{label}</p>
       <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {list.map(([href, key]) => (
-          <li key={href}>
-            {href.startsWith("/") && !href.startsWith("/api/") ? (
-              <Link prefetch={false} href={href} className="inline-block py-0.5 underline underline-offset-2">
-                {c.links[key]}
-              </Link>
-            ) : (
-              <a href={href} className="inline-block py-0.5 underline underline-offset-2">
-                {c.links[key]}
-              </a>
-            )}
-          </li>
+          <li key={href}>{anchor(href, c.links[key], "inline-block py-0.5 underline underline-offset-2")}</li>
         ))}
+      </ul>
+    </div>
+  );
+  const checklist = (id: Track["id"]) => (
+    <div className="mt-4">
+      <p className="text-xs font-semibold text-subtle">{c.checklist.title}</p>
+      <ul className="mt-1 divide-y divide-border text-sm">
+        {SPONSOR_CHECKLIST[id].map((row) => {
+          const off = row.needs !== undefined && !on[row.needs];
+          const state = off ? "pending" : row.state;
+          const text = c.checklist.rows[row.id];
+          return (
+            <li key={row.id} data-testid="sponsor-check" data-row={row.id} className="flex items-start justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <p className="font-medium">{text.ask}</p>
+                <p className="mt-0.5 text-muted-foreground">
+                  {text.how}
+                  {off && ` ${c.checklist.notHere}`} {anchor(row.href, text.link, "underline underline-offset-2")}
+                </p>
+              </div>
+              {chip(state, `sponsor-check-${row.id}`)}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -149,6 +183,7 @@ export default async function SponsorsPage() {
                   ))}
                 </ul>
               )}
+              {checklist(tr.id)}
               {links(c.see, tr.see)}
               {links(c.proof, tr.proof)}
             </div>
