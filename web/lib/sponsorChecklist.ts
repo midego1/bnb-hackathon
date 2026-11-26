@@ -36,7 +36,7 @@ export const SPONSOR_CHECKLIST: Record<keyof SponsorsCopy["tracks"], CheckRow[]>
     { id: "cmcWriteup", state: "done", href: docsUrl("WRITEUP.md") },
     { id: "cmcVideo", state: "done", href: docsUrl("submission/demo-guided.mp4") },
     { id: "cmcRepo", state: "pending", href: `${REPO_URL}#sponsor-integrations` },
-    { id: "cmcTeam", state: "pending", href: docsUrl("WRITEUP.md") },
+    { id: "cmcTeam", state: "done", href: docsUrl("WRITEUP.md") },
   ],
   livingBrain: [
     { id: "lbAgent", state: "live", href: "https://agent.keyscrow.app" },

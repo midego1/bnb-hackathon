@@ -152,7 +152,7 @@ State on 26 Nov 2026. The same list, per track with evidence links, is on <https
       (reads the Atlas BNB/USD feed on-chain, max age 120 s; Pay with BNB on chain 97)
 - [ ] README "Cournot Integration" section with proof of call: section done; no live call yet (waiting for a partner
       key / paid calls), so no proof
-- [ ] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md) done; team names still to fill in
+- [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md), team KeyScrow
 - [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 59 s, `demo-guided.mp4` 90 s,
       `tour.mp4` 77 s, `eli5.mp4` 71 s); the 3–5 min Living Brain memory video and a Cournot live-call recording are
       not made yet

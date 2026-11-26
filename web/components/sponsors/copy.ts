@@ -81,7 +81,7 @@ const en = {
       cmcWriteup: { ask: "One-page write-up", how: "Problem and audience, endpoints and feeds and why, contract and feed addresses, what we'd build next.", link: "WRITEUP.md" },
       cmcVideo: { ask: "Demo video, 3 minutes or less", how: "The guided /demo run (90 s) and the /duo full run (59 s), in the repo.", link: "demo-guided.mp4" },
       cmcRepo: { ask: "Repo with a README and setup instructions", how: "README with setup and a Sponsor integrations section is done; judges can open it once the repo goes public on Friday morning.", link: "README" },
-      cmcTeam: { ask: "Team names and contacts", how: "Contact hackathon@vanpeltventures.org is in; the team names are still to fill in.", link: "WRITEUP.md" },
+      cmcTeam: { ask: "Team names and contacts", how: "Team KeyScrow, contact hackathon@vanpeltventures.org, in the write-up.", link: "WRITEUP.md" },
       lbAgent: { ask: "A working AI agent solving a real problem", how: "The ERC-8004 inspector compares pickup and return photos and drafts the deposit split; it never signs a transaction.", link: "agent.keyscrow.app" },
       lbMemory: { ask: "Living Brain as its persistent memory (API)", how: "Before judging, the inspector searches the scooter's earlier inspections, so logged damage is not charged twice; new ones are captured.", link: "Call log" },
       lbWallet: { ask: "Remembers, retrieves and connects", how: "One factual entry per wallet after every settled rental, read back on the dispute desk next to the on-chain facts.", link: "Dispute desk" },

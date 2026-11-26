@@ -173,4 +173,4 @@ Guided, step-by-step mode, with a 30-second offline backup on a local chain.
 
 ## Team and contact
 
-KeyScrow team · hackathon@vanpeltventures.org · team names: _owner to fill in before submitting_.
+Team: **KeyScrow** · hackathon@vanpeltventures.org

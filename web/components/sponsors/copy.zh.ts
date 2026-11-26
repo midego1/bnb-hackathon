@@ -81,7 +81,7 @@ export const zh: DeepPartial<SponsorsCopy> = {
       cmcWriteup: { ask: "一页说明", how: "问题与用户、所用端点和喂价及原因、合约与喂价地址、下一步计划。", link: "WRITEUP.md" },
       cmcVideo: { ask: "演示视频，不超过 3 分钟", how: "仓库里的 /demo 引导流程（90 秒）和 /duo 完整流程（59 秒）。", link: "demo-guided.mp4" },
       cmcRepo: { ask: "仓库附 README 和安装说明", how: "README 已写好安装说明和赞助方集成章节；仓库周五上午公开后评委即可查看。", link: "README" },
-      cmcTeam: { ask: "团队成员和联系方式", how: "联系邮箱 hackathon@vanpeltventures.org 已写入；团队成员姓名尚待填写。", link: "WRITEUP.md" },
+      cmcTeam: { ask: "团队成员和联系方式", how: "团队 KeyScrow，联系邮箱 hackathon@vanpeltventures.org，已写入说明文档。", link: "WRITEUP.md" },
       lbAgent: { ask: "一个解决真实问题的可用 AI 智能体", how: "ERC-8004 AI 验车员比较取车和还车照片，起草押金分配；它从不签署交易。", link: "agent.keyscrow.app" },
       lbMemory: { ask: "以 Living Brain 作为持久记忆（API）", how: "判断前，AI 验车员会搜索这辆摩托车以前的验车记录，已记录的损伤不会重复收费；新的验车会被记录。", link: "调用日志" },
       lbWallet: { ask: "记住、检索并关联信息", how: "每笔租赁结算后，每个钱包记录一条客观条目，在争议处理台上与链上事实一起显示。", link: "争议处理台" },
