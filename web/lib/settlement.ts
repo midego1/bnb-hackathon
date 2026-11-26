@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import { TOKEN } from "./contracts";
+import type { Translate } from "./i18n/keys";
 
 /** Response of POST /api/settlement (amounts are integer strings in token base units). */
 export type InspectionResult = {
@@ -10,6 +11,10 @@ export type InspectionResult = {
   deposit: string;
   mock: boolean;
   provider: string;
+  /** The vision model that answered (absent when the demo inspector did). */
+  model?: string;
+  /** Why the demo inspector answered although the server has a vision model (lib/server/settlement). */
+  fallback?: "busy" | "limit" | "photos" | "error";
   reportHash: Hex;
   createdAt: string;
   /** ERC-8004 identity of the KeyEscrow Inspector agent that signed reportHash (docs/AGENT.md). */
@@ -21,9 +26,18 @@ export type InspectionResult = {
   memoryStored?: boolean;
 };
 
-/** A photo by its content hash, optionally with a room label the inspector can cite in its reasons. */
-export type InspectionPhoto = Hex | { hash: Hex; label?: string };
+/**
+ * A photo by its content hash, optionally with an angle label the inspector can cite in its reasons, and a url on this
+ * app where the server can fetch the bytes when its evidence store does not have them.
+ */
+export type InspectionPhoto = Hex | { hash: Hex; label?: string; url?: string };
 const photoRef = (p: InspectionPhoto) => (typeof p === "string" ? { hash: p } : p);
+
+/** Who answered an inspection, for its label: the vision model, or the demo inspector and why. */
+export function answeredBy(r: Pick<InspectionResult, "mock" | "fallback" | "model" | "provider">, t: Translate): string {
+  if (!r.mock) return t("rental.move.visionModel", { model: r.model ?? r.provider });
+  return r.fallback ? t("rental.move.demoFallback", { reason: t(`rental.move.fallback.${r.fallback}`) }) : t("rental.move.demoInspector");
+}
 
 /** Runs the AI return inspection over the pickup vs return photo hashes. */
 export async function runInspection(input: {

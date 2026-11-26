@@ -14,7 +14,7 @@ import { formatFiat } from "@/lib/fiat";
 import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
-import { runInspection, type InspectionResult } from "@/lib/settlement";
+import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
 import { judgeStep, same, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { anchorPhotos, fundLease, proposeSplit } from "./judgeTx";
@@ -401,7 +401,9 @@ function InspectStep(p: StepProps) {
               <li key={r}>{r}</li>
             ))}
           </ul>
-          {result.mock && <p className="text-xs text-subtle">{t("judge.inspect.mock")}</p>}
+          <p className="text-xs text-subtle" data-testid="judge-answered-by">
+            {result.mock && !result.fallback ? t("judge.inspect.mock") : answeredBy(result, t)}
+          </p>
           <ActionButton
             className={bigButton}
             busy={p.busy === "propose"}

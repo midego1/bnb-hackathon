@@ -91,8 +91,8 @@ const inspectionCopy = {
     `Signed by ${name}${agentId !== undefined ? `, ERC-8004 agent #${agentId}` : ""}: its identity is registered on BNB Chain, so anyone can check this report came from it.`,
   unsigned:
     "Report by the KeyEscrow Inspector agent. Unsigned on this local demo (no INSPECTOR_PRIVATE_KEY set); with its key set, every report is signed by the agent's ERC-8004 identity on BNB Chain.",
-  meta: (confidence: number, mock: boolean, provider: string) =>
-    `Confidence ${(confidence * 100).toFixed(0)}% · ${mock ? "demo inspector (no AI key configured)" : `vision model: ${provider}`} · report`,
+  /** `by`: lib/settlement answeredBy, the model or the demo inspector (and why). */
+  meta: (confidence: number, by: string) => `Confidence ${(confidence * 100).toFixed(0)}% · ${by} · report`,
 };
 
 const summaryCopy = {
