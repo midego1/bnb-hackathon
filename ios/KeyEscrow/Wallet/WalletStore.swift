@@ -1,0 +1,88 @@
+import Foundation
+import SwiftUI
+
+/// The guest wallet (a testnet-only key made on this phone, kept in the Keychain) and the demo shop's wallet (a second
+/// local test key that plays the scooter shop owner for the demo scooters). Neither holds real money.
+@MainActor
+final class WalletStore: ObservableObject {
+    static let guestAccount = "guest-key-v1"
+    static let shopAccount = "demo-shop-key-v1"
+
+    @Published private(set) var guest: EthKey
+    @Published private(set) var shop: EthKey
+    @Published var tbnb: BigUInt?
+    @Published var musdt: BigUInt?
+    @Published var shopTbnb: BigUInt?
+    @Published var refreshing = false
+    @Published var lastError: String?
+
+    let rpc = RPC()
+
+    init() {
+        guest = WalletStore.loadOrCreate(WalletStore.guestAccount)
+        shop = WalletStore.loadOrCreate(WalletStore.shopAccount)
+    }
+
+    private static func loadOrCreate(_ account: String) -> EthKey {
+        if let d = Keychain.load(account), let k = try? EthKey(privateKey: d) { return k }
+        let k = try! EthKey.generate()
+        Keychain.save(k.privateKey, account)
+        return k
+    }
+
+    var address: String { guest.address }
+
+    func refresh() async {
+        refreshing = true
+        defer { refreshing = false }
+        do {
+            async let b = rpc.balance(guest.address)
+            async let u = rpc.tokenBalance(token: TxSender.token, owner: guest.address)
+            async let s = rpc.balance(shop.address)
+            (tbnb, musdt, shopTbnb) = try await (b, u, s)
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    /// Forget this phone's test wallets and make fresh ones (testnet only: nothing of value is lost).
+    func reset() {
+        Keychain.delete(WalletStore.guestAccount)
+        Keychain.delete(WalletStore.shopAccount)
+        guest = WalletStore.loadOrCreate(WalletStore.guestAccount)
+        shop = WalletStore.loadOrCreate(WalletStore.shopAccount)
+        tbnb = nil; musdt = nil; shopTbnb = nil
+        ShopRentals.clear()
+    }
+
+    /// Enough tBNB for a handful of transactions (lib/stage.ts MIN_GAS_WEI).
+    static let minGas = BigUInt(300_000_000_000_000)
+}
+
+/// Which escrow belongs to which demo scooter (the shop flow), per guest wallet. Local only.
+enum ShopRentals {
+    private static let key = "keyescrow.shopRentals.v1"
+    static func lease(for scooter: String, renter: String) -> String? {
+        (UserDefaults.standard.dictionary(forKey: key) as? [String: String])?["\(renter.lowercased()):\(scooter)"]
+    }
+    static func set(_ lease: String?, for scooter: String, renter: String) {
+        var d = (UserDefaults.standard.dictionary(forKey: key) as? [String: String]) ?? [:]
+        d["\(renter.lowercased()):\(scooter)"] = lease
+        UserDefaults.standard.set(d, forKey: key)
+    }
+    /// Escrow -> scooter id, to continue a rental from My rentals.
+    static func scooter(forLease lease: String) -> String? {
+        let d = (UserDefaults.standard.dictionary(forKey: key) as? [String: String]) ?? [:]
+        return d.first { $0.value.lowercased() == lease.lowercased() }.map { String($0.key.split(separator: ":").last ?? "") }
+    }
+    static func clear() { UserDefaults.standard.removeObject(forKey: key) }
+
+    private static let names = "keyescrow.shopNames.v1"
+    static func remember(name: String, of scooter: String) {
+        var d = (UserDefaults.standard.dictionary(forKey: names) as? [String: String]) ?? [:]
+        d[scooter] = name
+        UserDefaults.standard.set(d, forKey: names)
+    }
+    static func name(of scooter: String) -> String? { (UserDefaults.standard.dictionary(forKey: names) as? [String: String])?[scooter] }
+}
