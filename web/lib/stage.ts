@@ -164,3 +164,20 @@ export function eventLabel(e: ChainEvent, t: Translate): string {
 export const unitsToThb = (units: bigint, thbPerUsdt: number) => Number(formatUnits(units, TOKEN.decimals)) * thbPerUsdt;
 /** "฿1,201": whole baht, big-screen friendly. */
 export const thbText = (units: bigint, thbPerUsdt: number) => `฿${Math.round(unitsToThb(units, thbPerUsdt)).toLocaleString("en-US")}`;
+
+/**
+ * /duo's coin pile in the vault: one coin per `coin` baht, a round 1-2-2.5-5 step chosen so any amount makes 40 to 80
+ * coins. With a split (proposed or settled) the coins are coloured: `renter` back to the renter, `owner` the damage to
+ * the owner, `rent` the rest (the rent; its last coin stands for the one-time fee). A share above ฿0 keeps at least
+ * one coin, so a small claim still shows.
+ */
+export function coinPlan(totalThb: number, split?: { renter: number; owner: number }): { coin: number; count: number; renter: number; owner: number; rent: number } {
+  let coin = 10 ** Math.floor(Math.log10(Math.max(totalThb, 1e-6) / 80));
+  coin = [1, 2, 2.5, 5, 10].map((m) => m * coin).find((c) => totalThb / c <= 80)!;
+  const count = Math.max(1, Math.round(totalThb / coin));
+  if (!split) return { coin, count, renter: 0, owner: 0, rent: count };
+  const share = (thb: number) => (thb > 0 ? Math.max(1, Math.round(thb / coin)) : 0);
+  const owner = Math.min(share(split.owner), count);
+  const renter = Math.min(share(split.renter), count - owner);
+  return { coin, count, renter, owner, rent: count - renter - owner };
+}

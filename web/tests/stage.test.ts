@@ -26,7 +26,7 @@ import { stateFor } from "@/lib/i18n/server";
 import { makeT } from "@/lib/i18n/t";
 import type { ChainEvent } from "@/lib/rentals";
 import { TOKEN } from "@/lib/contracts";
-import { duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, moneyBoard, replaceable, STALE_OFFER_MS, stageTerms, takenByOther, type StageStatus } from "@/lib/stage";
+import { coinPlan, duoStep, eventLabel, judgeStep, MAINNET_STAGE_PRICE, mirroredRenter, MIN_GAS_WEI, moneyBoard, replaceable, STALE_OFFER_MS, stageTerms, takenByOther, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -228,6 +228,23 @@ describe("duo: step bar and the mirrored phone", () => {
     expect(moneyBoard({ ...funded, lease: lease("Settled", { terms, balance: n(0) }) })).toMatchObject({ renter: n(0), escrow: n(0), phase: "funded" });
     const settled = { ...funded, lease: lease("Settled", { terms, balance: n(0) }), events: [...funded.events, ev("Settled", { tenantRefund: n(25), rentToTenant: n(0), landlordClaim: n(6), rentToLandlord: n(7), fee: n(1) })] };
     expect(moneyBoard(settled)).toEqual({ renter: n(25), escrow: n(0), owner: n(12), fee: n(1), phase: "settled", paid: n(38) });
+  });
+
+  it("coin pile: 40 to 80 coins of a round value for any amount, coloured by the split", () => {
+    for (const thb of [0.33, 1, 33, 99, 100, 401, 3_250, 7_051, 10_200, 80_001, 1_234_567]) {
+      const p = coinPlan(thb);
+      expect([1, 2, 2.5, 5], `${p.coin}`).toContain(Number((p.coin / 10 ** Math.floor(Math.log10(p.coin))).toPrecision(6)));
+      expect(p.count, `${thb}`).toBeGreaterThanOrEqual(40);
+      expect(p.count, `${thb}`).toBeLessThanOrEqual(80);
+      expect(p).toMatchObject({ renter: 0, owner: 0, rent: p.count });
+    }
+    // The Honda Click: ฿7,051 in ฿100 coins; ฿6,140 back, ฿660 damage, the rest is the ฿250 rent.
+    expect(coinPlan(7_051)).toMatchObject({ coin: 100, count: 71 });
+    expect(coinPlan(7_051, { renter: 6_140, owner: 660 })).toEqual({ coin: 100, count: 71, renter: 61, owner: 7, rent: 3 });
+    // A small claim keeps one coin; nothing claimed has none; shares never exceed the pile.
+    expect(coinPlan(7_051, { renter: 6_780, owner: 20 })).toMatchObject({ owner: 1, renter: 68, rent: 2 });
+    expect(coinPlan(7_051, { renter: 6_800, owner: 0 })).toMatchObject({ owner: 0, renter: 68, rent: 3 });
+    expect(coinPlan(1_000, { renter: 900, owner: 900 })).toEqual({ coin: 20, count: 50, renter: 5, owner: 45, rent: 0 });
   });
 
   it("chooser: a scooter is 'rented right now' only while someone else holds it", () => {
