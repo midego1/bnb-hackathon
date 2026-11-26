@@ -51,7 +51,7 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await page.setViewportSize(DESKTOP);
   await page.goto("/");
   await expect(page).toHaveTitle(/KeyScrow.*passport/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Rent the motorbike\.\s*Keep your passport\./);
   await expect(page.getByRole("main")).toContainText("instead of your passport");
   await expect(page.getByRole("main")).toContainText("nobody can move it alone");
   await expect(page.getByTestId("mk-testnet")).toContainText("Demo listings on BSC testnet: test money only");
@@ -61,15 +61,15 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await page.keyboard.press("ControlOrMeta+j"); // Ask AI's shortcut belongs to the app shell only
   await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
 
-  // Find a scooter; why the deposit is safe (comparison, money board, who decides, deadlines); list your own; proof;
+  // Find a motorbike; why the deposit is safe (comparison, money board, who decides, deadlines); list your own; proof;
   // for agents, the fee, the roadmap, the ask.
   const story = [
-    /Pick a scooter\. The deposit goes into escrow\./,
+    /Pick a motorbike\. The deposit goes into escrow\./,
     /nobody holding your passport/i,
     /How your deposit is protected, in four steps/,
     /The AI proposes\. People decide\./,
     /Every dispute has a deadline/,
-    /List your scooter\./,
+    /List your motorbike\./,
     /Live on BSC testnet/,
     /Built for agents/,
     /10% of one month's rent\. Once\./,
@@ -228,7 +228,7 @@ test("search: a city and a length filter the listings below, and the address car
   await page.setViewportSize(DESKTOP);
   await page.goto("/");
   const cards = page.getByTestId("mk-listing");
-  const search = page.getByRole("search", { name: "Find a scooter" });
+  const search = page.getByRole("search", { name: "Find a motorbike" });
   await expect(cards).toHaveCount(8);
   await expect(page.getByTestId("mk-search-pill")).toBeHidden(); // the single pill is the phone's
   await expect(search.getByLabel("When")).toHaveAttribute("type", "date");

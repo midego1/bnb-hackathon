@@ -9,16 +9,16 @@ import { zh } from "./copy.zh";
  */
 const en = {
   meta: {
-    title: "KeyScrow: rent a scooter in Thailand without leaving your passport",
+    title: "KeyScrow: rent a motorbike in Thailand without leaving your passport",
     description:
-      "The deposit for a scooter rental sits in its own smart contract on BNB Chain instead of a passport at the counter. Nobody moves it alone: an AI inspection proposes the split at return, people decide, and deadlines protect the renter. Live on BSC testnet.",
-    cardAlt: `KeyScrow: rent the scooter, keep your passport. An LED sign reads ${baht(EXAMPLE.deposit)} in escrow, over a scooter rental shop on a Thai street at night.`,
+      "The deposit for a motorbike rental sits in its own smart contract on BNB Chain instead of a passport at the counter. Nobody moves it alone: an AI inspection proposes the split at return, people decide, and deadlines protect the renter. Live on BSC testnet.",
+    cardAlt: `KeyScrow: rent the motorbike, keep your passport. An LED sign reads ${baht(EXAMPLE.deposit)} in escrow, over a scooter rental shop on a Thai street at night.`,
   },
   header: {
     nav: [
-      ["#listings", "Scooters"],
+      ["#listings", "Motorbikes"],
       ["#how", "Your deposit"],
-      ["#shops", "List your scooter"],
+      ["#shops", "List your motorbike"],
       ["#live", "Proof"],
       ["#fee", "Fee"],
     ] as [string, string][],
@@ -29,8 +29,8 @@ const en = {
     label: "KeyScrow in one screen",
     artAlt:
       "LED dot-matrix picture of a Thai street at night: a red scooter parked in front of a lit scooter rental shop, a palm tree, power lines and a temple spire.",
-    h1: ["Rent the scooter.", "Keep your passport."],
-    body: "Find a scooter in Thailand and start the rental right here. The deposit goes into its own smart contract on BNB Chain instead of your passport, and nobody can move it alone.",
+    h1: ["Rent the motorbike.", "Keep your passport."],
+    body: "Find a motorbike in Thailand and start the rental right here. The deposit goes into its own smart contract on BNB Chain instead of your passport, and nobody can move it alone.",
     playDemo: "Play the live demo",
     mysteryBox: "Rent our Mystery Box",
     mysteryBoxHint: "The live judge demo: rent the box we brought to the stage, with test money",
@@ -41,7 +41,7 @@ const en = {
     testnetMore: ". Open source, no token",
   },
   search: {
-    label: "Find a scooter",
+    label: "Find a motorbike",
     where: "Where",
     anywhere: "Anywhere in Thailand",
     anywhereShort: "Anywhere",
@@ -53,7 +53,7 @@ const en = {
     cities: { "Chiang Mai": "Chiang Mai", Bangkok: "Bangkok", Phuket: "Phuket", Pai: "Pai" } as Record<string, string>,
   },
   listings: {
-    title: "Pick a scooter. The deposit goes into escrow.",
+    title: "Pick a motorbike. The deposit goes into escrow.",
     count: (n: number) => `${n} demo listing${n === 1 ? "" : "s"}`,
     inCity: (city: string) => ` in ${city}`,
     by: { day: "", week: ", by the week", month: ", by the month" },
@@ -202,7 +202,7 @@ const en = {
     desk: "Open the dispute desk",
   },
   shops: {
-    title: "List your scooter.",
+    title: "List your motorbike.",
     lead: "Own scooters? List them with a price and a deposit in baht. Real damage gets real evidence, rent arrives on schedule, and the deposit stays locked until the return is settled, even when the renter flies home tomorrow.",
     list: "List a scooter in the fleet owner view",
     subs: {

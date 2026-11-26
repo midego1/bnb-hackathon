@@ -13,9 +13,9 @@ KeyScrow (called KeyEscrow during the build: the agent URL, the iOS project fold
 <!-- coverage:end -->
 [![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](#bsc-testnet-contracts-chain-97)
 
-**Rent a scooter in Thailand without leaving your passport.**
+**Rent a motorbike in Thailand without leaving your passport.**
 
-Scooter shops in Thailand usually keep the tourist's passport as the deposit, and the shop alone decides what each
+Motorbike rental shops in Thailand usually keep the tourist's passport as the deposit, and the shop alone decides what each
 scratch costs at return. KeyScrow replaces the passport with a deposit held in a small smart contract on BNB Chain,
 one contract per rental. Rent is paid out to the shop month by month. At return, an AI inspector compares the pickup
 and return photos and drafts a deposit split. One side proposes it on-chain, the other accepts, and the money moves at

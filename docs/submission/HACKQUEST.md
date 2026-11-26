@@ -11,17 +11,17 @@ KeyScrow
 
 ## One-liner (≤ 100 characters)
 
-Rent a scooter in Thailand without leaving your passport: the deposit sits in escrow on BNB Chain.
+Rent a motorbike in Thailand without leaving your passport: the deposit sits in escrow on BNB Chain.
 
 ## Short description (≤ 300 characters)
 
-Thai scooter shops keep your passport as the deposit and alone decide what each scratch costs. KeyScrow holds the
+Thai motorbike rental shops keep your passport as the deposit and alone decide what each scratch costs. KeyScrow holds the
 deposit in its own contract on BNB Chain, one per rental. An AI inspector drafts the split; both sides agree or a
 dispute desk rules.
 
 ## Long description
 
-**Problem.** Rent a scooter in Thailand and the shop usually keeps your passport, or a stack of cash, as the deposit.
+**Problem.** Rent a motorbike in Thailand and the shop usually keeps your passport, or a stack of cash, as the deposit.
 At return the shop alone decides what every scratch costs, and the renter pays or does not get the passport back.
 Shops have the opposite problem: real damage and no proof beyond a few chat photos. Nobody neutral sits in between,
 and nobody goes to court over a few thousand baht.
