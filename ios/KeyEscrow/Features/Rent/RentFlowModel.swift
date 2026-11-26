@@ -24,6 +24,9 @@ final class RentFlowModel: ObservableObject {
     @Published var sent: [TxSender.Sent] = []
     @Published var thbPerUsdt = Money.fallbackThbPerUsdt
     @Published var loaded = false
+    /// What the escrow paid out, read from the receipt of the settling transaction this phone sent (display only:
+    /// the chain index can be behind, the receipt is on the chain).
+    @Published var settledOutcome: RentalStory.Flow?
 
     init(listing: Listing, wallet: WalletStore) {
         self.listing = listing
@@ -87,8 +90,10 @@ final class RentFlowModel: ObservableObject {
             }
             if let a = leaseAddress {
                 lease = try await api.getLease(a)
-                if let ix = try? await api.chainIndex() {
-                    events = ix.events(of: a)
+                refreshEvents(of: a)
+                if lease?.status == "Settled", settledOutcome == nil, let h = RentalAlbum.settleTx(forLease: a),
+                   let r = (try? await sender.rpc.receipt(h)) ?? nil {
+                    settledOutcome = RentalStory.settledFlow(from: r, lease: a)
                 }
             } else {
                 lease = nil
@@ -100,6 +105,19 @@ final class RentFlowModel: ObservableObject {
         } catch {
             loaded = true
             if busy == nil { self.error = error.localizedDescription }
+        }
+    }
+
+    /// The rental's events (timeline, settled amounts) come from KeyEscrow's chain index, which can be slow or behind.
+    /// The step is derived from the escrow itself and never waits for it: one index request at a time, on the side.
+    private var indexTask: Task<Void, Never>?
+    private func refreshEvents(of lease: String) {
+        guard indexTask == nil else { return }
+        indexTask = Task { [weak self, api] in
+            let ix = try? await api.chainIndex()
+            guard let self else { return }
+            if let ix, let now = self.leaseAddress, EthAddress.same(now, lease) { self.events = ix.events(of: lease) }
+            self.indexTask = nil
         }
     }
 
@@ -273,7 +291,8 @@ final class RentFlowModel: ObservableObject {
         guard let l = lease, listing.kind == .demoScooter else { return }
         act("accept") { [self] in
             let p = try await api.prepare("accept", ["lease": l.address, "from": wallet.shop.address])
-            _ = try await sender.run(p, key: wallet.shop, onSent: record)
+            let done = try await sender.run(p, key: wallet.shop, onSent: record)
+            if let hash = done.last?.hash { RentalAlbum.rememberSettle(lease: l.address, hash: hash) }
         }
     }
 
@@ -282,13 +301,18 @@ final class RentFlowModel: ObservableObject {
         ShopRentals.set(nil, for: listing.id, renter: me)
         lease = nil
         inspection = nil
+        settledOutcome = nil
         sent = []
         Task { await refresh() }
     }
 
     var settledBack: BigUInt? {
-        guard let e = events.last(where: { $0.name == "Settled" }) else { return nil }
+        guard let e = events.last(where: { $0.name == "Settled" }) else { return settledOutcome?.backToRenter }
         return (e.args["tenantRefund"]?.big ?? BigUInt()) + (e.args["rentToTenant"]?.big ?? BigUInt())
     }
-    var settledTx: String? { events.last(where: { $0.name == "Settled" })?.txHash }
+    var settledTx: String? {
+        events.last(where: { $0.name == "Settled" })?.txHash ?? (settledOutcome == nil ? nil : leaseAddress.flatMap(RentalAlbum.settleTx(forLease:)))
+    }
+    /// The payout for the settled card: from the indexed events, else from the settling receipt.
+    var settledFlow: RentalStory.Flow { RentalStory.payout(events: events, receipt: settledOutcome) }
 }

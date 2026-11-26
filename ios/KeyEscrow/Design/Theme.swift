@@ -20,7 +20,14 @@ extension Color {
         static let onPrimary = Color(light: 0xFFFFFF, dark: 0x0F172A)
         /// The amber of the logo, for emphasis only.
         static let amber = Color(light: 0xF59E0B, dark: 0xFBBF24)
+        /// Text and icons on an amber fill.
+        static let onAmber = Color(light: 0x1C1917, dark: 0x1C1917)
+        static let amberSoft = Color(light: 0xFEF3C7, dark: 0x2A1A05)
+        /// Night indigo: the same in both themes, it is a picture of night (docs/DESIGN.md).
         static let night = Color(light: 0x0D0B2A, dark: 0x0D0B2A)
+        static let nightSoft = Color(light: 0x312E81, dark: 0x1E1B4B)
+        /// The logo amber as it glows on night (signs, kickers over the photo).
+        static let sign = Color(light: 0xFBBF24, dark: 0xFBBF24)
 
         static let success = Color(light: 0x047857, dark: 0x34D399)
         static let successSoft = Color(light: 0xECFDF5, dark: 0x022C22)
@@ -30,6 +37,9 @@ extension Color {
         static let dangerSoft = Color(light: 0xFFF1F2, dark: 0x2A0A12)
         static let info = Color(light: 0x0369A1, dark: 0x38BDF8)
         static let infoSoft = Color(light: 0xF0F9FF, dark: 0x082F49)
+
+        /// Soft drop shadow under cards (light theme; on the dark background the hairline border carries the edge).
+        static let shadow = Color(light: 0x0F172A, dark: 0x000000)
     }
 }
 
@@ -37,6 +47,41 @@ extension UIColor {
     convenience init(hex: UInt32) {
         self.init(red: CGFloat((hex >> 16) & 0xff) / 255, green: CGFloat((hex >> 8) & 0xff) / 255, blue: CGFloat(hex & 0xff) / 255, alpha: 1)
     }
+}
+
+/// One type scale for the whole app. Every style is a Dynamic Type text style, so it grows with the user's setting.
+/// Rounded for headings and amounts (the sign on the street), the system face for reading, monospaced for hashes.
+extension Font {
+    enum KE {
+        static let hero = Font.system(.largeTitle, design: .rounded, weight: .heavy)
+        static let display = Font.system(.largeTitle, design: .rounded, weight: .bold)
+        static let title = Font.system(.title2, design: .rounded, weight: .bold)
+        static let section = Font.system(.title3, design: .rounded, weight: .bold)
+        static let headline = Font.system(.headline, design: .rounded, weight: .semibold)
+        static let amount = Font.system(.title, design: .rounded, weight: .bold)
+        static let amountSmall = Font.system(.title3, design: .rounded, weight: .bold)
+        static let body = Font.body
+        static let callout = Font.callout
+        static let sub = Font.subheadline
+        static let label = Font.footnote.weight(.semibold)
+        static let caption = Font.caption
+        static let kicker = Font.system(.caption, design: .rounded, weight: .bold)
+        static let mono = Font.system(.footnote, design: .monospaced)
+        static let monoSmall = Font.system(.caption, design: .monospaced)
+    }
+}
+
+/// Spacing and corner radii (4-pt grid).
+enum Metrics {
+    static let page: CGFloat = 20
+    static let gap: CGFloat = 16
+    static let gapSmall: CGFloat = 8
+    static let gapLarge: CGFloat = 28
+    static let radius: CGFloat = 22
+    static let radiusSmall: CGFloat = 14
+    static let radiusPhoto: CGFloat = 20
+    /// Reading width on an iPad: the phone layout, centred.
+    static let maxWidth: CGFloat = 640
 }
 
 enum Tone { case ok, warn, danger, info, neutral
@@ -52,5 +97,17 @@ func tone(forStatus s: String) -> Tone {
     case "Disputed": return .danger
     case "Created": return .info
     default: return .neutral
+    }
+}
+
+/// Rental status -> SF Symbol (so state never rides on colour alone).
+func symbol(forStatus s: String) -> String {
+    switch s {
+    case "Created": return "clock"
+    case "Active": return "lock.fill"
+    case "MoveOut": return "arrow.left.arrow.right"
+    case "Disputed": return "exclamationmark.bubble.fill"
+    case "Settled": return "checkmark.seal.fill"
+    default: return "xmark.circle"
     }
 }

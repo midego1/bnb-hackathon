@@ -23,6 +23,38 @@ enum RentalStory {
         return f
     }
 
+    /// keccak256 of RentalEscrow's `Settled(uint256,uint256,uint256,uint256,uint256,bytes32)` event.
+    static let settledTopic = Keccak256.hash("Settled(uint256,uint256,uint256,uint256,uint256,bytes32)").hex0x.lowercased()
+
+    /// What the escrow paid out, read from the receipt of the transaction that settled it. The chain index can be
+    /// behind; the receipt is on the chain itself. Makes the same sums as `moneyFlow` does from the indexed event.
+    static func settledFlow(from receipt: TxReceipt, lease: String) -> Flow? {
+        guard receipt.succeeded,
+              let log = receipt.logs.first(where: { EthAddress.same($0.address, lease) && $0.topics.first?.lowercased() == settledTopic }),
+              let data = Data(hex: log.data), data.count >= 5 * 32
+        else { return nil }
+        func word(_ i: Int) -> BigUInt { BigUInt(bytes: Data(data[data.startIndex + 32 * i ..< data.startIndex + 32 * (i + 1)])) }
+        let (refund, claim, rentToOwner, rentToRenter, fee) = (word(0), word(1), word(2), word(3), word(4))
+        let gross = claim + rentToOwner
+        var f = Flow()
+        f.toOwner = gross < fee ? BigUInt() : gross - fee
+        f.fee = fee
+        f.backToRenter = refund + rentToRenter
+        return f
+    }
+
+    /// The payout to show: the indexed events when they hold the settlement, else the settling receipt (if known).
+    static func payout(events: [ChainIndex.Event], receipt: Flow?) -> Flow {
+        let f = moneyFlow(events)
+        if events.contains(where: { $0.name == "Settled" }) { return f }
+        guard let r = receipt else { return f }
+        var out = f
+        out.toOwner = f.toOwner + r.toOwner
+        out.fee = f.fee + r.fee
+        out.backToRenter = f.backToRenter + r.backToRenter
+        return out
+    }
+
     enum Cell: String { case out, held, due }
 
     static func periods(_ l: Lease) -> [Cell] {
@@ -50,7 +82,10 @@ enum RentalStory {
             if EthAddress.same(p.proposer, me) { return (.warn, "banner.yourProposal", [fmt(p.toRenter.units), fmt(p.toOwner.units)]) }
             return (.warn, "banner.proposed", [fmt(p.toRenter.units), fmt(p.toOwner.units)])
         case "Disputed": return (.danger, "banner.disputed", [])
-        case "Settled": return (.neutral, v == .renter ? "banner.settledRenter" : "banner.settled", [fmt(flow.backToRenter)])
+        case "Settled":
+            // Without the Settled event (the chain index can be behind) the amount is unknown: say "Settled", not "฿0".
+            let known = flow.backToRenter + flow.toOwner + flow.fee > BigUInt()
+            return (.neutral, v == .renter && known ? "banner.settledRenter" : "banner.settled", [fmt(flow.backToRenter)])
         default: return (.neutral, "banner.cancelled", [])
         }
     }
