@@ -60,7 +60,7 @@ demo shop accepts, settled.
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | Airbnb-style list: the live **Mystery Box** (`GET /api/stage/mystery-box`) and the demo scooters (`GET /api/fleet`). Detail: price per day, deposit, "deposit protected by escrow", *Rent it*. |
+| **Home** | Airbnb-style list of the website's own catalogue (`GET /api/listings`, `web/data/listings.json`): the live **Mystery Box** and the demo scooters, with the same slugs, names, prices and real photos as `/app/listings/<slug>`. Photos load from the API's URLs (URLSession cache); the bundled copies (by slug) show offline and while they load. Detail: price per day, deposit, "deposit protected by escrow", *Rent it*. |
 | **Rent it** (from a listing) | The `/r` judge flow, native: get test money → the owner offers → *Pay into escrow* (`prepare_fund`) → pickup photos → return photos (SHA-256, `POST /api/evidence`, `prepare_add_evidence`) → AI inspection (`POST /api/settlement`, agent #2921) → propose the split (`prepare_propose_settlement`) → owner accepts → settled. Every transaction links to BscScan as soon as it is mined. Steps are read back from the chain, so leaving and coming back continues where it was. |
 | **My rentals** | `list_leases` for the guest wallet. Rental page: status banner, money strip (renter paid / in escrow / owner got / back to renter, baht + mUSDT), period strip, `explain_status` in plain words, timeline (`/api/chain/index`) with BscScan links. Pull to refresh. |
 | **Ask AI** | Chat against `POST /api/assistant` (Server-Sent Events). Approval cards show the exact unsigned steps; *Approve and sign* signs them with the guest wallet, then resumes the run with the tx hashes. The live server runs the demo model. |
@@ -73,7 +73,7 @@ targets are at least 44 pt.
 
 | Real (BSC testnet, chain 97, contract v2 from `contracts/deployments/97.json`) | Demo |
 | --- | --- |
-| Every escrow the app creates or funds (`EscrowFactory` `0x04D7…9315`, MockUSDT `0x7aF0…35B1`). | Scooter listings: the off-chain, demo-grade catalogue (`/api/fleet`), labelled *Demo listing*. |
+| Every escrow the app creates or funds (`EscrowFactory` `0x04D7…9315`, MockUSDT `0x7aF0…35B1`). | Scooter listings: the website's demo catalogue (`/api/listings`), labelled *Demo listing*. |
 | Every transaction: signed on the phone with the guest wallet, sent through `https://bsc-testnet-rpc.publicnode.com`. | **Demo scooters' owner** is a second test key on the phone ("demo shop wallet"): it signs `createLease` (from `prepare_create_lease`) and `accept`. The guest wallet lends it 0.0004 tBNB for gas. |
 | Photo fingerprints (`addEvidence`), the proposal with the inspector's `reportHash`, the settlement. | **Mystery Box owner** is the KeyEscrow server (`/api/stage` `lease`); the presenter accepts on the big screen. |
 | Test money: `/api/stage` drip (tBNB + mUSDT from the team's funder, once per address) and `MockUSDT.faucet` signed by the guest wallet. | AI inspector on the live server is the deterministic demo inspector (no vision key there); the app says so. Baht use the demo rate (33 THB/USDT) when the price API is in mock mode, and says so. |

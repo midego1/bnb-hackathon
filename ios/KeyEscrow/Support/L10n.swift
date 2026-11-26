@@ -273,11 +273,14 @@ enum L10n {
         "credits.changes.hero": ("Cropped and resized. Phone numbers on the shop signs and the print on a T-shirt are blurred.", "已裁剪并缩放。店铺招牌上的电话号码和一件 T 恤上的印字已做模糊处理。"),
         "credits.changes.cropped": ("Cropped and resized.", "已裁剪并缩放。"),
         "credits.changes.resized": ("Resized.", "已缩放。"),
+        "credits.changes.plate": ("Cropped and resized. The number plate and the dealer's phone number on its frame are blurred.", "已裁剪并缩放。车牌和车牌框上经销商的电话号码已做模糊处理。"),
+        "credits.changes.people": ("Resized. Two people in the background are blurred.", "已缩放。背景中的两个人已做模糊处理。"),
         "credits.note.hero": ("A street in Pattaya, Thailand, at night. The shops in the picture are not connected to KeyEscrow.", "泰国芭提雅夜晚的一条街道。图片中的店铺与 KeyEscrow 无关。"),
         "credits.note.box": ("A stand-in: not the box on the stage.", "仅作示意：并不是现场的那只盒子。"),
         "credits.note.click": ("A stand-in: an earlier Honda Click, photographed in Thailand in 2007, not the 125i of the listing.", "仅作示意：这是 2007 年在泰国拍摄的早期款 Honda Click，并非车源中的 125i。"),
-        "credits.note.scoopy": ("A 2022 Honda Scoopy 110, the same model line as the Scoopy-i. Photographed in Bali.", "2022 款 Honda Scoopy 110，与 Scoopy-i 属于同一车系。拍摄于巴厘岛。"),
+        "credits.note.scoopy": ("A 2022 Honda Scoopy 110, photographed in Bali.", "2022 款 Honda Scoopy 110，拍摄于巴厘岛。"),
         "credits.note.pcx": ("Photographed at a dealer in Khon Kaen, Thailand.", "拍摄于泰国孔敬的一家经销店。"),
+        "credits.note.vespa": ("A 2021 Primavera 125 (75th anniversary edition), the same body as the 150 of the listing, photographed in the United States.", "2021 款 Primavera 125（75 周年纪念版），车身与车源中的 150 相同，拍摄于美国。"),
         "credits.note.fino": ("A Yamaha Fino photographed in Thailand; the model year may differ from the listing.", "在泰国拍摄的 Yamaha Fino；车型年份可能与车源不同。"),
     ]
 }

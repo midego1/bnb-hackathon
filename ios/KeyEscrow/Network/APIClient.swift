@@ -79,7 +79,7 @@ struct APIClient {
 
     // MARK: Data
 
-    func fleet() async throws -> Fleet { try await get("api/fleet", as: Fleet.self) }
+    func listings() async throws -> Catalogue { try await get("api/listings", as: Catalogue.self) }
     func price() async throws -> PriceQuote { try await get("api/price", as: PriceQuote.self) }
     func chainIndex(minBlock: String? = nil) async throws -> ChainIndex {
         var q = ["chainId": "\(Chain.id)"]

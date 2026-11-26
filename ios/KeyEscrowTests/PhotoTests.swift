@@ -34,13 +34,19 @@ final class PhotoTests: XCTestCase {
         }
     }
 
-    func testCatalogueListingsHaveABundledPhoto() throws {
-        // The live /api/fleet answer (fixture) and the stage item: each maps to a bundled photo by its id.
-        let url = try XCTUnwrap(Bundle(for: PhotoTests.self).url(forResource: "fleet", withExtension: "json"))
-        let fleet = try JSONDecoder().decode(Fleet.self, from: Data(contentsOf: url))
-        XCTAssertFalse(fleet.scooters.isEmpty)
-        for s in fleet.scooters { XCTAssertNotNil(PhotoCatalog.asset(forListing: s.id), s.id) }
-        XCTAssertNotNil(PhotoCatalog.asset(forListing: "mystery-box"))
+    func testCatalogueListingsHaveABundledPhotoWithTheSameCredit() throws {
+        // The website's catalogue (GET /api/listings fixture): each listing has a bundled copy of its photo, keyed by slug,
+        // credited exactly as the catalogue credits it (the offline fallback shows the same photo).
+        let url = try XCTUnwrap(Bundle(for: PhotoTests.self).url(forResource: "listings", withExtension: "json"))
+        let catalogue = try JSONDecoder().decode(Catalogue.self, from: Data(contentsOf: url))
+        XCTAssertFalse(catalogue.listings.isEmpty)
+        for l in catalogue.listings {
+            let bundled = try XCTUnwrap(PhotoCatalog.credit(forListing: l.slug), l.slug)
+            let credit = try XCTUnwrap(l.photos.first?.credit, l.slug)
+            XCTAssertEqual([bundled.title, bundled.author, bundled.license, bundled.licenseURL, bundled.source],
+                           [credit.title, credit.author, credit.license, credit.licenseUrl, credit.source], l.slug)
+        }
+        XCTAssertEqual(Set(PhotoCatalog.listingIds), Set(catalogue.listings.map(\.slug)))
         for l in Listing.offline { XCTAssertNotNil(PhotoCatalog.asset(forListing: l.id), l.id) }
     }
 
@@ -49,10 +55,10 @@ final class PhotoTests: XCTestCase {
             let l = Listing(id: "x", kind: .demoScooter, name: "x", location: location, description: "", photo: nil, rentThb: 1, depositThb: 1, perDay: false, symbol: "scooter", vault: false)
             return Place.all.filter { $0.contains(l) }.map(\.id)
         }
-        XCTAssertEqual(place("Chiang Mai Old City"), ["chiang-mai"])
-        XCTAssertEqual(place("Pai"), ["pai"])
-        XCTAssertEqual(place("Patong, Phuket"), ["phuket"])
-        XCTAssertEqual(place("Sukhumvit, Bangkok"), ["bangkok"])
+        XCTAssertEqual(place("Nimman, Chiang Mai"), ["chiang-mai"])
+        XCTAssertEqual(place("Walking Street, Pai"), ["pai"])
+        XCTAssertEqual(place("Kata Beach, Phuket"), ["phuket"])
+        XCTAssertEqual(place("Silom, Bangkok"), ["bangkok"])
         XCTAssertEqual(place("On stage, BNB Bangkok"), ["bangkok"])
         XCTAssertEqual(place("Krabi"), [])
     }

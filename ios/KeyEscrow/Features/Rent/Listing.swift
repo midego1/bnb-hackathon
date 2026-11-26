@@ -20,22 +20,23 @@ struct Listing: Identifiable, Equatable, Hashable {
 
     var rentPerDayThb: Double { perDay ? rentThb : rentThb / 30 }
 
-    static func stage(_ s: StageStatus.Listing) -> Listing {
-        Listing(id: s.slug, kind: .stage, name: s.name, location: s.location ?? "", description: s.description ?? "",
-                photo: nil, rentThb: s.rentThb, depositThb: s.depositThb, perDay: true, symbol: "shippingbox.fill", vault: false)
-    }
-
-    static func scooter(_ s: Fleet.Scooter) -> Listing {
-        Listing(id: s.id, kind: .demoScooter, name: s.name, location: s.location,
-                description: "", photo: s.photo, rentThb: s.rentThb, depositThb: s.depositThb, perDay: false, symbol: "scooter", vault: s.vault ?? false)
-    }
-
-    /// Shown when the server cannot be reached: the same items, labelled demo.
+    /// Shown when the server cannot be reached: a few items of the catalogue (web/data/listings.json), labelled demo.
     static let offline: [Listing] = [
         Listing(id: "mystery-box", kind: .stage, name: "KeyEscrow Mystery Box", location: "On stage, BNB Bangkok",
                 description: "A real box we brought to the stage. Rent it, take it, bring it back: the deposit sits in its own escrow on BNB Chain until both sides agree.",
                 photo: nil, rentThb: 200, depositThb: 1000, perDay: true, symbol: "shippingbox.fill", vault: false),
-        Listing(id: "click-125i-cnx", kind: .demoScooter, name: "Honda Click 125i", location: "Chiang Mai Old City", description: "", photo: nil, rentThb: 3400, depositThb: 6800, perDay: false, symbol: "scooter", vault: false),
-        Listing(id: "pcx-160-bkk", kind: .demoScooter, name: "Honda PCX 160", location: "Sukhumvit, Bangkok", description: "", photo: nil, rentThb: 4800, depositThb: 9600, perDay: false, symbol: "scooter", vault: true),
+        Listing(id: "honda-click-125i", kind: .demoScooter, name: "Honda Click 125i", location: "Nimman, Chiang Mai", description: "", photo: nil, rentThb: 3400, depositThb: 6800, perDay: false, symbol: "scooter", vault: false),
+        Listing(id: "honda-pcx-160", kind: .demoScooter, name: "Honda PCX 160", location: "Old Town, Phuket", description: "", photo: nil, rentThb: 5800, depositThb: 7000, perDay: false, symbol: "scooter", vault: false),
     ]
+}
+
+// In an extension, so the memberwise initializer stays.
+extension Listing {
+    /// A listing of the shared catalogue (GET /api/listings). The scooters rent by the month (their monthly price), the
+    /// stage item by the day, as the website's /app/listings/<slug> does.
+    init(_ c: Catalogue.Item) {
+        self.init(id: c.slug, kind: c.stage ? .stage : .demoScooter, name: c.name, location: c.location, description: c.description,
+                  photo: c.photos.first?.url, rentThb: c.monthThb ?? c.rentThb, depositThb: c.depositThb, perDay: c.monthThb == nil,
+                  symbol: c.stage ? "shippingbox.fill" : "scooter", vault: false)
+    }
 }

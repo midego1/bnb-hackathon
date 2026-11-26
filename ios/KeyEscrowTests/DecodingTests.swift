@@ -57,7 +57,6 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(s.price.deposit, BigUInt(30_310_000))
         XCTAssertEqual(s.price.thbPerUsdt, 33)
         XCTAssertEqual(s.lease?.terms.depositAmount, BigUInt(30_310_000))
-        XCTAssertEqual(Listing.stage(s.listing).rentPerDayThb, 200)
     }
 
     func testChainIndexAndMoneyFlow() throws {
@@ -70,12 +69,23 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(f.paidIn, f.toOwner + f.fee + f.backToRenter) // every unit is accounted for
     }
 
-    func testFleetPriceSettlement() throws {
-        let fleet = try fixture("fleet", as: Fleet.self)
-        XCTAssertFalse(fleet.scooters.isEmpty)
-        let scooter = Listing.scooter(fleet.scooters[0])
+    func testCataloguePriceSettlement() throws {
+        // GET /api/listings from a local `next start` (Fixtures/README.md): the website's catalogue.
+        let c = try fixture("listings", as: Catalogue.self)
+        XCTAssertEqual(c.thbPerUsdt, 33)
+        XCTAssertEqual(Set(c.listings.map(\.slug)).count, c.listings.count)
+        let click = try XCTUnwrap(c.listings.first { $0.slug == "honda-click-125i" })
+        let scooter = Listing(click)
         XCTAssertEqual(scooter.kind, .demoScooter)
         XCTAssertFalse(scooter.perDay)
+        XCTAssertEqual(scooter.rentThb, 3400) // by the month, as the website rents it
+        XCTAssertEqual(scooter.depositThb, 6800)
+        XCTAssertTrue(scooter.photo?.hasSuffix("/listings/photos/honda-click-125i-1200.jpg") == true)
+        XCTAssertEqual(click.photos.first?.credit.license, "CC BY 4.0")
+        let box = Listing(try XCTUnwrap(c.listings.first { $0.stage }))
+        XCTAssertEqual(box.id, "mystery-box")
+        XCTAssertEqual(box.kind, .stage)
+        XCTAssertEqual(box.rentPerDayThb, 200)
         XCTAssertEqual(try fixture("price", as: PriceQuote.self).thbPerUsdt, 33)
         let i = try fixture("settlement", as: Inspection.self)
         XCTAssertEqual(i.tenantRefund + i.landlordClaim, i.deposit)

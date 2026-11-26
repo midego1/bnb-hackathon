@@ -9,15 +9,12 @@ final class HomeModel: ObservableObject {
     let api = APIClient()
 
     func load() async {
-        var out: [Listing] = []
-        var failed = false
-        async let stageF = try? api.stage("mystery-box", renter: nil)
-        async let fleetF = try? api.fleet()
+        // The website's catalogue (GET /api/listings): the same slugs, names, prices and photos as /app/listings/<slug>.
+        async let catalogueF = try? api.listings()
         async let priceF = try? api.price()
-        if let s = await stageF { out.append(.stage(s.listing)) } else { failed = true }
-        if let f = await fleetF { out += f.scooters.map(Listing.scooter) } else { failed = true }
+        let out = (await catalogueF)?.listings.map { Listing($0) } ?? []
         if let p = await priceF { thbPerUsdt = p.thbPerUsdt; priceMock = p.mock ?? true }
-        offline = failed && out.isEmpty
+        offline = out.isEmpty
         listings = out.isEmpty ? Listing.offline : out
     }
 }
