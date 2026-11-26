@@ -6,6 +6,8 @@ import { landingCopy } from "@/components/marketing/copy";
 import { demoAvailable } from "@/components/shell/nav";
 import { getDictionary } from "@/lib/i18n/server";
 import { parseSearch } from "@/lib/marketing";
+// The night bands and the money board first: landing.css builds on them.
+import "@/components/marketing/board.css";
 import "./landing.css";
 
 /** Kanit (Cadson Demak, OFL): the display face, self-hosted. Latin subset, two weights. */
