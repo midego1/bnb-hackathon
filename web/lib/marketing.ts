@@ -4,6 +4,7 @@
  * timeouts with the contracts, and the tool names with lib/actions/definitions.ts.
  */
 import deployments from "@/lib/contracts/deployments.generated.json";
+import { REPO_URL } from "@/lib/links";
 
 const EXPLORER = "https://testnet.bscscan.com";
 const bsc = deployments["97"];
@@ -26,6 +27,10 @@ export const INSPECTOR_AGENT = {
   registerTx: "0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0",
 } as const;
 
+/** `forge test` in contracts/ (unit, fuzz, invariants), as the README's test section states it. */
+export const CONTRACT_TESTS = 305;
+export const TESTS_URL = `${REPO_URL}/tree/main/contracts/test`;
+
 /** Protocol fee and default deadlines, as deployed (EscrowFactory: feeBps, DEFAULT_RESPONSE_WINDOW, DEFAULT_ARBITER_WINDOW). */
 export const FEE_PERCENT = 10;
 export const OWNER_RESPONSE_DAYS = 7;
@@ -33,12 +38,17 @@ export const ARBITER_DAYS = 14;
 /** FleetVault operator (maintenance) fee as deployed, in percent of income. */
 export const FLEET_OPERATOR_FEE_PERCENT = 10;
 
+/** The rent rhythms contract v2 accepts (EscrowFactory: a rentPeriod of 7, 14 or 30 days). */
+export const RENT_PERIOD_DAYS = [7, 14, 30] as const;
+/** One payment of the example scooter at a rhythm: the monthly price x days / 30, rounded down (lib/fleet.ts). */
+export const rentPer = (days: number) => Math.floor((EXAMPLE.rent * days) / 30);
+
 /** The inspector's own MCP tools (agent/src/mcp.ts); the rental actions come from lib/actions/definitions.ts. */
 export const INSPECTOR_TOOLS = ["inspect_move_out", "verify_report", "inspector_identity"] as const;
 
 /**
  * The worked example from docs/BUSINESS.md: a Honda Click 125i by the month, at an illustrative 1 USDT = 34 THB.
- * Amounts in baht.
+ * Amounts in baht. `claim` and `refund` are the damage ending: the example proposal of 30 of 200 mUSDT to the owner.
  */
 export const EXAMPLE = {
   scooter: "Honda Click 125i",
@@ -47,6 +57,8 @@ export const EXAMPLE = {
   funded: 10200,
   fee: 340,
   firstPayout: 3060,
+  claim: 1020,
+  refund: 5780,
 } as const;
 
 export const baht = (n: number) => `฿${n.toLocaleString("en-US")}`;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Hero, SiteHeader } from "@/components/marketing/Hero";
-import { Agents, ClosingCta, Counter, Deadlines, Fee, FleetVault, HowItWorks, Inspection, Live, Roadmap, SiteFooter } from "@/components/marketing/Sections";
+import { Agents, ClosingCta, Counter, Deadlines, Fee, Flow, Inspection, Live, Roadmap, Shops, SiteFooter } from "@/components/marketing/Sections";
 import { landingCopy } from "@/components/marketing/copy";
 import { demoAvailable } from "@/components/shell/nav";
 import { getDictionary } from "@/lib/i18n/server";
@@ -19,7 +19,7 @@ const display = localFont({
 
 export async function generateMetadata(): Promise<Metadata> {
   const { title, description, cardAlt } = (await getDictionary()).of(landingCopy).meta;
-  const card = { url: "/marketing/og.jpg", width: 1200, height: 630, alt: cardAlt };
+  const card = { url: "/marketing/og-v2.jpg", width: 1200, height: 630, alt: cardAlt };
   return {
     title: { absolute: title },
     description,
@@ -31,7 +31,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * The marketing page: no wallet, no providers. A server component whose only client code is the theme button, the
- * language switch and Next's links. Rendered per request: the words follow the ke_lang cookie (lib/i18n). The app itself starts at /app (and the role pages).
+ * language switch, the money board (components/marketing/MoneyFlow.tsx) and Next's links. Rendered per request: the
+ * words follow the ke_lang cookie (lib/i18n). The app itself starts at /app (and the role pages).
+ *
+ * The story, top to bottom: the problem and the promise, proof that it is real, how the money moves, who decides,
+ * what a shop gets, the agent surface, the fee, what is only planned, and the three ways in.
  */
 export default async function LandingPage() {
   const t = await getDictionary();
@@ -47,12 +51,12 @@ export default async function LandingPage() {
       <main id="main">
         <Hero demo={demoAvailable} />
         <Counter />
-        <HowItWorks />
+        <Live />
+        <Flow demo={demoAvailable} />
         <Inspection />
         <Deadlines />
-        <FleetVault />
+        <Shops />
         <Agents />
-        <Live />
         <Fee />
         <Roadmap />
         <ClosingCta demo={demoAvailable} />

@@ -3,8 +3,9 @@ import { LogoMark } from "@/components/LogoMark";
 import { LangSwitch } from "@/components/LangSwitch";
 import { ThemeCycleButton } from "@/components/ThemeSwitch";
 import { getDictionary } from "@/lib/i18n/server";
+import { explorerAddress, explorerTx, INSPECTOR_AGENT, TESTNET_CONTRACTS, TESTS_URL } from "@/lib/marketing";
 import { landingCopy } from "./copy";
-import { ArrowIcon, PlayIcon } from "./icons";
+import { ArrowIcon, BoxIcon, ExternalIcon, PlayIcon } from "./icons";
 
 const WIDE = [1000, 1600, 2400];
 const TALL = [600, 900, 1200];
@@ -14,6 +15,9 @@ const DESKTOP = "(min-width: 768px)";
 // The art covers the hero and is a little wider than it (it pans), so it renders wider than the viewport.
 const WIDE_SIZES = "115vw";
 const TALL_SIZES = "130vw";
+
+/** The live judge demo: the big screen of the box we brought to the stage (its QR code leads to the phone flow). */
+export const MYSTERY_BOX = "/stage/mystery-box";
 
 /** Logo, in-page links, theme button and the way into the app. Laid over the top of the hero. */
 export async function SiteHeader() {
@@ -25,7 +29,7 @@ export async function SiteHeader() {
           <LogoMark className="h-8 w-8" />
           <span className="mk-display">KeyEscrow</span>
         </Link>
-        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] text-muted-foreground lg:flex">
+        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] whitespace-nowrap text-muted-foreground xl:flex">
           {c.nav.map(([href, label]) => (
             <li key={href}>
               <a href={href} className="transition-colors hover:text-foreground">
@@ -35,9 +39,10 @@ export async function SiteHeader() {
           ))}
         </ul>
         <span className="ml-auto flex items-center gap-2 sm:gap-2.5">
-          <LangSwitch className="hidden border-white/25 bg-white/10 text-white sm:inline-flex" />
+          {/* A phone gets EN / 中文 here (landing.css) and "Open the app" as the third button of the hero. */}
+          <LangSwitch className="inline-flex border-white/25 bg-white/10 text-white" />
           <ThemeCycleButton className="inline-flex !h-10 !w-10 !rounded-full !border-white/25 !bg-white/10 !text-white hover:!bg-white/20" />
-          <Link prefetch={false} href="/app" data-testid="mk-open-app" className="mk-btn mk-btn-line !min-h-10 !px-3.5 !py-2 !text-[0.95rem] sm:!px-4">
+          <Link prefetch={false} href="/app" data-testid="mk-open-app" className="mk-btn mk-btn-line !hidden !min-h-10 !px-4 !py-2 !text-[0.95rem] sm:!inline-flex">
             {c.openApp}
           </Link>
         </span>
@@ -47,13 +52,16 @@ export async function SiteHeader() {
 }
 
 /**
- * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the promise
- * and the two ways in. The artwork is the LCP element, so it is preloaded per viewport class and never lazy.
+ * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the problem
+ * and the promise, the three ways in, and under it the proof that it is real. The artwork is the LCP element, so it is
+ * preloaded per viewport class and never lazy.
  */
 export async function Hero({ demo }: { demo: boolean }) {
   const t = await getDictionary();
   const c = t.of(landingCopy).hero;
   const lines = (l: string[]) => l.flatMap((x, i) => (i ? [<br key={i} />, x] : [x]));
+  // Where each proof leads: the contract table below, the verified factory, the tests, the agent's registration.
+  const proof = ["#live", explorerAddress(TESTNET_CONTRACTS[0].address), TESTS_URL, explorerTx(INSPECTOR_AGENT.registerTx)];
   return (
     <section aria-label={c.label} className="mk-night">
       {/* React hoists these into <head>. */}
@@ -84,52 +92,63 @@ export async function Hero({ demo }: { demo: boolean }) {
         <div className="mk-glow" aria-hidden />
         <div className="mk-scrim" aria-hidden />
 
-        <div className="mx-auto flex w-full max-w-7xl flex-col justify-start px-5 pt-20 pb-6 sm:px-8 md:pt-28 xl:flex-1 xl:justify-center xl:pt-24 xl:pb-14">
+        <div className="mx-auto flex w-full max-w-7xl flex-col justify-start px-5 pt-20 pb-6 sm:px-8 md:pt-28 xl:flex-1 xl:justify-center xl:pt-24 xl:pb-12">
           <div className="max-w-[46rem]">
             <h1 className="mk-display">{t.head(landingCopy, (x) => lines(x.hero.h1))}</h1>
             <p className="mk-hero-copy mt-4 max-w-[34rem] text-base leading-relaxed text-foreground sm:mt-5 sm:text-xl sm:leading-relaxed">
               {c.body}
             </p>
-            <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-7 sm:gap-3">
-              {demo ? (
+            <div className="mk-ctas mt-6 sm:mt-7">
+              {demo && (
                 <Link prefetch={false} href="/demo" data-testid="mk-cta-demo" className="mk-btn mk-btn-amber">
                   <PlayIcon />
                   {c.playDemo}
                 </Link>
-              ) : (
-                <Link prefetch={false} href="/app" data-testid="mk-cta-demo" className="mk-btn mk-btn-amber">
-                  {c.openApp}
-                  <ArrowIcon />
-                </Link>
               )}
-              <Link prefetch={false} href="/how-it-works" data-testid="mk-cta-how" className="mk-btn mk-btn-line bg-[rgb(13_11_42/0.55)]">
-                {c.how}
+              <Link prefetch={false} href={MYSTERY_BOX} title={c.mysteryBoxHint} data-testid="mk-cta-box" className={`mk-btn ${demo ? "mk-btn-line mk-btn-glass" : "mk-btn-amber"}`}>
+                <BoxIcon />
+                {c.mysteryBox}
+              </Link>
+              <Link prefetch={false} href="/app" data-testid="mk-cta-app" className="mk-btn mk-btn-line mk-btn-glass">
+                {c.openApp}
+                <ArrowIcon />
               </Link>
             </div>
-            <p className="mk-hero-copy mt-3.5 flex items-center gap-2 text-sm text-muted-foreground md:mt-5">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--mk-teal)]" aria-hidden />
-              <span>
-                {c.testnet}
-                <span className="hidden md:inline">{c.testnetMore}</span>
-                {t.lang === "zh" ? "。" : "."}
+            <p className="mk-hero-copy mt-4 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[0.95rem] sm:mt-5">
+              <Link prefetch={false} href="/how-it-works" data-testid="mk-cta-how" className="mk-link inline-flex min-h-8 items-center gap-1.5 font-medium">
+                {c.how}
+                <ArrowIcon />
+              </Link>
+              <span className="text-muted-foreground">
+                {c.shops[0]}
+                <a href="#shops" className="mk-link font-medium text-foreground">
+                  {c.shops[1]}
+                </a>
               </span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* What the promise means for one real-sized rental. */}
+      {/* Proof that it is real, each one a link to where a judge can check it. */}
       <div className="border-t border-border">
-        <dl className="mx-auto grid max-w-7xl gap-x-10 gap-y-5 px-5 py-6 sm:grid-cols-3 sm:px-8">
-          {c.facts.map(([term, value]) => (
-            <div key={term}>
-              <dt className="text-sm text-subtle">{term}</dt>
-              <dd className="mk-h3 mt-1 text-xl sm:text-2xl">{value}</dd>
-            </div>
+        <ul aria-label={c.proofLabel} className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-5 pt-6 pb-4 sm:px-8 lg:grid-cols-4">
+          {c.proof.map(([what, detail], i) => (
+            <li key={what}>
+              <a href={proof[i]} className="mk-proof" data-testid="mk-proof">
+                <span className="mk-h3 mk-proof-what">
+                  {what}
+                  {i > 0 && <ExternalIcon />}
+                </span>
+                <span className="mk-proof-detail">{detail}</span>
+              </a>
+            </li>
           ))}
-        </dl>
+        </ul>
         <p className="mx-auto max-w-7xl px-5 pb-6 text-xs text-subtle sm:px-8">
-          {c.example}
+          {c.testnet}
+          {c.testnetMore}
+          {t.lang === "zh" ? "。" : "."}
         </p>
       </div>
     </section>

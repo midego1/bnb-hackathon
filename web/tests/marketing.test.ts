@@ -2,7 +2,24 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTIONS } from "@/lib/actions/definitions";
-import { ARBITER_DAYS, EXAMPLE, FEE_PERCENT, FLEET_OPERATOR_FEE_PERCENT, INSPECTOR_AGENT, INSPECTOR_TOOLS, OWNER_RESPONSE_DAYS, TESTNET_CONTRACTS } from "@/lib/marketing";
+import { landingCopy } from "@/components/marketing/copy";
+import { LED_CHARS, LED_COLS, LED_ROWS, ledDots } from "@/components/marketing/led";
+import { REPO_URL } from "@/lib/links";
+import {
+  ARBITER_DAYS,
+  baht,
+  CONTRACT_TESTS,
+  EXAMPLE,
+  FEE_PERCENT,
+  FLEET_OPERATOR_FEE_PERCENT,
+  INSPECTOR_AGENT,
+  INSPECTOR_TOOLS,
+  OWNER_RESPONSE_DAYS,
+  RENT_PERIOD_DAYS,
+  rentPer,
+  TESTNET_CONTRACTS,
+  TESTS_URL,
+} from "@/lib/marketing";
 
 /** The marketing page may only state what the repo backs up: these compare its facts with their sources. */
 const repo = path.resolve(import.meta.dirname, "../..");
@@ -40,6 +57,54 @@ describe("marketing page facts", () => {
     expect(EXAMPLE.funded).toBe(EXAMPLE.deposit + EXAMPLE.rent);
     expect(EXAMPLE.fee).toBe((EXAMPLE.rent * FEE_PERCENT) / 100);
     expect(EXAMPLE.firstPayout).toBe(EXAMPLE.rent - EXAMPLE.fee);
+  });
+
+  it("uses a damage ending that is the example proposal (30 of 200 mUSDT to the owner) on the example deposit", () => {
+    expect(EXAMPLE.claim + EXAMPLE.refund).toBe(EXAMPLE.deposit);
+    expect(EXAMPLE.claim / EXAMPLE.deposit).toBe(30 / 200);
+    expect(landingCopy.en.inspection.code).toContain('"landlordClaim": "30.00"');
+    expect(landingCopy.en.inspection.code).toContain('"tenantRefund": "170.00"');
+  });
+
+  it("counts the contract tests as the README does, and links to them", () => {
+    expect(read("README.md")).toContain(`${CONTRACT_TESTS} tests`);
+    expect(TESTS_URL).toBe(`${REPO_URL}/tree/main/contracts/test`);
+  });
+
+  it("offers the rent rhythms the factory accepts, priced as the monthly rent x days / 30, rounded down", () => {
+    const factory = read("contracts/src/EscrowFactory.sol");
+    expect(factory).toContain(RENT_PERIOD_DAYS.map((d) => `rentPeriod != ${d} days`).join(" && "));
+    expect(RENT_PERIOD_DAYS.map(rentPer)).toEqual([793, 1586, EXAMPLE.rent]);
+    expect(landingCopy.en.shops.subs.rhythms).toHaveLength(RENT_PERIOD_DAYS.length);
+  });
+
+  it("says the mainnet pilot is planned and quotes its caps as docs/BUSINESS.md does", () => {
+    const [, title, body] = landingCopy.en.roadmap.phases[1];
+    expect(title).toBe("Capped BSC mainnet pilot");
+    expect(body).toMatch(/^Not live yet\./);
+    const business = read("docs/BUSINESS.md");
+    expect(business).toContain("at most 5 USDT deposit and 2 USDT rent per period per rental, 25 USDT held in all escrows together");
+    expect(body).toContain("at most 5 USDT deposit and 2 USDT rent per payment per rental, and 25 USDT in all escrows together");
+  });
+
+  it("can show every amount of the money board on its LED panel", () => {
+    const e = EXAMPLE;
+    for (const n of [0, e.funded, e.deposit, e.firstPayout, e.refund, e.firstPayout + e.claim]) {
+      for (const ch of baht(n)) expect(LED_CHARS, `${baht(n)}: "${ch}"`).toContain(ch);
+      const dots = ledDots(baht(n));
+      expect(dots.length).toBeGreaterThan(20);
+      for (const [x, y] of dots) {
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThan(LED_COLS);
+        expect(y).toBeLessThan(LED_ROWS);
+      }
+    }
+    // Flush right: the last column of the widest amount is the panel's last column.
+    expect(Math.max(...ledDots(baht(e.funded)).map(([x]) => x))).toBe(LED_COLS - 1);
+    expect(Math.min(...ledDots(baht(e.funded)).map(([x]) => x))).toBe(0);
+    // Decoration never takes the page down: an unknown character is blank, an amount too wide loses its left edge.
+    expect(ledDots("฿1.5").length).toBe(ledDots("฿15").length);
+    expect(Math.min(...ledDots("฿1,000,000,000").map(([x]) => x))).toBe(0);
   });
 
   it("names inspector tools the agent really registers, next to the rental actions", () => {
