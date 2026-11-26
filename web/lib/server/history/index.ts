@@ -66,9 +66,12 @@ export async function walletHistory(wallet: Address, chainId: SupportedChainId, 
 
   const { events, chainNow } = await indexFor(chainId, deps);
   const w = address.toLowerCase();
+  // Only rentals with an on-chain proposal can have a claim-vs-AI fact (each lookup is a state read).
+  const proposed = new Set(events.filter((e) => e.name === "SettlementProposed").map((e) => e.address.toLowerCase()));
   const mine = events
     .filter((e) => e.name === "LeaseCreated" && (String(e.args.tenant).toLowerCase() === w || String(e.args.landlord).toLowerCase() === w))
     .map((e) => String(e.args.escrow).toLowerCase())
+    .filter((l) => proposed.has(l))
     .slice(-AI_LOOKUPS);
   const aiClaims: Record<string, AiClaim[]> = {};
   await Promise.all(

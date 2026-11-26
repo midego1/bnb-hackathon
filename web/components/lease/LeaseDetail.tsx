@@ -139,7 +139,17 @@ function useRememberSettlement(lease: Address | undefined, chainId: number) {
     const key = lease && `${chainId}:${lease.toLowerCase()}`;
     if (!key || reported.has(key)) return;
     reported.add(key);
-    void fetch("/api/history", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lease, chainId }) }).catch(() => reported.delete(key));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The server reads its chain index, which can be a few seconds behind this page: ask again while it says not settled.
+    const post = (tries: number): Promise<void> =>
+      fetch("/api/history", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lease, chainId }) })
+        .then((r) => r.json() as Promise<{ reason?: string }>)
+        .then((r) => {
+          if (r.reason === "not-settled" && tries > 1) timer = setTimeout(() => void post(tries - 1), 5_000);
+        })
+        .catch(() => void reported.delete(key));
+    void post(3);
+    return () => clearTimeout(timer);
   }, [lease, chainId]);
 }
 

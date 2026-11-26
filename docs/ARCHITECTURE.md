@@ -210,7 +210,7 @@ flowchart LR
 - Reads: `get_lease`, `list_leases`, `explain_status` (where the deposit is, in plain words, and what the viewer can
   do), `quote` (THB / USD / mUSDT), `wallet_history` (a renter's or owner's track record for a dispute, see
   [Dispute memory per wallet](#dispute-memory-per-wallet); it needs the web server's chain index, so the action host
-  passes it in: the web app, and the agent with the same code).
+  passes it in: the web app and the Node agent; the agent Worker points to the web API instead).
 - Prepare: `prepare_create_lease`, `prepare_fund`, `prepare_release_rent`, `prepare_add_evidence`,
   `prepare_propose_settlement`, `prepare_accept`, `prepare_dispute`, `prepare_resolve`, `prepare_claim_timeout`,
   `prepare_cancel`. Each returns the transactions (including any `approve`) already simulated against the chain,
