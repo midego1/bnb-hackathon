@@ -29,7 +29,7 @@ export type FlowFrame = {
  * station's colour with the official BNB Chain logomark on it. Decorative: the caller prints the same amount as text for
  * screen readers.
  */
-function DotNum({ text }: { text: string }) {
+export function DotNum({ text }: { text: string }) {
   // One coin per 1 x 1 cell; its own id because the coin takes the colour of this panel's station.
   const coin = useId();
   return (
@@ -72,7 +72,7 @@ function Station(p: { tone: "renter" | "escrow" | "owner"; icon: ReactNode; who:
 }
 
 /** A row of LED dots between two stations; lit dots chase in the direction the money moves (CSS), under an amount tag. */
-function Track({ dir, tag }: { dir?: "fwd" | "rev"; tag?: string }) {
+export function Track({ dir, tag }: { dir?: "fwd" | "rev"; tag?: string }) {
   return (
     <div className="mk-track" data-flow={dir ?? "off"} aria-hidden>
       {tag && (
