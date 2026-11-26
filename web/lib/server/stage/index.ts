@@ -55,7 +55,9 @@ type Loaded = {
 
 type Record_ = { rental?: StageRental; creating?: { renter: Address; at: number } };
 const recordKey = (chainId: number, slug: string) => `stage:${chainId}:${slug}`;
-const dripKey = (chainId: number, a: Address) => `stage:drip:${chainId}:${a.toLowerCase()}`;
+/** Per test token too: after a redeploy the same phone needs the new token, so an old claim must not answer "done". */
+const dripKey = (chainId: number, a: Address) =>
+  `stage:drip:${chainId}:${(getDeployment(chainId)?.mockUsdt ?? "none").toLowerCase()}:${a.toLowerCase()}`;
 const WEEK_MS = 7 * 86_400_000;
 const CREATING_MS = 90_000;
 
