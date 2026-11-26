@@ -232,6 +232,7 @@ struct NightTile: View {
         GeometryReader { geo in
             ZStack {
                 LinearGradient(colors: [Color.KE.night, Color.KE.nightSoft], startPoint: .topLeading, endPoint: .bottomTrailing)
+                if DesignMode.led { LEDDotGrid(spacing: 6, dot: 2.2) }
                 Image(systemName: symbol)
                     .font(.system(size: min(geo.size.width, geo.size.height) * 0.4, weight: .semibold))
                     .foregroundStyle(Color.KE.sign)

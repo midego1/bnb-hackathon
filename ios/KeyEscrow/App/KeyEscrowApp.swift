@@ -8,10 +8,11 @@ struct KeyEscrowApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .id(settings.design) // a new design resolves every colour and font again
                 .environmentObject(settings)
                 .environmentObject(wallet)
                 .environment(\.locale, settings.lang.locale)
-                .preferredColorScheme(settings.appearance.scheme)
+                .preferredColorScheme(settings.scheme)
                 .tint(Color.KE.primary)
         }
     }
@@ -20,11 +21,10 @@ struct KeyEscrowApp: App {
 struct RootView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var wallet: WalletStore
-    @State private var tab = AppSettings.initialTab
     @Environment(\.scenePhase) private var phase
 
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: $settings.tab) {
             NavigationStack { HomeView() }
                 .tabItem { Label(settings.t("tab.home"), systemImage: "house.fill") }.tag(0)
             NavigationStack { RentalsView() }

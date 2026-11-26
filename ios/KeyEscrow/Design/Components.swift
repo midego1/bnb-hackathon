@@ -19,11 +19,28 @@ extension View {
     /// The card look on any view: surface fill, continuous corners, hairline, soft shadow.
     func keSurface(radius: CGFloat = Metrics.radius, fill: Color = .KE.surface) -> some View {
         background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.KE.border))
-            .shadow(color: Color.KE.shadow.opacity(0.06), radius: 14, x: 0, y: 6)
+            .overlay {
+                if DesignMode.led {
+                    // A frame of LEDs, as around the amounts on the website's money board.
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .strokeBorder(LEDPalette.amber.opacity(0.55), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, dash: [0.1, 6]))
+                } else {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.KE.border)
+                }
+            }
+            .shadow(color: DesignMode.led ? LEDPalette.amber.opacity(0.10) : Color.KE.shadow.opacity(0.06), radius: 14, x: 0, y: DesignMode.led ? 0 : 6)
     }
 
-    func keScreen() -> some View { background(Color.KE.background.ignoresSafeArea()) }
+    /// The page background; in the LED design, the board of unlit dots the signs sit on.
+    func keScreen() -> some View {
+        background {
+            ZStack {
+                Color.KE.background
+                if DesignMode.led { LEDDotGrid() }
+            }
+            .ignoresSafeArea()
+        }
+    }
 
     /// Page column: the phone layout, centred on wider screens.
     func kePage() -> some View {
