@@ -132,7 +132,9 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
   // The Worker has no room for the price service in this route's chunks (see demoTestnet/http.ts): a fixed demo rate.
   async function price(listing: Listing) {
     const thbPerUsdt = LISTING_THB_PER_USDT;
-    return { rent: thbToUnits(listing.rentThb, thbPerUsdt), deposit: thbToUnits(listing.depositThb, thbPerUsdt), thbPerUsdt };
+    // A listing with a monthly price (the demo scooters) is rented by the month: the escrow's rent period is 30 days, so
+    // its rent is that month's price and the one-time fee is 10% of it. The stage item only has its price per day.
+    return { rent: thbToUnits(listing.monthThb ?? listing.rentThb, thbPerUsdt), deposit: thbToUnits(listing.depositThb, thbPerUsdt), thbPerUsdt };
   }
 
   async function send(l: Loaded, who: PrivateKeyAccount, call: Parameters<Chain97["sendCall"]>[1]) {
@@ -269,7 +271,7 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
                 rentPeriod: 30 * 86_400,
                 responseWindow: 0,
                 arbiterWindow: 0,
-                leaseHash: hashText(JSON.stringify({ listing: listing.slug, name: listing.name, rentThb: listing.rentThb, depositThb: listing.depositThb, renter, at: now })),
+                leaseHash: hashText(JSON.stringify({ listing: listing.slug, name: listing.name, rentThb: listing.rentThb, monthThb: listing.monthThb, depositThb: listing.depositThb, renter, at: now })),
               },
             ],
           }),

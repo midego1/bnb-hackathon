@@ -1,7 +1,91 @@
 {
-  "_note": "Physical items for the live stage demo (/app/listings/<slug>, /stage/<slug>, /r/<slug>). Edit freely: amounts in THB, photos under web/public. thbPerUsdt is the fixed demo rate used to price stage rentals in mUSDT (stable between the test-money drip and the rental).",
+  "_note": "Things anyone can rent: the Mystery Box of the live stage demo (stage: true; /stage/<slug>, /r/<slug>) and DEMO scooter listings for the landing page grid (/ and /app/listings/<slug>). Edit freely: amounts in THB (rentThb per day, monthThb per month), photos under web/public (scooters: /listings/<slug>-{480,960}.{avif,webp} and -960.jpg, drawn by docs/marketing). The scooters are not real shops' offers. thbPerUsdt is the fixed demo rate used to price these rentals in mUSDT (stable between the test-money drip and the rental).",
   "thbPerUsdt": 33,
   "listings": [
+    {
+      "slug": "honda-click-125i",
+      "name": "Honda Click 125i",
+      "description": "Demo listing. The everyday automatic of northern Thailand: light, easy to park and enough for the road up Doi Suthep.",
+      "location": "Nimman, Chiang Mai",
+      "area": "Nimman",
+      "city": "Chiang Mai",
+      "photos": [
+        "/listings/honda-click-125i-960.jpg"
+      ],
+      "rentThb": 250,
+      "monthThb": 3400,
+      "depositThb": 6800
+    },
+    {
+      "slug": "yamaha-nmax-155",
+      "name": "Yamaha NMAX 155",
+      "description": "Demo listing. A roomy maxi-scooter for two with luggage, comfortable on the coast road between the beaches.",
+      "location": "Kata Beach, Phuket",
+      "area": "Kata Beach",
+      "city": "Phuket",
+      "photos": [
+        "/listings/yamaha-nmax-155-960.jpg"
+      ],
+      "rentThb": 450,
+      "monthThb": 6500,
+      "depositThb": 8000
+    },
+    {
+      "slug": "vespa-primavera-150",
+      "name": "Vespa Primavera 150",
+      "description": "Demo listing. The classic steel-body Vespa for short city hops between cafes, markets and the skytrain.",
+      "location": "Ari, Bangkok",
+      "area": "Ari",
+      "city": "Bangkok",
+      "photos": [
+        "/listings/vespa-primavera-150-960.jpg"
+      ],
+      "rentThb": 700,
+      "monthThb": 9500,
+      "depositThb": 10000
+    },
+    {
+      "slug": "honda-pcx-160",
+      "name": "Honda PCX 160",
+      "description": "Demo listing. Smooth and quiet, with room under the seat for two helmets. Good for a week around the island.",
+      "location": "Old Town, Phuket",
+      "area": "Old Town",
+      "city": "Phuket",
+      "photos": [
+        "/listings/honda-pcx-160-960.jpg"
+      ],
+      "rentThb": 400,
+      "monthThb": 5800,
+      "depositThb": 7000
+    },
+    {
+      "slug": "honda-scoopy",
+      "name": "Honda Scoopy",
+      "description": "Demo listing. Small, light and friendly: the scooter most first-time riders pick for the valley roads around Pai.",
+      "location": "Walking Street, Pai",
+      "area": "Walking Street",
+      "city": "Pai",
+      "photos": [
+        "/listings/honda-scoopy-960.jpg"
+      ],
+      "rentThb": 200,
+      "monthThb": 2800,
+      "depositThb": 3000
+    },
+    {
+      "slug": "yamaha-grand-filano",
+      "name": "Yamaha Grand Filano",
+      "description": "Demo listing. An easy, elegant commuter with a flat floor, made for the lanes inside the old city moat.",
+      "location": "Old City, Chiang Mai",
+      "area": "Old City",
+      "city": "Chiang Mai",
+      "photos": [
+        "/listings/yamaha-grand-filano-960.jpg"
+      ],
+      "rentThb": 280,
+      "monthThb": 3600,
+      "depositThb": 4000
+    },
     {
       "slug": "mystery-box",
       "name": "KeyEscrow Mystery Box",
@@ -11,7 +95,9 @@
         "/listings/mystery-box.svg"
       ],
       "rentThb": 200,
-      "depositThb": 1000
+      "depositThb": 1000,
+      "city": "Bangkok",
+      "stage": true
     }
   ]
 }

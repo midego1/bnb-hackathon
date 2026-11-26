@@ -160,6 +160,19 @@ Notes: photos are compressed on the phone to ≤ 200 KB; on Cloudflare without R
 time; an offer left unfunded for 5 minutes may be taken by the next renter. The contracts' shortest term is one month:
 the stage rental is "one day" in the UI and settles the same day.
 
+### Demo scooter listings: rent one from the landing page
+
+The landing page's grid shows six **demo scooters** from `web/data/listings.json` (not real shops' offers) next to the
+Mystery Box. The search above it (where, when, how long) filters the grid by city; every demo listing is open on every
+date. A card opens `/app/listings/<slug>`, and **Rent it** there starts a real rental with the wallet connected in the
+app: *Get test money* if the wallet is short (the same once-per-address drip as on stage), then the demo owner offers
+that wallet the rental (the same server-signed `createLease`), and the rental page `/lease/<escrow>` takes over:
+approve, fund the deposit and the first month's rent, photos, return. A scooter is rented by the month (its `monthThb`
+is the escrow's rent, so the one-time fee is 10 % of that month); the price per day on the card is the shop's day
+rate, shown for comparison. Amounts are priced at the fixed demo rate and rounded up to the cent, so the rental
+page's baht total can be one baht above the listed sum. A rented scooter says *Rented right now* until its rental is
+settled; the owner's side (accept the split, or reset the listing) is the presenter's buttons at `/stage/<slug>`.
+
 Server switches: `STAGE_DEMO=1` on a chain 97 build with the live demo's wallets (`DEMO_TESTNET_*`: landlord = owner,
 arbiter = dispute desk, funder pays the drips), or on local anvil (31337, its public dev keys). Optional
 `STAGE_PRESENTER_CODE` locks Accept / Reset; `STAGE_DRIPS_PER_HOUR` (30) and `STAGE_LEASES_PER_HOUR` (20) cap use.
