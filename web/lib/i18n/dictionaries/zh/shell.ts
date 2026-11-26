@@ -17,6 +17,7 @@ export const body: DeepPartial<typeof enBody> = {
     how: "运作方式",
     developers: "开发者",
     integrations: "集成",
+    sponsors: "赞助赛道",
     settings: "设置",
     settingsTitle: "密钥设置（仅限本地）",
   },
@@ -151,7 +152,7 @@ export const body: DeepPartial<typeof enBody> = {
     env: "环境变量（服务器端，web/.env.local）：",
     calls: "最近调用",
     noCalls: "本服务器尚未记录任何调用。",
-    state: { live: "已上线", "not-configured": "未配置", blocked: "受阻", off: "实时调用已关闭" },
+    state: { live: "已上线", "not-configured": "未配置", off: "实时调用已关闭" },
   },
   secrets: {
     metaTitle: "密钥",

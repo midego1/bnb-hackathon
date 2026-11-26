@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bufferedDeposit, computeBuffer, dailyVolatility } from "@/lib/risk";
-import { readFeed } from "@/lib/server/price";
+import { atlasMaxAgeSeconds, readFeed } from "@/lib/server/price";
 import { RiskService } from "@/lib/server/risk";
 import { proposeSettlement, memoryNotes } from "@/lib/server/settlement";
 import { cmcQuotes } from "@/lib/server/sponsors/cmc";
@@ -146,9 +146,9 @@ describe("Cournot", () => {
 
 describe("Atlas push feed", () => {
   const addr = "0x0000000000000000000000000000000000000a71";
-  const client = (answer: bigint, updatedAt: number) => ({
+  const client = (answer: bigint, updatedAt: number, decimals = 8) => ({
     readContract: vi.fn(async ({ functionName }: { functionName: string }) =>
-      functionName === "decimals" ? 8 : [BigInt(1), answer, BigInt(updatedAt), BigInt(updatedAt), BigInt(1)],
+      functionName === "decimals" ? decimals : [BigInt(1), answer, BigInt(updatedAt), BigInt(updatedAt), BigInt(1)],
     ),
   });
 
@@ -162,6 +162,15 @@ describe("Atlas push feed", () => {
     await expect(readFeed(client(BigInt(0), 0) as any, addr, 3600, now)).rejects.toThrow(/never updated/);
     const logs = await recentSponsorCalls("atlas");
     expect(logs.map((l) => l.ok)).toEqual([false, false, true]);
+  });
+
+  it("reads 18-decimal answers and lets the USDT feed's 24 h heartbeat pass", async () => {
+    const now = 1_800_000_000;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await expect(readFeed(client(BigInt(612) * BigInt(10) ** BigInt(18), now - 30, 18) as any, addr, 3600, now)).resolves.toMatchObject({ value: 612 });
+    expect(atlasMaxAgeSeconds({})).toBe(3600);
+    expect(atlasMaxAgeSeconds({}, "USDT")).toBe(25 * 3600);
+    expect(atlasMaxAgeSeconds({ ATLAS_MAX_AGE_SECONDS: "120" }, "BNB")).toBe(120);
   });
 });
 

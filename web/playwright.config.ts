@@ -15,7 +15,7 @@ export { E2E_RPC_PORT, E2E_WEB_PORT } from "./e2e/env";
 // Every spec shares the one anvil (the app is built against it) and some move its clock (evm_snapshot/evm_revert,
 // e2e/chain.ts), so specs run one at a time in the "chain" project. Only these front-end-only specs (no transaction,
 // no chain-state assertion) run beside them in "ui". A new spec is in "chain" unless it is added here.
-const UI_SPECS = ["eli5", "integrations", "marketing", "pitch", "settings-secrets", "shell"].map((name) => `${name}.spec.ts`);
+const UI_SPECS = ["eli5", "integrations", "marketing", "pitch", "settings-secrets", "shell", "sponsors"].map((name) => `${name}.spec.ts`);
 const chromium = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } };
 
 export default defineConfig({

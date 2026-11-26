@@ -1,10 +1,10 @@
 # Demo and pitch script
 
-The pitch runs on the **live site** on BSC testnet: <https://keyescrow-web.mdgooijer.workers.dev>. No wallet is
+The pitch runs on the **live site** on BSC testnet: <https://keyscrow.mdgooijer.workers.dev>. No wallet is
 needed for the demo: `/demo` signs with throwaway demo wallets on the server. If the network fails, use the
 [30-second backup](#30-second-backup-local-mode-no-network) on a local chain.
 
-**Storyboard of the live "Mystery Box" pitch:** [`/pitch`](https://keyescrow-web.mdgooijer.workers.dev/pitch)
+**Storyboard of the live "Mystery Box" pitch:** [`/pitch`](https://keyscrow.mdgooijer.workers.dev/pitch)
 (unlisted, not in the sidebar). An animated 3:00 run-through: a judge scans the QR on the big screen, rents our box with
 a guest wallet, takes pickup and return photos, the AI inspector proposes a split and we accept. Each scene shows its
 time mark and what we say or click, with a 3:00 timer bar. Use it to rehearse, and as the backup slide if the live demo
@@ -15,9 +15,9 @@ fails (**Space** = play / pause, **← →** = scenes). Strings and timings: `we
 ## Before you go on stage (5 minutes)
 
 1. Open these tabs, in this order, in one browser window at about 1470×830 (a 13–15" laptop, or zoom to fit):
-   1. <https://keyescrow-web.mdgooijer.workers.dev> (home)
-   2. <https://keyescrow-web.mdgooijer.workers.dev/how-it-works>
-   3. <https://keyescrow-web.mdgooijer.workers.dev/demo>: pick **Happy path**, **Guided**, **Step by step**. Do not press
+   1. <https://keyscrow.mdgooijer.workers.dev> (home)
+   2. <https://keyscrow.mdgooijer.workers.dev/how-it-works>
+   3. <https://keyscrow.mdgooijer.workers.dev/demo>: pick **Happy path**, **Guided**, **Step by step**. Do not press
       Play yet. Reload the tab just before you start, so the first run is the Honda Click at ฿3,400 (each run in a tab
       cycles Click → Scoopy → NMAX).
    4. Fleet owner, local build: `http://localhost:3000/landlord` (Demo accounts bar on *Owner*). On the live site this
@@ -25,9 +25,9 @@ fails (**Space** = play / pause, **← →** = scenes). Strings and timings: `we
       [below](#local-setup)). No local build? Use the screenshot [fleet-owner.png](screenshots/fleet-owner.png).
    5. Shareholders, local build: `http://localhost:3000/shareholders` (Demo accounts bar on *Shareholder*), or
       [shareholders.png](screenshots/shareholders.png). The live testnet vault has no deposits yet, so it shows ฿0.
-   6. <https://keyescrow-web.mdgooijer.workers.dev/developers>
+   6. <https://keyscrow.mdgooijer.workers.dev/developers>
    7. BscScan, the factory: its link is in the [README contract table](../README.md#bsc-testnet-contracts-chain-97).
-2. Check that the live demo is free: <https://keyescrow-web.mdgooijer.workers.dev/api/demo-testnet> should say
+2. Check that the live demo is free: <https://keyscrow.mdgooijer.workers.dev/api/demo-testnet> should say
    `"enabled":true,"busy":false`. Only one live run is allowed at a time, with a 60-second gap between runs by default.
 3. Know the controls: **→** (or a presenter clicker) = *Next*, **Space** = pause, **←** = back one caption.
 4. Light theme, browser zoom 100 %, notifications off.

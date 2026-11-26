@@ -11,7 +11,6 @@ import { DepositRiskPanel } from "./DepositRiskPanel";
 const STATE: Record<IntegrationStatus["state"], { className: string }> = {
   live: { className: "bg-success-soft text-success-fg ring-success-border" },
   "not-configured": { className: "bg-warning-soft text-warning-fg ring-warning-border" },
-  blocked: { className: "bg-danger-soft text-danger ring-danger-border" },
   off: { className: "bg-muted text-muted-foreground ring-border" },
 };
 

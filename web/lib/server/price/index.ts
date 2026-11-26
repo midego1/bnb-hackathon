@@ -56,10 +56,14 @@ export function atlasConfigured(env: PriceEnv): boolean {
   return Boolean(env.ATLAS_RPC_URL && env.ATLAS_FEED_USDT_USD && env.ATLAS_FEED_BNB_USD);
 }
 
-/** Max age of an Atlas answer before it is rejected (Atlas docs: "always check staleness"). Default 1 h. */
-export function atlasMaxAgeSeconds(env: PriceEnv): number {
+/** Atlas's USDT/USD feed has a 24 h heartbeat (BNB/USD: 60 s), so a 1 h limit would reject it between heartbeats. */
+const USDT_FEED_MAX_AGE_SECONDS = 25 * 3600;
+
+/** Max age of an Atlas answer before it is rejected (Atlas docs: "always check staleness"). Default 1 h; USDT at least 25 h. */
+export function atlasMaxAgeSeconds(env: PriceEnv, asset?: Asset): number {
   const v = Number(env.ATLAS_MAX_AGE_SECONDS);
-  return Number.isFinite(v) && v > 0 ? v : 3600;
+  const max = Number.isFinite(v) && v > 0 ? v : 3600;
+  return asset === "USDT" ? Math.max(max, USDT_FEED_MAX_AGE_SECONDS) : max;
 }
 
 export class StalePriceError extends Error {}
@@ -92,7 +96,7 @@ export async function fetchAtlas(env: PriceEnv, thbPerUsd: () => Promise<number>
   const client = createPublicClient({ transport: http(env.ATLAS_RPC_URL, { timeout: 8_000 }) });
   const maxAge = atlasMaxAgeSeconds(env);
   const [usdt, bnb, thb] = await Promise.all([
-    readFeed(client, env.ATLAS_FEED_USDT_USD!, maxAge),
+    readFeed(client, env.ATLAS_FEED_USDT_USD!, atlasMaxAgeSeconds(env, "USDT")),
     readFeed(client, env.ATLAS_FEED_BNB_USD!, maxAge),
     env.ATLAS_FEED_USD_THB ? readFeed(client, env.ATLAS_FEED_USD_THB, maxAge) : null,
   ]);

@@ -8,7 +8,7 @@ import { recentSponsorCalls, type SponsorCall } from "./log";
 export interface IntegrationStatus {
   id: SponsorCall["sponsor"];
   name: string;
-  state: "live" | "not-configured" | "blocked" | "off";
+  state: "live" | "not-configured" | "off";
   detail: string;
   env: string[];
   calls: SponsorCall[];
@@ -47,10 +47,10 @@ export async function integrationStatus(env: Env = process.env): Promise<Integra
     {
       id: "atlas",
       name: "Atlas push oracle (BSC)",
-      state: atlasConfigured(env) ? "live" : "blocked",
+      state: atlasConfigured(env) ? "live" : "not-configured",
       detail: atlasConfigured(env)
-        ? "latestRoundData() with a staleness check (ATLAS_MAX_AGE_SECONDS) is the first price source for THB/USD display."
-        : "No Atlas feed addresses for BSC testnet are published; set them once Atlas provides them.",
+        ? "BNB/USD and USDT/USD latestRoundData() with a staleness check (ATLAS_MAX_AGE_SECONDS; the USDT feed's 24 h heartbeat is allowed) is the first price source; CoinMarketCap is the fallback."
+        : "Atlas feeds are not configured on this server: prices come from CoinMarketCap or labelled demo rates.",
       env: ["ATLAS_RPC_URL", "ATLAS_FEED_BNB_USD", "ATLAS_FEED_USDT_USD", "ATLAS_FEED_USD_THB", "ATLAS_MAX_AGE_SECONDS"],
       calls: await recentSponsorCalls("atlas", 25, env),
     },

@@ -309,6 +309,7 @@ claude mcp add --transport http keyscrow \\
       arbiter: "Dispute desk",
       developers: "Developer reference",
       integrations: "Integrations",
+      sponsors: "Sponsor tracks",
       agent: "Inspector agent",
       api: "API",
       architecture: "Architecture",

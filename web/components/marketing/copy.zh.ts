@@ -279,6 +279,7 @@ claude mcp add --transport http keyscrow \\
       arbiter: "争议处理台",
       developers: "开发者参考",
       integrations: "集成",
+      sponsors: "赞助赛道",
       agent: "验车智能体",
       api: "API",
       architecture: "架构",

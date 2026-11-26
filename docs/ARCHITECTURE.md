@@ -552,11 +552,11 @@ sequenceDiagram
 
 | Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 305 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 393 in 30 files |
-| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 21 |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 308 |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 544 in 39 files |
+| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 24 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
-| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 108 tests in 20 files |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 152 tests in 26 files |
 
 CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
 secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.
