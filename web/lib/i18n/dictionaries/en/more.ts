@@ -16,7 +16,7 @@ export const body = {
     goTo: "Go to scene {n} ({mark})",
     keys: "Space: play / pause · ← →: scenes",
     budget: "Time budget",
-    names: { landlord: "Us · box owner", tenant: "Judge", safe: "The box's safe", jar: "KeyEscrow jar", shop: "Rental shop", tourist: "Tourist" },
+    names: { landlord: "Us · box owner", tenant: "Judge", safe: "The box's safe", jar: "KeyScrow jar", shop: "Rental shop", tourist: "Tourist" },
     judgeBadge: "JUDGE",
     bubbles: {
       grab: "Thanks!",
@@ -38,7 +38,7 @@ export const body = {
       problem: { note: "Say: at return the shop alone decides what every scratch costs. Owners have no proof either." },
       oneliner: {
         note: "Say: one small escrow contract per rental. Neither side can empty it alone.",
-        title: "KeyEscrow",
+        title: "KeyScrow",
         line1: "One escrow contract per rental",
         line2: "Neither side can empty it alone",
       },
@@ -88,15 +88,15 @@ export const body = {
         line2: "Dispute desk as a service",
         line3: "Ask: pilot shops in Chiang Mai + Phuket",
       },
-      end: { note: "Stop. Thank the judge, hand them the box, take questions.", title: "Keep your passport.", line1: "KeyEscrow · live on BSC testnet" },
+      end: { note: "Stop. Thank the judge, hand them the box, take questions.", title: "Keep your passport.", line1: "KeyScrow · live on BSC testnet" },
     },
   },
 
   promptpay: {
     banner: "This is not a payment page. No bank or payment provider is connected and the QR goes to a fake demo id. “I’ve paid” mints test mUSDT on {chain} instead.",
     back: "← Back to the rental",
-    notDeployed: "KeyEscrow is not deployed on {chain}.",
-    noRental: "No KeyEscrow rental could be read at {address} on {chain}.",
+    notDeployed: "KeyScrow is not deployed on {chain}.",
+    noRental: "No KeyScrow rental could be read at {address} on {chain}.",
     notRenter: "Connect the renter’s wallet of this rental to pay for it.",
     done: "Paid into the escrow from your own wallet. ",
     openRental: "Open the rental",
@@ -123,8 +123,8 @@ export const body = {
   },
 
   credits: {
-    metaTitle: "Photo credits · KeyEscrow",
-    lead: "The listing photos on this site and in the KeyEscrow iOS app are real photos from Wikimedia Commons, free to use under the licences below. They show the model of each listing, not the listed scooter, and the shops and places in them are not connected to KeyEscrow.",
+    metaTitle: "Photo credits · KeyScrow",
+    lead: "The listing photos on this site and in the KeyScrow iOS app are real photos from Wikimedia Commons, free to use under the licences below. They show the model of each listing, not the listed scooter, and the shops and places in them are not connected to KeyScrow.",
     usedFor: "Used for",
     author: "Author",
     license: "Licence",
@@ -136,15 +136,15 @@ export const body = {
   },
 
   dev: {
-    metaTitle: "Developers · KeyEscrow",
+    metaTitle: "Developers · KeyScrow",
     lead: {
       before:
         "Every rental action is one definition that works as a REST endpoint, an MCP tool for AI agents and the web app's form validation. Reads return JSON. ",
-      after: " actions return unsigned transactions, already simulated on the chain, for your own wallet to sign: KeyEscrow never holds your key.",
+      after: " actions return unsigned transactions, already simulated on the chain, for your own wallet to sign: KeyScrow never holds your key.",
     },
     notes: {
       openapi: "OpenAPI 3.1: ",
-      mcp: ". MCP: the same actions are tools on the KeyEscrow Inspector agent (",
+      mcp: ". MCP: the same actions are tools on the KeyScrow Inspector agent (",
       config: ", see docs/AGENT.md for the Claude config). Amounts: {symbol} has {decimals} decimals; inputs take human amounts like ",
       outputs: ", outputs give ",
       base: " (base units) and ",
@@ -265,7 +265,7 @@ export const head = {
     /** The one big sentence of each scene. */
     scenes: {
       problem: "Rent a scooter in Thailand, and the shop keeps your passport as the deposit.",
-      oneliner: "KeyEscrow puts every deposit in its own safe with two locks, on BNB Chain.",
+      oneliner: "KeyScrow puts every deposit in its own safe with two locks, on BNB Chain.",
       qr: "Who wants to rent our Mystery Box? Scan the QR on the big screen.",
       wallet: "The judge's phone gets a guest wallet with test money. No app, no seed phrase.",
       rent: "The judge rents the box: deposit and rent go into the box's own safe.",
@@ -275,7 +275,7 @@ export const head = {
       settle: "We accept on the big screen: both locks open and the money settles.",
       native: "The safe is empty, everyone got their share, and it is all native to BNB Chain.",
       business: "We earn 10% of one month's rent per rental. Help us pilot with real shops.",
-      end: "Keep your passport. KeyEscrow.",
+      end: "Keep your passport. KeyScrow.",
     },
   },
   promptpay: {

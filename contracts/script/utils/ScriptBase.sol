@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Script} from "forge-std/Script.sol";
 import {VmSafe} from "forge-std/Vm.sol";
 
-/// @notice Shared helpers for KeyEscrow forge scripts: network guard, anvil dev accounts, deployment file paths.
+/// @notice Shared helpers for KeyScrow forge scripts: network guard, anvil dev accounts, deployment file paths.
 abstract contract ScriptBase is Script {
     uint256 internal constant ANVIL_CHAIN_ID = 31337;
 

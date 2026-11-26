@@ -51,7 +51,7 @@ test("switch to 中文 on the landing page: /, /how-it-works and /demo change an
   await expect(page).toHaveTitle(/不用押护照/);
 
   await page.goto("/how-it-works?autoplay=0&scene=6");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("KeyEscrow，简单讲给你听");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("KeyScrow，简单讲给你听");
   await expect(page.getByTestId("eli5-narration")).toContainText("机器人对比照片");
   await expect(page.getByTestId("eli5-ending-happy")).toContainText("双方同意");
   await shot(page, "zh-how-it-works");

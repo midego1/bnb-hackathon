@@ -2,7 +2,7 @@
  * `pnpm agent:demo:tools`: the rental actions as an AI agent sees them, end to end on a LOCAL chain.
  *
  *   1. starts a throwaway anvil (31337, free port in 28660-28689), deploys + seeds it (forge scripts)
- *   2. starts KeyEscrow Inspector in-process with the rental tools pointed at that anvil
+ *   2. starts KeyScrow Inspector in-process with the rental tools pointed at that anvil
  *   3. as an MCP client (Streamable HTTP, like Claude): lists the tools, explain_status on the seeded rental,
  *      prepare_create_lease from baht amounts, then prepare_fund for the renter
  *   4. signs the returned UNSIGNED steps with anvil's public dev keys and shows the rental created and funded

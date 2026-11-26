@@ -1,8 +1,8 @@
-# Deploying KeyEscrow to BSC testnet (chainId 97)
+# Deploying KeyScrow to BSC testnet (chainId 97)
 
 This deploys **MockUSDT + EscrowFactory** (the factory deploys the `RentalEscrow` implementation) to BSC testnet,
 writes `contracts/deployments/97.json` (same shape as the local `31337.json`), verifies the contracts on BscScan
-testnet and points the web app at chain 97. MockUSDT is the only token. KeyEscrow has no token of its own.
+testnet and points the web app at chain 97. MockUSDT is the only token. KeyScrow has no token of its own.
 
 Everything goes through `contracts/script/testnet.sh`:
 
@@ -56,8 +56,8 @@ BSC_TESTNET_RPC_URL=https://data-seed-prebsc-1-s1.bnbchain.org:8545   # or your 
 DEPLOYER_ACCOUNT=keyescrow-deployer
 DEPLOYER_ADDRESS=0x...            # output of `cast wallet address --account keyescrow-deployer`
 FACTORY_OWNER=0x...               # owns the factory (fee rate, treasury, dispute desk); a wallet you control
-FEE_RECIPIENT=0x...               # KeyEscrow treasury
-DEFAULT_ARBITER=0x...             # KeyEscrow dispute desk (the default arbiter for rentals)
+FEE_RECIPIENT=0x...               # KeyScrow treasury
+DEFAULT_ARBITER=0x...             # KeyScrow dispute desk (the default arbiter for rentals)
 # FEE_BPS=1000                    # optional: 10% of ONE month's rent, once per rental (max 1000)
 # FLEET_OPERATOR=0x...            # optional: Fleet Vault operator (maintenance fee); default FEE_RECIPIENT
 # FLEET_OPERATOR_FEE_BPS=1000     # optional: operator fee in bps of vault income (max 3000)

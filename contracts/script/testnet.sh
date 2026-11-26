@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# KeyEscrow: BSC testnet (chainId 97), opBNB testnet (5611) and BSC mainnet (56, the capped pilot) deploy helper.
+# KeyScrow: BSC testnet (chainId 97), opBNB testnet (5611) and BSC mainnet (56, the capped pilot) deploy helper.
 # See docs/DEPLOY.md. DEPLOY_CHAIN_ID picks the network: 97 (default, pnpm deploy:testnet*), 5611 (pnpm deploy:opbnb*)
 # or 56 (pnpm deploy:mainnet*). Same rules on all three; 56 additionally needs MAINNET_I_UNDERSTAND=yes to broadcast,
 # uses the real BSC-USD (never MockUSDT), deploys no Fleet Vault and caps the factory (MAX_* below).
@@ -122,7 +122,7 @@ resolve_wallet() {
 # Preflight. Never sends a transaction: the only forge invocation below has no --broadcast.
 preflight() {
   FAILS=0
-  echo "${B}KeyEscrow preflight: $NET (chainId $CHAIN_ID). No transaction is sent.${N}"
+  echo "${B}KeyScrow preflight: $NET (chainId $CHAIN_ID). No transaction is sent.${N}"
   local t
   for t in forge cast node; do command -v "$t" >/dev/null || die "missing tool: $t" 2; done
 
@@ -332,7 +332,7 @@ cmd_verify() {
   if ((!MAINNET)); then
     local vctor
     vctor="$(cast abi-encode 'constructor(address,string,string,address,uint16)' \
-      "$(jq -r .token "$f")" "${FLEET_NAME:-KeyEscrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
+      "$(jq -r .token "$f")" "${FLEET_NAME:-KeyScrow Bangkok Fleet 1}" "${FLEET_SYMBOL:-BKK-FLEET-1}" \
       "$(jq -r .fleetOperator "$f")" "$(jq -r .fleetOperatorFeeBps "$f")")"
     targets=("$(jq -r .token "$f")|src/mocks/MockUSDT.sol:MockUSDT|" "${targets[@]}"
       "$(jq -r .fleetVault "$f")|src/FleetVault.sol:FleetVault|$vctor")

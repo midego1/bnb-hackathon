@@ -39,7 +39,7 @@ export function onRampPlan(
   deploymentToken: Address,
 ): { to: Address; amount: bigint } {
   if (!(ONRAMP_CHAINS as readonly number[]).includes(chainId)) throw new DemoError(404, "wrong-chain", "The PromptPay demo runs on local anvil and BSC testnet only.");
-  if (!lease.isLease) throw new DemoError(400, "not-a-lease", "That is not a KeyEscrow rental of this deployment.");
+  if (!lease.isLease) throw new DemoError(400, "not-a-lease", "That is not a KeyScrow rental of this deployment.");
   if (lease.token.toLowerCase() !== deploymentToken.toLowerCase()) throw new DemoError(400, "wrong-token", "This rental is not paid in the demo mUSDT.");
   const due = amountDue(lease);
   if (!due) throw new DemoError(409, "nothing-due", "Nothing is due on this rental right now.");
@@ -57,7 +57,7 @@ export async function planOnRamp(client: PublicClient, chainId: number, a: { fac
     client.readContract({ address: lease, abi: rentalEscrowAbi, functionName: "periodsFunded" }).catch(() => 0),
   ]);
   const t = terms as { token: Address; tenant: Address; depositAmount: bigint; rentAmount: bigint; termPeriods: number } | undefined;
-  if (!t) throw new DemoError(400, "not-a-lease", "That is not a KeyEscrow rental of this deployment.");
+  if (!t) throw new DemoError(400, "not-a-lease", "That is not a KeyScrow rental of this deployment.");
   const plan = onRampPlan(chainId, { isLease: isLease as boolean, token: t.token, status: Number(status), periodsFunded: Number(periodsFunded), terms: t }, a.token);
   checkRate();
   return plan;

@@ -50,7 +50,7 @@ enum PhotoCatalog {
                     author: "PattayaPatrol", license: "CC BY-SA 4.0", licenseURL: bySA4,
                     source: "https://commons.wikimedia.org/wiki/File:DZ6_1692_A_row_of_parked_motorbikes_lines_a_quiet_well-lit_street_at_night_as_shops_and_signs_glow_under_the_awnings.jpg",
                     changes: "credits.changes.hero", note: "credits.note.hero"),
-        PhotoCredit(asset: "photo-mystery-box", use: "KeyEscrow Mystery Box",
+        PhotoCredit(asset: "photo-mystery-box", use: "KeyScrow Mystery Box",
                     title: "Small Cardboard Moving Box Taped Closed (47303024341)",
                     author: "HireAHelper", license: "CC BY 2.0", licenseURL: "https://creativecommons.org/licenses/by/2.0/",
                     source: "https://commons.wikimedia.org/wiki/File:Small_Cardboard_Moving_Box_Taped_Closed_(47303024341).jpg",
@@ -147,7 +147,7 @@ enum RentalAlbum {
     }
 
     /// The transaction that settled an escrow, when this phone sent it: its receipt holds the payout even when
-    /// KeyEscrow's chain index is behind.
+    /// KeyScrow's chain index is behind.
     private static let settleKey = "keyescrow.settleTx.v1"
     static func rememberSettle(lease: String, hash: String) {
         var d = (UserDefaults.standard.dictionary(forKey: settleKey) as? [String: String]) ?? [:]

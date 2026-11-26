@@ -1,4 +1,4 @@
-# KeyEscrow on Cloudflare Workers
+# KeyScrow on Cloudflare Workers
 
 Two Workers give the hackathon judges a public URL. Both are deployed on the `mdgooijer` workers.dev subdomain:
 <https://keyescrow-web.mdgooijer.workers.dev> and <https://keyescrow-agent.mdgooijer.workers.dev>. Redeploying needs a
@@ -7,7 +7,7 @@ Cloudflare account and an API token (one-time steps below).
 | Worker | What it serves | Source | Public URL after deploy |
 | --- | --- | --- | --- |
 | `keyescrow-web` | The Next.js app (all pages, `/api/*`) on BSC testnet (97), via the OpenNext adapter | `web/` (`web/wrangler.jsonc`, `web/open-next.config.ts`, `web/cloudflare/`) | `https://keyescrow-web.<subdomain>.workers.dev` |
-| `keyescrow-agent` | KeyEscrow Inspector, ERC-8004 agent #2921: agent card, A2A, MCP (inspection + rental-action tools), REST | `agent/` (`agent/wrangler.jsonc`, `agent/src/worker.ts`) | `https://keyescrow-agent.<subdomain>.workers.dev` |
+| `keyescrow-agent` | KeyScrow Inspector, ERC-8004 agent #2921: agent card, A2A, MCP (inspection + rental-action tools), REST | `agent/` (`agent/wrangler.jsonc`, `agent/src/worker.ts`) | `https://keyescrow-agent.<subdomain>.workers.dev` |
 
 `<subdomain>` is the account's workers.dev subdomain, picked when the account is created. Only workers.dev routes are
 used: no custom domain, no zone. Both Workers fit the **Workers Free plan** (see [Size](#size)); nothing here needs

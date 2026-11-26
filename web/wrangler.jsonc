@@ -1,4 +1,4 @@
-// KeyEscrow web app on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
+// KeyScrow web app on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
 //
 // Build:   pnpm cf:build     (chain 97; CF_CHAIN_ID=56 builds the mainnet stage Worker, env "mainnet" below;
 //                             refuses NEXT_PUBLIC_DEV_ACCOUNTS=1)

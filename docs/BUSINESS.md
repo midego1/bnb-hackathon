@@ -18,28 +18,28 @@ source. The problem statement above is qualitative on purpose.
 
 ## Solution
 
-KeyEscrow puts the deposit and the rent into a neutral smart contract on BNB Chain, one contract per rental:
+KeyScrow puts the deposit and the rent into a neutral smart contract on BNB Chain, one contract per rental:
 
 1. **Neither party can move funds alone.** The deposit leaves the escrow only by mutual agreement, by the arbiter's
    ruling, or by a timeout that protects the renter.
 2. **Evidence by default.** The rental agreement and the pickup and return photos are stored off-chain (BNB
    Greenfield when configured). Their content hashes are anchored on-chain, so the evidence cannot be swapped later.
-3. **AI inspection.** The KeyEscrow Inspector, an ERC-8004 agent, compares pickup and return photos and drafts a
+3. **AI inspection.** The KeyScrow Inspector, an ERC-8004 agent, compares pickup and return photos and drafts a
    split with reasons. It remembers each scooter's earlier inspections, so old damage is not charged twice. One
    party proposes the split on-chain and the other accepts. No haggling at the counter and no court.
-4. **Disputes are bounded.** The KeyEscrow dispute desk is the default arbiter. If the owner ignores a proposal for
+4. **Disputes are bounded.** The KeyScrow dispute desk is the default arbiter. If the owner ignores a proposal for
    7 days, or the arbiter does not rule within 14 days, the full deposit returns to the renter.
 
 ## Users
 
-| Segment | Pain | What KeyEscrow gives them |
+| Segment | Pain | What KeyScrow gives them |
 | --- | --- | --- |
 | **Tourists and digital nomads** (Chiang Mai, Pai, Phuket, the islands) | Leave their passport at the shop. Face bogus damage claims at return, with no local leverage. | No passport at the counter: a contract holds the deposit, not the shop. A refund lands in their wallet the moment both sides agree. |
 | **Long-stay and Thai renters** on monthly rentals | Haggle over scratches at return. Refunds are slow. | The same protection, with a transparent process and amounts shown in THB. |
 | **Small rental shops** (a handful to a few dozen scooters) | Real damage from renters, with weak evidence. Disputes with tourists who are about to fly out. | Guided pickup and return photos as evidence, rent arriving on schedule, quick AI-assisted settlement, and a fleet dashboard with each scooter's status and income. |
 | **Fleet investors** | Small investors cannot own part of a rental fleet's income. | The Fleet Vault: deposit a stablecoin, hold `BKK-FLEET-1` shares, claim rent and damage payouts. A testnet prototype today. |
 
-## How KeyEscrow earns
+## How KeyScrow earns
 
 ### 1. Protocol fee: 10 % of one month's rent, once per rental
 
@@ -59,7 +59,7 @@ KeyEscrow puts the deposit and the rent into a neutral smart contract on BNB Cha
 | Monthly rent | 100 | 3,400 |
 | Deposit (2 months, instead of the passport) | 200 | 6,800 |
 | Renter funds at pickup (deposit + month 1) | 300 | 10,200 |
-| **KeyEscrow fee** (10 % of one month, once) | **10** | **340** |
+| **KeyScrow fee** (10 % of one month, once) | **10** | **340** |
 | Owner receives for month 1 | 90 | 3,060 |
 | Owner receives for months 2–3 | 100 each | 3,400 each |
 
@@ -72,7 +72,7 @@ neutral way to settle damage claims.
 
 ### 2. The dispute desk as a service
 
-The KeyEscrow dispute desk is the default arbiter on every rental. It is a second revenue line that grows with
+The KeyScrow dispute desk is the default arbiter on every rental. It is a second revenue line that grows with
 rental volume:
 
 - **Dispute fee (planned):** a flat fee per dispute that reaches a human, deducted from the settlement. Most returns
@@ -97,7 +97,7 @@ and redeem 1:1.
 
 - The operator fee (`operatorFeeBps`) is fixed when the vault is deployed and capped at 30 % in the contract. The
   testnet vault uses 10 %.
-- The operator can be the shop, a fleet company, or KeyEscrow running a fleet with partners.
+- The operator can be the shop, a fleet company, or KeyScrow running a fleet with partners.
 
 Example, the same scooter in a vault: month 1 rent of ฿3,400 pays the ฿340 protocol fee, so ฿3,060 flows into the
 vault. The operator takes 10 % (฿306) and shareholders share ฿2,754. A ฿1,287 damage claim from the deposit adds
@@ -135,7 +135,7 @@ extra contract:
 
 - **No yield on deposits.** We do not lend out escrowed deposits. Yield on renters' money would add risk and a
   regulatory burden, and it would undermine the trust we sell.
-- **No token.** KeyEscrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
+- **No token.** KeyScrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
 
 ## Roadmap
 
@@ -154,7 +154,7 @@ extra contract:
 Most renters in Thailand have no crypto. They should be able to pay the deposit and rent in baht with PromptPay, the
 national QR bank transfer, and never see a token. A licensed Thai partner (a regulated digital-asset or payment
 operator) takes the baht, converts it to the stablecoin and sends it to the renter's own wallet (an embedded wallet in
-phase 3); the renter's wallet then funds the escrow as today. KeyEscrow never holds the baht or the keys, and the
+phase 3); the renter's wallet then funds the escrow as today. KeyScrow never holds the baht or the keys, and the
 partner handles KYC and the licence. Refunds go back out the same way (stablecoin to baht).
 
 The app already shows the flow as a clearly labelled **demo** (`/app/pay/<rental>`, "Pay with PromptPay (demo)" on a
@@ -172,7 +172,7 @@ asset: shareholders together fund and co-own, say, one Ferrari for rent in Phuke
 page shows it as a **"Coming soon: Asset pools"** card with an example pool (Ferrari 296 GTB, Phuket, target
 ฿12,000,000) and a static progress bar labelled "example". There is no pool, no contract, no sign-up and no backend.
 
-There is **no coin, no ticker and no token launch**: KeyEscrow still has no token of its own (hackathon rule). A pool
+There is **no coin, no ticker and no token launch**: KeyScrow still has no token of its own (hackathon rule). A pool
 would issue fixed shares in that one asset, the way the Fleet Vault issues shares in its fleet. Why not a meme coin?
 On a bonding curve anyone can buy a majority of the asset, and nothing stops sybil wallets or the team from dumping.
 

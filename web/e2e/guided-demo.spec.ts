@@ -70,9 +70,9 @@ test("landing page: Play the demo runs the happy path to a settled, balanced sum
   await trackToasts(page);
   await page.getByTestId("demo-play").click();
 
-  // The AI inspection with reasons and the KeyEscrow Inspector line.
+  // The AI inspection with reasons and the KeyScrow Inspector line.
   await expect(page.getByTestId("demo-inspection")).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId("demo-inspector")).toContainText("KeyEscrow Inspector");
+  await expect(page.getByTestId("demo-inspector")).toContainText("KeyScrow Inspector");
   await expect(page.getByTestId("demo-inspection").locator("li")).toHaveCount(2);
 
   const b = await expectSettledAndBalanced(page, "happy");
@@ -132,7 +132,7 @@ test("step by step waits for a click; a failed step shows the error and Retry ca
   await page.getByTestId("demo-retry").click();
   await expect(status("inspect")).toHaveAttribute("data-status", "done", { timeout: 30_000 });
   await expect(page.getByTestId("demo-next")).toBeVisible();
-  await expect(page.getByTestId("demo-narration")).toContainText("KeyEscrow Inspector agent compared");
+  await expect(page.getByTestId("demo-narration")).toContainText("KeyScrow Inspector agent compared");
   await expect(page.getByText("Return photos (2)")).toBeVisible();
   await noToasts(page);
   await shot(page, "12-demo-mid-run");

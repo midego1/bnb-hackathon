@@ -24,7 +24,7 @@ export const body = {
       Funded: "Deposit locked ({deposit}) + first rent paid ({rent})",
       RentPaid: "Renter prepaid {n} rent period(s): {amount}",
       RentReleased: "Rent paid out: {amount} to the owner",
-      RentReleasedFee: "Rent paid out: {amount} to the owner + {fee} KeyEscrow fee",
+      RentReleasedFee: "Rent paid out: {amount} to the owner + {fee} KeyScrow fee",
       pickupPhoto: "Pickup inspection photo anchored",
       returnPhoto: "Return inspection photo anchored",
       evidence: "Evidence anchored",
@@ -33,7 +33,7 @@ export const body = {
       SettledSlashed: "Settled: deposit slashed {kept}, {back} returned",
       SettledFull: "Settled: full deposit returned ({back})",
       Cancelled: "Offer cancelled by the owner",
-      ProtocolFeePaid: "KeyEscrow fee paid: {amount}",
+      ProtocolFeePaid: "KeyScrow fee paid: {amount}",
       Deposited: "Shareholder deposited {amount} (shares minted)",
       Redeemed: "Shareholder redeemed {amount}",
       IncomeDistributed: "Vault income split: {holders} to shareholders, {fee} operator fee",
@@ -122,7 +122,7 @@ export const body = {
     name: "Shareholders",
     intro:
       "Own part of a scooter fleet. Deposit test USDT into the Fleet Vault and get BKK-FLEET-1 shares; rent from completed rentals and damage payouts from slashed deposits flow in, minus the operator's maintenance fee, and you claim your share. Testnet prototype, not an offer of securities.",
-    notDeployed: "KeyEscrow is not deployed on {chain}.",
+    notDeployed: "KeyScrow is not deployed on {chain}.",
     noVault: "This deployment has no Fleet Vault yet. Redeploy with `pnpm deploy:testnet` (it now deploys the vault too).",
     whatVault: "the Fleet Vault",
     whatHistory: "the vault's history",
@@ -189,7 +189,7 @@ export const body = {
     name: "Back office",
     intro:
       "Every rental and every on-chain transaction as it happens, read straight from the contracts' events: deposits locked, rent paid, pickup and return inspections, AI verdicts, payouts and slashes, and Fleet Vault inflows. Anything stuck, failed or disputed is flagged.",
-    notDeployed: "KeyEscrow is not deployed on {chain}. Switch your wallet to BSC testnet.",
+    notDeployed: "KeyScrow is not deployed on {chain}. Switch your wallet to BSC testnet.",
     kpi: { rentals: "Rentals", open: "Open now", attention: "Need attention", locked: "Deposits locked", paid: "Rent paid out", slashed: "Deposits slashed" },
     filterLabel: "Filter rentals",
     filter: { all: "All {n}", attention: "Attention {n}", open: "Open {n}", closed: "Closed" },
@@ -212,8 +212,8 @@ export const body = {
     intro:
       "Rentals where this wallet is the neutral reviewer. When owner and renter can't agree on the deposit, you decide the split and write down why. If you miss the deadline, the full deposit goes back to the renter.",
     gate: "see the rentals you arbitrate",
-    isDesk: "You are connected as the KeyEscrow dispute desk, the default reviewer for every new rental.",
-    none: "No rentals name this wallet as their dispute desk. Owners pick the reviewer when they create a rental; the KeyEscrow dispute desk is the default.",
+    isDesk: "You are connected as the KeyScrow dispute desk, the default reviewer for every new rental.",
+    none: "No rentals name this wallet as their dispute desk. Owners pick the reviewer when they create a rental; the KeyScrow dispute desk is the default.",
     needsEmpty: "Nothing to rule on. Disputed rentals show up here.",
     otherEmpty: "No other rentals.",
   },
@@ -254,8 +254,8 @@ export const body = {
   createLease: {
     decimals: "At most {decimals} decimals for a {symbol} amount.",
     self: "You can't rent to yourself.",
-    noDesk: "No KeyEscrow dispute desk on this network; enter your own reviewer's wallet.",
-    notDeployed: "KeyEscrow is not deployed on this network. Switch your wallet's network.",
+    noDesk: "No KeyScrow dispute desk on this network; enter your own reviewer's wallet.",
+    notDeployed: "KeyScrow is not deployed on this network. Switch your wallet's network.",
     enterRenter: "Enter the renter's wallet address.",
     enterDesk: "Enter the dispute desk's wallet address.",
     distinct: "Owner, renter and dispute desk must be three different wallets.",
@@ -280,7 +280,7 @@ export const body = {
     window: "Your reply window (days)",
     windowHint: "How long you have to answer the renter's return proposal. If you stay silent, the full deposit goes back to the renter.",
     desk: "Dispute desk",
-    useDesk: "Use the KeyEscrow dispute desk ",
+    useDesk: "Use the KeyScrow dispute desk ",
     deskHelp:
       "A neutral reviewer that only steps in if you and the renter disagree on the deposit. Untick to name your own; the renter sees it before funding.",
     deskDeadline: "Dispute desk deadline (days)",
@@ -291,7 +291,7 @@ export const body = {
     agreementHint: "Optional: scooter model, plate and included helmets. The file is stored off-chain; its fingerprint (SHA-256) goes on-chain.",
     photos: "Pickup photos",
     photosHint: "Front, back, left, right and a plate close-up. Optional, can be added later. The AI return inspection compares against these.",
-    fee: "KeyEscrow fee: one-time {pct}% of one month's rent{amount}, taken from your first rent payout. The renter never pays it and the deposit is never charged.",
+    fee: "KeyScrow fee: one-time {pct}% of one month's rent{amount}, taken from your first rent payout. The renter never pays it and the deposit is never charged.",
   },
 };
 /** Headlines and the big status/banner sentences: these get the Chinese line under the English in EN+中文 (t.h). */

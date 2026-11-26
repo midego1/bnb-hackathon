@@ -44,7 +44,7 @@ export function CreateLeaseForm() {
   const { data: settings } = useFactorySettings();
   const money = useMoney();
   const feeBps = settings?.feeBps;
-  // The factory's defaultArbiter is the KeyEscrow dispute desk; passing address(0) selects it on-chain.
+  // The factory's defaultArbiter is the KeyScrow dispute desk; passing address(0) selects it on-chain.
   const desk = settings ? settings.defaultArbiter : deployment?.disputeDesk;
   const monthlyRent = parseUsdt(rent);
   const rentPeriod = Number(periodDays) * 86400;

@@ -3,7 +3,7 @@ import { IntegrationsView } from "@/components/risk/IntegrationsView";
 import { getDictionary } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: `${(await getDictionary())("nav.integrations")} · KeyEscrow` };
+  return { title: `${(await getDictionary())("nav.integrations")} · KeyScrow` };
 }
 
 export default function IntegrationsPage() {

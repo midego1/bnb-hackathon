@@ -50,7 +50,7 @@ test("landing page tells the whole story in order, without the app shell, a wall
   const problems = watchProblems(page);
   await page.setViewportSize(DESKTOP);
   await page.goto("/");
-  await expect(page).toHaveTitle(/KeyEscrow.*passport/);
+  await expect(page).toHaveTitle(/KeyScrow.*passport/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
   await expect(page.getByRole("main")).toContainText("instead of your passport");
   await expect(page.getByRole("main")).toContainText("nobody can move it alone");
@@ -159,8 +159,8 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.getByRole("main")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
-  // ...the one decorative picture (the street again, behind the closing) has an empty one.
-  expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("alt")).map((i) => i.className))).toEqual(["mk-closing-art"]);
+  // ...the one decorative picture (the street again, behind the closing) has an empty one, as do the logo marks next to the name.
+  expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("alt") && !i.hasAttribute("aria-hidden")).map((i) => i.className))).toEqual(["mk-closing-art"]);
   expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("width") || !i.getAttribute("height")).length)).toBe(0);
 
   // No web fonts or anything else from another origin.
@@ -297,7 +297,7 @@ test("the money board: every step and both endings by click and keyboard, in bah
   await expect(board).toContainText("฿10,200 in escrow");
   await expect(board).toContainText("฿0 with the owner");
   await expect(board).toContainText("Passport: still in your pocket");
-  await expect(board.getByText("KeyEscrow fee ฿340, once")).toBeHidden();
+  await expect(board.getByText("KeyScrow fee ฿340, once")).toBeHidden();
 
   await step(1).click();
   await expect(flow).toHaveAttribute("data-step", "1");
@@ -308,7 +308,7 @@ test("the money board: every step and both endings by click and keyboard, in bah
   await step(3).click();
   await expect(board).toContainText("฿6,800 in escrow");
   await expect(board).toContainText("฿3,060 with the owner");
-  await expect(board.getByText("KeyEscrow fee ฿340, once")).toBeVisible();
+  await expect(board.getByText("KeyScrow fee ฿340, once")).toBeVisible();
 
   // Return with no new damage: the whole deposit goes back.
   await step(4).focus();

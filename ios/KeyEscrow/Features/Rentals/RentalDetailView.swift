@@ -33,7 +33,7 @@ final class RentalDetailModel: ObservableObject {
         }
     }
 
-    /// The timeline comes from KeyEscrow's chain index, which can take a while: it loads on the side (one request at
+    /// The timeline comes from KeyScrow's chain index, which can take a while: it loads on the side (one request at
     /// a time), so the page and pull-to-refresh never wait for it.
     private var historyTask: Task<Void, Never>?
     private func loadHistory(_ address: String) {

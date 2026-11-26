@@ -1,13 +1,13 @@
 English | [简体中文](WRITEUP.zh-CN.md)
 
-# KeyEscrow: CoinMarketCap x Atlas write-up (one page)
+# KeyScrow: CoinMarketCap x Atlas write-up (one page)
 
-**Team:** KeyEscrow · contact: hackathon@vanpeltventures.org (team names: _owner to fill in_) · repo: this repository · demo: `/integrations` and the owner/renter rental pages.
+**Team:** KeyScrow · contact: hackathon@vanpeltventures.org (team names: _owner to fill in_) · repo: this repository · demo: `/integrations` and the owner/renter rental pages.
 
 ## Problem and audience
 
 Tourists renting scooters in Thailand leave their passport as a deposit and face bogus damage claims at return;
-shop owners face real damage with no proof. KeyEscrow holds rent and deposit in a per-rental escrow contract on
+shop owners face real damage with no proof. KeyScrow holds rent and deposit in a per-rental escrow contract on
 BNB Chain and settles the deposit from an AI photo inspection. The audience is small rental shops (owners), tourists
 and expats (renters), and later fleet investors. Everyone thinks in **baht**, while the deposit sits in a token, so
 the deposit must keep covering a THB repair bill for the whole rental. That is a risk problem, and it needs market data.

@@ -16,7 +16,7 @@ const post = (path: string, body: unknown, headers: Record<string, string> = {})
 describe("agent on Cloudflare Workers", () => {
   it("serves the agent card and registration file for the URL it is reached on", async () => {
     const card = await (await call("/.well-known/agent-card.json")).json();
-    expect(card).toMatchObject({ name: "KeyEscrow Inspector", url: "https://keyescrow-agent.example.workers.dev/a2a" });
+    expect(card).toMatchObject({ name: "KeyScrow Inspector", url: "https://keyescrow-agent.example.workers.dev/a2a" });
     const reg = await (await call("/.well-known/agent-registration.json")).json();
     expect(JSON.stringify(reg)).toContain("https://keyescrow-agent.example.workers.dev/mcp");
     const pinned = await (await call("/.well-known/agent-card.json", undefined, { AGENT_PUBLIC_URL: "https://agent.keyescrow.test/" })).json();

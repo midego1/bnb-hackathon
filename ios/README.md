@@ -1,8 +1,8 @@
-# KeyEscrow for iOS
+# KeyScrow for iOS
 
-A native SwiftUI app for KeyEscrow: rent a scooter (or the live stage Mystery Box) with the deposit and rent in their
+A native SwiftUI app for KeyScrow: rent a scooter (or the live stage Mystery Box) with the deposit and rent in their
 own escrow contract on **BSC testnet**. The phone makes a testnet-only guest wallet, signs every transaction itself,
-and talks to the live KeyEscrow API. Testnet only: the app refuses to sign for any chain but 97.
+and talks to the live KeyScrow API. Testnet only: the app refuses to sign for any chain but 97.
 
 | Home · light · EN | Listings · light · EN | Listing · light · EN | Home · dark · 中文 |
 | --- | --- | --- | --- |
@@ -91,7 +91,7 @@ photo for (none today).
 The photos illustrate the demo listings; they do not show the exact scooters. Where the picture is a stand-in the
 credits say so: the Honda Click is an earlier Click (2007), the Scoopy is a Scoopy 110 photographed in Bali, the
 Fino's page does not state its place or model year, the box is not the one on the stage. In the street photo the phone numbers on the shop signs and the print on a T-shirt are
-blurred; the shops in it are not connected to KeyEscrow.
+blurred; the shops in it are not connected to KeyScrow.
 
 Title, author, licence, source and what was changed for each photo: [CREDITS.md](CREDITS.md), and in the app under
 Settings > About > Photo credits. To add or replace one: put the JPEG in an image set under `Assets.xcassets/Photos`,
@@ -104,7 +104,7 @@ code and CREDITS.md do not name the same photos with the same credit).
 | --- | --- |
 | Every escrow the app creates or funds (`EscrowFactory` `0x04D7…9315`, MockUSDT `0x7aF0…35B1`). | Scooter listings: the off-chain, demo-grade catalogue (`/api/fleet`), labelled *Demo listing*. |
 | Every transaction: signed on the phone with the guest wallet, sent through `https://bsc-testnet-rpc.publicnode.com`. | **Demo scooters' owner** is a second test key on the phone ("demo shop wallet"): it signs `createLease` (from `prepare_create_lease`) and `accept`. The guest wallet lends it 0.0004 tBNB for gas. |
-| Photo fingerprints (`addEvidence`), the proposal with the inspector's `reportHash`, the settlement. | **Mystery Box owner** is the KeyEscrow server (`/api/stage` `lease`); the presenter accepts on the big screen. |
+| Photo fingerprints (`addEvidence`), the proposal with the inspector's `reportHash`, the settlement. | **Mystery Box owner** is the KeyScrow server (`/api/stage` `lease`); the presenter accepts on the big screen. |
 | Test money: `/api/stage` drip (tBNB + mUSDT from the team's funder, once per address) and `MockUSDT.faucet` signed by the guest wallet. | AI inspector on the live server is the deterministic demo inspector (no vision key there); the app says so. Baht use the demo rate (33 THB/USDT) when the price API is in mock mode, and says so. |
 | | Simulator has no camera: *Add a sample photo* makes a time-stamped generated picture. On an iPhone it is the live camera only (no photo library, by design). |
 | | The listing photos are illustrations (real, freely licensed photos of the same model line, credited), not the scooters themselves. |
@@ -121,7 +121,7 @@ code and CREDITS.md do not name the same photos with the same credit).
   `transfer`, no other contract.
 - A send whose answer got lost is looked up by its hash before retrying, and a pending shop offer is finished rather
   than created twice. A Keychain read error never replaces the stored key.
-- The flow's step comes from the escrow itself (`get_lease`), never from KeyEscrow's chain index: the index only feeds
+- The flow's step comes from the escrow itself (`get_lease`), never from KeyScrow's chain index: the index only feeds
   the timeline, and when it is behind the settled payout is read from the settling transaction's receipt.
 - **Keys** are made on the phone (`SecRandomCopyBytes`), stored in the Keychain with
   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` (no iCloud sync, not in backups) and never leave it. The server

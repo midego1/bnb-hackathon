@@ -60,7 +60,7 @@ contract EscrowFactoryTest is BaseTest {
         factory.createLease(p);
     }
 
-    // --- Default arbiter (KeyEscrow dispute desk) -------------------------------------------------
+    // --- Default arbiter (KeyScrow dispute desk) -------------------------------------------------
 
     function test_createLease_zeroArbiterUsesDisputeDesk() public {
         assertEq(factory.defaultArbiter(), disputeDesk);

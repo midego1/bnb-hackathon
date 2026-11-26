@@ -18,7 +18,7 @@ contract FleetVaultTest is BaseTest {
     function setUp() public override {
         super.setUp();
         vault = new FleetVault(
-            IERC20(address(usdt)), "KeyEscrow Bangkok Fleet 1", "BKK-FLEET-1", operator, OP_FEE
+            IERC20(address(usdt)), "KeyScrow Bangkok Fleet 1", "BKK-FLEET-1", operator, OP_FEE
         );
         usdt.faucet(alice, 10_000e6);
         usdt.faucet(bob, 10_000e6);
@@ -41,7 +41,7 @@ contract FleetVaultTest is BaseTest {
     // --- Constructor ----------------------------------------------------------------------------
 
     function test_constructor_setsMetadata() public view {
-        assertEq(vault.name(), "KeyEscrow Bangkok Fleet 1");
+        assertEq(vault.name(), "KeyScrow Bangkok Fleet 1");
         assertEq(vault.symbol(), "BKK-FLEET-1");
         assertEq(vault.decimals(), 6);
         assertEq(address(vault.asset()), address(usdt));

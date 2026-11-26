@@ -217,7 +217,7 @@ browser (`web/lib/server/chainIndex`).
   transactions, anvil only), `scannedFailures`, `updatedAt`.
 - RPC failure: with an earlier snapshot the answer is still 200, with `stale: {error, since}` (the UI shows a "last good
   read" warning with a Retry button); without one it is 503 with `Retry-After: 5`. 400 for an unsupported `chainId` or a
-  malformed `minBlock`, 404 when KeyEscrow is not deployed on that chain.
+  malformed `minBlock`, 404 when KeyScrow is not deployed on that chain.
 
 ## /api/v1: rental actions (unsigned transactions)
 
@@ -252,7 +252,7 @@ Errors are `{error, code, details?}` with a sentence in `error` that can be show
 | Status | `code` | When |
 | --- | --- | --- |
 | 400 | `invalid_input`, `unsupported_chain` | Schema validation (`details` lists the fields), or a chain other than 31337 / 97 |
-| 404 | `unknown_action`, `not_found` | No such action, or the address is not a KeyEscrow rental |
+| 404 | `unknown_action`, `not_found` | No such action, or the address is not a KeyScrow rental |
 | 405 | `method_not_allowed` | `GET` on a `prepare_*` or `POST` on a read |
 | 409 | `precondition_failed` | Wrong role for `from`, or the rental is in the wrong status |
 | 422 | `simulation_reverted` | A step would revert; `details` has the step, function and decoded custom error |

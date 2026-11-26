@@ -1,5 +1,5 @@
 /**
- * End-to-end check that a report really comes from the registered KeyEscrow Inspector:
+ * End-to-end check that a report really comes from the registered KeyScrow Inspector:
  *   1. run inspect_move_out on the agent (MCP) with the demo request, or read a report from --report <file>
  *   2. recompute reportHash and recover the signer (offline)
  *   3. read the ERC-8004 Identity Registry: the agent exists, its `reportSigner` metadata equals the signer,
@@ -85,5 +85,5 @@ if (reg && inspector?.agentId !== undefined) {
     "registration file points back at this agent id and registry",
   );
 }
-console.log(fails === 0 ? "\nVERIFIED: signed by KeyEscrow Inspector, ERC-8004 agent #" + inspector?.agentId : `\n${fails} check(s) failed`);
+console.log(fails === 0 ? "\nVERIFIED: signed by KeyScrow Inspector, ERC-8004 agent #" + inspector?.agentId : `\n${fails} check(s) failed`);
 process.exit(fails === 0 ? 0 : 1);

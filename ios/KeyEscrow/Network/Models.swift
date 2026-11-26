@@ -1,6 +1,6 @@
 import Foundation
 
-/// JSON shapes of the live KeyEscrow API (https://keyescrow-web.mdgooijer.workers.dev). Fixtures in KeyEscrowTests.
+/// JSON shapes of the live KeyScrow API (https://keyescrow-web.mdgooijer.workers.dev). Fixtures in KeyEscrowTests.
 
 /// Any JSON value (event args, error details).
 enum JSONValue: Codable, Equatable {
@@ -225,7 +225,7 @@ struct StageStatus: Codable, Equatable {
     let presenterLocked: Bool?
 }
 
-/// GET /api/chain/index: every KeyEscrow event on the chain (filtered per rental in the app).
+/// GET /api/chain/index: every KeyScrow event on the chain (filtered per rental in the app).
 struct ChainIndex: Codable {
     struct Event: Codable, Equatable, Identifiable {
         let address: String

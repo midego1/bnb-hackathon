@@ -117,7 +117,7 @@ final class RentFlowModel: ObservableObject {
         }
     }
 
-    /// The rental's events (timeline, settled amounts) come from KeyEscrow's chain index, which can be slow or behind.
+    /// The rental's events (timeline, settled amounts) come from KeyScrow's chain index, which can be slow or behind.
     /// The step is derived from the escrow itself and never waits for it: one index request at a time, on the side.
     private var indexTask: Task<Void, Never>?
     /// A refresh asked for the index while a request was in flight: ask once more when it lands, so the events are

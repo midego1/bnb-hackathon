@@ -140,7 +140,7 @@ describe("card builders", () => {
     // Locked = funded and not paid out: Active + Disputed only (not Created, not Settled).
     expect(card.totals.deposits.units).toBe(String(U(500)));
     expect(card.rows[0].href).toBe(`/lease/${LEASE}`);
-    expect(listTotalsText(card)).toContain("TOTALS (exact, counted by KeyEscrow; quote these): 4 rental(s)");
+    expect(listTotalsText(card)).toContain("TOTALS (exact, counted by KeyScrow; quote these): 4 rental(s)");
     expect(listTotalsText(card)).toContain("1 in dispute");
   });
 
@@ -335,7 +335,7 @@ describe("mock model scripts", () => {
     expect(parseIntent("Go to the dispute desk")).toMatchObject({ kind: "goto", path: "/arbiter" });
     expect(parseIntent("Find my rental").kind).toBe("find");
     expect(parseIntent("What needs my decision?").kind).toBe("decisions");
-    expect(parseIntent("Explain KeyEscrow simply").kind).toBe("simple");
+    expect(parseIntent("Explain KeyScrow simply").kind).toBe("simple");
     expect(parseIntent(`Create a rental for 3,400 baht a month with a 6,800 deposit for ${RENTER}`)).toEqual({
       kind: "create",
       rent: "3400",
@@ -358,7 +358,7 @@ describe("mock model scripts", () => {
   });
 
   it("decisions quotes the code's count", () => {
-    const r = nextReply("What needs my decision?", { address: OWNER }, { calls: [{ name: "list_leases", input: {} }], results: ["...TOTALS (exact, counted by KeyEscrow; quote these): 3 rental(s) (2 in dispute, 1 settled; 3 as arbiter)"] });
+    const r = nextReply("What needs my decision?", { address: OWNER }, { calls: [{ name: "list_leases", input: {} }], results: ["...TOTALS (exact, counted by KeyScrow; quote these): 3 rental(s) (2 in dispute, 1 settled; 3 as arbiter)"] });
     expect(r.text).toBe("2 rental(s) are in dispute and need your decision. Open one to rule on the split.");
   });
 });
@@ -430,8 +430,8 @@ describe("composer", () => {
     expect(suggestionsFor("/landlord")[0]).toMatchObject({ label: "Create a rental", fill: true });
     expect(suggestionsFor("/app/subscriptions").map((s) => s.label)).toContain("My subscriptions");
     expect(suggestionsFor("/arbiter")[0].label).toBe("What needs my decision?");
-    expect(suggestionsFor("/demo")[0].label).toBe("Explain KeyEscrow simply");
-    expect(suggestionsFor("/how-it-works")[0].label).toBe("Explain KeyEscrow simply");
+    expect(suggestionsFor("/demo")[0].label).toBe("Explain KeyScrow simply");
+    expect(suggestionsFor("/how-it-works")[0].label).toBe("Explain KeyScrow simply");
     for (const p of ["/", "/tenant", "/landlord", "/arbiter", `/lease/${LEASE}`]) expect(suggestionsFor(p).length).toBeGreaterThanOrEqual(3);
   });
 

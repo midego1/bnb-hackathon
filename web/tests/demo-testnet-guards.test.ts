@@ -141,7 +141,7 @@ describe("resuming a demo lease after the lock lapsed", () => {
   const ok = { isLease: true, landlord: A(11), tenant: A(12), arbiter: A(13), status: 1 };
   it("accepts an open lease between the demo wallets only", () => {
     expect(code(() => vetResumeLease(ok, accounts))).toBeUndefined();
-    expect(code(() => vetResumeLease({ ...ok, isLease: false }, accounts))?.msg).toMatch(/not a KeyEscrow rental/);
+    expect(code(() => vetResumeLease({ ...ok, isLease: false }, accounts))?.msg).toMatch(/not a KeyScrow rental/);
     expect(code(() => vetResumeLease({ ...ok, tenant: A(666) }, accounts))?.msg).toMatch(/not one of the live demo/);
     expect(code(() => vetResumeLease({ ...ok, status: 4 }, accounts))?.msg).toMatch(/already settled/);
   });

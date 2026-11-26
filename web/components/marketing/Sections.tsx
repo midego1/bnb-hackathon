@@ -160,7 +160,7 @@ export async function Listings({ search }: { search: ListingSearch }) {
   );
 }
 
-/** The problem and the promise: the counter today against the counter with KeyEscrow, row by row. */
+/** The problem and the promise: the counter today against the counter with KeyScrow, row by row. */
 export async function Counter() {
   const { c, h } = await copyFor("counter");
   return (
@@ -706,7 +706,7 @@ export async function SiteFooter({ demo }: { demo: boolean }) {
           <div>
             <p className="flex items-center gap-2.5 text-xl">
               <LogoMark className="h-8 w-8" />
-              <span className="mk-display">KeyEscrow</span>
+              <span className="mk-display">KeyScrow</span>
             </p>
             <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-subtle">{c.about}</p>
             <LangSwitch className="mt-4 inline-flex border-border text-foreground" />

@@ -17,7 +17,7 @@ contract SecurityRegressionTest is BaseTest {
     function setUp() public override {
         super.setUp();
         vault = new FleetVault(
-            IERC20(address(usdt)), "KeyEscrow Bangkok Fleet 1", "BKK-FLEET-1", operator, 1_000
+            IERC20(address(usdt)), "KeyScrow Bangkok Fleet 1", "BKK-FLEET-1", operator, 1_000
         );
         usdt.faucet(alice, 10_000e6);
         vm.prank(alice);

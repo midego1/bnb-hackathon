@@ -9,7 +9,7 @@ active language), the older data copy in `*.zh.ts` next to its English. How the 
 
 ## Never translated
 
-Product, contract, token and standard names stay as they are: KeyEscrow, BNB Chain, BSC, opBNB, BscScan, Sourcify,
+Product, contract, token and standard names stay as they are: KeyScrow, BNB Chain, BSC, opBNB, BscScan, Sourcify,
 EscrowFactory, RentalEscrow, FleetVault, MockUSDT, mUSDT, USDT, BNB, tBNB, BKK-FLEET-1, ERC-20, ERC-8004, MCP, A2A,
 REST, SHA-256, CoinMarketCap, Atlas, Cournot, Living Brain, Greenfield, Honda / Yamaha model names, function names
 (`createLease()`, `propose()` ...), addresses, hashes, and every amount (฿3,400, 200 mUSDT). "Fleet Vault" as a
@@ -33,7 +33,7 @@ product name stays English in running text only where the UI shows it as a name;
 | shop (rental shop) | 租车行 | |
 | scooter | 摩托车 | Thai "motorbike" scooters |
 | passport | 护照 | |
-| dispute desk | 争议处理台 | KeyEscrow's default arbiter |
+| dispute desk | 争议处理台 | KeyScrow's default arbiter |
 | arbiter / referee | 仲裁方 / 裁判 | 裁判 only in the ELI5 cartoon |
 | dispute (noun / verb) | 争议 / 提出争议 | |
 | ruling | 裁决 | |
@@ -48,10 +48,10 @@ product name stays English in running text only where the UI shows it as a name;
 | shares | 份额 | fleet share tokens |
 | fleet vault | 车队金库 | |
 | operator fee | 运营方费用 | |
-| treasury (KeyEscrow treasury) | KeyEscrow 金库 | |
+| treasury (KeyScrow treasury) | KeyScrow 金库 | |
 | fee, one-time fee | 手续费 / 一次性手续费 | |
 | AI inspection | AI 验车 | |
-| AI Inspector (the agent) | AI 验车员 | KeyEscrow Inspector stays a name |
+| AI Inspector (the agent) | AI 验车员 | KeyScrow Inspector stays a name |
 | pickup / return (inspection) | 取车 / 还车 | |
 | photos, guided photos | 照片 / 引导拍摄 | |
 | fingerprint (hash) | 指纹（哈希） | |

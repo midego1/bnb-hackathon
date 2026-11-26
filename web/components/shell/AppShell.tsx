@@ -94,9 +94,9 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
       className={`${drawerOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] shadow-xl" : "hidden"} shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-3 lg:z-auto lg:my-3 lg:ml-3 lg:flex lg:h-[calc(100dvh-1.5rem)] lg:w-56 lg:max-w-none lg:rounded-xl lg:border lg:shadow-sidebar rail:w-16`}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-3 rail:h-auto rail:flex-col rail:gap-2 rail:py-3">
-        <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyEscrow">
+        <Link href="/app" className="relative flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight" title="KeyScrow">
           <LogoMark />
-          <span className="truncate rail:sr-only">KeyEscrow</span>
+          <span className="truncate rail:sr-only">KeyScrow</span>
         </Link>
         <Button
           variant="ghost"
@@ -217,7 +217,7 @@ function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => 
       </Button>
       <Link href="/app" className="flex min-h-11 min-w-11 items-center gap-2 text-base font-semibold tracking-tight">
         <LogoMark className="h-6 w-6 shrink-0" />
-        <span className="truncate">KeyEscrow</span>
+        <span className="truncate">KeyScrow</span>
       </Link>
       <span className="ml-auto flex shrink-0 items-center gap-2">
         <PriceSourceBadge />

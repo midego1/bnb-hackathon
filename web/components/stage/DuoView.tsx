@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { LogoMark } from "@/components/LogoMark";
 import { Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { formatFiat } from "@/lib/fiat";
@@ -45,6 +46,7 @@ export function DuoView({ listing, chainId }: { listing: Listing; chainId: numbe
           {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
           <img src={listing.photos[0]} alt="" className="size-10 shrink-0 rounded-lg object-cover wide:size-[clamp(2.5rem,4.5vh,3.5rem)]" />
           <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground wide:text-[clamp(0.875rem,0.4rem+0.45vw,1.25rem)]"><LogoMark className="size-6 shrink-0 wide:size-[clamp(1.5rem,3vh,2.25rem)]" />KeyScrow</p>
             <h1 className="text-lg font-bold leading-tight wide:text-[clamp(1.125rem,0.5rem+0.8vw,1.875rem)]">{t.h("duo.title")}</h1>
             <p className="truncate text-sm text-muted-foreground wide:text-[clamp(0.875rem,0.4rem+0.45vw,1.25rem)]">
               {listing.name} · {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}

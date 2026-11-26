@@ -57,7 +57,7 @@ export async function assertLease(ctx: ActionContext, address: Address): Promise
   } catch (err) {
     throw rpcError(err);
   }
-  if (!ok) throw new ActionError(404, "not_found", `${address} is not a KeyEscrow rental on chain ${ctx.chainId}.`);
+  if (!ok) throw new ActionError(404, "not_found", `${address} is not a KeyScrow rental on chain ${ctx.chainId}.`);
 }
 
 export async function readLease(ctx: ActionContext, address: Address): Promise<LeaseSnapshot> {

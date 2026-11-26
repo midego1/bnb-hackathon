@@ -53,7 +53,7 @@ const actorCard: Partial<Record<DemoActor, WalletKey | "arbiter" | "inspector">>
 };
 
 /**
- * The left column of the stage: owner, renter, this rental's escrow and the KeyEscrow treasury with their live
+ * The left column of the stage: owner, renter, this rental's escrow and the KeyScrow treasury with their live
  * balances, plus the two referees that never hold money. A card flashes and shows the step's net change when money
  * moves through it.
  */

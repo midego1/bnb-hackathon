@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>KeyEscrow</string>
+	<string>KeyScrow</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,7 +23,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>KeyEscrow takes pickup and return photos of the rental. Only their SHA-256 fingerprints go on-chain.</string>
+	<string>KeyScrow takes pickup and return photos of the rental. Only their SHA-256 fingerprints go on-chain.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

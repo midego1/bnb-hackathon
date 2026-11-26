@@ -8,7 +8,7 @@ import { leaseInView } from "./paths";
 /** A prompt the empty chat offers. `fill` = put it in the field (it ends open) instead of sending it. */
 export type Suggestion = { label: string; prompt: string; fill?: boolean };
 
-const SIMPLE: Suggestion = { label: "Explain KeyEscrow simply", prompt: "Explain KeyEscrow simply" };
+const SIMPLE: Suggestion = { label: "Explain KeyScrow simply", prompt: "Explain KeyScrow simply" };
 const FIND: Suggestion = { label: "Find my rental", prompt: "Find my rental" };
 const DESK: Suggestion = { label: "Go to the dispute desk", prompt: "Go to the dispute desk" };
 
@@ -62,7 +62,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
  * they are what the assistant reads and what the mock engine matches. Phase 2 of i18n wires these into the panel.
  */
 export const ZH_LABELS: Record<string, string> = {
-  "Explain KeyEscrow simply": "用简单的话解释 KeyEscrow",
+  "Explain KeyScrow simply": "用简单的话解释 KeyScrow",
   "Find my rental": "找到我的租赁",
   "Go to the dispute desk": "前往争议处理台",
   "Where is my deposit?": "我的押金在哪里？",

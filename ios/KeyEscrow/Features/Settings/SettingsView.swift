@@ -71,7 +71,7 @@ struct SettingsView: View {
             } header: {
                 Text(settings.t("settings.about"))
             } footer: {
-                Text("KeyEscrow \(version) · BSC testnet (97)").frame(maxWidth: .infinity, alignment: .center).padding(.top, 12)
+                Text("KeyScrow \(version) · BSC testnet (97)").frame(maxWidth: .infinity, alignment: .center).padding(.top, 12)
             }
             .listRowBackground(Color.KE.surface)
         }

@@ -39,7 +39,7 @@ const ASSISTANT_NOTE: Record<string, string> = {
 };
 
 const PREPARE_NOTE =
-  " In Ask AI: calling this does NOT change anything. KeyEscrow prepares and simulates the steps, shows the person an approval " +
+  " In Ask AI: calling this does NOT change anything. KeyScrow prepares and simulates the steps, shows the person an approval " +
   "card and waits; the person approves and signs with their own wallet, or declines. The tool result tells you which happened. " +
   "`from` is always the connected wallet.";
 
@@ -50,7 +50,7 @@ const OPEN_PAGE: AssistantTool = {
   spec: {
     name: "open_page",
     description:
-      "Open a page of the KeyEscrow app for the person (when they ask to go somewhere, or after an answer that is about another page). " +
+      "Open a page of the KeyScrow app for the person (when they ask to go somewhere, or after an answer that is about another page). " +
       "Allowed: / (home), /tenant (renter), /landlord (fleet owner), /arbiter (dispute desk), /backoffice, /shareholders, " +
       "/how-it-works, /developers, /integrations, /demo, and /lease/<rental address>. Nothing else.",
     input_schema: {
@@ -69,7 +69,7 @@ const INSPECT: AssistantTool = {
   spec: {
     name: "inspect_return",
     description:
-      "Run KeyEscrow's AI return inspection for a rental: it compares the pickup and return photos anchored on the rental and " +
+      "Run KeyScrow's AI return inspection for a rental: it compares the pickup and return photos anchored on the rental and " +
       "proposes how to split the deposit (refund to the renter, claim for the owner, reasons, confidence). Read-only: nothing is " +
       "proposed on-chain. To propose the split, pass the whole result as `inspection` to prepare_propose_settlement.",
     input_schema: {

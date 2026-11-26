@@ -12,7 +12,7 @@ const need = (c: DemoCtx) => c.deposit + c.rent;
 
 export const zhPaths: DeepPartial<Record<DemoPath, { label: string; blurb: string }>> = {
   happy: { label: "顺利结算", blurb: "租客提出 AI 给出的分配方案，车主接受，资金立刻到账。" },
-  dispute: { label: "争议流程", blurb: "车主对提议提出争议，由 KeyEscrow 争议处理台裁决分配。" },
+  dispute: { label: "争议流程", blurb: "车主对提议提出争议，由 KeyScrow 争议处理台裁决分配。" },
   timeout: { label: "车主不回应", blurb: "车主 7 天不回应，押金全额退还租客。" },
   fleet: { label: "车队金库", blurb: "一辆车队摩托车：租金和赔偿款流入车队金库，股东获得收益。" },
 };
@@ -22,7 +22,7 @@ export const zhSteps: Record<string, Partial<StepText>> = {
     title: "车主发布租赁",
     caption: (c, m) =>
       `${zhPropertyName(c.property.name)}：每月 ${m(c.rent)}，押金 ${m(c.deposit)} 存入托管，而不是扣下租客的护照，租期 ${c.termPeriods} 个月。` +
-      `租赁协议 PDF 和取车照片存放在链下，只有它们的 SHA-256 指纹上链。默认由 KeyEscrow 争议处理台担任仲裁方。`,
+      `租赁协议 PDF 和取车照片存放在链下，只有它们的 SHA-256 指纹上链。默认由 KeyScrow 争议处理台担任仲裁方。`,
   },
   checkin: {
     title: "取车照片存证",
@@ -44,8 +44,8 @@ export const zhSteps: Record<string, Partial<StepText>> = {
     caption: (c, m) => {
       const fee = c.fee ?? (c.rent * BigInt(c.feeBps ?? 1000)) / BigInt(10_000);
       return (
-        `第 1 个月租金在第一天到期。租客放款：${m(c.rentToLandlord ?? c.rent - fee)} 给车主，一次性 KeyEscrow 手续费 ${m(fee)}` +
-        `（一个月租金的 ${((c.feeBps ?? 1000) / 100).toFixed(0)}%）进入 KeyEscrow 金库。押金继续锁定。`
+        `第 1 个月租金在第一天到期。租客放款：${m(c.rentToLandlord ?? c.rent - fee)} 给车主，一次性 KeyScrow 手续费 ${m(fee)}` +
+        `（一个月租金的 ${((c.feeBps ?? 1000) / 100).toFixed(0)}%）进入 KeyScrow 金库。押金继续锁定。`
       );
     },
   },
@@ -59,9 +59,9 @@ export const zhSteps: Record<string, Partial<StepText>> = {
     title: "AI 验车起草分配方案",
     caption: (c, m) =>
       c.inspection
-        ? `KeyEscrow 验车员智能体对比了取车和还车照片：${m(BigInt(c.inspection.tenantRefund))} 退还租客，` +
+        ? `KeyScrow 验车员智能体对比了取车和还车照片：${m(BigInt(c.inspection.tenantRefund))} 退还租客，` +
           `${m(BigInt(c.inspection.landlordClaim))} 给车主作维修费。它只起草，从不做决定。报告的哈希会随提议一起上链。`
-        : "KeyEscrow 验车员智能体对比取车和还车照片，起草一份附理由的押金分配方案。它只起草，从不做决定。",
+        : "KeyScrow 验车员智能体对比取车和还车照片，起草一份附理由的押金分配方案。它只起草，从不做决定。",
   },
   propose: {
     title: "租客在链上提出分配方案",
@@ -78,7 +78,7 @@ export const zhSteps: Record<string, Partial<StepText>> = {
   dispute: {
     title: "车主提出争议",
     caption: () =>
-      `车主认为维修费比 AI 估的高，于是提出争议。现在只有 KeyEscrow 争议处理台可以在 ${DESK_DAYS} 天内分配押金；` +
+      `车主认为维修费比 AI 估的高，于是提出争议。现在只有 KeyScrow 争议处理台可以在 ${DESK_DAYS} 天内分配押金；` +
       `如果错过期限，押金全额退还租客。`,
   },
   resolve: {
@@ -101,7 +101,7 @@ export const zhSteps: Record<string, Partial<StepText>> = {
   },
   final: {
     title: "最终余额",
-    caption: () => "托管合约已清空，每一泰铢都有去处：租客付入的钱要么给了车主和 KeyEscrow 金库，要么退回了租客。",
+    caption: () => "托管合约已清空，每一泰铢都有去处：租客付入的钱要么给了车主和 KeyScrow 金库，要么退回了租客。",
   },
   vault: {
     title: "车队金库余额增加",

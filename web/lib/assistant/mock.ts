@@ -40,7 +40,7 @@ export function parseIntent(text: string): Intent {
   if (/^\/status\b|where('s| is) (my|the) deposit|deposit (now|status)/.test(t)) return { kind: "deposit" };
   if (/^\/next\b|what (happens|should i do|do i do|can i do) next|what now/.test(t)) return { kind: "next" };
   if (/^\/explain\b|explain (this|the|my) (rental|lease)/.test(t)) return { kind: "explain" };
-  if (/explain keyescrow|keyescrow simply|how does (keyescrow|this) work|what is keyescrow/.test(t)) return { kind: "simple" };
+  if (/explain keye?scrow|keye?scrow simply|how does (keye?scrow|this) work|what is keye?scrow/.test(t)) return { kind: "simple" };
   if (/\b(create|make|new|set up)\b.*\b(rental|lease|offer)\b/.test(t)) {
     const rent = num(/([\d,]+(?:\.\d+)?)\s*(?:thb|baht|฿)?\s*(?:a|per|\/)\s*month/.exec(t)?.[1]) ?? num(/rent (?:of )?([\d,]+(?:\.\d+)?)/.exec(t)?.[1]);
     const deposit =
@@ -231,7 +231,7 @@ export function nextReply(ask: string, ctx: Ctx, turn: Turn): Reply {
     case "simple":
       return {
         text:
-          "KeyEscrow keeps a scooter rental deposit safe without anyone holding your passport.\n\n" +
+          "KeyScrow keeps a scooter rental deposit safe without anyone holding your passport.\n\n" +
           "- The renter pays the deposit and the rent into a small smart contract on BNB Chain, not to the shop.\n" +
           "- At pickup and return, photos are taken; an AI inspector compares them and proposes how to split the deposit.\n" +
           "- Owner and renter accept the split, or a neutral dispute desk decides. If someone stays silent too long, the deposit goes back to the renter.\n\n" +
@@ -245,7 +245,7 @@ export function nextReply(ask: string, ctx: Ctx, turn: Turn): Reply {
           "- **Where is my deposit?** or **What happens next?** on a rental\n" +
           "- **Create a rental for 3,400 baht a month with a 6,800 deposit for 0x…**\n" +
           "- **Propose the AI split**, **Open a dispute**, **Go to the dispute desk**\n" +
-          "- **Find my rental**, **What needs my decision?**, **What is this renter's history?**, **Explain KeyEscrow simply**",
+          "- **Find my rental**, **What needs my decision?**, **What is this renter's history?**, **Explain KeyScrow simply**",
       };
   }
 }

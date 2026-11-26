@@ -9,7 +9,7 @@ import { zhPropertyName } from "./places.zh";
 import { zhPaths, zhSteps, zhTxLabel } from "./script.zh";
 
 /**
- * The guided one-click demo (/demo, local anvil only). Each step is a short, plain-English beat of the KeyEscrow
+ * The guided one-click demo (/demo, local anvil only). Each step is a short, plain-English beat of the KeyScrow
  * story that drives the real contracts through the same helpers as the normal UI (useTx, uploadEvidence,
  * runInspection). The runner (components/demo/DemoRunner.tsx) supplies `DemoApi`, switches the demo account
  * before each step and shows the caption, progress and transactions.
@@ -20,7 +20,7 @@ export type DemoActor = DevRole | "inspector" | "anyone";
 
 export const PATHS: Record<DemoPath, { label: string; blurb: string }> = {
   happy: { label: "Happy path", blurb: "Renter proposes the AI split, owner accepts, money moves at once." },
-  dispute: { label: "Dispute path", blurb: "Owner disputes the proposal, the KeyEscrow dispute desk rules on a split." },
+  dispute: { label: "Dispute path", blurb: "Owner disputes the proposal, the KeyScrow dispute desk rules on a split." },
   timeout: { label: "Owner ignores it", blurb: "Owner stays silent for 7 days, so the full deposit goes back to the renter." },
   fleet: { label: "Fleet Vault", blurb: "A fleet scooter: rent and the damage payout flow into the Fleet Vault, and its shareholders earn." },
 };
@@ -172,7 +172,7 @@ const createLease: DemoStep = {
   actor: "landlord",
   caption: (c, m) =>
     `${c.property.name}: ${m(c.rent)} a month, ${m(c.deposit)} deposit held in escrow instead of the renter's passport, ${c.termPeriods}-month rental period. ` +
-    `The rental agreement PDF and pickup photos are stored off-chain; only their SHA-256 fingerprints go on-chain. The KeyEscrow dispute desk is the default referee.`,
+    `The rental agreement PDF and pickup photos are stored off-chain; only their SHA-256 fingerprints go on-chain. The KeyScrow dispute desk is the default referee.`,
   async run(api, ctx) {
     await api.as("landlord");
     if (!ctx.leaseHash || !ctx.checkIn) {
@@ -192,7 +192,7 @@ const createLease: DemoStep = {
         args: [
           {
             tenant: api.accounts.tenant,
-            arbiter: api.leaseArbiter, // address(0) = the factory's default arbiter, the KeyEscrow dispute desk
+            arbiter: api.leaseArbiter, // address(0) = the factory's default arbiter, the KeyScrow dispute desk
             rentAmount: ctx.rent,
             depositAmount: ctx.deposit,
             termPeriods: ctx.termPeriods,
@@ -271,8 +271,8 @@ const payRent: DemoStep = {
   caption: (c, m) => {
     const fee = c.fee ?? (c.rent * BigInt(c.feeBps ?? 1000)) / BigInt(10_000);
     return (
-      `Month 1 is due on day one. The renter releases it: ${m(c.rentToLandlord ?? c.rent - fee)} to the owner and the one-time KeyEscrow fee of ${m(fee)} ` +
-      `(${((c.feeBps ?? 1000) / 100).toFixed(0)}% of one month's rent) to the KeyEscrow treasury. The deposit stays locked.`
+      `Month 1 is due on day one. The renter releases it: ${m(c.rentToLandlord ?? c.rent - fee)} to the owner and the one-time KeyScrow fee of ${m(fee)} ` +
+      `(${((c.feeBps ?? 1000) / 100).toFixed(0)}% of one month's rent) to the KeyScrow treasury. The deposit stays locked.`
     );
   },
   async run(api, ctx) {
@@ -307,9 +307,9 @@ const inspect: DemoStep = {
   actor: "inspector",
   caption: (c, m) =>
     c.inspection
-      ? `The KeyEscrow Inspector agent compared pickup and return photos: ${m(BigInt(c.inspection.tenantRefund))} back to the renter, ` +
+      ? `The KeyScrow Inspector agent compared pickup and return photos: ${m(BigInt(c.inspection.tenantRefund))} back to the renter, ` +
         `${m(BigInt(c.inspection.landlordClaim))} to the owner for repairs. It drafts; it never decides. Its report hash goes on-chain with the proposal.`
-      : "The KeyEscrow Inspector agent compares pickup and return photos and drafts a deposit split with reasons. It drafts; it never decides.",
+      : "The KeyScrow Inspector agent compares pickup and return photos and drafts a deposit split with reasons. It drafts; it never decides.",
   async run(api, ctx) {
     if (!ctx.checkIn || !ctx.checkOut) throw new Error("The photos are missing. Start over.");
     ctx.inspection = await api.inspect({ deposit: ctx.deposit, checkIn: ctx.checkIn, checkOut: ctx.checkOut });
@@ -362,7 +362,7 @@ const dispute: DemoStep = {
   title: "Owner opens a dispute",
   actor: "landlord",
   caption: () =>
-    `The owner thinks the repairs cost more than the AI says and opens a dispute instead. Now only the KeyEscrow dispute desk can split the deposit, ` +
+    `The owner thinks the repairs cost more than the AI says and opens a dispute instead. Now only the KeyScrow dispute desk can split the deposit, ` +
     `within ${ARBITER_WINDOW / 86_400} days; if it misses that deadline, the full deposit goes back to the renter.`,
   async run(api, ctx) {
     await api.as("landlord");
@@ -438,7 +438,7 @@ const final: DemoStep = {
   id: "final",
   title: "Final balances",
   actor: "anyone",
-  caption: () => "The escrow is empty and every baht is accounted for: what the renter paid in went to the owner, the KeyEscrow treasury, or back to the renter.",
+  caption: () => "The escrow is empty and every baht is accounted for: what the renter paid in went to the owner, the KeyScrow treasury, or back to the renter.",
   async run(api, ctx) {
     ctx.after = await balances(api, ctx);
     ctx.finalStatus = Number(await api.read<number>({ address: leaseOf(ctx), abi: rentalEscrowAbi, functionName: "status" }));

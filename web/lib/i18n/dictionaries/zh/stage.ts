@@ -24,7 +24,7 @@ export const body: DeepPartial<typeof enBody> = {
       SettlementProposed: "AI 押金分配已提出",
       Settled: "双方同意：资金已结算",
       RentReleased: "租金已发放给车主",
-      ProtocolFeePaid: "已付 KeyEscrow 手续费",
+      ProtocolFeePaid: "已付 KeyScrow 手续费",
       DisputeRaised: "已提出争议",
       Cancelled: "报价已撤回",
     },

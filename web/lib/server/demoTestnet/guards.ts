@@ -355,7 +355,7 @@ export function vetResumeLease(
   lease: { isLease: boolean; landlord: Address; tenant: Address; arbiter: Address; status: number },
   accounts: Record<DemoRole, Address>,
 ) {
-  if (!lease.isLease) refuse("That is not a KeyEscrow rental.");
+  if (!lease.isLease) refuse("That is not a KeyScrow rental.");
   if (!same(lease.landlord, accounts.landlord) || !same(lease.tenant, accounts.tenant) || !same(lease.arbiter, accounts.arbiter)) {
     refuse("That lease is not one of the live demo's.");
   }

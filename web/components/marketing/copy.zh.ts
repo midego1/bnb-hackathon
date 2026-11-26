@@ -5,10 +5,10 @@ import type { LandingCopy } from "./copy";
 /** Simplified Chinese for the marketing page (components/marketing/copy.ts). Terms: docs/i18n-glossary.md. */
 export const zh: DeepPartial<LandingCopy> = {
   meta: {
-    title: "KeyEscrow：在泰国租摩托车，不用押护照",
+    title: "KeyScrow：在泰国租摩托车，不用押护照",
     description:
       "摩托车租赁的押金存放在 BNB Chain 上专属的智能合约里，而不是把护照押在柜台。任何一方都无法单独动用：还车时由 AI 验车给出分配建议，由人来决定，期限规则保护租客。已在 BSC 测试网上线。",
-    cardAlt: `KeyEscrow：租走摩托车，护照留在身上。泰国夜晚街头的摩托车租车行上方，LED 招牌显示托管中 ${baht(EXAMPLE.deposit)}。`,
+    cardAlt: `KeyScrow：租走摩托车，护照留在身上。泰国夜晚街头的摩托车租车行上方，LED 招牌显示托管中 ${baht(EXAMPLE.deposit)}。`,
   },
   header: {
     nav: [
@@ -18,11 +18,11 @@ export const zh: DeepPartial<LandingCopy> = {
       ["#live", "证据"],
       ["#fee", "手续费"],
     ],
-    home: "KeyEscrow 首页",
+    home: "KeyScrow 首页",
     openApp: "打开应用",
   },
   hero: {
-    label: "一屏看懂 KeyEscrow",
+    label: "一屏看懂 KeyScrow",
     artAlt: "泰国夜晚街道的 LED 点阵画：一辆红色摩托车停在灯火通明的租车行门前，旁边有棕榈树、电线和寺庙尖顶。",
     h1: ["摩托车租走，", "护照留下。"],
     body: "在泰国找一辆摩托车，就在这里开始租赁。押金存入 BNB Chain 上专属的智能合约，而不是押上你的护照，任何一方都无法单独动用。",
@@ -63,14 +63,14 @@ export const zh: DeepPartial<LandingCopy> = {
     stageTag: "现场舞台演示",
     onStage: "现场舞台，BNB Bangkok",
     alt: (name, place) => `${name} 的照片：${place}这条演示房源的车型。`,
-    boxAlt: "一只封好的纸箱的照片，代表在现场舞台上被租用的 KeyEscrow 神秘盒子。",
+    boxAlt: "一只封好的纸箱的照片，代表在现场舞台上被租用的 KeyScrow 神秘盒子。",
   },
   counter: {
     title: "同样的柜台，没人扣你的护照。",
     lead: "租客担心被讹损坏赔偿，车主面对真实的损坏却拿不出证据。双方都找不到中立的第三方，也没人会为几千泰铢去打官司。",
     today: "现在",
-    ours: "用 KeyEscrow",
-    art: ["LED 画面：车行拉开的抽屉里放着一本护照和一叠钞票。", `LED 画面：一座带钥匙孔的发光小屋（KeyEscrow 标志），上方亮着 ${baht(EXAMPLE.deposit)}。`],
+    ours: "用 KeyScrow",
+    art: ["LED 画面：车行拉开的抽屉里放着一本护照和一叠钞票。", `LED 画面：一座带钥匙孔的发光小屋（KeyScrow 标志），上方亮着 ${baht(EXAMPLE.deposit)}。`],
     rows: [
       ["押金", "你的护照或现金，放在车行的抽屉里", "存在为这一笔租赁专门创建的合约里的代币"],
       ["车况证明", "聊天里的几张照片，或者什么都没有", "引导拍摄的取车和还车照片，指纹存证上链"],
@@ -92,7 +92,7 @@ export const zh: DeepPartial<LandingCopy> = {
       held: "托管中",
       ownerHas: "在车主手里",
       passport: "护照：还在你口袋里",
-      fee: `KeyEscrow 手续费 ${baht(EXAMPLE.fee)}，只收一次`,
+      fee: `KeyScrow 手续费 ${baht(EXAMPLE.fee)}，只收一次`,
       steps: "租赁的步骤",
       play: "播放步骤",
       pause: "暂停",
@@ -103,7 +103,7 @@ export const zh: DeepPartial<LandingCopy> = {
     steps: [
       { title: "车行发布摩托车", body: "租金、押金和付款周期都以泰铢计价。租赁协议和引导拍摄的取车照片留在链下，只有它们的 SHA-256 指纹上链。" },
       { title: "租客向托管付款", body: `${baht(EXAMPLE.funded)} 存入这笔租赁专属的合约：押金 ${baht(EXAMPLE.deposit)} 和第一个月的租金。护照不用过柜台。` },
-      { title: "骑车出发，租金按期发放", body: `第一个月的租金发放给车主：扣除 KeyEscrow 一次性手续费 ${baht(EXAMPLE.fee)} 后为 ${baht(EXAMPLE.firstPayout)}。押金 ${baht(EXAMPLE.deposit)} 原地不动。` },
+      { title: "骑车出发，租金按期发放", body: `第一个月的租金发放给车主：扣除 KeyScrow 一次性手续费 ${baht(EXAMPLE.fee)} 后为 ${baht(EXAMPLE.firstPayout)}。押金 ${baht(EXAMPLE.deposit)} 原地不动。` },
       { title: "还车，几分钟内结算", body: "AI 验车对比取车和还车照片，给出押金分配建议。一方提出，另一方接受，押金立刻到账。" },
     ],
     cta: "看它在链上发生",
@@ -116,7 +116,7 @@ export const zh: DeepPartial<LandingCopy> = {
     points: [
       ["有上限。", "退款和索赔加起来始终等于押金，绝不会更多。"],
       ["双方签名。", "一方在链上提交提议，另一方接受。任何一方也可以改为提出争议。"],
-      ["有签名。", `报告由 KeyEscrow 验车员签名，它是 BSC 测试网上的 ERC-8004 智能体 #${INSPECTOR_AGENT.id}，任何人都能核实报告出自谁手。`],
+      ["有签名。", `报告由 KeyScrow 验车员签名，它是 BSC 测试网上的 ERC-8004 智能体 #${INSPECTOR_AGENT.id}，任何人都能核实报告出自谁手。`],
       ["有记忆。", "验车员会先查这辆车以前的验车记录，旧划痕不会被重复收费。"],
     ],
     photos: [
@@ -138,7 +138,7 @@ export const zh: DeepPartial<LandingCopy> = {
   },
   deadlines: {
     title: "每个争议都有期限。",
-    lead: "KeyEscrow 争议处理台是默认的仲裁方；车主也可以指定另一位中立仲裁方，租客付款前就能看到是谁。无论是谁，时钟都在保护租客。",
+    lead: "KeyScrow 争议处理台是默认的仲裁方；车主也可以指定另一位中立仲裁方，租客付款前就能看到是谁。无论是谁，时钟都在保护租客。",
     day: (n) => `第 ${n} 天`,
     lanes: [
       { title: "双方同意", end: "立即结算", body: "一方提出分配方案，另一方接受。押金在同一笔交易中转出。" },
@@ -188,16 +188,16 @@ export const zh: DeepPartial<LandingCopy> = {
   },
   agents: {
     title: "为智能体而建，不只为浏览器。",
-    lead: ["每个租赁操作只定义一次，以三种方式提供：REST 接口、MCP 工具和 A2A 技能。", " 操作返回已在链上模拟过的未签名交易，由你自己的钱包签名。KeyEscrow 从不持有密钥。"],
+    lead: ["每个租赁操作只定义一次，以三种方式提供：REST 接口、MCP 工具和 A2A 技能。", " 操作返回已在链上模拟过的未签名交易，由你自己的钱包签名。KeyScrow 从不持有密钥。"],
     inspector: [`验车员本身也是智能体：BSC 测试网身份注册表中的 ERC-8004 智能体 #${INSPECTOR_AGENT.id}（`, "注册交易", "）。其他智能体可以找到它、调用它，并核实它签过的内容。"],
     developers: "开发者参考",
     docs: "智能体文档",
-    codeLabel: "把 Claude Code 连接到本地 KeyEscrow MCP 服务器",
+    codeLabel: "把 Claude Code 连接到本地 KeyScrow MCP 服务器",
     code: `# 启动智能体（在仓库的检出目录中）
 pnpm agent:dev
 
 # 然后在 Claude Code 中
-claude mcp add --transport http keyescrow \\
+claude mcp add --transport http keyscrow \\
   http://127.0.0.1:8790/mcp`,
     tools: (rental, inspector) => `${rental} 个租赁工具和 ${inspector} 个验车工具`,
   },
@@ -211,7 +211,7 @@ claude mcp add --transport http keyescrow \\
       [`ERC-8004 智能体 #${INSPECTOR_AGENT.id}`, "AI 验车员的链上身份"],
     ],
     lead: `合约 v2 运行在 BSC 测试网（chain 97）上，源码已验证，运行的就是仓库里的代码，并有 ${CONTRACT_TESTS} 项 Foundry 测试作保障。合约小巧、不可升级。没有人持有能动用租赁资金的管理员密钥：押金只能流向创建时写明的双方，争议处理台也只能对处于争议中的租赁作出裁决。目前只有测试资金，尚未部署主网。`,
-    caption: "BSC 测试网上的 KeyEscrow 合约",
+    caption: "BSC 测试网上的 KeyScrow 合约",
     cols: ["合约", "作用", "地址（BscScan 测试网）"],
     roles: {
       EscrowFactory: "为每笔租赁创建托管合约，并保存手续费设置",
@@ -230,12 +230,12 @@ claude mcp add --transport http keyescrow \\
     title: `一个月租金的 ${FEE_PERCENT}%，只收一次。`,
     body: "由车主从第一笔租金中支付，不管租多久。绝不从押金里扣：在租赁结算前，押金都是租客的钱。租客不用多付一分钱，也没有代币。",
     caption: `一辆按月租用的 ${EXAMPLE.scooter}，以泰铢计`,
-    rows: ["月租", "押金（两个月租金），代替护照", "租客取车时付入：押金和第 1 个月租金", "KeyEscrow 手续费（一次性）", "车主第 1 个月收到", "车主之后每月收到"],
+    rows: ["月租", "押金（两个月租金），代替护照", "租客取车时付入：押金和第 1 个月租金", "KeyScrow 手续费（一次性）", "车主第 1 个月收到", "车主之后每月收到"],
     note: "示意汇率 1 USDT = 34 THB。三个月的租期下，手续费约为租金的 3%。费率在工厂合约中设有上限，每笔租赁沿用创建时的费率。",
   },
   roadmap: {
     title: "下一步去哪里。",
-    lead: "今天的 KeyEscrow 是一个能运行的测试网版本，还不是有客户的生意。下面是接下来的计划。",
+    lead: "今天的 KeyScrow 是一个能运行的测试网版本，还不是有客户的生意。下面是接下来的计划。",
     live: "已上线测试网",
     planned: "计划中",
     phases: [

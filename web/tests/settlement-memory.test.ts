@@ -46,7 +46,7 @@ describe("POST /api/settlement scooter memory", () => {
     expect(body.memoryStored).toBe(false);
   });
 
-  it("writes nothing when the lease is not a KeyEscrow rental", async () => {
+  it("writes nothing when the lease is not a KeyScrow rental", async () => {
     leaseKey.mockResolvedValue(null);
     const body = await (await post({ ...base, scooterId: "BKK-123", lease: OTHER })).json();
     expect(leaseKey).toHaveBeenCalledWith(OTHER, undefined);

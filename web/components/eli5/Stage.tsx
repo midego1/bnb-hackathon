@@ -6,7 +6,7 @@ import { clamp01, coinsAt, cue, easeInOut, easeOutBack, has, holdingsAt, pageAt 
 
 /**
  * The cartoon stage: one SVG (viewBox 1200 x 560) drawn as a pure function of the scene and its clock `t`.
- * Layout: landlord left, the safe in the middle with the KeyEscrow jar beside it, tenant right; the rental, photos,
+ * Layout: landlord left, the safe in the middle with the KeyScrow jar beside it, tenant right; the rental, photos,
  * robot and referee appear above when their scene needs them.
  */
 

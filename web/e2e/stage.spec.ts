@@ -19,8 +19,13 @@ async function judgePage(browser: Browser, mobile: boolean) {
 }
 
 async function resetStage(stage: Page) {
-  stage.once("dialog", (d) => d.accept());
+  // As in a wallet's in-app browser (MetaMask mobile...): window.confirm / prompt blocked. Reset must not need them.
+  await stage.evaluate(() => {
+    window.confirm = () => false;
+    window.prompt = () => null;
+  });
   await stage.getByTestId("stage-reset").click();
+  await stage.getByTestId("confirm-ok").click(); // in-page dialog, not window.confirm
   await expect(stage.getByTestId("stage-view")).toHaveAttribute("data-status", "none");
 }
 
@@ -183,7 +188,7 @@ for (const mobile of [true, false]) {
 test("the listing page shows the item in the app shell and links to the phone flow", async ({ page }) => {
   await page.goto(`/app/listings/${SLUG}`);
   await expect(page.getByTestId("sidebar")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "KeyEscrow Mystery Box" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "KeyScrow Mystery Box" })).toBeVisible();
   await expect(page.getByTestId("listing-terms")).toContainText("฿200");
   await expect(page.getByTestId("listing-terms")).toContainText("฿1,000");
   await page.getByTestId("listing-rent").click();
@@ -207,4 +212,42 @@ test("a second renter is refused while someone rents the item", async ({ page, r
   // The presenter cannot accept before there is a proposal.
   expect((await post({ action: "accept" })).status()).toBe(409);
   await resetStage(page);
+});
+
+test("presenter code: an in-page sheet (no window.prompt), remembered, forgotten when wrong", async ({ page }) => {
+  // The server locked behind a code (status says so); every presenter POST answers "wrong code".
+  const posts: { action: string; code?: string }[] = [];
+  await page.route(`**/api/stage/${SLUG}**`, async (route) => {
+    if (route.request().method() === "POST") {
+      posts.push(route.request().postDataJSON());
+      return route.fulfill({ status: 403, json: { error: "Wrong presenter code." } });
+    }
+    const res = await route.fetch();
+    return route.fulfill({ response: res, json: { ...(await res.json()), presenterLocked: true } });
+  });
+  const status = page.waitForResponse((r) => r.url().includes(`/api/stage/${SLUG}`) && r.request().method() === "GET");
+  await page.goto(`/stage/${SLUG}`);
+  await status; // the lock is known before the click
+  await page.evaluate(() => {
+    window.confirm = () => false;
+    window.prompt = () => null;
+  });
+  await page.getByTestId("stage-reset").click();
+  await page.getByTestId("confirm-ok").click();
+  const input = page.getByTestId("stage-code");
+  await expect(input).toBeFocused();
+  await input.fill("tuktuk");
+  await page.screenshot({ path: path.join(SHOTS, "stage-presenter-code.png") });
+  await input.press("Enter");
+  await expect(page.getByTestId("stage-code-dialog")).toHaveCount(0);
+  expect(posts).toEqual([{ action: "reset", code: "tuktuk" }]);
+  // The error stays inline under the buttons, and the wrong code is forgotten (asked again next time).
+  await expect(page.getByTestId("stage-presenter").getByText("Wrong presenter code.")).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("keyescrow.stage.presenterCode"))).toBeNull();
+  // Cancel sends nothing.
+  await page.getByTestId("stage-reset").click();
+  await page.getByTestId("confirm-ok").click();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("stage-code-dialog")).toHaveCount(0);
+  expect(posts).toHaveLength(1);
 });

@@ -39,12 +39,12 @@ today. If a CoinMarketCap key is set, the baht amounts follow the live rate.
 
 | Time | Screen | Click | Say |
 | --- | --- | --- | --- |
-| **0:00–0:20** | Tab 1, home | nothing | "Rent a scooter in Thailand and the shop keeps your passport as the deposit. At return, the shop alone decides what every scratch costs. Owners have the opposite problem: real damage and no proof. KeyEscrow puts the deposit in a small smart contract on BNB Chain, one per rental, that neither side can empty alone." |
+| **0:00–0:20** | Tab 1, home | nothing | "Rent a scooter in Thailand and the shop keeps your passport as the deposit. At return, the shop alone decides what every scratch costs. Owners have the opposite problem: real damage and no proof. KeyScrow puts the deposit in a small smart contract on BNB Chain, one per rental, that neither side can empty alone." |
 | **0:20–0:40** | Tab 2, `/how-it-works` | **▶ Play**, let it run ~15 s | "The one-minute version: the deposit sits in a safe with two locks, the owner's and the renter's. A robot inspector compares the photos and *suggests* a split. People decide. If the owner goes silent, the renter gets everything back." |
 | **0:40–0:50** | Tab 3, `/demo` | **▶ Play the demo** | "Now for real, on BSC testnet. No wallet: our demo owner, renter and dispute desk sign on the server. Every line on the right is a public transaction." |
 | **0:50–1:15** | Steps 1–4 | **→** through the captions; wait on *On-chain now* | "The shop offers a Honda Click in Chiang Mai: ฿3,400 a month, ฿6,800 deposit. Only the SHA-256 fingerprints of the agreement and the pickup photos go on-chain. The renter funds deposit plus month one into *this rental's own* escrow, an EIP-1167 clone. Not into the shop's pocket." |
 | **1:15–1:30** | Step 5 | **→** | "Month one is due right away. The owner gets ฿3,060, and our fee, ฿340, goes to the treasury. The fee is 10 % of one month's rent, once, from the owner's first payout, never from the deposit." |
-| **1:30–2:00** | Steps 6–8 | **→**; pause on the AI card | "Return: new photos from the same angles. The KeyEscrow Inspector, an on-chain agent with ERC-8004 identity 2921, compares them and drafts ฿1,287 for a dented heat shield and scratches, ฿5,513 back to the renter. It drafts, it never decides. The renter proposes that split on-chain with the report hash." |
+| **1:30–2:00** | Steps 6–8 | **→**; pause on the AI card | "Return: new photos from the same angles. The KeyScrow Inspector, an on-chain agent with ERC-8004 identity 2921, compares them and drafts ฿1,287 for a dented heat shield and scratches, ฿5,513 back to the renter. It drafts, it never decides. The renter proposes that split on-chain with the report hash." |
 | **2:00–2:15** | Steps 9–10, end screen | **→** to *Final balances*; click **View the escrow on BscScan ↗** | "The owner accepts: one transaction pays everyone, the escrow is at zero, and the books add up. Here it is on BscScan." (It opens in a new tab: show the escrow's transactions for 3 s, then close it.) |
 | **2:15–2:35** | Tab 4 Fleet owner, then Tab 5 Shareholders | nothing | "For a shop it is a fleet dashboard: every scooter's status read live from its latest rental, income in baht. A rental can pay into a Fleet Vault instead: investors hold BKK-FLEET-1 shares, rent and damage payouts flow in, 10 % goes to maintenance, the rest is claimable. Scooters as real-world assets." |
 | **2:35–2:50** | Tab 6, `/developers` | scroll once | "Every action is one definition, served as REST with an OpenAPI spec and as MCP tools on our agent. They return unsigned, simulated transactions, so an AI agent or a booking site can drive a rental without us ever holding a key." |
@@ -86,10 +86,10 @@ The seed uses **anvil's well-known dev accounts**. Their keys are public and onl
 
 | Role | Anvil account | Address |
 | --- | --- | --- |
-| Deployer / factory owner / KeyEscrow treasury (fee recipient) | #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
+| Deployer / factory owner / KeyScrow treasury (fee recipient) | #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
 | Owner | #1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` |
 | Renter | #2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` |
-| KeyEscrow dispute desk (default arbiter) | #3 | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` |
+| KeyScrow dispute desk (default arbiter) | #3 | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` |
 | Fleet Vault shareholder | #4 | `0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65` |
 
 The seed creates three rentals on the same terms (100 mUSDT a month, 2-month deposit, 3 months): `lease` (active,
@@ -138,7 +138,7 @@ To show the owner-silence timeout by hand: after the renter's proposal, run
 
 ## Live judge demo: a judge rents a real box (/stage)
 
-We bring a physical **KeyEscrow Mystery Box** (฿200/day, ฿1,000 deposit; edit `web/data/listings.json`). Listing:
+We bring a physical **KeyScrow Mystery Box** (฿200/day, ฿1,000 deposit; edit `web/data/listings.json`). Listing:
 `/app/listings/mystery-box`. Big screen: `/stage/mystery-box`. Phone: `/r/mystery-box` (the QR on the big screen).
 
 1. **Big screen** shows the QR, the live status, the money strip (renter paid, in escrow, owner got, back to renter +

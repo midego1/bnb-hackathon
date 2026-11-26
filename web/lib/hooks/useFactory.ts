@@ -6,7 +6,7 @@ import { usePublicClient } from "wagmi";
 import { escrowFactoryAbi } from "../contracts";
 import { useDeployment } from "./useDeployment";
 
-/** Factory settings that apply to new rentals: one-time fee and the KeyEscrow dispute desk (default arbiter). */
+/** Factory settings that apply to new rentals: one-time fee and the KeyScrow dispute desk (default arbiter). */
 export function useFactorySettings() {
   const { chainId, deployment } = useDeployment();
   const client = usePublicClient({ chainId });

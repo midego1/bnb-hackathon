@@ -1,6 +1,8 @@
 English | [简体中文](README.zh-CN.md)
 
-# KeyEscrow
+# KeyScrow
+
+KeyScrow (formerly KeyEscrow during the build: the live URLs and some screenshots still say keyescrow).
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -14,7 +16,7 @@ English | [简体中文](README.zh-CN.md)
 **Rent a scooter in Thailand without leaving your passport.**
 
 Scooter shops in Thailand usually keep the tourist's passport as the deposit, and the shop alone decides what each
-scratch costs at return. KeyEscrow replaces the passport with a deposit held in a small smart contract on BNB Chain,
+scratch costs at return. KeyScrow replaces the passport with a deposit held in a small smart contract on BNB Chain,
 one contract per rental. Rent is paid out to the shop month by month. At return, an AI inspector compares the pickup
 and return photos and drafts a deposit split. One side proposes it on-chain, the other accepts, and the money moves at
 once. If they disagree, a neutral dispute desk rules. Neither party can move the deposit alone, and timeouts protect
@@ -105,7 +107,7 @@ periods of 7, 14 or 30 days, pilot caps, audit fixes), deployed Thu 26 Nov 2026.
 | `RentalEscrow` implementation (cloned per rental) | [`0xEAaDe62c3255dAc5EB38952a80fa375618c34E53`](https://testnet.bscscan.com/address/0xEAaDe62c3255dAc5EB38952a80fa375618c34E53) |
 | `FleetVault` (`BKK-FLEET-1` shares, 10 % operator fee) | [`0x2EB2CDAc4868798Af22e64ad70D433f28E422eA4`](https://testnet.bscscan.com/address/0x2EB2CDAc4868798Af22e64ad70D433f28E422eA4) |
 | `MockUSDT` (mUSDT, 6 decimals, test stablecoin) | [`0x7aF0035c254bC760231BCcFF3403A714611c35B1`](https://testnet.bscscan.com/address/0x7aF0035c254bC760231BCcFF3403A714611c35B1) |
-| ERC-8004 Identity Registry (agent #2921, the KeyEscrow Inspector) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
+| ERC-8004 Identity Registry (agent #2921, the KeyScrow Inspector) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
 | Deployer, factory owner, fee recipient and default dispute desk | [`0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D`](https://testnet.bscscan.com/address/0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D) |
 
 ### What makes it BNB-native
@@ -113,7 +115,7 @@ periods of 7, 14 or 30 days, pilot caps, audit fixes), deployed Thu 26 Nov 2026.
 - **One escrow per rental.** `EscrowFactory` deploys an EIP-1167 clone of `RentalEscrow` for every rental. Each
   rental's funds are isolated in their own contract. No admin key can touch them, and nothing is upgradeable. The
   factory also indexes rentals by owner, renter and dispute desk, so the app needs no backend database to list them.
-- **An on-chain AI agent.** The KeyEscrow Inspector is ERC-8004 agent **#2921** in the Identity Registry on BSC
+- **An on-chain AI agent.** The KeyScrow Inspector is ERC-8004 agent **#2921** in the Identity Registry on BSC
   testnet. It was registered with the [BNB Agent SDK](https://github.com/bnb-chain/bnbagent-sdk) (v0.6.1). Its
   agent id goes into every report hash that a party passes to `RentalEscrow.propose()`. With the signer key set, the
   report is also signed by the agent's registered `reportSigner`. It speaks A2A and MCP ([docs/AGENT.md](docs/AGENT.md)).
@@ -211,7 +213,7 @@ deposit. A scooter at 3,400 THB a month pays ฿340, once. See [docs/BUSINESS.md
   `{tenantRefund, landlordClaim, reasons[], confidence}`. It only drafts a proposal: a party submits it with their
   own wallet and the other party accepts. Before judging it recalls the scooter's earlier inspections, so old damage
   is not charged twice.
-- **Neutral arbitration.** The KeyEscrow dispute desk is the default arbiter. The owner may name another neutral
+- **Neutral arbitration.** The KeyScrow dispute desk is the default arbiter. The owner may name another neutral
   arbiter, and the renter sees it before funding.
 - **Renter-protecting timeouts.** If the owner ignores a proposal for 7 days, or the arbiter does not rule within
   14 days, the full deposit goes back to the renter. Both windows can be set per rental.
@@ -220,11 +222,11 @@ deposit. A scooter at 3,400 THB a month pays ฿340, once. See [docs/BUSINESS.md
 - **One action layer, three faces.** Each rental action (`get_lease`, `prepare_fund`, `prepare_propose_settlement`,
   …) is defined once in `web/lib/actions` and served as REST (`/api/v1/<action>`, with an OpenAPI 3.1 spec), as MCP
   tools on the agent, and as the app's form validation. `prepare_*` actions return unsigned transactions that are
-  already simulated. KeyEscrow never holds a user key.
+  already simulated. KeyScrow never holds a user key.
 - **Prices in baht.** Every amount is shown THB first, then USD and the exact USDT. The rate comes from the Atlas
   on-chain feed or the CoinMarketCap Pro API, both called server-side only and cached. A badge always names the
   source: *Atlas feed*, *Live CoinMarketCap* or *Demo rates*.
-- **No token.** KeyEscrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
+- **No token.** KeyScrow has no token of its own. MockUSDT stands in for a stablecoin on testnet.
 
 ## Sponsor integrations
 
@@ -235,7 +237,7 @@ card. All sponsor calls are **server-side only** (`web/app/api/*`) and are logge
 `web/.sponsor-logs/<sponsor>.jsonl` (gitignored). On Workers, which have no disk, the log is kept in memory. Tests
 never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 
-| Sponsor | What it does in KeyEscrow | Turn it on | State on the live site (25 Nov) |
+| Sponsor | What it does in KeyScrow | Turn it on | State on the live site (25 Nov) |
 |---|---|---|---|
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
@@ -282,7 +284,7 @@ One-time setup once you have a key (it creates the brain; put the returned `id` 
 
 ```bash
 curl -s -X POST https://api.livingbrain.com/v1/brains -H "x-api-key: $LIVING_BRAIN_API_KEY" \
-  -H "x-subject-id: $LIVING_BRAIN_SUBJECT_ID" -H 'content-type: application/json' -d '{"name":"KeyEscrow scooters"}'
+  -H "x-subject-id: $LIVING_BRAIN_SUBJECT_ID" -H 'content-type: application/json' -d '{"name":"KeyScrow scooters"}'
 ```
 
 ## Cournot Integration
@@ -311,7 +313,7 @@ curl -s -X POST https://api.livingbrain.com/v1/brains -H "x-api-key: $LIVING_BRA
 - **Where users see the claim and evidence.** In the *Cournot Intelligence Oracle* box of the deposit risk panel
   (`/integrations`, the owner's create form, the renter's funding card). It shows the exact claim sent, the returned
   probability, the `result` fields, the full `basis` evidence verbatim and the request id (Cournot's `x-trace-id`).
-  A separate box labelled **"Explanation added by KeyEscrow (not from Cournot)"** holds our own explanation.
+  A separate box labelled **"Explanation added by KeyScrow (not from Cournot)"** holds our own explanation.
 - **Proof of a successful call.** _Pending: no probability call has been made yet (the owner decides when to spend
   one of the 3 free calls)._ One `resolve` call (free) succeeded on 2026-11-25 12:44:29 UTC, `x-trace-id`
   `4dbc8496d005d7971986d3123fe7dadd`. Its response is `web/tests/fixtures/cournot/resolve.recorded-2026-11-25.json`.
@@ -344,7 +346,7 @@ web/                       Next.js (App Router) + TypeScript + Tailwind + shadcn
   lib/server/                server-only services: settlement, price, evidence, sponsors, shared state, demo runner
   cloudflare/                Worker entry + the KeyEscrowState Durable Object
   e2e/                       Playwright tests
-agent/                     KeyEscrow Inspector: ERC-8004 agent #2921, A2A + MCP (Node server and Cloudflare Worker)
+agent/                     KeyScrow Inspector: ERC-8004 agent #2921, A2A + MCP (Node server and Cloudflare Worker)
 docs/                      architecture, business model, demo script, API, deploy, agent, screenshots
 ```
 
@@ -355,7 +357,7 @@ docs/                      architecture, business model, demo script, API, deplo
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, Cloudflare, the rental state machine, money flows (funding, settlement, dispute, timeout), scalability. Mermaid diagrams. |
 | [DEMO.md](docs/DEMO.md) | The 3-minute pitch script on the live site, a 30-second offline backup, the local setup. |
 | [BUSINESS.md](docs/BUSINESS.md) | The problem, users, the fee model with a THB example, dispute desk and Fleet Vault revenue, roadmap, risks. |
-| [AGENT.md](docs/AGENT.md) | The KeyEscrow Inspector: ERC-8004 identity, A2A + MCP, signed reports. |
+| [AGENT.md](docs/AGENT.md) | The KeyScrow Inspector: ERC-8004 identity, A2A + MCP, signed reports. |
 | [API.md](docs/API.md) | The server routes and their fallbacks. |
 | [WRITEUP.md](docs/WRITEUP.md) | The one-page CoinMarketCap x Atlas write-up. |
 | [DEPLOY.md](docs/DEPLOY.md) · [CLOUDFLARE.md](docs/CLOUDFLARE.md) | The BSC testnet deploy, and the web app + agent on Cloudflare Workers. |
@@ -377,8 +379,8 @@ other than 31337 unless `ALLOW_NON_LOCAL_BROADCAST=true` is set (and then `PRIVA
 are always refused. On a fresh anvil the addresses are deterministic (`contracts/deployments/31337.example.json`
 and `31337.demo.example.json`), and the app has them baked in.
 
-The demo roles are anvil's default accounts: #0 is the deployer, factory owner and KeyEscrow treasury (fee recipient),
-#1 the owner (`landlord`), #2 the renter (`tenant`), #3 the KeyEscrow dispute desk (default arbiter) and #4 the
+The demo roles are anvil's default accounts: #0 is the deployer, factory owner and KeyScrow treasury (fee recipient),
+#1 the owner (`landlord`), #2 the renter (`tenant`), #3 the KeyScrow dispute desk (default arbiter) and #4 the
 Fleet Vault shareholder. The seed creates three rentals on the same terms, modelled on a Honda Click 125i from a shop
 in Chiang Mai: 100 mUSDT a month (3,400 THB at ~34 THB/USDT), a 2-month deposit and a 3-month rental period. One is
 active, one is in dispute, and one pays the Fleet Vault.

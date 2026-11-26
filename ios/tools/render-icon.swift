@@ -1,10 +1,10 @@
-// Renders the KeyEscrow app icon (neon key-shield over a Bangkok night street) with CoreGraphics.
+// Renders the KeyScrow app icon (neon key-shield over a Bangkok night street) with CoreGraphics.
 // Usage, from ios/: swift tools/render-icon.swift <out.png> default|dark|tinted
 // Writes 1024x1024 PNGs; the three variants live in KeyEscrow/Resources/Assets.xcassets/AppIcon.appiconset.
 import AppKit
 import CoreGraphics
 
-// KeyEscrow app icon: a neon key-shield over a night soi. Variants: default, dark, tinted.
+// KeyScrow app icon: a neon key-shield over a night soi. Variants: default, dark, tinted.
 let variant = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "default"
 let N = 1024
 let W = CGFloat(N)

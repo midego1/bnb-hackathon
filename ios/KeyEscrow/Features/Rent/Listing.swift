@@ -32,7 +32,7 @@ struct Listing: Identifiable, Equatable, Hashable {
 
     /// Shown when the server cannot be reached: the same items, labelled demo.
     static let offline: [Listing] = [
-        Listing(id: "mystery-box", kind: .stage, name: "KeyEscrow Mystery Box", location: "On stage, BNB Bangkok",
+        Listing(id: "mystery-box", kind: .stage, name: "KeyScrow Mystery Box", location: "On stage, BNB Bangkok",
                 description: "A real box we brought to the stage. Rent it, take it, bring it back: the deposit sits in its own escrow on BNB Chain until both sides agree.",
                 photo: nil, rentThb: 200, depositThb: 1000, perDay: true, symbol: "shippingbox.fill", vault: false),
         Listing(id: "click-125i-cnx", kind: .demoScooter, name: "Honda Click 125i", location: "Chiang Mai Old City", description: "", photo: nil, rentThb: 3400, depositThb: 6800, perDay: false, symbol: "scooter", vault: false),

@@ -187,7 +187,7 @@ export function Safe({ fill, children }: { fill: number; children?: ReactNode })
   );
 }
 
-/** KeyEscrow's tip jar: origin at the bottom centre, ~100 tall. */
+/** KeyScrow's tip jar: origin at the bottom centre, ~100 tall. */
 export function Jar({ fill }: { fill: number }) {
   return (
     <g>
@@ -198,7 +198,7 @@ export function Jar({ fill }: { fill: number }) {
       </g>
       <rect x={-33} y={-74} width={66} height={18} rx={4} fill="#fef3c7" stroke={INK} strokeWidth={2} />
       <text x={0} y={-61} textAnchor="middle" fontSize={10.5} fontWeight={700} fill={INK}>
-        KeyEscrow
+        KeyScrow
       </text>
     </g>
   );

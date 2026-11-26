@@ -1,7 +1,7 @@
 "use client";
 
 /*
- * Vercel AI Elements (ai-elements@1.9.1 CLI, shadcn registry), trimmed for KeyEscrow: no `ai` package (local
+ * Vercel AI Elements (ai-elements@1.9.1 CLI, shadcn registry), trimmed for KeyScrow: no `ai` package (local
  * types), no streamdown / shiki / motion (the Cloudflare Worker has a 3 MiB budget). Answers render with
  * components/assistant/Markdown.tsx. Here: status colours are our tokens, input/output are plain <pre> JSON (the
  * upstream shiki CodeBlock is gone), and the header takes an optional icon and status label.

@@ -2,7 +2,7 @@ import Foundation
 
 /// Signs and sends transactions with a local test key, one at a time, waiting for each receipt.
 /// Safety: BSC testnet only (the prepared chainId, the RPC's eth_chainId and the signer all must say 97), only to
-/// KeyEscrow's own contracts (or the app's own wallets), never with value on a prepared step, gas and gas price capped.
+/// KeyScrow's own contracts (or the app's own wallets), never with value on a prepared step, gas and gas price capped.
 struct TxSender {
     var rpc = RPC()
     var api = APIClient()

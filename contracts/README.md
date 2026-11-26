@@ -1,6 +1,6 @@
-# KeyEscrow contracts
+# KeyScrow contracts
 
-Foundry project with the on-chain part of KeyEscrow.
+Foundry project with the on-chain part of KeyScrow.
 
 | Contract | Purpose |
 | --- | --- |
@@ -35,10 +35,10 @@ lease at creation (`EscrowFactory.createLease`, 0 = default; response 1-60 days,
 
 ## Platform roles and fee
 
-- **Default arbiter.** `EscrowFactory.defaultArbiter` is the KeyEscrow dispute desk (owner-settable). A rental created
+- **Default arbiter.** `EscrowFactory.defaultArbiter` is the KeyScrow dispute desk (owner-settable). A rental created
   with `arbiter = address(0)` uses it; a owner may still name any other arbiter that is neither party.
 - **Protocol fee.** Once per rental, `feeBps` of **one month's** rent (default 1000 = 10%, hard cap 1000) is deducted
-  from the owner's first rent payout and sent to `feeRecipient` (KeyEscrow treasury). It is never taken from the
+  from the owner's first rent payout and sent to `feeRecipient` (KeyScrow treasury). It is never taken from the
   deposit or charged to the renter. Rate and recipient are snapshotted into each rental, so later changes only affect
   new rentals. Emits `ProtocolFeePaid`.
 

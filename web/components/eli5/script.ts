@@ -29,7 +29,7 @@ export type Rental = {
   emoji: string;
   owner: string;
   renter: string;
-  /** Scene 1: how it usually goes without KeyEscrow (max ~15 words). */
+  /** Scene 1: how it usually goes without KeyScrow (max ~15 words). */
   usually: string;
   /** Scene 1's grown-up detail, given the deposit in baht. */
   usuallyDetail: (deposit: string) => string;
@@ -45,7 +45,7 @@ export const RENTALS: Record<RentalKind, Rental> = {
     owner: "Landlord",
     renter: "Tenant",
     usually: "Usually you hand a big deposit to a stranger, and just hope it comes back.",
-    usuallyDetail: (d) => `Without KeyEscrow: a Bangkok deposit is two months' rent (${d}), paid straight to the landlord.`,
+    usuallyDetail: (d) => `Without KeyScrow: a Bangkok deposit is two months' rent (${d}), paid straight to the landlord.`,
     damage: "a scuff on the wall",
   },
   scooter: {
@@ -56,7 +56,7 @@ export const RENTALS: Record<RentalKind, Rental> = {
     renter: "Renter",
     usually: "Usually you leave your passport or a big deposit with a stranger, and hope.",
     usuallyDetail: (d) =>
-      `Without KeyEscrow: Thai rental shops hold your passport or a cash deposit (${d}), and decide alone what you get back.`,
+      `Without KeyScrow: Thai rental shops hold your passport or a cash deposit (${d}), and decide alone what you get back.`,
     damage: "a scratch on the side",
   },
 };
@@ -78,7 +78,7 @@ export const DEMO_PRICES: PriceResponse = {
   fetchedAt: "2026-01-01T00:00:00.000Z",
 };
 
-/** One-time KeyEscrow fee: 10% of one month's rent (EscrowFactory feeBps default 1000), taken from month 1. */
+/** One-time KeyScrow fee: 10% of one month's rent (EscrowFactory feeBps default 1000), taken from month 1. */
 export const FEE_BPS = 1000;
 /**
  * What the demo's AI inspector (the deterministic mock, lib/server/settlement/mock.ts) suggests the landlord keeps for
@@ -183,7 +183,7 @@ const shared: SceneDef[] = [
   },
   {
     id: "agree",
-    text: `With KeyEscrow, they agree on ${R.the}. A safe with two locks appears.`,
+    text: `With KeyScrow, they agree on ${R.the}. A safe with two locks appears.`,
     detail: `EscrowFactory.createLease() makes a new RentalEscrow contract for this one rental on BNB Chain: ${baht(MONEY.rent)} a month, ${baht(MONEY.deposit)} deposit.`,
     duration: 8500,
     reset: START,
@@ -199,8 +199,8 @@ const shared: SceneDef[] = [
   },
   {
     id: "rent",
-    text: `Each month, rent rolls out to the ${owner}. A tiny coin goes in KeyEscrow's jar, once.`,
-    detail: `RentalEscrow.releaseRent(): month 1 pays ${baht(MONEY.rentToLandlord)} to the ${owner} and the one-time fee of ${baht(MONEY.fee)} (10% of one month) to the KeyEscrow treasury. Later months: no fee.`,
+    text: `Each month, rent rolls out to the ${owner}. A tiny coin goes in KeyScrow's jar, once.`,
+    detail: `RentalEscrow.releaseRent(): month 1 pays ${baht(MONEY.rentToLandlord)} to the ${owner} and the one-time fee of ${baht(MONEY.fee)} (10% of one month) to the KeyScrow treasury. Later months: no fee.`,
     duration: 9000,
     cues: { rental: 0, safe: 0, locks: 0, keys: 0, closed: 0, jar: 400, calendar: 0 },
     calendar: months(MONEY.termPeriods),
@@ -219,7 +219,7 @@ const shared: SceneDef[] = [
   {
     id: "inspect",
     text: "A robot compares the photos and suggests a fair split. It only suggests; people decide.",
-    detail: `The KeyEscrow Inspector AI agent (ERC-8004 identity) spots ${R.damage}: ${baht(MONEY.aiLandlord)} for repairs, ${baht(MONEY.aiTenant)} back. The ${renter} proposes it with propose().`,
+    detail: `The KeyScrow Inspector AI agent (ERC-8004 identity) spots ${R.damage}: ${baht(MONEY.aiLandlord)} for repairs, ${baht(MONEY.aiTenant)} back. The ${renter} proposes it with propose().`,
     duration: 9000,
     cues: { safe: 0, locks: 0, keys: 0, closed: 0, jar: 0, photos: 0, robot: 300, scan: 1300, suggest: 4300 },
     split: [MONEY.aiLandlord, MONEY.aiTenant],
@@ -242,7 +242,7 @@ const endings: Record<Ending, SceneDef> = {
   disagree: {
     id: "disagree",
     text: `The ${owner} says no. A fair referee looks at the photos and decides the split.`,
-    detail: `dispute() hands it to the KeyEscrow dispute desk; resolve() pays ${baht(MONEY.deskLandlord)} for repairs and ${baht(MONEY.deskTenant)} back. If the desk misses 14 days, it all goes back to the ${renter}.`,
+    detail: `dispute() hands it to the KeyScrow dispute desk; resolve() pays ${baht(MONEY.deskLandlord)} for repairs and ${baht(MONEY.deskTenant)} back. If the desk misses 14 days, it all goes back to the ${renter}.`,
     duration: 10000,
     cues: { safe: 0, locks: 0, keys: 0, closed: 0, jar: 0, photos: 0, no: 500, referee: 1800, gavel: 3800, ruling: 4000, open: 4800 },
     split: [MONEY.deskLandlord, MONEY.deskTenant],
@@ -311,7 +311,7 @@ export const totalDuration = (ending: Ending) => story(ending).reduce((s, x) => 
 /** What the recap card says each one ended with. */
 export function recapLines(ending: Ending, lang: Lang = "en") {
   const end = story(ending).at(-1)!.after;
-  const n = lang === "zh" ? ZH.recapNotes : ({ tenant: [R.renter, "got back"], landlord: [R.owner, "rent + repairs"], jar: ["KeyEscrow jar", "one-time fee"], safe: ["The safe", "empty"] } as const);
+  const n = lang === "zh" ? ZH.recapNotes : ({ tenant: [R.renter, "got back"], landlord: [R.owner, "rent + repairs"], jar: ["KeyScrow jar", "one-time fee"], safe: ["The safe", "empty"] } as const);
   return (["tenant", "landlord", "jar", "safe"] as const).map((k) => ({ who: n[k][0], value: end[k], note: n[k][1] }));
 }
 
@@ -321,7 +321,7 @@ export function recapLines(ending: Ending, lang: Lang = "en") {
 
 export const copy = {
   pageTitle: "How it works",
-  heading: "KeyEscrow, explained simply",
+  heading: "KeyScrow, explained simply",
   ending: "Ending",
   play: "Play",
   pause: "Pause",
@@ -339,7 +339,7 @@ export const copy = {
     tenant: R.renter,
     landlord: R.owner,
     safe: "The safe",
-    jar: "KeyEscrow jar",
+    jar: "KeyScrow jar",
     robot: "AI Inspector",
     referee: "Referee",
   },
@@ -358,7 +358,7 @@ export const copy = {
     before: "First day",
     after: "Last day",
     fair: "fair split",
-    without: "Without KeyEscrow",
+    without: "Without KeyScrow",
     contract: "Rental",
   },
 };

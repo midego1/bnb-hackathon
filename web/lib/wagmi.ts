@@ -4,7 +4,7 @@ import { createConfig, http } from "wagmi";
 import { anvil, anvilRpcUrl, bsc, bscRpcUrl, bscTestnet, bscTestnetRpcUrl, opBNBTestnet, opBNBTestnetRpcUrl, supportedChains } from "./chains";
 import { devAccountsConnector } from "./devAccounts";
 
-const appName = "KeyEscrow";
+const appName = "KeyScrow";
 
 // A WalletConnect project id is a public identifier (not a secret), so NEXT_PUBLIC_ is fine here.
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;

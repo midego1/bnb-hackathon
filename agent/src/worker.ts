@@ -1,5 +1,5 @@
 /**
- * KeyEscrow Inspector on Cloudflare Workers (worker keyescrow-agent, agent/wrangler.jsonc; docs/CLOUDFLARE.md).
+ * KeyScrow Inspector on Cloudflare Workers (worker keyescrow-agent, agent/wrangler.jsonc; docs/CLOUDFLARE.md).
  *
  * The same three faces as the Node server (src/server.ts), on Web-standard Request/Response instead of express:
  *   A2A   GET /.well-known/agent-card.json, JSON-RPC at POST /a2a (message/send)

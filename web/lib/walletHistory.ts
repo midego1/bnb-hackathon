@@ -209,5 +209,5 @@ export function settledSentence(r: RentalSummary, party: Party): string | null {
           : "settled by agreement";
   const split = `${formatToken(s.tenantRefund)} of the ${formatToken(r.depositAmount)} deposit back to the renter, ${formatToken(s.landlordClaim)} kept by the owner`;
   const who = party === "renter" ? r.tenant : r.landlord;
-  return `Wallet ${who} was the ${party} of KeyEscrow rental ${r.address}: ${how}; ${split}. Transaction ${s.txHash}.`;
+  return `Wallet ${who} was the ${party} of KeyScrow rental ${r.address}: ${how}; ${split}. Transaction ${s.txHash}.`;
 }

@@ -1,5 +1,5 @@
 /**
- * ERC-8004 registration of KeyEscrow Inspector on BSC testnet (chainId 97) with the BNB Agent SDK. See docs/AGENT.md.
+ * ERC-8004 registration of KeyScrow Inspector on BSC testnet (chainId 97) with the BNB Agent SDK. See docs/AGENT.md.
  *
  *   pnpm agent:register:check            preflight; NEVER sends a transaction
  *   pnpm agent:register [-- --yes]       the broadcast: needs ALLOW_NON_LOCAL_BROADCAST=true and a typed confirmation
@@ -186,7 +186,7 @@ const services = (uri: string) =>
     : uri;
 
 async function preflight(setUri: boolean): Promise<Plan> {
-  console.log(bold(`KeyEscrow Inspector: ERC-8004 ${setUri ? "agentURI update" : "registration"} preflight (chainId ${CHAIN_ID})`));
+  console.log(bold(`KeyScrow Inspector: ERC-8004 ${setUri ? "agentURI update" : "registration"} preflight (chainId ${CHAIN_ID})`));
   const rpcUrl = process.env.BSC_TESTNET_RPC_URL ?? "";
   const local = isLoopback(rpcUrl);
   if (!rpcUrl) bad("BSC_TESTNET_RPC_URL is not set");

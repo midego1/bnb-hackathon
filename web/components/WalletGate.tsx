@@ -9,7 +9,7 @@ import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useT } from "@/lib/i18n/client";
 import { Notice } from "./ui";
 
-/** Renders children only with a connected wallet on a chain where KeyEscrow is deployed. `what`: already in the active language ("see your rentals"). */
+/** Renders children only with a connected wallet on a chain where KeyScrow is deployed. `what`: already in the active language ("see your rentals"). */
 export function WalletGate({ children, what }: { children: ReactNode; what: string }) {
   const { isConnected, chainId: walletChainId } = useAccount();
   const { chainId } = useDeployment();
@@ -25,7 +25,7 @@ export function WalletGate({ children, what }: { children: ReactNode; what: stri
       </div>
     );
   }
-  // Reads fall back to the default chain (useDeployment); writes need the wallet itself on a KeyEscrow chain.
+  // Reads fall back to the default chain (useDeployment); writes need the wallet itself on a KeyScrow chain.
   if (!getDeployment(walletChainId)) {
     return (
       <Notice kind="warn">

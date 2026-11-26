@@ -9,10 +9,10 @@ import { zh } from "./copy.zh";
  */
 const en = {
   meta: {
-    title: "KeyEscrow: rent a scooter in Thailand without leaving your passport",
+    title: "KeyScrow: rent a scooter in Thailand without leaving your passport",
     description:
       "The deposit for a scooter rental sits in its own smart contract on BNB Chain instead of a passport at the counter. Nobody moves it alone: an AI inspection proposes the split at return, people decide, and deadlines protect the renter. Live on BSC testnet.",
-    cardAlt: `KeyEscrow: rent the scooter, keep your passport. An LED sign reads ${baht(EXAMPLE.deposit)} in escrow, over a scooter rental shop on a Thai street at night.`,
+    cardAlt: `KeyScrow: rent the scooter, keep your passport. An LED sign reads ${baht(EXAMPLE.deposit)} in escrow, over a scooter rental shop on a Thai street at night.`,
   },
   header: {
     nav: [
@@ -22,11 +22,11 @@ const en = {
       ["#live", "Proof"],
       ["#fee", "Fee"],
     ] as [string, string][],
-    home: "KeyEscrow, home",
+    home: "KeyScrow, home",
     openApp: "Open the app",
   },
   hero: {
-    label: "KeyEscrow in one screen",
+    label: "KeyScrow in one screen",
     artAlt:
       "LED dot-matrix picture of a Thai street at night: a red scooter parked in front of a lit scooter rental shop, a palm tree, power lines and a temple spire.",
     h1: ["Rent the scooter.", "Keep your passport."],
@@ -68,16 +68,16 @@ const en = {
     stageTag: "Live stage demo",
     onStage: "On stage, BNB Bangkok",
     alt: (name: string, place: string) => `Photo of a ${name}, the model of this demo listing in ${place}.`,
-    boxAlt: "Photo of a closed cardboard box, standing in for the KeyEscrow Mystery Box rented live on stage.",
+    boxAlt: "Photo of a closed cardboard box, standing in for the KeyScrow Mystery Box rented live on stage.",
   },
   counter: {
     title: "The same counter, with nobody holding your passport.",
     lead: "Renters fear bogus damage claims. Shop owners face real damage with no proof. Neither has anyone neutral to turn to, and nobody goes to court over a few thousand baht.",
     today: "Today",
-    ours: "With KeyEscrow",
+    ours: "With KeyScrow",
     art: [
       "LED picture of an open shop drawer holding a passport and a stack of banknotes.",
-      `LED picture of a small lit house with a keyhole, the KeyEscrow mark, with ${baht(EXAMPLE.deposit)} glowing above it.`,
+      `LED picture of a small lit house with a keyhole, the KeyScrow mark, with ${baht(EXAMPLE.deposit)} glowing above it.`,
     ],
     rows: [
       ["The deposit", "Your passport or cash, in the shop's drawer", "Tokens in a contract made for this one rental"],
@@ -96,7 +96,7 @@ const en = {
       [`ERC-8004 agent #${INSPECTOR_AGENT.id}`, "the AI inspector's on-chain identity"],
     ] as [string, string][],
     lead: `Contract v2 runs on BSC testnet (chain 97) and its source is verified, so what runs is what is in the repo, with ${CONTRACT_TESTS} Foundry tests behind it. The contracts are small and non-upgradeable. Nobody holds an admin key over a rental's funds: the deposit can only go to the two sides named at creation, and the dispute desk can only rule on a rental that is in dispute. Test money only: there is no mainnet deployment yet.`,
-    caption: "KeyEscrow contracts on BSC testnet",
+    caption: "KeyScrow contracts on BSC testnet",
     cols: ["Contract", "What it does", "Address (BscScan testnet)"],
     roles: Object.fromEntries(TESTNET_CONTRACTS.map((c) => [c.name, c.role as string])) as Record<(typeof TESTNET_CONTRACTS)[number]["name"], string>,
     tests: [`All ${CONTRACT_TESTS} contract tests, in the repo`, "The inspector's ERC-8004 registration"],
@@ -124,7 +124,7 @@ const en = {
       held: "in escrow",
       ownerHas: "with the owner",
       passport: "Passport: still in your pocket",
-      fee: `KeyEscrow fee ${baht(EXAMPLE.fee)}, once`,
+      fee: `KeyScrow fee ${baht(EXAMPLE.fee)}, once`,
       steps: "Steps of the rental",
       play: "Play the steps",
       pause: "Pause",
@@ -143,7 +143,7 @@ const en = {
       },
       {
         title: "Ride. Rent is paid out on schedule",
-        body: `The first month's rent is released to the owner: ${baht(EXAMPLE.firstPayout)}, after KeyEscrow's one-time ${baht(EXAMPLE.fee)} fee. The ${baht(EXAMPLE.deposit)} deposit stays where it is.`,
+        body: `The first month's rent is released to the owner: ${baht(EXAMPLE.firstPayout)}, after KeyScrow's one-time ${baht(EXAMPLE.fee)} fee. The ${baht(EXAMPLE.deposit)} deposit stays where it is.`,
       },
       {
         title: "Return the scooter, settle in minutes",
@@ -160,7 +160,7 @@ const en = {
     points: [
       ["Bounded.", "The refund and the claim always add up to the deposit, and never more."],
       ["Two signatures.", "One side submits the proposal on-chain, the other accepts. Either can dispute it instead."],
-      ["Signed.", `Reports are signed by the KeyEscrow Inspector, ERC-8004 agent #${INSPECTOR_AGENT.id} on BSC testnet, so anyone can check who wrote them.`],
+      ["Signed.", `Reports are signed by the KeyScrow Inspector, ERC-8004 agent #${INSPECTOR_AGENT.id} on BSC testnet, so anyone can check who wrote them.`],
       ["With a memory.", "The inspector looks up the scooter's earlier inspections first, so an old scratch is not billed twice."],
     ] as [string, string][],
     photos: [
@@ -183,7 +183,7 @@ const en = {
   },
   deadlines: {
     title: "Every dispute has a deadline.",
-    lead: "The KeyEscrow dispute desk is the default arbiter; an owner can name another neutral one, and the renter sees who it is before paying. Whoever it is, the clock protects the renter.",
+    lead: "The KeyScrow dispute desk is the default arbiter; an owner can name another neutral one, and the renter sees who it is before paying. Whoever it is, the clock protects the renter.",
     day: (n: number) => `Day ${n}`,
     lanes: [
       { title: "You agree", end: "Settled at once", body: "One side proposes the split, the other accepts. The deposit moves in the same transaction." },
@@ -235,17 +235,17 @@ const en = {
     title: "Built for agents, not only for browsers.",
     lead: [
       "Every rental action is defined once and served three ways: a REST endpoint, an MCP tool and an A2A skill. The ",
-      " actions return unsigned transactions, already simulated on the chain, for your own wallet to sign. KeyEscrow never holds a key.",
+      " actions return unsigned transactions, already simulated on the chain, for your own wallet to sign. KeyScrow never holds a key.",
     ],
     inspector: [`The inspector is an agent too: ERC-8004 agent #${INSPECTOR_AGENT.id} in the Identity Registry on BSC testnet (`, "registration", "). Other agents can find it, call it and verify what it signed."],
     developers: "Developer reference",
     docs: "Agent docs",
-    codeLabel: "Connect Claude Code to the local KeyEscrow MCP server",
+    codeLabel: "Connect Claude Code to the local KeyScrow MCP server",
     code: `# the agent, from a checkout of the repo
 pnpm agent:dev
 
 # then, in Claude Code
-claude mcp add --transport http keyescrow \\
+claude mcp add --transport http keyscrow \\
   http://127.0.0.1:8790/mcp`,
     tools: (rental: number, inspector: number) => `${rental} rental tools and ${inspector} inspector tools`,
   },
@@ -257,7 +257,7 @@ claude mcp add --transport http keyescrow \\
       "Monthly rent",
       "Deposit, two months, instead of the passport",
       "Renter pays in at pickup: deposit and month 1",
-      "KeyEscrow fee, once",
+      "KeyScrow fee, once",
       "Owner receives for month 1",
       "Owner receives for each later month",
     ],
@@ -265,7 +265,7 @@ claude mcp add --transport http keyescrow \\
   },
   roadmap: {
     title: "Where this goes next.",
-    lead: "Today KeyEscrow is a working testnet build, not a business with customers. This is the plan from here.",
+    lead: "Today KeyScrow is a working testnet build, not a business with customers. This is the plan from here.",
     live: "Live on testnet",
     planned: "Planned",
     phases: [

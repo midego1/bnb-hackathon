@@ -317,7 +317,7 @@ test("model picker: only Sonnet 5.5 and Haiku 5.5, per chat; /model; the server 
 
   // The server never uses a model outside the allowlist (here: says so in run_started).
   const res = await page.request.post("/api/assistant", {
-    data: { chatId: "e2emodelcheck01", message: "Explain KeyEscrow simply", model: "claude-opus-5-5", context: { path: "/", address: null, chainId: 31337 } },
+    data: { chatId: "e2emodelcheck01", message: "Explain KeyScrow simply", model: "claude-opus-5-5", context: { path: "/", address: null, chainId: 31337 } },
   });
   const body = await res.text();
   expect(body).toContain('"refusedModel":"claude-opus-5-5"');
@@ -334,13 +334,13 @@ test("history: New chat keeps the chat; open it read-only, rename, continue, del
   await page.getByTestId("assistant-new").click();
   await expect(page.getByTestId("assistant-suggestions")).toBeVisible();
   await expect(edge(page)).toHaveAttribute("data-assistant-state", "idle");
-  await ask(page, "Explain KeyEscrow simply");
+  await ask(page, "Explain KeyScrow simply");
   await expect(page.getByTestId("assistant-answer").last()).toContainText("Nobody can take the deposit alone");
 
   await page.getByTestId("assistant-history").click();
   const items = page.getByTestId("assistant-history-item");
   await expect(items).toHaveCount(2);
-  await expect(items.first()).toContainText("Explain KeyEscrow simply");
+  await expect(items.first()).toContainText("Explain KeyScrow simply");
   await expect(items.nth(1)).toContainText("Create a rental for 3,400 baht");
   await page.getByTestId("assistant-history-search").fill("rental 3,400");
   await expect(items).toHaveCount(1);

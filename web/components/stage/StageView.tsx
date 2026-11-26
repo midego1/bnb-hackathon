@@ -3,7 +3,12 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { zeroHash } from "viem";
+import { LogoMark } from "@/components/LogoMark";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Notice } from "@/components/ui";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { explorerLink } from "@/lib/chains";
 import { evidenceUrl } from "@/lib/evidence";
 import { useT } from "@/lib/i18n/client";
@@ -57,17 +62,22 @@ export function useOwnerSide(slug: string) {
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const t = useT();
+  // In-page dialogs, not window.confirm/prompt: wallet in-app browsers (MetaMask mobile...) silently block those.
+  const { confirm, dialog } = useConfirm();
+  const [askCode, setAskCode] = useState<(code?: string) => void>();
 
   async function presenter(action: "accept" | "reset") {
-    if (action === "reset" && !window.confirm(t("stage.presenter.resetConfirm"))) return;
+    if (action === "reset" && !(await confirm({ title: t("stage.presenter.resetConfirm"), confirmLabel: t("stage.presenter.reset"), destructive: true }))) return;
     let code: string | undefined;
     try {
       code = localStorage.getItem(CODE_KEY) ?? undefined;
     } catch {}
     if (s?.presenterLocked && !code) {
-      code = window.prompt(t("stage.presenter.code")) ?? undefined;
+      code = (await new Promise<string | undefined>((resolve) => setAskCode(() => resolve))) || undefined;
+      setAskCode(undefined);
+      if (!code) return;
       try {
-        if (code) localStorage.setItem(CODE_KEY, code);
+        localStorage.setItem(CODE_KEY, code);
       } catch {}
     }
     setBusy(action);
@@ -95,6 +105,12 @@ export function useOwnerSide(slug: string) {
     busy,
     error,
     presenter,
+    dialogs: (
+      <>
+        {dialog}
+        {askCode && <PresenterCodeDialog onDone={askCode} />}
+      </>
+    ),
     paid: funded ? (funded.args.deposit as bigint) + (funded.args.firstRent as bigint) : undefined,
     fee: sa?.fee,
     toOwner: sa ? sa.landlordClaim + sa.rentToLandlord - sa.fee : undefined,
@@ -145,6 +161,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
           {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
           <img src={listing.photos[0]} alt={listing.name} className="size-14 shrink-0 rounded-xl object-cover sm:size-20 wide:aspect-[4/3] wide:h-[clamp(6rem,20vh,18rem)] wide:w-auto wide:max-w-full wide:rounded-2xl" />
           <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground wide:justify-center wide:text-[clamp(1rem,0.5rem+0.6vw,1.5rem)]"><LogoMark className="size-6 shrink-0 wide:size-[clamp(1.5rem,3.5vh,2.5rem)]" />KeyScrow</p>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl wide:text-[clamp(1.875rem,0.8rem+1.9vw,4rem)] wide:leading-tight">{listing.name}</h1>
             <p className="text-base text-muted-foreground sm:text-lg wide:mt-1 wide:text-[clamp(1.125rem,0.5rem+1vw,2rem)]">
               {t("stage.terms", stageTerms(listing, chainId))}
@@ -289,6 +306,39 @@ export function PresenterButtons({ o }: { o: OwnerSide }) {
           <Notice kind="error">{o.error}</Notice>
         </div>
       )}
+      {o.dialogs}
     </>
+  );
+}
+
+/** Asks for the presenter code: autofocused, Enter submits; Cancel / Escape resolve undefined. */
+function PresenterCodeDialog({ onDone }: { onDone: (code?: string) => void }) {
+  const t = useT();
+  const [code, setCode] = useState("");
+  return (
+    <AlertDialog open onOpenChange={(open) => !open && onDone()}>
+      <AlertDialogContent data-testid="stage-code-dialog">
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onDone(code.trim());
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <label htmlFor="stage-code">{t("stage.presenter.code")}</label>
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <Input id="stage-code" data-testid="stage-code" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="go" className="h-11" value={code} onChange={(e) => setCode(e.target.value)} />
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">{t("shell.confirm.cancel")}</AlertDialogCancel>
+            <Button type="submit" disabled={!code.trim()} data-testid="stage-code-ok">
+              {t("shell.confirm.ok")}
+            </Button>
+          </AlertDialogFooter>
+        </form>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

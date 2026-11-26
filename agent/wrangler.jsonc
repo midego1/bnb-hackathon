@@ -1,4 +1,4 @@
-// KeyEscrow Inspector (ERC-8004 agent #2921) on Cloudflare Workers. See docs/CLOUDFLARE.md and docs/AGENT.md.
+// KeyScrow Inspector (ERC-8004 agent #2921) on Cloudflare Workers. See docs/CLOUDFLARE.md and docs/AGENT.md.
 //
 // Preview: pnpm -C agent cf:preview   (wrangler dev, local workerd; never talks to the Cloudflare API)
 // Deploy:  pnpm cf:agent:deploy       (needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID; refuses without them)

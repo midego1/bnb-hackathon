@@ -50,8 +50,8 @@ export const body: DeepPartial<typeof enBody> = {
       play: "播放演示",
     },
     footer: {
-      about: "KeyEscrow · 开源（MIT）· 测试网演示，无代币",
-      website: "关于 KeyEscrow",
+      about: "KeyScrow · 开源（MIT）· 测试网演示，无代币",
+      website: "关于 KeyScrow",
       docs: "文档",
       eli5: "运作方式，通俗讲解",
       secrets: "密钥（仅限本地）",
@@ -59,7 +59,7 @@ export const body: DeepPartial<typeof enBody> = {
     gate: {
       connect: "连接钱包以{what}。",
       devHint: "本地演示：也可以在黄色的“演示账户”栏里选择车主、租客或争议处理台。",
-      notDeployed: "KeyEscrow 尚未部署在 {chain} 上。请把钱包切换到本应用运行的网络（本地 anvil 或 BSC 测试网）。",
+      notDeployed: "KeyScrow 尚未部署在 {chain} 上。请把钱包切换到本应用运行的网络（本地 anvil 或 BSC 测试网）。",
     },
     read: {
       chain: "链上数据",
@@ -119,7 +119,7 @@ export const body: DeepPartial<typeof enBody> = {
   },
   home: {
     kicker: "BNB Chain 上的摩托车租赁托管 · 曼谷制造",
-    lead: "租车行常常扣下你的护照当押金，还车时的虚假损坏索赔也很常见。KeyEscrow 把押金和租金放进为每笔摩托车租赁单独创建的智能合约，只有车主和租客达成一致，或中立的争议处理台作出裁决时，资金才会动。",
+    lead: "租车行常常扣下你的护照当押金，还车时的虚假损坏索赔也很常见。KeyScrow 把押金和租金放进为每笔摩托车租赁单独创建的智能合约，只有车主和租客达成一致，或中立的争议处理台作出裁决时，资金才会动。",
     owner: "我出租摩托车",
     renter: "我在租摩托车",
     eli5: "通俗讲解",
@@ -133,7 +133,7 @@ export const body: DeepPartial<typeof enBody> = {
     },
     timeouts: "如果车主不理会还车提议（默认 7 天），或争议处理台错过期限（默认 14 天），全部押金退还给租客。任何一方都无法单独动用资金。",
     fee: {
-      strong: "KeyEscrow 手续费：一个月租金的 10%，每笔租赁只收一次",
+      strong: "KeyScrow 手续费：一个月租金的 10%，每笔租赁只收一次",
       rest: "，由车主从第一笔租金中支付。月租 3,400 泰铢的摩托车只付一次 ฿340。押金从不收费，也没有代币。",
     },
     roles: {

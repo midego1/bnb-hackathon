@@ -7,6 +7,7 @@
     "setup": "git submodule update --init --recursive && pnpm -C web install && pnpm -C agent install && cd contracts && forge build",
     "build": "cd contracts && forge build && cd .. && pnpm -C web build",
     "test": "cd contracts && forge test",
+    "brand:check": "bash web/scripts/brand-check.sh",
     "coverage": "node web/scripts/coverage.mjs",
     "dev": "pnpm -C web dev",
     "chain:anvil": "anvil --host 127.0.0.1 --port ${ANVIL_PORT:-8545}",

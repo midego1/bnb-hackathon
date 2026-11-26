@@ -3,7 +3,7 @@ import { Explainer } from "@/components/eli5/Explainer";
 
 export const metadata: Metadata = {
   title: "How it works",
-  description: "KeyEscrow explained simply: an animated story of a rental deposit in a safe with two locks. No wallet needed.",
+  description: "KeyScrow explained simply: an animated story of a rental deposit in a safe with two locks. No wallet needed.",
 };
 
 /**

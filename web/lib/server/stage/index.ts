@@ -99,7 +99,7 @@ async function load(cfg: StageConfig, env: Env): Promise<Loaded> {
   const h = holder(cfg);
   h.loaded ??= (async () => {
     const d = getDeployment(cfg.chainId);
-    if (!d) throw new StageError(503, "KeyEscrow is not deployed on this chain.");
+    if (!d) throw new StageError(503, "KeyScrow is not deployed on this chain.");
     let rpc: string, owner: PrivateKeyAccount, arbiter: Address, funder: Loaded["funder"];
     if (cfg.chainId === 31337) {
       rpc = rpcUrl(31337, env);

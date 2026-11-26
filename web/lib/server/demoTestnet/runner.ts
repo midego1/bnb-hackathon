@@ -80,7 +80,7 @@ export class DemoTestnetRunner {
       const c97 = createChain97({ rpc: s.rpc, gasPrice: gasPriceFrom(this.cfg.gasPriceGwei), receiptTimeoutMs: this.cfg.receiptTimeoutMs });
       assertDemoChain(await c97.pub.getChainId());
       const d = getDeployment(DEMO_CHAIN_ID);
-      if (!d) throw new DemoError(503, "not-deployed", "KeyEscrow is not deployed on BSC testnet in this build.");
+      if (!d) throw new DemoError(503, "not-deployed", "KeyScrow is not deployed on BSC testnet in this build.");
       const accounts = Object.fromEntries(DEMO_ROLES.map((r) => [r, s.wallets[r].address])) as Record<DemoRole, Address>;
       assertAccounts(accounts);
       // The desk the leases name must be the dedicated demo wallet: not the factory default (the deployer), not the funder.
@@ -127,7 +127,7 @@ export class DemoTestnetRunner {
         l.c97.pub.readContract({ address: resumeLease, abi: rentalEscrowAbi, functionName: "status" }).catch(() => 99),
       ]);
       const t = terms as { landlord: Address; tenant: Address; arbiter: Address } | undefined;
-      if (!t) throw new DemoError(400, "call-refused", "That is not a KeyEscrow rental.");
+      if (!t) throw new DemoError(400, "call-refused", "That is not a KeyScrow rental.");
       vetResumeLease({ isLease: isLease as boolean, ...t, status: Number(status) }, l.addresses.accounts);
       lease = getAddress(resumeLease);
     }

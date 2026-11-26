@@ -1,6 +1,6 @@
-# Contributing to KeyEscrow
+# Contributing to KeyScrow
 
-Thanks for helping. KeyEscrow is a scooter rental deposit and rent escrow on BNB Chain (BSC testnet only). Read
+Thanks for helping. KeyScrow is a scooter rental deposit and rent escrow on BNB Chain (BSC testnet only). Read
 [docs/PRODUCT.md](docs/PRODUCT.md) first: it is the source of truth for the product, scope and engineering rules.
 How the code fits together is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). By taking part you agree to the
 [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURITY.md), not a public issue.

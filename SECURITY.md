@@ -1,6 +1,6 @@
 # Security policy
 
-KeyEscrow is a hackathon prototype on **BSC testnet only**: no mainnet contracts, no real funds. Please still
+KeyScrow is a hackathon prototype on **BSC testnet only**: no mainnet contracts, no real funds. Please still
 report anything that would let someone move a deposit, rent or vault income they should not, or leak a key.
 
 ## Reporting a vulnerability

@@ -20,7 +20,7 @@ export const zh: DeepPartial<Dict> = {
   },
   skip: "跳到正文",
   meta: {
-    title: "KeyEscrow · BNB Chain 上的租赁押金托管",
+    title: "KeyScrow · BNB Chain 上的租赁押金托管",
     description:
       "BNB Chain 上的押金与租金托管：每笔租赁都有自己的托管合约，租金按月发放，AI 验车给出押金分配建议，双方有分歧时由中立的争议处理台裁决。",
   },

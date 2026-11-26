@@ -1,5 +1,5 @@
 /**
- * KeyEscrow local-chain end-to-end checks.
+ * KeyScrow local-chain end-to-end checks.
  *
  *   pnpm e2e:chain            (from the repo root; or: node web/scripts/e2e-chain.mts)
  *
@@ -8,7 +8,7 @@
  * against the real chain and asserts token balances:
  *   seed      demo lease is funded and its content hashes match web/public/demo/*
  *   happy     create -> fund -> monthly rent releases -> proposal -> accept
- *   dispute   proposal -> dispute -> arbiter (KeyEscrow dispute desk) resolves
+ *   dispute   proposal -> dispute -> arbiter (KeyScrow dispute desk) resolves
  *   timeout   tenant proposal, landlord silent -> full deposit to tenant (exactly at the deadline)
  *   fallback  dispute, arbiter silent -> anyone returns the full deposit to the tenant (exactly at the deadline)
  * The anvil node is always killed at the end. Exit code is non-zero on any failure.
@@ -205,7 +205,7 @@ async function createLease(opts: { arbiter?: Address; rentPeriod?: number } = {}
   const r = await ok(landlord, ctx.factory, ctx.factoryAbi, "createLease", [
     {
       tenant: tenant.address,
-      arbiter: opts.arbiter ?? zeroAddress, // zero = KeyEscrow dispute desk
+      arbiter: opts.arbiter ?? zeroAddress, // zero = KeyScrow dispute desk
       rentAmount: RENT,
       depositAmount: DEPOSIT,
       termPeriods: 12,
