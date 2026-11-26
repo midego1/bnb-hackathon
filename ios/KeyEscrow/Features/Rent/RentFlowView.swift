@@ -6,6 +6,7 @@ struct RentFlowView: View {
     @EnvironmentObject var settings: AppSettings
     @StateObject private var model: RentFlowModel
     @State private var showCamera = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(listing: Listing, wallet: WalletStore) {
         _model = StateObject(wrappedValue: RentFlowModel(listing: listing, wallet: wallet))
@@ -18,7 +19,10 @@ struct RentFlowView: View {
             VStack(alignment: .leading, spacing: Metrics.gap) {
                 header
                 stepper
+                // Each step arrives as its own card: a short rise and fade (none under Reduce Motion).
                 stepCard
+                    .id(model.step)
+                    .transition(.asymmetric(insertion: .opacity.combined(with: .offset(y: 14)), removal: .opacity))
                 if let n = model.note { working(n) }
                 if let e = model.error { Notice(text: e, tone: .danger).accessibilityIdentifier("flow-error") }
                 receipt
@@ -40,6 +44,7 @@ struct RentFlowView: View {
             }
             .padding(Metrics.page)
             .kePage()
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.28), value: model.step)
         }
         .keScreen()
         .navigationTitle(settings.t("flow.title"))
@@ -89,9 +94,10 @@ struct RentFlowView: View {
     private static let names = ["flow.step.money", "flow.step.pay", "flow.step.pickup", "flow.step.return", "flow.step.inspect", "flow.step.accept", "flow.step.done"]
 
     private var stepper: some View {
-        let idx = Self.order.firstIndex(of: model.step == .fund ? .rent : model.step) ?? 0
-        return FlowStepper(titles: Self.names.map { settings.t($0) }, current: idx, finished: model.step == .settled,
-                           caption: settings.t("flow.progress", "\(idx + 1)", "\(Self.order.count)"))
+        // Loading, "someone else is renting it" and "cancelled" are not steps: then no dot is the current one.
+        let idx = Self.order.firstIndex(of: model.step == .fund ? .rent : model.step)
+        return FlowStepper(titles: Self.names.map { settings.t($0) }, current: idx ?? -1, finished: model.step == .settled,
+                           caption: idx.map { settings.t("flow.progress", "\($0 + 1)", "\(Self.order.count)") } ?? settings.t("flow.title"))
     }
 
     /// What the app is doing right now, while a step is being signed and mined.
@@ -399,15 +405,18 @@ struct FlowStepper: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            if !showNames {
-                Text(caption + " · " + titles[min(current, titles.count - 1)])
+            if !showNames, let name = currentName {
+                Text(caption + " · " + name)
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Color.KE.foreground)
             }
         }
         .padding(.vertical, 4)
         .accessibilityElement()
-        .accessibilityLabel(caption + ", " + titles[min(current, titles.count - 1)])
+        .accessibilityLabel(currentName.map { caption + ", " + $0 } ?? caption)
     }
+
+    /// The name of the step in progress (none while the flow is loading or cannot start).
+    private var currentName: String? { titles.indices.contains(current) ? titles[current] : nil }
 
     private func isDone(_ i: Int) -> Bool { i < current || finished }
     private func isCurrent(_ i: Int) -> Bool { i == current }

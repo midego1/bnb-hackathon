@@ -64,7 +64,7 @@ struct ListingDetailView: View {
                     NavigationLink { PhotoCreditsView() } label: {
                         Label(settings.t("credits.line", c.author, c.license), systemImage: "camera.aperture")
                             .font(.caption).foregroundStyle(Color.KE.subtle).multilineTextAlignment(.leading)
-                            .frame(minHeight: 32)
+                            .frame(minHeight: 44)
                     }
                 }
             }
@@ -77,10 +77,10 @@ struct ListingDetailView: View {
                     IconBadge(symbol: "lock.shield.fill", tint: .KE.success, fill: .KE.successSoft)
                     Text(settings.t("listing.protected")).font(Font.KE.headline).foregroundStyle(Color.KE.foreground)
                 }
-                why(1, "building.columns.fill", "listing.why.own")
-                why(2, "camera.fill", "listing.why.photos")
-                why(3, "sparkles", "listing.why.ai")
-                why(4, "clock.badge.checkmark.fill", "listing.why.timeout")
+                why("building.columns.fill", "listing.why.own")
+                why("camera.fill", "listing.why.photos")
+                why("sparkles", "listing.why.ai")
+                why("clock.badge.checkmark.fill", "listing.why.timeout")
             }
 
             if listing.kind == .demoScooter { Notice(text: settings.t("listing.demoNote"), tone: .info) } else { Notice(text: settings.t("listing.stageNote"), tone: .ok) }
@@ -122,7 +122,7 @@ struct ListingDetailView: View {
 
     private func usdt(_ thb: Double) -> String { Money.usdt(Money.unitsFromThb(thb, rate: thbPerUsdt)) }
 
-    private func why(_ n: Int, _ icon: String, _ key: String) -> some View {
+    private func why(_ icon: String, _ key: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon).font(.subheadline.weight(.semibold)).foregroundStyle(Color.KE.amber).frame(width: 24, alignment: .center).padding(.top, 1)
             Text(settings.t(key)).font(.subheadline).foregroundStyle(Color.KE.foreground).fixedSize(horizontal: false, vertical: true)

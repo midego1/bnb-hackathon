@@ -104,9 +104,13 @@ struct HomeView: View {
             if places.count > 1 { placesRow }
             VStack(alignment: .leading, spacing: 20) {
                 SectionHeader(title: place.map { settings.t($0.nameKey) } ?? settings.t("home.listings"),
-                              subtitle: settings.t("home.listings.sub", "\(shown.count)"))
+                              subtitle: model.listings.isEmpty ? settings.t("common.loading") : settings.t("home.listings.sub", "\(shown.count)"))
+                if model.listings.isEmpty {
+                    // Before the catalogue answers: two quiet placeholders where the cards will be.
+                    ForEach(0..<2, id: \.self) { _ in ListingCardPlaceholder() }
+                }
                 ForEach(shown) { l in
-                    NavigationLink(value: l) { ListingCard(listing: l) }.buttonStyle(.plain).id(l.id)
+                    NavigationLink(value: l) { ListingCard(listing: l) }.buttonStyle(PressStyle()).id(l.id)
                 }
             }
             .id("listings")
@@ -334,6 +338,21 @@ struct ListingCard: View {
     private var deposit: some View {
         Text(settings.t("card.deposit", Money.thb(baht: listing.depositThb)))
             .font(.caption).monospacedDigit().foregroundStyle(Color.KE.subtle).lineLimit(1)
+    }
+}
+
+/// The shape of a card while the catalogue loads.
+struct ListingCardPlaceholder: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RoundedRectangle(cornerRadius: Metrics.radiusPhoto, style: .continuous).fill(Color.KE.muted).aspectRatio(1, contentMode: .fit)
+            VStack(alignment: .leading, spacing: 8) {
+                Capsule().fill(Color.KE.muted).frame(width: 180, height: 16)
+                Capsule().fill(Color.KE.muted).frame(width: 120, height: 12)
+            }
+            .padding(.horizontal, 2)
+        }
+        .accessibilityHidden(true)
     }
 }
 
