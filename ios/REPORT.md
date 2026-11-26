@@ -113,6 +113,29 @@ again, both tests green: Ask AI 20 s (approval signed on the phone, rental
 and return photos on-chain, AI check, proposal, accept, settled (last row of the table). The inspector proposed the
 whole deposit back (293.89 to the renter, nothing kept), so the owner's 251.28 is the month's rent less the fee.
 
+### On a real iPhone (26 Nov)
+
+The same build (`3bb0ace`, Release, signed with a development certificate) on an iPhone 17 Pro, with the phone's
+own guest wallet `0xDB3d…83cD` and the live camera. Michiel rented a demo scooter (terms of the Honda Click 125i:
+100 mUSDT a month, 200 deposit) twice from start to finish: test money, the demo shop's offer, pay into escrow, pickup
+and return photos taken with the camera, AI inspection, proposal, the shop accepts, settled.
+
+| Started (Bangkok) | Escrow | Settled by | Paid in → back to renter / owner / fee (mUSDT) | Photos on the server (`GET /api/evidence/<hash>`) |
+| --- | --- | --- | --- | --- |
+| 13:49 | [`0xe9B8f9AE…08E2`](https://testnet.bscscan.com/address/0xe9B8f9AEc4532450E3f87D235CD9A242940b08E2) | [`0xd83695d0…5172`](https://testnet.bscscan.com/tx/0xd83695d062ea8ff10f24690607a8052ea69ad460e4556119bba1e4f905f45172) | 300.00 → 200.00 / 90.00 / 10.00 | both stored: 960 x 1280 px JPEGs of 163,632 and 186,375 bytes |
+| 17:53 | [`0x5F098663…7060`](https://testnet.bscscan.com/address/0x5F0986630fF0980438F6cE3B2c6677Ffb21b7060) | [`0x6d3a5cb5…5bed`](https://testnet.bscscan.com/tx/0x6d3a5cb52abd71a9c993c1d7921f5c39a3d30a610750f122bd30aa03033e5bed) | 299.79 → 199.86 / 89.937 / 9.993 | both stored: 153,895 and 192,742 bytes |
+
+This is the check the Simulator cannot do: real camera photos (12 MP) are compressed on the phone to at most 200,000
+bytes (`CapturedPhoto`, commit `26fac4a`), uploaded to `POST /api/evidence` (the Worker keeps at most 256 KB per file),
+and the SHA-256 anchored on-chain is the hash of the stored file. In both runs the inspector proposed the whole
+deposit back, so the owner's share is the month's rent less the 10 % fee.
+
+Two earlier rentals from the same phone (10:24 and 12:20, `0xF4eB…BCD` and `0x22a4…06AE`) also settled, but the
+server holds no photo for their hashes: the upload was refused (HTTP 507, files too large) and that older build put
+only the hashes on-chain. Since the fix the app compresses first, and a 507 now stops the step with "Photo too large,
+please take it again" instead of anchoring a photo the server did not keep. The photos themselves are not in the repo:
+they show people at the venue.
+
 Not every run was green. None of the failures was a fault of the redesign, and each made a test sturdier:
 
 - The first Ask AI run failed: the server now answers with a real model that takes seconds, and the test tapped
