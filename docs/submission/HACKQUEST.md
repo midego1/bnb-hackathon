@@ -101,7 +101,7 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 - **Contracts:** Solidity 0.8.28, Foundry, OpenZeppelin (`Clones`, `SafeERC20`, `ReentrancyGuardTransient`,
   `Ownable2Step`). 314 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
 - **Web:** Next.js (App Router), TypeScript, Tailwind, wagmi/viem, RainbowKit, on Cloudflare Workers (OpenNext)
-  with one Durable Object for shared state. Vitest (544 tests in 39 files) and Playwright (152 tests in 26 spec files on a throwaway anvil). The web Worker is 2.88 MiB
+  with one Durable Object for shared state. Vitest (558 tests in 40 files) and Playwright (154 tests in 27 spec files on a throwaway anvil). The web Worker is 2.89 MiB
   gzip (Free plan limit 3 MiB).
 - **Agent:** TypeScript, ERC-8004 identity via the BNB Agent SDK, A2A + MCP (Streamable HTTP), Node server and
   Cloudflare Worker. 24 tests.

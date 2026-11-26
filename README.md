@@ -193,7 +193,7 @@ pnpm agent:test                             # 24 tests: agent card, A2A, MCP, Wo
 pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
 cd web && npx playwright test               # 154 browser tests in 27 files, 2 workers; own anvil :28546 + server :3150
 pnpm coverage                               # forge coverage + vitest v8 coverage, lcov in <part>/coverage/
-pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.88 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
+pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.89 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
 ```
 
 Counts and sizes as of 26 Nov 2026 (main).

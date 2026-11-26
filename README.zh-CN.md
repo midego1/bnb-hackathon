@@ -155,7 +155,7 @@ pnpm e2e:chain                              # 用真实交易 + 时间快进跑�
 cd web && npx playwright test               # 27 个文件共 154 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
 ```
 
-数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.88 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
+数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.89 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
 
 ---
 

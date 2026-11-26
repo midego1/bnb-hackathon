@@ -596,7 +596,7 @@ sequenceDiagram
 | Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
 | Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT, AtlasSwapGuard) | `cd contracts && forge test` | 314 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 544 in 39 files |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 558 in 40 files |
 | Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 24 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
 | Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo, Pay with BNB (Atlas guard) | `cd web && npx playwright test` | 154 tests in 27 files |
