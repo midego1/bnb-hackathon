@@ -159,8 +159,8 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.getByRole("main")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
-  // ...the one decorative picture (the street again, behind the closing) has an empty one.
-  expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("alt")).map((i) => i.className))).toEqual(["mk-closing-art"]);
+  // ...the one decorative picture (the street again, behind the closing) has an empty one, as do the logo marks next to the name.
+  expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("alt") && !i.hasAttribute("aria-hidden")).map((i) => i.className))).toEqual(["mk-closing-art"]);
   expect(await page.locator("img").evaluateAll((imgs) => imgs.filter((i) => !i.getAttribute("width") || !i.getAttribute("height")).length)).toBe(0);
 
   // No web fonts or anything else from another origin.
