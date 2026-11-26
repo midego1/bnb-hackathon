@@ -151,6 +151,8 @@ test("landing page tells the whole story in order, without the app shell, a wall
   await expect(art).toHaveAttribute("alt", /scooter rental shop/);
   await expect.poll(() => art.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   expect(await art.evaluate((img: HTMLImageElement) => img.currentSrc)).toMatch(/street-wide-\d+\.(avif|webp|jpg)$/);
+  // Its dots are coins, and now and then a band of light sweeps across them.
+  expect(await page.locator(".mk-art").evaluate((el) => getComputedStyle(el, "::after").animationName)).toBe("mk-glint");
   await expect(page.getByRole("banner")).toHaveCount(1);
   await expect(page.getByRole("main")).toHaveCount(1);
   await expect(page.getByRole("contentinfo")).toHaveCount(1);
@@ -508,6 +510,7 @@ test("reduced motion: the street stands still and the board waits to be pressed"
   for (const sel of [".mk-art", ".mk-art-pan", ".mk-glow"]) {
     expect(await page.locator(sel).evaluate((el) => getComputedStyle(el).animationName), sel).toBe("none");
   }
+  expect(await page.locator(".mk-art").evaluate((el) => getComputedStyle(el, "::after").animationName), "the coins' glint").toBe("none");
   const flow = page.getByTestId("mk-flow");
   await flow.scrollIntoViewIfNeeded();
   // The active track is simply lit and its amount sits still.

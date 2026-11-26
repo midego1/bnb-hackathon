@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { LogoMark } from "@/components/LogoMark";
 import type { LandingCopy } from "./copy";
 import { ArrowIcon, PassportIcon, PauseIcon, PersonIcon, PlayIcon, ShopIcon } from "./icons";
@@ -21,15 +21,26 @@ export type FlowFrame = {
   fee?: boolean;
 };
 
-const UNLIT = Array.from({ length: LED_ROWS }, (_, y) => `M.5 ${y + 0.5}h${LED_COLS - 1}`).join("");
-
-/** An amount on an LED panel. Decorative: the caller prints the same amount as text for screen readers. */
+/**
+ * An amount on an LED panel whose dots are BNB coins, as in the artwork (docs/marketing/coins.py): a disc in the
+ * station's colour with the official BNB Chain logomark on it. Decorative: the caller prints the same amount as text for
+ * screen readers.
+ */
 function DotNum({ text }: { text: string }) {
+  // One coin per 1 x 1 cell; its own id because the coin takes the colour of this panel's station.
+  const coin = useId();
   return (
     <svg viewBox={`0 0 ${LED_COLS} ${LED_ROWS}`} className="mk-dotnum" aria-hidden>
-      <path d={UNLIT} className="mk-dot-off" />
-      {/* Keyed by the amount, so the panel "refreshes" (CSS) whenever it changes. A zero-length line with a round cap is a dot. */}
-      <path key={text} d={ledDots(text).map(([x, y]) => `M${x + 0.5} ${y + 0.5}h0`).join("")} className="mk-dot-on" />
+      <defs>
+        <pattern id={coin} width="1" height="1" patternUnits="userSpaceOnUse">
+          <circle cx=".5" cy=".5" r=".45" className="mk-coin" />
+          {/* The official file, unchanged: its mark fills a circle of radius .42 around the cell's centre. */}
+          <image href="/marketing/bnb-symbol.svg" x=".08" y=".08" width=".84" height=".84" />
+        </pattern>
+      </defs>
+      <rect width={LED_COLS} height={LED_ROWS} fill={`url(#${coin})`} className="mk-dot-off" />
+      {/* Keyed by the amount, so the panel "refreshes" (CSS) whenever it changes. Each lit dot is its cell, filled with a coin. */}
+      <path key={text} d={ledDots(text).map(([x, y]) => `M${x} ${y}h1v1h-1z`).join("")} fill={`url(#${coin})`} className="mk-dot-on" />
     </svg>
   );
 }

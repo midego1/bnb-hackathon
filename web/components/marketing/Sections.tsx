@@ -59,7 +59,7 @@ function Go({ href, children }: { href: string; children: ReactNode }) {
 const TILE_SIZES = "(min-width: 768px) 30vw, 45vw";
 const tile = (name: string, ext: string) => [480, 960].map((w) => `/marketing/${name}-${w}.${ext} ${w}w`).join(", ");
 
-/** One of the two LED pictures above the comparison (our own drawings through dotfx, docs/marketing). */
+/** One of the two LED pictures above the comparison (our own drawings in coin dots, docs/marketing). */
 function Tile({ name, alt, label }: { name: string; alt: string; label: string }) {
   return (
     <figure className="pt-5">

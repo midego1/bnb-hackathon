@@ -54,7 +54,7 @@ export async function SiteHeader() {
 }
 
 /**
- * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the
+ * First screen: the street at night (our own vector scene as LED dots that are tiny coins, docs/marketing), the
  * promise, and the search that leads into the listings below. The three other ways in sit under it as smaller buttons.
  * The artwork is the LCP element, so it is preloaded per viewport class and never lazy.
  */
