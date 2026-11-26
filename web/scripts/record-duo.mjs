@@ -77,7 +77,7 @@ const browser = await chromium.launch();
   const page = await ctx.newPage();
   for (const slug of [HONDA, FIRST]) {
     await page.goto(`${BASE}/duo/${slug}`);
-    await expect(page.getByTestId("stage-qr")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("stage-qr-card")).toBeVisible({ timeout: 30_000 }); // the header's QR button: /duo is up
     await resetStage(page);
   }
   await ctx.close();
@@ -92,7 +92,7 @@ const shot = (name) => page.screenshot({ path: `${out}/${name}.png` });
 const board = page.getByTestId("duo-board");
 try {
   await page.goto(`${BASE}/duo/${FIRST}`);
-  await expect(page.getByTestId("stage-qr")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("stage-qr-card")).toBeVisible({ timeout: 30_000 }); // the header's QR button: /duo is up
   const phone = page.frameLocator("[data-testid='duo-phone-frame']");
   const step = (s) => expect(phone.getByTestId("judge-flow")).toHaveAttribute("data-step", s, { timeout: 60_000 });
   await step("choose");
