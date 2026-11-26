@@ -23,7 +23,7 @@ import { useT } from "@/lib/i18n/client";
 import { uploadEvidence } from "@/lib/evidence";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useTx } from "@/lib/hooks/useTx";
-import { runInspection } from "@/lib/settlement";
+import { answeredBy, runInspection } from "@/lib/settlement";
 import { usePrices } from "@/lib/usePrices";
 import { ActorBoard, FlowStrip, type Wallets } from "./ActorBoard";
 import { demoCopy } from "./copy";
@@ -844,7 +844,8 @@ function LivePanel({ lease, idle, children }: { lease?: Address; idle: boolean; 
 }
 
 function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
-  const { inspectionCopy, testnetCopy } = useT().of(demoCopy);
+  const t = useT();
+  const { inspectionCopy, testnetCopy } = t.of(demoCopy);
   const r = ctx.inspection!;
   return (
     <section className="rounded-xl border border-actor-inspector-border bg-actor-inspector-tint p-4" data-testid="demo-inspection">
@@ -869,7 +870,7 @@ function InspectionCard({ ctx, testnet }: { ctx: DemoCtx; testnet: boolean }) {
       </ul>
       <p className="mt-2 text-sm text-muted-foreground" data-testid="demo-inspector">
         {r.inspector ? inspectionCopy.signed(r.inspector.name, r.inspector.agentId) : testnet ? testnetCopy.unsigned : inspectionCopy.unsigned}{" "}
-        {inspectionCopy.meta(r.confidence, r.mock, r.provider)} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
+        {inspectionCopy.meta(r.confidence, answeredBy(r, t))} <span className="font-mono">{r.reportHash.slice(0, 10)}…</span>
       </p>
     </section>
   );

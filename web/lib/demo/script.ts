@@ -48,7 +48,7 @@ const CHECK_OUT = [
   { file: "checkout-front.png", label: "Front" },
 ];
 
-export type Photo = { hash: Hex; label: string };
+export type Photo = { hash: Hex; label: string; url: string };
 /** `vault` is the Fleet Vault (0 when the deployment has none); on the Fleet Vault path it receives the owner's cut. */
 export type Balances = { tenant: bigint; landlord: bigint; treasury: bigint; escrow: bigint; vault: bigint };
 export type DemoTx = { label: string; hash: Hex };
@@ -156,8 +156,10 @@ async function anchor(api: DemoApi, ctx: DemoCtx, kind: "CheckIn" | "CheckOut") 
 }
 
 async function uploadPhotos(api: DemoApi, set: typeof CHECK_IN): Promise<Photo[]> {
-  const items = await api.upload(set.map((p) => ({ path: `/demo/walkthrough/${p.file}`, name: p.file, type: "image/png" })));
-  return items.map((it, i) => ({ hash: it.hash, label: set[i].label }));
+  const paths = set.map((p) => `/demo/walkthrough/${p.file}`);
+  const items = await api.upload(set.map((p, i) => ({ path: paths[i], name: p.file, type: "image/png" })));
+  // The url lets the inspector fetch the static photo where the evidence store is off or forgot it (a Worker).
+  return items.map((it, i) => ({ hash: it.hash, label: set[i].label, url: new URL(paths[i], location.origin).href }));
 }
 
 // ---------------------------------------------------------------------------------------------------------------

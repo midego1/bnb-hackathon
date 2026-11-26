@@ -15,7 +15,7 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
-import { runInspection, type InspectionResult } from "@/lib/settlement";
+import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
 import { dateTimeIn, utcDateTimeIn } from "./copy";
 import { evidenceFromEvents } from "./evidence";
 import { HashLink } from "./EvidencePanel";
@@ -198,7 +198,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
               <p className="text-sm font-medium">{t("rental.move.aiProposal")}</p>
               <span className="text-xs text-subtle">
                 {t("rental.move.confidence", { pct: (report.confidence * 100).toFixed(0) })}
-                {report.mock ? t("rental.move.demoInspector") : t("rental.move.visionModel", { provider: report.provider })}
+                {answeredBy(report, t)}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
