@@ -8,7 +8,6 @@
   --mk-amber: #fbbf24;
   --mk-pink: #f472b6;
   --mk-teal: #2dd4bf;
-  --mk-led-off: rgb(169 171 214 / 0.16);
   position: relative;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
@@ -199,10 +198,17 @@ html.dark .mk section.mk-night {
   z-index: -3;
   overflow: hidden;
 }
-/* Wider than the hero, so it can drift sideways (away from the headline) without showing an edge. */
+/*
+ * Wider than the hero, so it can drift sideways (away from the headline) without showing an edge. It knows its picture
+ * (--iw x --ih px, and --fx: where object-position puts it across), so the lights below can sit on the picture's pixels.
+ */
 .mk-art-pan {
+  --iw: 2400;
+  --ih: 1200;
+  --fx: 0.72;
   left: -7%;
   right: -7%;
+  container-type: size;
   animation: mk-pan 80s ease-in-out infinite alternate;
   will-change: transform;
 }
@@ -210,7 +216,44 @@ html.dark .mk section.mk-night {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 72% 100%;
+  object-position: calc(var(--fx) * 100%) 100%;
+}
+/*
+ * Two lights on the picture, placed in its own pixels (--x, --y, --w, --h) wherever object-fit: cover puts it: the
+ * sign's tubes flicker now and then, and the front scooter's headlight sweeps the road. Only opacity and transform move.
+ */
+.mk-fx {
+  --s: max(100cqw / var(--iw), 100cqh / var(--ih));
+  position: absolute;
+  left: calc((100cqw - var(--iw) * var(--s)) * var(--fx) + var(--x) * var(--s));
+  top: calc(100cqh - (var(--ih) - var(--y)) * var(--s));
+  width: calc(var(--w) * var(--s));
+  height: calc(var(--h) * var(--s));
+  pointer-events: none;
+}
+/* A neon tube about to go: the letters of SCOOTER RENT dim (never out) a few times in a row, at uneven gaps. */
+.mk-flicker {
+  --x: 1378;
+  --y: 450;
+  --w: 800;
+  --h: 82;
+  border-radius: calc(10 * var(--s));
+  background: rgb(5 4 20 / var(--mk-dim, 0.6));
+  opacity: 0;
+  animation: mk-flicker 19s steps(1, end) infinite;
+}
+/* A warm cone from the lamp that swings slowly across the road; screen brightens the coins under it. */
+.mk-beam {
+  --x: 1775;
+  --y: 601;
+  --w: 1000;
+  --h: 600;
+  background: conic-gradient(from 70deg at 0 50%, transparent, rgb(255 228 160 / var(--mk-beam, 0.42)) 12deg 28deg, transparent 40deg);
+  -webkit-mask-image: linear-gradient(90deg, #000 5%, transparent);
+  mask-image: linear-gradient(90deg, #000 5%, transparent);
+  mix-blend-mode: screen;
+  transform-origin: 0 50%;
+  animation: mk-beam 8s ease-in-out infinite alternate;
 }
 /* The shop sign and the doorway breathe like neon. */
 .mk-glow {
@@ -221,6 +264,29 @@ html.dark .mk section.mk-night {
   mix-blend-mode: screen;
   animation: mk-neon 7s ease-in-out infinite;
   pointer-events: none;
+}
+/*
+ * Every dot of the artwork is a coin, and the coins catch the light: now and then a soft band sweeps across the street
+ * (and across a listing card's picture while it is hovered). Overlay brightens the coins and leaves the gaps dark.
+ */
+.mk-art::after,
+.mk-card-frame::after {
+  position: absolute;
+  inset: 0 -60%;
+  background: linear-gradient(105deg, transparent 44%, rgb(255 244 214 / 0.7) 50%, transparent 56%);
+  mix-blend-mode: overlay;
+  /* Parked off the left edge between sweeps, far enough that the slanted band's top end stays out too. */
+  transform: translateX(-40%);
+  pointer-events: none;
+}
+.mk-art::after {
+  content: "";
+  animation: mk-glint 12s ease-in-out 1.5s infinite;
+}
+.mk-card:hover .mk-card-frame::after,
+.mk-card:focus-visible .mk-card-frame::after {
+  content: "";
+  animation: mk-glint 3.5s ease-in-out;
 }
 /* Keeps the headline readable over the dots. */
 .mk-scrim {
@@ -258,9 +324,7 @@ html.dark .mk section.mk-night {
   }
   .mk-art-pan {
     --mk-drift: 2.5%;
-  }
-  .mk-art img {
-    object-position: 84% 100%;
+    --fx: 0.84;
   }
   .mk-scrim {
     display: none;
@@ -280,8 +344,23 @@ html.dark .mk section.mk-night {
   }
 }
 @media (max-width: 767px) {
-  .mk-art img {
-    object-position: 50% 100%;
+  /* The upright picture (street-tall), its sign and its lamp; the lights are softer and come less often on a phone. */
+  .mk-art-pan {
+    --iw: 1200;
+    --ih: 2000;
+    --fx: 0.5;
+  }
+  .mk-flicker {
+    --x: 178;
+    --y: 1160;
+    --mk-dim: 0.4;
+    animation-duration: 29s;
+  }
+  .mk-beam {
+    --x: 814;
+    --y: 1329;
+    --mk-beam: 0.24;
+    animation-duration: 12s;
   }
   .mk-btn {
     gap: 0.45rem;
@@ -315,6 +394,53 @@ html.dark .mk section.mk-night {
   }
   to {
     transform: translate3d(var(--mk-drift, 6%), 0, 0);
+  }
+}
+@keyframes mk-glint {
+  0% {
+    transform: translateX(-40%);
+  }
+  35%,
+  100% {
+    transform: translateX(40%);
+  }
+}
+@keyframes mk-flicker {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  40.5% {
+    opacity: 0.2;
+  }
+  41% {
+    opacity: 0.9;
+  }
+  41.6% {
+    opacity: 0;
+  }
+  86% {
+    opacity: 0.8;
+  }
+  86.5% {
+    opacity: 0.1;
+  }
+  87% {
+    opacity: 0.7;
+  }
+  87.5% {
+    opacity: 0;
+  }
+}
+@keyframes mk-beam {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(16deg);
   }
 }
 @keyframes mk-neon {
@@ -354,6 +480,9 @@ html.dark .mk section.mk-night {
   }
   .mk-art,
   .mk-art-pan,
+  .mk-art::after,
+  .mk-flicker,
+  .mk-beam,
   .mk-glow {
     animation: none;
   }
@@ -695,15 +824,11 @@ html.dark .mk section.mk-night {
   /* The bloom of a lit LED, as in the artwork. */
   filter: drop-shadow(0 0 5px color-mix(in srgb, currentColor 55%, transparent));
 }
-.mk-dot-off,
-.mk-dot-on {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 0.72;
-  stroke-linecap: round;
+/* A coin: a disc in the station's colour, dark enough for the yellow BNB mark on it (MoneyFlow.tsx). */
+.mk-coin {
+  fill: color-mix(in srgb, currentColor 45%, #000);
 }
 .mk-dot-off {
-  stroke-dasharray: 0 1;
   opacity: 0.14;
 }
 /* A new amount lights up as the money arrives, a moment after the tag sets off. */
@@ -725,14 +850,20 @@ html.dark .mk section.mk-night {
   position: relative;
   height: calc(var(--mk-dot) * 3);
   margin-inline: 0.75rem;
-  background: radial-gradient(circle, var(--mk-led-off) 0 30%, transparent 34%) 0 0 / var(--mk-dot) var(--mk-dot) round;
 }
-/* The lit dots: the same grid in amber, seen through a window that runs along the track. */
+/* A row of coins: dim ones (::before), and the lit ones (::after) seen through a window that runs along the track. */
+.mk-track::before,
 .mk-track::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle, var(--mk-amber) 0 34%, transparent 38%) 0 0 / var(--mk-dot) var(--mk-dot) round;
+  /* A BNB coin (an amber disc with the official mark), two thirds of its cell. */
+  background: url("/marketing/bnb-coin.svg") 0 0 / var(--mk-dot) var(--mk-dot) round;
+}
+.mk-track::before {
+  opacity: 0.16;
+}
+.mk-track::after {
   -webkit-mask: linear-gradient(90deg, transparent, #000 35% 65%, transparent) no-repeat 0 0 / 50% 100%;
   mask: linear-gradient(90deg, transparent, #000 35% 65%, transparent) no-repeat 0 0 / 50% 100%;
   opacity: 0;
@@ -1052,6 +1183,10 @@ html.dark .mk section.mk-night {
   }
   .mk-card:hover .mk-card-art {
     transform: none;
+  }
+  .mk-card:hover .mk-card-frame::after,
+  .mk-card:focus-visible .mk-card-frame::after {
+    animation: none;
   }
 }
 
