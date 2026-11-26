@@ -1,6 +1,7 @@
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
 import path from "node:path";
 import { E2E_WEB_PORT } from "./env";
+import { noisyBmp } from "./photos";
 
 /**
  * The live judge demo on a throwaway anvil: the big screen (/stage/mystery-box) and a judge's phone (/r/mystery-box)
@@ -11,27 +12,6 @@ import { E2E_WEB_PORT } from "./env";
 const SHOTS = path.resolve(__dirname, "../test-results/screenshots");
 const shot = (page: Page, name: string) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
 const SLUG = "mystery-box";
-
-/** A big noisy 24-bit BMP (~5.8 MB): JPEG cannot squeeze noise, so the phone's compression loop really has to work. */
-function noisyBmp(seed: number, w = 1600, h = 1200) {
-  const row = Math.ceil((w * 3) / 4) * 4;
-  const buf = Buffer.alloc(54 + row * h);
-  buf.write("BM", 0);
-  buf.writeUInt32LE(buf.length, 2);
-  buf.writeUInt32LE(54, 10);
-  buf.writeUInt32LE(40, 14);
-  buf.writeInt32LE(w, 18);
-  buf.writeInt32LE(h, 22);
-  buf.writeUInt16LE(1, 26);
-  buf.writeUInt16LE(24, 28);
-  buf.writeUInt32LE(row * h, 34);
-  let x = seed;
-  for (let i = 54; i < buf.length; i++) {
-    x = (x * 1103515245 + 12345) & 0x7fffffff;
-    buf[i] = x >> 16;
-  }
-  return { name: `photo-${seed}.bmp`, mimeType: "image/bmp", buffer: buf };
-}
 
 async function judgePage(browser: Browser, mobile: boolean) {
   const ctx = await browser.newContext(mobile ? { ...devices["Pixel 7"] } : { viewport: { width: 1280, height: 900 } });
