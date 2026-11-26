@@ -34,8 +34,14 @@ const UNIT = BigInt(1_000_000);
 
 async function send(from: Address, to: Address, data: Hex) {
   const hash = await rpc<Hex>("eth_sendTransaction", [{ from, to, data }]);
-  const receipt = await rpc<{ status: Hex } | null>("eth_getTransactionReceipt", [hash]);
-  if (receipt?.status !== "0x1") throw new Error(`transaction ${hash} failed`);
+  // anvil answers with the hash before the block is mined: wait for the receipt instead of reading it once.
+  for (let i = 0; i < 100; i++) {
+    const receipt = await rpc<{ status: Hex } | null>("eth_getTransactionReceipt", [hash]);
+    if (receipt?.status === "0x1") return;
+    if (receipt) throw new Error(`transaction ${hash} reverted`);
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`transaction ${hash} was not mined within 5 s`);
 }
 const escrow = (from: Address, lease: Address, functionName: "releaseRent" | "propose" | "accept", args: readonly unknown[] = []) =>
   send(from, lease, encodeFunctionData({ abi: rentalEscrowAbi, functionName, args } as Parameters<typeof encodeFunctionData>[0]));
@@ -136,6 +142,8 @@ for (const [state, { badge, ahead, make }] of Object.entries(STATES)) {
         await expect(page.getByTestId("money-rate"), label).toBeVisible();
         if (state !== "created") await expect(page.getByTestId("timeline"), label).toBeVisible();
         if (state !== "settled") await expect(page.getByTestId("protection-summary"), label).toBeVisible();
+        // In a dispute both parties' histories load into the side column.
+        if (state === "disputed") await expect(page.getByTestId("party-histories").getByTestId("history-facts"), label).toHaveCount(2);
         await page.waitForLoadState("networkidle");
 
         // One banner, one money card, one timeline: what happened, then what is ahead with one step marked as now.
@@ -145,7 +153,16 @@ for (const [state, { badge, ahead, make }] of Object.entries(STATES)) {
         await expect(page.getByTestId("return-plan").locator("[aria-current='step']"), label).toHaveCount(ahead ? 1 : 0);
         if (state === "settled") await expect(page.getByTestId("settlement")).toContainText("Got back");
         await expect(page.getByTestId("agreement")).toContainText("within 7 days");
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${label}: sideways scroll`).toBeLessThanOrEqual(0);
+        // No sideways scroll; if there is, name what sticks out.
+        const wide = await page.evaluate(() =>
+          document.documentElement.scrollWidth <= window.innerWidth
+            ? []
+            : [...document.querySelectorAll("body *")]
+                .filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1)
+                .slice(0, 8)
+                .map((e) => `${e.tagName.toLowerCase()}[${e.getAttribute("data-testid") ?? e.className}] "${(e as HTMLElement).innerText?.slice(0, 40)}"`),
+        );
+        expect(wide, `${label}: sideways scroll`).toEqual([]);
 
         const box = async (id: string) => (await page.getByTestId(id).first().boundingBox())!;
         const [b, money] = [await box("rental-banner"), await box("money-strip")];

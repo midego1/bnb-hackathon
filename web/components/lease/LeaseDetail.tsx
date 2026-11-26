@@ -119,6 +119,7 @@ export function LeaseDetail({ address, pinAction }: { address: Address; pinActio
           {lease.status !== LeaseStatus.Disputed && lease.startTime > BigInt(0) && (viewer === "landlord" || viewer === "tenant") && (
             <WalletHistoryCard wallet={me!} party={viewer === "tenant" ? "renter" : "owner"} you lazy />
           )}
+          {lease.status === LeaseStatus.Disputed && <PartyHistories renter={lease.terms.tenant} owner={lease.terms.landlord} me={me} />}
         </aside>
         <div className="min-w-0 space-y-6 @4xl:col-start-1">
           <ChainReadNotice
@@ -132,7 +133,6 @@ export function LeaseDetail({ address, pinAction }: { address: Address; pinActio
           <EvidencePanel lease={lease} viewer={viewer} events={events} />
         </div>
       </div>
-      {lease.status === LeaseStatus.Disputed && <PartyHistories renter={lease.terms.tenant} owner={lease.terms.landlord} me={me} />}
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function WalletHistoryCard({ wallet, party, you = false, lazy = false }: 
               {data.memory?.entries.length ? (
                 <ul className="mt-2 space-y-2">
                   {data.memory.entries.map((e, i) => (
-                    <li key={i} className="rounded-lg bg-muted p-2.5 text-xs text-muted-foreground" data-testid="history-entry">
+                    <li key={i} className="rounded-lg bg-muted p-2.5 text-xs [overflow-wrap:anywhere] text-muted-foreground" data-testid="history-entry">
                       <span className="mr-1.5 rounded bg-surface-strong px-1.5 py-0.5 text-[11px] font-medium text-foreground">
                         {t(`history.source.${e.source}`)}
                       </span>
@@ -208,13 +208,16 @@ function Sentence({ text, lease }: { text: string; lease: ReactNode }) {
   );
 }
 
-/** Both parties of a rental side by side (dispute desk, disputed rental page). */
+/** Both parties of a rental (dispute desk, disputed rental page). */
 export function PartyHistories({ renter, owner, me }: { renter: Address; owner: Address; me?: string }) {
   const mine = (a: string) => !!me && a.toLowerCase() === me.toLowerCase();
   return (
-    <div className="grid gap-4 sm:grid-cols-2" data-testid="party-histories">
-      <WalletHistoryCard wallet={renter} party="renter" you={mine(renter)} />
-      <WalletHistoryCard wallet={owner} party="owner" you={mine(owner)} />
+    // Side by side where there is room (the dispute desk page), stacked in a narrow column (the rental page's side, a phone).
+    <div className="@container min-w-0">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 @2xl:grid-cols-2" data-testid="party-histories">
+        <WalletHistoryCard wallet={renter} party="renter" you={mine(renter)} />
+        <WalletHistoryCard wallet={owner} party="owner" you={mine(owner)} />
+      </div>
     </div>
   );
 }
