@@ -4,7 +4,7 @@
     python3 docs/marketing/scooters.py OUT_DIR      # writes <slug>.svg (960x720) for the six demo listings
 
 One scooter-drawing function with a few parameters (shape, colours, wheels, seat, lights) and one backdrop per place.
-Like tiles.py they are drawn for an 80x60 LED grid (dotfx, cell 12): bold flat shapes, no logos, no text.
+Like tiles.py they are drawn for an 80x60 LED grid (coins.py, cell 12): bold flat shapes, no logos, no text.
 The slugs are those of web/data/listings.json. See README.md in this folder for the rest of the pipeline.
 """
 import sys
