@@ -314,7 +314,7 @@ struct RentFlowView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 6)
-            if flow.backToRenter + flow.toOwner + flow.fee > BigUInt() {
+            if model.settledBack != nil, flow.backToRenter + flow.toOwner + flow.fee > BigUInt() {
                 DashedRule()
                 SplitBar(parts: [
                     SplitPart(id: "back", label: settings.t("flow.inspect.back"), value: Money.tokens(flow.backToRenter).doubleValue, color: .KE.success, detail: model.thb(flow.backToRenter)),
@@ -326,7 +326,10 @@ struct RentFlowView: View {
                 DashedRule()
                 TxLinkRow(label: settings.t("flow.settled.bscscan"), hash: h)
             }
-            if model.listing.kind == .demoScooter { SecondaryButton(title: settings.t("flow.again"), icon: "arrow.counterclockwise") { model.startOver() } }
+            if model.listing.kind == .demoScooter {
+                SecondaryButton(title: settings.t("flow.again"), icon: "arrow.counterclockwise") { model.startOver() }
+                    .accessibilityIdentifier("flow-again")
+            }
         }
     }
 

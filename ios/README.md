@@ -4,17 +4,22 @@ A native SwiftUI app for KeyEscrow: rent a scooter (or the live stage Mystery Bo
 own escrow contract on **BSC testnet**. The phone makes a testnet-only guest wallet, signs every transaction itself,
 and talks to the live KeyEscrow API. Testnet only: the app refuses to sign for any chain but 97.
 
-| Light · EN | Dark · 中文 |
-| --- | --- |
-| ![Home, light, English](screenshots/home-light-en.png) | ![Home, dark, Chinese](screenshots/home-dark-zh.png) |
-
-| Rental page · light · EN | Rental page · dark · 中文 | Rent flow, settled | Ask AI approval, signed |
+| Home · light · EN | Listings · light · EN | Listing · light · EN | Home · dark · 中文 |
 | --- | --- | --- | --- |
-| ![](screenshots/rental-light-en.png) | ![](screenshots/rental-dark-zh.png) | ![](screenshots/flow-settled-light-en.png) | ![](screenshots/ask-approval-light-en.png) |
+| ![Home, light, English](screenshots/home-light-en.png) | ![Listing cards with real photos](screenshots/home-listings-light-en.png) | ![Listing page](screenshots/listing-light-en.png) | ![Home, dark, Chinese](screenshots/home-dark-zh.png) |
+
+| Rent flow, paying in | Rent flow, settled | Rental page · light · EN | Rental timeline · dark · 中文 |
+| --- | --- | --- | --- |
+| ![](screenshots/flow-pay-light-en.png) | ![](screenshots/flow-settled-light-en.png) | ![](screenshots/rental-light-en.png) | ![](screenshots/rental-timeline-dark-zh.png) |
+
+| My rentals · dark · EN | Ask AI approval, signed | Photo credits · light · EN | Settings · light · 中文 |
+| --- | --- | --- | --- |
+| ![](screenshots/rentals-dark-en.png) | ![](screenshots/ask-approval-light-en.png) | ![](screenshots/credits-light-en.png) | ![](screenshots/settings-light-zh.png) |
 
 All screenshots (Simulator, iPhone 17, light + dark, EN + 中文) are in [`screenshots/`](screenshots). The rental shown is
 a real one the E2E test made on BSC testnet: escrow
-[`0x758f…4dEd`](https://testnet.bscscan.com/address/0x758fda4c2c5C1A121106ce91B15348E2a2b84dEd).
+[`0x0389…fe87`](https://testnet.bscscan.com/address/0x0389ED3e927165653ea482931C0eD17f3BD2fe87). The photos are real
+and freely licensed: see [Photos](#photos) and [CREDITS.md](CREDITS.md).
 
 ## Requirements
 
@@ -54,20 +59,44 @@ xcodebuild -scheme KeyEscrowE2E -destination 'platform=iOS Simulator,name=iPhone
 ```
 
 It rents a demo scooter: test money, offer, fund, pickup + return photos on-chain, AI inspection, proposal, the
-demo shop accepts, settled.
+demo shop accepts, settled. Name the scooter with `TEST_RUNNER_E2E_SCOOTER="Honda PCX 160"` in front of the command
+(default: Honda Scoopy-i). A rental left half way is carried on, and a settled one is rented again, so every run is a
+whole rental. A second test signs an Ask AI approval card.
 
 ## What is in the app
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | Airbnb-style list: the live **Mystery Box** (`GET /api/stage/mystery-box`) and the demo scooters (`GET /api/fleet`). Detail: price per day, deposit, "deposit protected by escrow", *Rent it*. |
-| **Rent it** (from a listing) | The `/r` judge flow, native: get test money → the owner offers → *Pay into escrow* (`prepare_fund`) → pickup photos → return photos (SHA-256, `POST /api/evidence`, `prepare_add_evidence`) → AI inspection (`POST /api/settlement`, agent #2921) → propose the split (`prepare_propose_settlement`) → owner accepts → settled. Every transaction links to BscScan as soon as it is mined. Steps are read back from the chain, so leaving and coming back continues where it was. |
-| **My rentals** | `list_leases` for the guest wallet. Rental page: status banner, money strip (renter paid / in escrow / owner got / back to renter, baht + mUSDT), period strip, `explain_status` in plain words, timeline (`/api/chain/index`) with BscScan links. Pull to refresh. |
-| **Ask AI** | Chat against `POST /api/assistant` (Server-Sent Events). Approval cards show the exact unsigned steps; *Approve and sign* signs them with the guest wallet, then resumes the run with the tx hashes. The live server runs the demo model. |
-| **Settings** | Test wallet (address, copy, BscScan, balances, *Get test money*, make a new wallet), demo shop wallet, language **EN / 中文**, appearance **system / light / dark**, about. |
+| **Home** | A full-bleed photo of a Thai street at night (a real "motorcycle for rent" sign in it) with the promise over it, a row of destinations that filters the list, then Airbnb-style cards: the live **Mystery Box** (`GET /api/stage/mystery-box`) and the demo scooters (`GET /api/fleet`), each with a real photo, price per day, place, "deposit protected by escrow" and a *Live on stage* / *Demo listing* badge. Listing page: big photo header, rent and deposit, why the deposit is safe, a sticky *Rent it* bar with the price. |
+| **Rent it** (from a listing) | The `/r` judge flow, native, with a named seven-step stepper: get test money → the owner offers → *Pay into escrow* (`prepare_fund`) → pickup photos → return photos (SHA-256, `POST /api/evidence`, `prepare_add_evidence`) → AI inspection (`POST /api/settlement`, agent #2921) → propose the split (`prepare_propose_settlement`) → owner accepts → settled (a drawn tick, the amount back, how the escrow paid out). Every transaction lands on a paper receipt with its BscScan link as soon as it is mined. Steps are read back from the chain, so leaving and coming back continues where it was. |
+| **My rentals** | `list_leases` for the guest wallet, with the listing's photo where this phone made the rental. Rental page: photo, status banner, money tiles (renter paid / in escrow / owner got / back to renter, baht + mUSDT) and a split bar, period strip, `explain_status` in plain words, a timeline on a rail (`/api/chain/index`) with an icon per event and BscScan links. Pull to refresh. |
+| **Ask AI** | Chat against `POST /api/assistant` (Server-Sent Events). Approval cards show the exact unsigned steps; *Approve and sign* signs them with the guest wallet, then resumes the run with the tx hashes. When the server says it runs its demo model the app shows a *Demo model* pill. |
+| **Settings** | Test wallet (balance card, address, copy, BscScan, *Get test money*, make a new wallet), demo shop wallet, language **EN / 中文**, appearance **system / light / dark**, about, **photo credits**. |
 
-Light and dark follow the web's colour tokens (`web/app/globals.css`); all text uses Dynamic Type text styles; tap
-targets are at least 44 pt.
+Light and dark follow the web's colour tokens (`web/app/globals.css`, night indigo for the hero and the wallet card,
+amber for emphasis only). One type scale (`Font.KE`: rounded for headings and amounts, monospaced for hashes), all of
+it Dynamic Type text styles; layouts restack at the accessibility sizes; tap targets are at least 44 pt. Haptics mark a
+step, a success and an error; the tick, the live dot and the press feedback stay still under Reduce Motion.
+
+## Photos
+
+Every picture in the app is a real photo with a free licence, bundled with the app
+(`KeyEscrow/Resources/Assets.xcassets/Photos`, about 2 MB): one per demo listing, the street at night on Home, a box
+for the Mystery Box and four destination tiles. All eleven come from Wikimedia Commons (CC0, CC BY or CC BY-SA, none
+with a non-commercial or no-derivatives clause); each licence was read from the file's own page. The bundled photos
+are never fetched at runtime: they are mapped by listing id (`PhotoCatalog` in `KeyEscrow/Design/Photos.swift`), and
+the catalogue's own photo URL (a stand-in walkthrough picture) is only the fallback for a listing id the app has no
+photo for (none today).
+
+The photos illustrate the demo listings; they do not show the exact scooters. Where the picture is a stand-in the
+credits say so: the Honda Click is an earlier Click (2007), the Scoopy is a Scoopy 110 photographed in Bali, the
+Fino's page does not state its place or model year, the box is not the one on the stage. In the street photo the phone numbers on the shop signs and the print on a T-shirt are
+blurred; the shops in it are not connected to KeyEscrow.
+
+Title, author, licence, source and what was changed for each photo: [CREDITS.md](CREDITS.md), and in the app under
+Settings > About > Photo credits. To add or replace one: put the JPEG in an image set under `Assets.xcassets/Photos`,
+map and credit it in `PhotoCatalog`, add the row to CREDITS.md (`PhotoTests` fails when the asset folder, the list in
+code and CREDITS.md do not name the same photos with the same credit).
 
 ## What is real on-chain vs demo
 
@@ -78,6 +107,7 @@ targets are at least 44 pt.
 | Photo fingerprints (`addEvidence`), the proposal with the inspector's `reportHash`, the settlement. | **Mystery Box owner** is the KeyEscrow server (`/api/stage` `lease`); the presenter accepts on the big screen. |
 | Test money: `/api/stage` drip (tBNB + mUSDT from the team's funder, once per address) and `MockUSDT.faucet` signed by the guest wallet. | AI inspector on the live server is the deterministic demo inspector (no vision key there); the app says so. Baht use the demo rate (33 THB/USDT) when the price API is in mock mode, and says so. |
 | | Simulator has no camera: *Add a sample photo* makes a time-stamped generated picture. On an iPhone it is the live camera only (no photo library, by design). |
+| | The listing photos are illustrations (real, freely licensed photos of the same model line, credited), not the scooters themselves. |
 
 ## Safety
 
@@ -91,6 +121,8 @@ targets are at least 44 pt.
   `transfer`, no other contract.
 - A send whose answer got lost is looked up by its hash before retrying, and a pending shop offer is finished rather
   than created twice. A Keychain read error never replaces the stored key.
+- The flow's step comes from the escrow itself (`get_lease`), never from KeyEscrow's chain index: the index only feeds
+  the timeline, and when it is behind the settled payout is read from the settling transaction's receipt.
 - **Keys** are made on the phone (`SecRandomCopyBytes`), stored in the Keychain with
   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` (no iCloud sync, not in backups) and never leave it. The server
   only ever sees addresses.
@@ -108,14 +140,18 @@ ios/
     Network/                  APIClient (/api/v1, stage, fleet, price, chain index, settlement, evidence), RPC, models
     Features/Home|Rent|Rentals|AskAI|Settings
     Support/                  AppSettings, L10n (EN + 中文 side by side), Money (baht / mUSDT / tBNB)
-    Design/                   colour tokens, cards, pills, buttons
-  KeyEscrowTests/             signer vectors (viem), calldata policy, API decoding (live fixtures), money + i18n
-  KeyEscrowE2E/               live rent-a-scooter run on BSC testnet
+    Design/                   colour tokens, type scale, cards, buttons, stepper parts; Photos.swift (photos + credits)
+    Resources/Assets.xcassets icon, launch colour, Photos/ (the eleven bundled photos)
+  KeyEscrowTests/             signer vectors (viem), calldata policy, API decoding (live fixtures), money + i18n, photos
+  KeyEscrowE2E/               live rent-a-scooter run and Ask AI approval on BSC testnet
+  CREDITS.md                  every photo: title, author, licence, source, what was changed
 ```
 
 Dependency: [`21-DOT-DEV/swift-secp256k1`](https://github.com/21-DOT-DEV/swift-secp256k1) 0.25.1 (`P256K`,
 libsecp256k1: RFC 6979 + low-s, recoverable signatures). Keccak, RLP and the transaction encoding are in this repo
 and checked byte for byte against viem's `signTransaction` (vectors in `KeyEscrowTests/Fixtures/README.md`).
 
-Screenshots: `-lang en|zh`, `-appearance light|dark`, `-tab 0..3`, `-listing <id>`, `-flow <id>` and `-lease <escrow>`
-launch arguments open a given state (`xcrun simctl launch booted org.keyescrow.ios -lang zh -appearance dark`).
+Screenshots: `-lang en|zh`, `-appearance light|dark`, `-tab 0..3`, `-listing <id>`, `-flow <id>`, `-lease <escrow>`,
+`-scroll listings` (Home) or `-scroll timeline` (rental page) and `-screen wallet|credits` (Settings) launch arguments
+open a given state (`xcrun simctl launch booted org.keyescrow.ios -lang zh -appearance dark`). The E2E test keeps a
+screenshot of every flow step in its result bundle (`xcrun xcresulttool export attachments`).

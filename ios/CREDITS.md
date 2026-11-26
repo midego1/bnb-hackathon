@@ -5,11 +5,13 @@ Each licence below was read from the file's own page on 26 November 2026 (the tw
 carry Commons' passed licence review, FlickreviewR 2). None has a non-commercial or no-derivatives clause.
 
 The same list is in the app (Settings > About > Photo credits) and in code
-(`KeyEscrow/Design/Photos.swift`, `PhotoCatalog.credits`); `KeyEscrowTests/PhotoTests.swift` checks that every bundled
-photo has an entry and every entry has its photo.
+(`KeyEscrow/Design/Photos.swift`, `PhotoCatalog.credits`). `KeyEscrowTests/PhotoTests.swift` compares the three: the
+image sets in the asset folder, the list in code and the table below must name the same photos with the same title,
+author, licence and source.
 
-The files are in `KeyEscrow/Resources/Assets.xcassets/Photos/` (about 2 MB in total). They are bundled with the app:
-nothing is loaded from an image server at runtime.
+The files are in `KeyEscrow/Resources/Assets.xcassets/Photos/` (about 2 MB in total). They are bundled with the app
+and never fetched at runtime. Only a listing the app has no photo for (none today) would fall back to the picture URL
+the catalogue itself gives.
 
 ## What the pictures are, and are not
 
@@ -25,9 +27,9 @@ listing, the "Note" column says so.
 | KeyEscrow Mystery Box | `photo-mystery-box` | [Small Cardboard Moving Box Taped Closed (47303024341)](https://commons.wikimedia.org/wiki/File:Small_Cardboard_Moving_Box_Taped_Closed_(47303024341).jpg) | HireAHelper (via Flickr) | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | Cropped to a square and resized to 1200 x 1200. | A stand-in: not the box on the stage. |
 | Honda Click 125i (`click-125i-cnx`) | `photo-click-125i-cnx` | [Honda Click, Trang, Thailand](https://commons.wikimedia.org/wiki/File:Honda_Click,_Trang,_Thailand.jpg) | Vyacheslav Argenberg | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Cropped to a square and resized to 1200 x 1200. | A stand-in: an earlier Honda Click, photographed in Thailand in 2007, not the 125i of the listing. |
 | Honda Scoopy-i (`scoopy-i-pai`) | `photo-scoopy-i-pai` | [2022 Honda Scoopy 110](https://commons.wikimedia.org/wiki/File:2022_Honda_Scoopy_110.jpg) | MoCars | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Cropped and resized to 1200 x 1200. | A 2022 Honda Scoopy 110, the same model line as the Scoopy-i. Photographed in Bali. |
-| Yamaha NMAX 155 (`nmax-155-patong`) | `photo-nmax-155-patong` | [2020 Yamaha NMAX 155 ABS (20200810) 01](https://commons.wikimedia.org/wiki/File:2020_Yamaha_NMAX_155_ABS_(20200810)_01.jpg) | オーバードライブ83 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Cropped to a square and resized to 1200 x 1200. | The same model as the listing. |
-| Honda PCX 160 (`pcx-160-bkk`) | `photo-pcx-160-bkk` | [2025 Honda PCX 160 Roadsync Type](https://commons.wikimedia.org/wiki/File:2025_Honda_PCX_160_Roadsync_Type.jpg) | Chanokchon | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Resized to 1200 x 1200. | The same model as the listing, photographed at a dealer in Khon Kaen, Thailand. |
-| Yamaha Fino 125 (`fino-125-bkk`) | `photo-fino-125-bkk` | [Yamaha Fino](https://commons.wikimedia.org/wiki/File:Yamaha_Fino.jpg) | Addvisor | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Cropped to a square and resized to 1200 x 1200. | A Yamaha Fino photographed in Thailand; the model year may differ from the listing. |
+| Yamaha NMAX 155 (`nmax-155-patong`) | `photo-nmax-155-patong` | [2020 Yamaha NMAX 155 ABS (20200810) 01](https://commons.wikimedia.org/wiki/File:2020_Yamaha_NMAX_155_ABS_(20200810)_01.jpg) | オーバードライブ83 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Cropped to a square and resized to 1200 x 1200. | The same model as the listing. Photographed in Indonesia. |
+| Honda PCX 160 (`pcx-160-bkk`) | `photo-pcx-160-bkk` | [2025 Honda PCX 160 Roadsync Type](https://commons.wikimedia.org/wiki/File:2025_Honda_PCX_160_Roadsync_Type.jpg) | Chanokchon | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Resized to 1200 x 1200. | The same model as the listing. Photographed at a dealer in Khon Kaen, Thailand. |
+| Yamaha Fino 125 (`fino-125-bkk`) | `photo-fino-125-bkk` | [Yamaha Fino](https://commons.wikimedia.org/wiki/File:Yamaha_Fino.jpg) | Addvisor | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Cropped to a square and resized to 1200 x 1200. | A Yamaha Fino. Its page does not say where it was taken or which model year it is, so both may differ from the listing. |
 | Destination tile: Bangkok | `place-bangkok` | [Bangkok skytrain sunset](https://commons.wikimedia.org/wiki/File:Bangkok_skytrain_sunset.jpg) | Diliff | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | Cropped to 4:3 and resized to 640 x 480. | |
 | Destination tile: Chiang Mai | `place-chiang-mai` | [Tha Phae Gate 1](https://commons.wikimedia.org/wiki/File:Tha_Phae_Gate_1.jpg) | Christophe95 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Resized to 640 x 480. | |
 | Destination tile: Pai | `place-pai` | [Thailand Pai (111310263)](https://commons.wikimedia.org/wiki/File:Thailand_Pai_(111310263).jpeg) | Andreas Gante (via 500px) | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | Cropped to 4:3 and resized to 640 x 480. | |

@@ -1,7 +1,9 @@
 import XCTest
 
-/// Live end-to-end run on BSC testnet (real transactions, ~3-5 minutes): rent a demo scooter with the guest wallet,
+/// Live end-to-end run on BSC testnet (real transactions, ~2 minutes): rent a demo scooter with the guest wallet,
 /// anchor pickup + return photos, run the AI inspection, propose the split, let the demo shop accept, settle.
+/// The scooter comes from E2E_SCOOTER (TEST_RUNNER_E2E_SCOOTER on the xcodebuild command line). A rental left half
+/// way is carried on; a settled one is rented again.
 /// Not part of `xcodebuild test -scheme KeyEscrow` (no network in unit tests); run with -scheme KeyEscrowE2E.
 final class RentFlowE2ETests: XCTestCase {
     let app = XCUIApplication()
@@ -9,12 +11,25 @@ final class RentFlowE2ETests: XCTestCase {
     private func el(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id] }
 
     /// Waits for one of `ids` (the flow advances on its own as the chain confirms); fails on a flow error.
+    /// One error is not the app's: the KeyEscrow server answering that its chain node is unreachable ("try again in a
+    /// moment"). Then the step's button (`after`) is tapped again, as a person would, up to three times.
     @discardableResult
-    private func waitFor(_ ids: [String], timeout: TimeInterval = 240) -> String {
+    private func waitFor(_ ids: [String], after button: String? = nil, timeout: TimeInterval = 240) -> String {
         let end = Date().addingTimeInterval(timeout)
+        var retries = 0
         while Date() < end {
             for id in ids where el(id).exists { return id }
-            if el("flow-error").exists { XCTFail("flow error: \(el("flow-error").label)"); return "error" }
+            if el("flow-error").exists {
+                let message = el("flow-error").label
+                if message.contains("Try again in a moment"), retries < 3 {
+                    retries += 1
+                    Thread.sleep(forTimeInterval: 5)
+                    // An action failed: tap its button again. A refresh failed: the app asks again by itself.
+                    if let button, el(button).exists, el("flow-error").exists { tap(button) }
+                    continue
+                }
+                XCTFail("flow error: \(message)"); return "error"
+            }
             Thread.sleep(forTimeInterval: 1)
         }
         XCTFail("timed out waiting for \(ids)")
@@ -23,6 +38,7 @@ final class RentFlowE2ETests: XCTestCase {
 
     /// Keeps a screenshot of the step in the test result (xcrun xcresulttool export attachments ...).
     private func snap(_ name: String) {
+        Thread.sleep(forTimeInterval: 0.6) // let the page settle
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name
         shot.lifetime = .keepAlways
@@ -48,23 +64,29 @@ final class RentFlowE2ETests: XCTestCase {
         tap("rent-it")
 
         var step = waitFor(["flow-money", "flow-rent", "flow-sample-check_in", "flow-sample-check_out", "flow-inspect", "flow-propose", "flow-shop-accept", "flow-settled"], timeout: 60)
-        if step == "flow-money" { snap("1-money"); tap("flow-money"); step = waitFor(["flow-rent"]) }
-        if step == "flow-rent" { snap("2-pay"); tap("flow-rent"); step = waitFor(["flow-sample-check_in"]) }
+        if step == "flow-settled" {
+            // This wallet already rented this scooter and settled: start a new rental of it (the old escrow stays
+            // on-chain), so the run is always a whole rental and never passes on yesterday's.
+            tap("flow-again")
+            step = waitFor(["flow-money", "flow-rent"], timeout: 60)
+        }
+        if step == "flow-money" { snap("1-money"); tap("flow-money"); step = waitFor(["flow-rent"], after: "flow-money") }
+        if step == "flow-rent" { snap("2-pay"); tap("flow-rent"); step = waitFor(["flow-sample-check_in"], after: "flow-rent") }
         if step == "flow-sample-check_in" {
             tap("flow-sample-check_in"); snap("3-pickup"); tap("flow-save-check_in")
-            step = waitFor(["flow-sample-check_out"])
+            step = waitFor(["flow-sample-check_out"], after: "flow-save-check_in")
         }
         if step == "flow-sample-check_out" {
             tap("flow-sample-check_out"); snap("4-return"); tap("flow-save-check_out")
-            step = waitFor(["flow-inspect"])
+            step = waitFor(["flow-inspect"], after: "flow-save-check_out")
         }
         if step == "flow-inspect" {
             snap("5-inspect")
             tap("flow-inspect")
-            step = waitFor(["flow-propose"])
+            step = waitFor(["flow-propose"], after: "flow-inspect")
         }
-        if step == "flow-propose" { snap("5-split"); tap("flow-propose"); step = waitFor(["flow-shop-accept"]) }
-        if step == "flow-shop-accept" { snap("6-accept"); tap("flow-shop-accept"); step = waitFor(["flow-settled"]) }
+        if step == "flow-propose" { snap("5-split"); tap("flow-propose"); step = waitFor(["flow-shop-accept"], after: "flow-propose") }
+        if step == "flow-shop-accept" { snap("6-accept"); tap("flow-shop-accept"); step = waitFor(["flow-settled"], after: "flow-shop-accept") }
         XCTAssertEqual(step, "flow-settled")
         Thread.sleep(forTimeInterval: 1.5) // let the tick finish drawing
         snap("7-settled")

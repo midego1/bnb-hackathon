@@ -108,7 +108,6 @@ enum L10n {
         "rentals.empty": ("No rentals yet", "还没有租赁"),
         "rentals.emptyBody": ("Rent the Mystery Box or a demo scooter from Home. Every rental is its own escrow on BSC testnet.", "在首页租用神秘盒子或演示摩托车。每笔租赁都是 BSC 测试网上独立的托管合约。"),
         "rentals.deposit": ("{0} deposit", "押金 {0}"),
-        "rentals.rent": ("Rent {0} · {1}", "租金 {0} · {1}"),
         "detail.title": ("Rental", "租赁"),
         "detail.plainWords": ("In plain words", "简单来说"),
         "detail.serverEnglish": ("From the KeyEscrow server (English).", "来自 KeyEscrow 服务器（英文）。"),
@@ -176,7 +175,6 @@ enum L10n {
         "event.Cancelled": ("Offer cancelled", "报价已撤回"),
 
         // Ask AI
-        "ask.title": ("Ask AI", "问 AI"),
         "ask.intro": ("Ask about your rentals. Changes always come as an approval card that this phone's test wallet signs.", "询问你的租赁。任何更改都会以审批卡片的形式出现，由这部手机的测试钱包签名。"),
         "ask.demoModel": ("Demo model", "演示模型"),
         "ask.s.find": ("Find my rental", "查找我的租赁"),
@@ -277,7 +275,8 @@ enum L10n {
         "credits.note.box": ("A stand-in: not the box on the stage.", "仅作示意：并不是现场的那只盒子。"),
         "credits.note.click": ("A stand-in: an earlier Honda Click, photographed in Thailand in 2007, not the 125i of the listing.", "仅作示意：这是 2007 年在泰国拍摄的早期款 Honda Click，并非车源中的 125i。"),
         "credits.note.scoopy": ("A 2022 Honda Scoopy 110, the same model line as the Scoopy-i. Photographed in Bali.", "2022 款 Honda Scoopy 110，与 Scoopy-i 属于同一车系。拍摄于巴厘岛。"),
-        "credits.note.pcx": ("Photographed at a dealer in Khon Kaen, Thailand.", "拍摄于泰国孔敬的一家经销店。"),
-        "credits.note.fino": ("A Yamaha Fino photographed in Thailand; the model year may differ from the listing.", "在泰国拍摄的 Yamaha Fino；车型年份可能与车源不同。"),
+        "credits.note.nmax": ("The same model as the listing. Photographed in Indonesia.", "与车源同款车型。拍摄于印度尼西亚。"),
+        "credits.note.pcx": ("The same model as the listing. Photographed at a dealer in Khon Kaen, Thailand.", "与车源同款车型。拍摄于泰国孔敬的一家经销店。"),
+        "credits.note.fino": ("A Yamaha Fino. Its page does not say where it was taken or which model year it is, so both may differ from the listing.", "一辆 Yamaha Fino。图片页面没有注明拍摄地点和车型年份，因此两者都可能与车源不同。"),
     ]
 }
