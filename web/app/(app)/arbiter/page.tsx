@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount } from "wagmi";
+import { PartyHistories } from "@/components/history/WalletHistoryCard";
 import { LeaseCard } from "@/components/lease/LeaseCard";
 import { Notice, PageTitle, Skeleton } from "@/components/ui";
 import { WalletGate } from "@/components/WalletGate";
@@ -59,5 +60,12 @@ function Filtered({ address, want }: { address: Address; want: "disputed" | "oth
   if (!data) return want === "disputed" ? <Skeleton className="h-36" /> : null;
   const disputed = data.status === LeaseStatus.Disputed;
   if ((want === "disputed") !== disputed) return null;
-  return <LeaseCard address={address} />;
+  if (!disputed) return <LeaseCard address={address} />;
+  // A case to rule on: the rental, then both parties' history (facts + Living Brain), across the whole row.
+  return (
+    <div className="space-y-4 rounded-2xl border border-border-strong p-3 sm:col-span-2" data-testid="dispute-case">
+      <LeaseCard address={address} />
+      <PartyHistories renter={data.terms.tenant} owner={data.terms.landlord} />
+    </div>
+  );
 }

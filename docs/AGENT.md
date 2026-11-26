@@ -167,6 +167,7 @@ own proposal is told why instead of getting a revert.
 | `get_lease` | read | anyone | | Terms, status, months paid, current proposal and deadlines, mUSDT with baht/dollar equivalents |
 | `list_leases` | read | anyone | | A wallet's rentals (as owner, renter or dispute desk) from the factory's on-chain index |
 | `explain_status` | read | anyone | | Plain language: where the deposit is, what can happen next, who must act by when |
+| `wallet_history` | read | anyone | | A wallet's dispute history: rentals as renter/owner, disputes and outcomes, owner claim vs AI proposal, rent on time, timeouts, plus Living Brain entries |
 | `quote` | read | anyone | | THB / USD / mUSDT at the price API's rate (Atlas, CMC, else marked demo rates) |
 | `prepare_create_lease` | prepare | owner | | `createLease` (or `createLeaseWithPayee` with `payee`, e.g. a Fleet Vault); rent and deposit in THB, USD or mUSDT |
 | `prepare_fund` | prepare | renter | Created | `approve` (only if needed) + `fund` |

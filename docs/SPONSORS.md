@@ -98,7 +98,8 @@ Docs: <https://coinmarketcap.com/api/documentation/>
 
 - A working AI agent solving a real problem, using Living Brain as its persistent memory layer
   via API, SDK, MCP or CLI.
-- Our use: per-scooter damage and inspection history.
+- Our use: per-scooter damage and inspection history, and **dispute memory per wallet**: one factual entry per
+  party after every settled rental, read back on the dispute desk ([ARCHITECTURE.md](ARCHITECTURE.md#dispute-memory-per-wallet)).
 - Submit:
   - a **3–5 minute** demo video showing how the agent remembers, retrieves and connects info;
   - a short description: problem, solution, what makes it unique.

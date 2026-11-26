@@ -197,7 +197,7 @@ units, the roles and rental states it needs, and either a read or a `build` that
 
 ```mermaid
 flowchart LR
-    DEF["lib/actions/definitions.ts<br/>4 reads + 10 prepare_*"] --> RUN["run.ts<br/>validate → role + state checks →<br/>read, or prepare + simulate"]
+    DEF["lib/actions/definitions.ts<br/>5 reads + 10 prepare_*"] --> RUN["run.ts<br/>validate → role + state checks →<br/>read, or prepare + simulate"]
     RUN --> REST["REST<br/>GET/POST /api/v1/{action}"]
     DEF --> OAS["OpenAPI 3.1<br/>/api/v1/openapi.json"]
     DEF --> DOCS["/developers page"]
@@ -208,7 +208,9 @@ flowchart LR
 ```
 
 - Reads: `get_lease`, `list_leases`, `explain_status` (where the deposit is, in plain words, and what the viewer can
-  do), `quote` (THB / USD / mUSDT).
+  do), `quote` (THB / USD / mUSDT), `wallet_history` (a renter's or owner's track record for a dispute, see
+  [Dispute memory per wallet](#dispute-memory-per-wallet); it needs the web server's chain index, so the action host
+  passes it in: the web app, and the agent with the same code).
 - Prepare: `prepare_create_lease`, `prepare_fund`, `prepare_release_rent`, `prepare_add_evidence`,
   `prepare_propose_settlement`, `prepare_accept`, `prepare_dispute`, `prepare_resolve`, `prepare_claim_timeout`,
   `prepare_cancel`. Each returns the transactions (including any `approve`) already simulated against the chain,
@@ -258,6 +260,7 @@ inspection (ERC-8183 / x402) is roadmap.
 | --- | --- | --- | --- | --- |
 | AI inspection | `POST /api/settlement` (web), `inspect_move_out` (agent) | pickup + return photo sets and the deposit → `{tenantRefund, landlordClaim, reasons[], confidence}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL` (Sonnet 5.5, or Haiku 5.5), `SETTLEMENT_DAILY_CALLS`, `INSPECTOR_PRIVATE_KEY` | Deterministic demo inspector, labelled in the UI; also when the model is busy (429/5xx/529/out of credit), refuses, cannot get the photo bytes, or the daily cap is used up (`fallback` in the report says which) |
 | Scooter memory | inside the inspection | earlier inspections of the scooter → "do not charge again" notes in the report; the web route writes the new one only for a rental verified on-chain (agent: read-only) | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/inspections.jsonl` (none on Workers) |
+| Dispute memory per wallet | `GET /api/v1/wallet_history`, `POST /api/history` | a wallet → on-chain facts + remembered entries; a settled rental → one factual entry per party | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/wallets.jsonl` (Workers: the Durable Object); a Living Brain error shows the facts only, labelled |
 | Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates* |
 | Deposit risk | `GET /api/risk`, `POST /api/cournot` | deposit, days → buffer from CMC volatility × (1 + Cournot p) | `CMC_API_KEY`, `COURNOT_LIVE` | "not configured", no buffer shown |
 | Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | file → SHA-256 `contentHash` (bytes32) + a stored copy | `GREENFIELD_*` | Node: local `web/.evidence/`. Workers: R2 bucket `EVIDENCE` if bound, else small photos (≤ 256 KB, 500 files, 7 days) in the Durable Object |
@@ -283,6 +286,43 @@ Design rules:
 delegated upload) is built and is used on a Node server with `GREENFIELD_*` set. The live Cloudflare deploy cannot
 load that SDK and has no R2 bucket bound yet, so its evidence is hashed in the browser. The demo's photos are static
 files.
+
+### Dispute memory per wallet
+
+When a deposit is disputed, the dispute desk sees a **History** card per party (renter and owner): on `/arbiter` under
+each case, and on the disputed rental page. Each party also sees their own card on their rental page ("What the
+dispute desk sees about you"). Ask AI and the agent read the same thing through the `wallet_history` action.
+
+- **Facts** (`web/lib/walletHistory.ts`, pure; `web/lib/server/history`): folded by code from the chain index, so every
+  number is exact: rentals as renter and as owner, settled, disputes (who opened it, who got what, or the desk missed
+  its deadline), rent periods paid on time / late / due but unpaid, owner reply windows missed, and the owner's claim
+  next to the AI inspection's proposal (`POST /api/settlement` records the AI's split for a rental it verified
+  on-chain, in shared state, 90 days). Works without Living Brain.
+- **Memory** (`web/lib/server/sponsors/walletMemory.ts`): after a settlement by agreement, a dispute ruling or a
+  timeout, the rental page calls `POST /api/history {lease}`. The server reads the rental from its own chain index
+  (it must be this factory's rental with a `Settled` event) and writes **one capture per party**: label
+  `wallet:<address>`, content one factual sentence (outcome, amounts, rental address, transaction hash),
+  `originRef` = `<txHash>:<wallet>` (both parties come from the same transaction, so the wallet is part of the key).
+  A marker in shared state skips repeat calls; Living Brain dedupes on `originRef`. Same limit as the scooter memory:
+  20 writes an hour per IP. Reading searches the brain for `wallet:<address>` and keeps only entries naming that
+  wallet, each with its transaction link and its source (Living Brain or local).
+- **The AI summarises; the dispute desk decides.** Nothing here scores or judges a person, and the ruling form is
+  unchanged.
+
+**Privacy (personal data, Thai PDPA).** A wallet address can be personal data once someone links it to a person, so:
+
+- Only **wallet addresses**: no names, phone numbers, passport data or photos go into the memory.
+- Only **factual entries** written by code from on-chain events. Never free text from users (notes, reasons) and
+  never the AI's opinion of a person.
+- **Deletion on request.** Every entry carries the label `wallet:<address>`. On a verified request (the wallet signs a
+  message), the operator searches the brain for that label and deletes each page with
+  `DELETE /v1/brains/{brainId}/pages/{slug}?permanent=true` and its capture with
+  `DELETE /v1/brains/{brainId}/sources/{sourceId}` (Living Brain API; derived pages are kept unless deleted too). The
+  local stand-in is a JSONL file / Durable Object key, deleted by wallet. On-chain events cannot be deleted; the facts
+  layer is computed from them and stores nothing.
+- Purpose limitation: the history is shown only in a dispute context (the desk, the disputed rental, the party's own
+  card). Retention: the AI claim record and write markers expire after 90 days. Contact for requests: see
+  [SECURITY.md](../SECURITY.md).
 
 ## 7. Cloudflare deployment
 
