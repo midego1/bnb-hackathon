@@ -134,7 +134,7 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 | Video: `/demo` guided one-click run (90 s) | [demo-guided.mp4](demo-guided.mp4) · [webm](demo-guided.webm) |
 | Video: app tour, landing to Ask AI (77 s) | [tour.mp4](tour.mp4) · [webm](tour.webm) |
 | Video: ELI5 cartoon, happy ending (71 s) | [eli5.mp4](eli5.mp4) · [webm](eli5.webm) |
-| Pitch deck (10 slides) | [deck.pdf](deck.pdf) (source: [deck.html](deck.html)) |
+| Pitch deck (11 slides, slide 4 is the iOS app) | [deck.pdf](deck.pdf) (source: [deck.html](deck.html)) |
 | Screenshots | [screenshots/](screenshots/) |
 
 The videos were recorded on a local anvil chain with the seeded demo world (same build as the live site). Upload the

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- KeyScrow pitch deck: 10 slides at 1920x1080. Render: see docs/submission/README.md -->
+<!-- KeyScrow pitch deck: 11 slides at 1920x1080. Render: see docs/submission/README.md -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -54,6 +54,15 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
 .brand span { font: 800 54px Kanit, Inter, sans-serif; }
 .state { float: right; }
 .who { font-size: 21px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+.iphones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px; justify-items: center; }
+.iphones figure { display: flex; flex-direction: column; align-items: center; }
+.iphone { position: relative; padding: 11px; border-radius: 54px; background: #0b0d18; box-shadow: 0 0 0 3px #c5c9d8, 0 0 0 5px #e9ebf2, 0 22px 54px rgba(15, 20, 48, .26); }
+.iphone::before { content: ""; position: absolute; right: -8px; top: 22%; width: 5px; height: 13%; border-radius: 0 3px 3px 0; background: #b9bdcc; }
+.iphone::after { content: ""; position: absolute; left: -8px; top: 18%; width: 5px; height: 8%; border-radius: 3px 0 0 3px; background: #b9bdcc; box-shadow: 0 90px 0 #b9bdcc; }
+.iphone img { display: block; height: 620px; width: auto; border-radius: 44px; }
+.iphone .island { position: absolute; left: 50%; transform: translateX(-50%); top: calc(11px + 1.55% ); width: 31.3%; height: 4.1%; min-height: 24px; border-radius: 999px; background: #000; }
+.iphones figcaption { margin-top: 30px; font-size: 26px; line-height: 1.3; text-align: center; color: var(--muted); }
+.iphones figcaption b { color: var(--ink); }
 </style>
 </head>
 <body>
@@ -71,7 +80,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <li>Nobody neutral in between, and nobody goes to court over a few thousand baht.</li>
     </ul>
   </div>
-  <div class="foot"><span>BNB Bangkok 2026 · keyscrow.mdgooijer.workers.dev</span><span>1 / 10</span></div>
+  <div class="foot"><span>BNB Bangkok 2026 · keyscrow.mdgooijer.workers.dev</span><span>1 / 11</span></div>
 </section>
 
 <!-- 2. Solution -->
@@ -92,7 +101,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <img class="phone" src="screenshots/07-ios.png" alt="The iOS app" style="position: absolute; right: -40px; bottom: -40px; height: 520px;">
     </div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · every amount in baht first</span><span>2 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · every amount in baht first</span><span>2 / 11</span></div>
 </section>
 
 <!-- 3. Live demo: duo -->
@@ -107,10 +116,23 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <p style="margin-top: 22px;" class="muted">Every step links to BscScan.</p>
     </div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · keyscrow.mdgooijer.workers.dev/duo/mystery-box</span><span>3 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · keyscrow.mdgooijer.workers.dev/duo/mystery-box</span><span>3 / 11</span></div>
 </section>
 
-<!-- 4. How it works -->
+<!-- 4. iOS app -->
+<section class="slide">
+  <div class="kicker">Native iPhone app · iOS Simulator screenshots</div>
+  <h2 style="font-size: 60px; margin-bottom: 40px;">Also a native iPhone app</h2>
+  <div class="iphones">
+    <figure><div class="iphone"><img src="screenshots/ios/catalogue-home-light-en.jpg" alt="iOS: the shared catalogue"><span class="island"></span></div><figcaption><b>Browse</b> the shared catalogue</figcaption></figure>
+    <figure><div class="iphone"><img src="screenshots/ios/catalogue-vespa-dark-zh.jpg" alt="iOS: a listing in Chinese, dark"><span class="island"></span></div><figcaption><b>Listing</b> in 中文, dark mode</figcaption></figure>
+    <figure><div class="iphone"><img src="screenshots/ios/flow-pay-light-en.jpg" alt="iOS: pay rent and deposit into the escrow"><span class="island"></span></div><figcaption><b>Pay</b> rent + deposit into escrow</figcaption></figure>
+    <figure><div class="iphone"><img src="screenshots/ios/flow-settled-light-en.jpg" alt="iOS: settled, the deposit came back"><span class="island"></span></div><figcaption><b>Settled</b>: ฿5,490 comes back</figcaption></figure>
+  </div>
+  <div class="foot"><span><b>SwiftUI, iOS 17</b>, same API and catalogue as the web app, signs locally with a testnet guest wallet; 39 unit tests</span><span>4 / 11</span></div>
+</section>
+
+<!-- 5. How it works -->
 <section class="slide">
   <div class="kicker">How it works</div>
   <h2>One rental, one contract, three ways out</h2>
@@ -130,10 +152,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><h3 style="color: var(--red);">⚖ Dispute</h3><p class="muted"><code>dispute</code> → the dispute desk sees both parties' history and calls <code>resolve</code> within 14 days.</p></div>
     <div class="card"><h3 style="color: var(--violet);">⏱ Silence</h3><p class="muted">Owner silent 7 days or desk past 14 days: <code>claimTimeout</code> / <code>claimArbiterTimeout</code>, full deposit to the renter.</p></div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · docs/ARCHITECTURE.md</span><span>4 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/ARCHITECTURE.md</span><span>5 / 11</span></div>
 </section>
 
-<!-- 5. BNB Chain -->
+<!-- 6. BNB Chain -->
 <section class="slide dark">
   <div class="kicker">BNB Chain integration</div>
   <h2>Live on BSC testnet, a capped pilot on BSC mainnet</h2>
@@ -143,10 +165,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><h3>ERC-8004 agent #2921</h3><p class="muted">The KeyScrow Inspector is registered in the ERC-8004 Identity Registry on BSC testnet (BNB Agent SDK). Its id is in every report hash; it speaks A2A, MCP and REST.</p></div>
     <div class="card"><h3>Greenfield · opBNB-ready</h3><p class="muted">Evidence off-chain (Greenfield store when configured, R2 on Workers), SHA-256 on-chain. Plain Solidity: the deploy guard accepts opBNB testnet. <i>Not deployed on opBNB yet.</i></p></div>
   </div>
-  <div class="foot"><span>BSC testnet (97): contracts v2, verified · BSC mainnet (56): capped pilot</span><span>5 / 10</span></div>
+  <div class="foot"><span>BSC testnet (97): contracts v2, verified · BSC mainnet (56): capped pilot</span><span>6 / 11</span></div>
 </section>
 
-<!-- 6. Sponsors -->
+<!-- 7. Sponsors -->
 <section class="slide">
   <div class="kicker">Sponsor tracks · state on keyscrow.mdgooijer.workers.dev/sponsors</div>
   <div class="grid" style="grid-template-columns: 1.25fr 1fr; gap: 56px; align-items: start;">
@@ -159,10 +181,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     </div>
     <img class="shot" src="screenshots/08-sponsors.png" alt="The /sponsors page">
   </div>
-  <div class="foot"><span>Not entered: Four.meme / OpenFour, Flap (no own token)</span><span>6 / 10</span></div>
+  <div class="foot"><span>Not entered: Four.meme / OpenFour, Flap (no own token)</span><span>7 / 11</span></div>
 </section>
 
-<!-- 7. Business model -->
+<!-- 8. Business model -->
 <section class="slide">
   <div class="kicker">Business model</div>
   <h2 style="font-size: 64px; margin-bottom: 36px;">10% of one month's rent, once. Never from the deposit.</h2>
@@ -182,10 +204,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <div class="card" style="padding: 26px 32px;"><h3>Dispute desk as a service <span class="pill no">planned</span></h3><p class="muted">Per-dispute fee and tooling for associations and insurers as named arbiters.</p></div>
     </div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md</span><span>7 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md</span><span>8 / 11</span></div>
 </section>
 
-<!-- 8. Traction / demo world -->
+<!-- 9. Traction / demo world -->
 <section class="slide">
   <div class="kicker">Traction · the demo world</div>
   <div class="grid" style="grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: start;">
@@ -204,10 +226,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
       <img class="shot" src="screenshots/05-backoffice.png" alt="Back office of the demo shops" style="height: 380px; object-fit: cover; object-position: top;">
     </div>
   </div>
-  <div class="foot"><span><b>KeyScrow</b> · pnpm testnet:world · docs/DEMO.md</span><span>8 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · pnpm testnet:world · docs/DEMO.md</span><span>9 / 11</span></div>
 </section>
 
-<!-- 9. Roadmap -->
+<!-- 10. Roadmap -->
 <section class="slide">
   <div class="kicker">Roadmap</div>
   <h2>From a Bangkok hackathon to the islands</h2>
@@ -219,10 +241,10 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <div class="card"><div class="num">5</div><h3>Asset pools</h3><p class="muted"><b>After a licensed route.</b> Shareholders co-own one big asset and share its rent. No token.</p></div>
   </div>
   <p style="margin-top: 50px;" class="muted">Then insurance priced from inspection history, and the same passport-as-deposit problem in Bali and Vietnam.</p>
-  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md#roadmap</span><span>9 / 10</span></div>
+  <div class="foot"><span><b>KeyScrow</b> · docs/BUSINESS.md#roadmap</span><span>10 / 11</span></div>
 </section>
 
-<!-- 10. Team / ask -->
+<!-- 11. Team / ask -->
 <section class="slide dark">
   <div class="brand"><img class="logo" src="../../web/public/icons/icon-512.png" alt=""><span>KeyScrow</span></div>
   <h2>Keep your passport.</h2>
@@ -246,7 +268,7 @@ ul { padding-left: 34px; } li { margin-bottom: 12px; }
     <span class="big">keyscrow.mdgooijer.workers.dev</span>
     <p class="muted" style="margin-top: 10px;">/duo/mystery-box · /demo · /sponsors · mainnet pilot: keyescrow-mainnet.mdgooijer.workers.dev</p>
   </div>
-  <div class="foot"><span>Testnet prototype + capped mainnet pilot · no token · not an offer of securities</span><span>10 / 10</span></div>
+  <div class="foot"><span>Testnet prototype + capped mainnet pilot · no token · not an offer of securities</span><span>11 / 11</span></div>
 </section>
 
 </body>
