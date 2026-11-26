@@ -2,7 +2,7 @@
 
 Ready to paste into the BNB Bangkok (HackQuest) form. Deadline: **Fri 27 Nov 2026, 09:00 ICT**.
 Tracks: **Developer Track**, **CoinMarketCap x Atlas**, **ChatAndBuild / Living Brain**, **Cournot** and the **AWS startup
-pitch** (one card per track with its live state: <https://keyscrow.mdgooijer.workers.dev/sponsors>). State checked on the
+pitch** (one card per track with its live state: <https://keyscrow.app/sponsors>). State checked on the
 live sites on 26 Nov 2026.
 
 ## Project name
@@ -68,7 +68,7 @@ The Fleet Vault is a testnet prototype and not an offer of securities.
   the Cloudflare deploy uses R2 or hashes the files in the browser.
 - **Mainnet pilot on BSC.** Factory [`0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)
   on chain 56 with real BSC-USD, on-chain caps of 0.70 deposit + 0.30 rent per period (max 1 USD a rental) and 5 USD
-  across all open rentals; no Fleet Vault on mainnet. Site: <https://keyescrow-mainnet.mdgooijer.workers.dev>.
+  across all open rentals; no Fleet Vault on mainnet. Site: <https://mainnet.keyscrow.app>.
 - **opBNB-ready.** Plain Solidity, same bytecode; the deploy guard accepts opBNB testnet (5611) and the app lists it.
   Not deployed on opBNB yet.
 
@@ -120,15 +120,15 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 
 | What | Link |
 | --- | --- |
-| Live app (landing, BSC testnet) | <https://keyscrow.mdgooijer.workers.dev> (same app as keyescrow-web.mdgooijer.workers.dev) |
-| Mainnet pilot (BSC, max 1 USD per rental) | <https://keyescrow-mainnet.mdgooijer.workers.dev> |
-| Sponsor tracks with live state | <https://keyscrow.mdgooijer.workers.dev/sponsors> |
-| Split screen: renter phone + rental company | <https://keyscrow.mdgooijer.workers.dev/duo/mystery-box> |
-| App home | <https://keyscrow.mdgooijer.workers.dev/app> |
-| Live testnet demo (no wallet) | <https://keyscrow.mdgooijer.workers.dev/demo> |
-| 1-minute cartoon (ELI5) | <https://keyscrow.mdgooijer.workers.dev/how-it-works> |
-| Developers (REST, MCP, OpenAPI) | <https://keyscrow.mdgooijer.workers.dev/developers> |
-| AI inspector agent (ERC-8004 #2921) | <https://keyescrow-agent.mdgooijer.workers.dev> |
+| Live app (landing, BSC testnet) | <https://keyscrow.app> |
+| Mainnet pilot (BSC, max 1 USD per rental) | <https://mainnet.keyscrow.app> |
+| Sponsor tracks with live state | <https://keyscrow.app/sponsors> |
+| Split screen: renter phone + rental company | <https://keyscrow.app/duo/mystery-box> |
+| App home | <https://keyscrow.app/app> |
+| Live testnet demo (no wallet) | <https://keyscrow.app/demo> |
+| 1-minute cartoon (ELI5) | <https://keyscrow.app/how-it-works> |
+| Developers (REST, MCP, OpenAPI) | <https://keyscrow.app/developers> |
+| AI inspector agent (ERC-8004 #2921) | <https://agent.keyscrow.app> |
 | Repo | <https://github.com/midego1/bnb-hackathon> |
 | Video (hero): `/duo` full run, renter phone left, rental company right (59 s) | [duo.mp4](duo.mp4) · [webm](duo.webm) |
 | Video: `/demo` guided one-click run (90 s) | [demo-guided.mp4](demo-guided.mp4) · [webm](demo-guided.webm) |

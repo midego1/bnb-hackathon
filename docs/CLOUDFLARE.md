@@ -1,8 +1,12 @@
 # KeyScrow on Cloudflare Workers
 
 Two Workers give the hackathon judges a public URL. Both are deployed on the `mdgooijer` workers.dev subdomain:
-<https://keyescrow-web.mdgooijer.workers.dev> and <https://keyescrow-agent.mdgooijer.workers.dev>. Redeploying needs a
+<https://keyscrow.app> and <https://agent.keyscrow.app>. Redeploying needs a
 Cloudflare account and an API token (one-time steps below).
+
+**Custom domains (zone `keyscrow.app`, Workers custom domains):** `keyscrow.app` and `www.keyscrow.app` → `keyescrow-web`,
+`mainnet.keyscrow.app` → `keyescrow-mainnet`, `agent.keyscrow.app` → `keyescrow-agent`. The `*.mdgooijer.workers.dev`
+addresses keep working; the ERC-8004 registration of agent #2921 still points at the workers.dev agent URL.
 
 | Worker | What it serves | Source | Public URL after deploy |
 | --- | --- | --- | --- |

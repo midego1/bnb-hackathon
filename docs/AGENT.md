@@ -13,8 +13,8 @@ same libraries a Studio-generated agent uses: `@a2a-js/sdk` for A2A and `@modelc
 **Status:** live. The agent is registered on BSC testnet as ERC-8004 agent **#2921** in the Identity Registry
 `0x8004A818BFB912233c491871b3d84c89A494BD9e`
 ([registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0),
-record in `agent/deployments/97.json`) and runs at <https://keyescrow-agent.mdgooijer.workers.dev>
-([agent card](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json), MCP at `POST /mcp`).
+record in `agent/deployments/97.json`) and runs at <https://agent.keyscrow.app>
+([agent card](https://agent.keyscrow.app/.well-known/agent-card.json), MCP at `POST /mcp`).
 Reports are signed only where `INSPECTOR_PRIVATE_KEY` is set; otherwise they say they are unsigned. Payments per
 inspection (ERC-8183 / x402) are on the [roadmap](#roadmap-pay-per-inspection-erc-8183--x402) and are not built.
 
@@ -402,8 +402,8 @@ Agent #2921 was registered with GitHub tree pages as its A2A and MCP endpoints. 
 
 ```bash
 # same .env names as above (INSPECTOR_SIGNER_ADDRESS not needed); AGENT_PUBLIC_URL = the live Worker
-AGENT_PUBLIC_URL=https://keyescrow-agent.mdgooijer.workers.dev pnpm agent:set-uri:check   # preflight, sends nothing
-AGENT_PUBLIC_URL=https://keyescrow-agent.mdgooijer.workers.dev ALLOW_NON_LOCAL_BROADCAST=true pnpm agent:set-uri
+AGENT_PUBLIC_URL=https://agent.keyscrow.app pnpm agent:set-uri:check   # preflight, sends nothing
+AGENT_PUBLIC_URL=https://agent.keyscrow.app ALLOW_NON_LOCAL_BROADCAST=true pnpm agent:set-uri
 # asks you to type "set-uri"; `-- --yes` skips it
 ```
 
@@ -417,7 +417,7 @@ AGENT_PUBLIC_URL=https://keyescrow-agent.mdgooijer.workers.dev ALLOW_NON_LOCAL_B
 - The broadcast needs `ALLOW_NON_LOCAL_BROADCAST=true` and the typed confirmation. It calls the SDK's
   `setAgentUri`, reads `tokenURI` back, and must find the new file. Then it updates `agent/deployments/97.json`:
   `agentURI`, `publicUrl`, `setUriTx`, `updatedAt` (`registerTx` and `registeredAt` stay). Commit the file.
-- Check with `BSC_TESTNET_RPC_URL=… AGENT_URL=https://keyescrow-agent.mdgooijer.workers.dev pnpm agent:verify`.
+- Check with `BSC_TESTNET_RPC_URL=… AGENT_URL=https://agent.keyscrow.app pnpm agent:verify`.
   With `--report <file>`, set `AGENT_PUBLIC_URL` to get the endpoint check.
 
 ## Local rehearsal

@@ -69,8 +69,8 @@ demos. On the local anvil chain, the *Demo accounts* bar signs with anvil's publ
 `/demo`, a server-side runner signs with throwaway demo wallets ([§3](#the-demo-runner)).
 
 **Status:** live. The contracts are on BSC testnet (addresses in the [README](../README.md#bsc-testnet-contracts-chain-97)),
-the web app runs at <https://keyescrow-web.mdgooijer.workers.dev>, and the agent at
-<https://keyescrow-agent.mdgooijer.workers.dev>.
+the web app runs at <https://keyscrow.app>, and the agent at
+<https://agent.keyscrow.app>.
 
 ## 2. Contracts
 
@@ -252,7 +252,7 @@ flowchart LR
   the `verify_report` tool.
 - **It never signs a transaction.** The agent only drafts; a party proposes and the other accepts.
 
-**Status:** live at <https://keyescrow-agent.mdgooijer.workers.dev>. Registered on BSC testnet as agent #2921
+**Status:** live at <https://agent.keyscrow.app>. Registered on BSC testnet as agent #2921
 ([tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0)).
 Reports are signed only where `INSPECTOR_PRIVATE_KEY` is set; otherwise they are labelled unsigned. Pay per
 inspection (ERC-8183 / x402) is roadmap.

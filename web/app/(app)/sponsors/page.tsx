@@ -46,10 +46,10 @@ export default async function SponsorsPage() {
         ["/developers", "developers"],
       ],
       proof: [
-        ["https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json", "agentCard"],
+        ["https://agent.keyscrow.app/.well-known/agent-card.json", "agentCard"],
         [TESTNET_FACTORY, "factory"],
         [REGISTRATION_TX, "registration"],
-        ["https://keyescrow-mainnet.mdgooijer.workers.dev", "mainnet"],
+        ["https://mainnet.keyscrow.app", "mainnet"],
         [MAINNET_FACTORY, "mainnetFactory"],
         [`${REPO_URL}/tree/main/ios`, "ios"],
       ],

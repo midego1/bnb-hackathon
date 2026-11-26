@@ -23,7 +23,7 @@ once. If they disagree, a neutral dispute desk rules. Neither party can move the
 the renter. Every amount is shown in baht first.
 
 Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas, ChatAndBuild / Living Brain, Cournot, AWS pitch:
-[one card per track on /sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors)). Open source (MIT), BSC testnet
+[one card per track on /sponsors](https://keyscrow.app/sponsors)). Open source (MIT), BSC testnet
 plus a capped mainnet pilot, no token.
 
 ## KeyScrow in pictures
@@ -44,7 +44,7 @@ plus a capped mainnet pilot, no token.
   </tr>
   <tr>
     <td width="50%" valign="top"><a href="docs/screenshots/shareholders.png"><img src="docs/screenshots/shareholders.png" width="420" alt="Shareholders: Fleet Vault TVL, income to shareholders, your position, claim income"></a><br><b>5.</b> Fleet Vault: shareholders fund a scooter fleet and claim their share of its rent.</td>
-    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors: one card per sponsor track with its live state"></a><br><b>6.</b> <a href="https://keyscrow.mdgooijer.workers.dev/sponsors">/sponsors</a>: one card per sponsor track, with its live state.</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors: one card per sponsor track with its live state"></a><br><b>6.</b> <a href="https://keyscrow.app/sponsors">/sponsors</a>: one card per sponsor track, with its live state.</td>
   </tr>
 </table>
 
@@ -67,31 +67,31 @@ flowchart LR
 
 ## For judges
 
-**In 30 seconds.** Open <https://keyscrow.mdgooijer.workers.dev> and pick a way in:
+**In 30 seconds.** Open <https://keyscrow.app> and pick a way in:
 
-1. **[/demo](https://keyscrow.mdgooijer.workers.dev/demo)**: one click plays a whole scooter rental with real
+1. **[/demo](https://keyscrow.app/demo)**: one click plays a whole scooter rental with real
    BSC testnet transactions. No wallet needed; every step links to BscScan.
-2. **[/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box)** on a big screen and
-   **[/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box)** on your phone (scan the QR): you
+2. **[/stage/mystery-box](https://keyscrow.app/stage/mystery-box)** on a big screen and
+   **[/r/mystery-box](https://keyscrow.app/r/mystery-box)** on your phone (scan the QR): you
    rent our physical Mystery Box with a guest wallet, take pickup and return photos, get the AI split and settle.
-3. **[/duo/mystery-box](https://keyscrow.mdgooijer.workers.dev/duo/mystery-box)**: the same rental as a split
+3. **[/duo/mystery-box](https://keyscrow.app/duo/mystery-box)**: the same rental as a split
    screen, renter phone left, rental company right (the [hero video](docs/submission/duo.mp4)).
-4. **[/pitch](https://keyscrow.mdgooijer.workers.dev/pitch)**: the 3-minute pitch as an animated storyboard.
+4. **[/pitch](https://keyscrow.app/pitch)**: the 3-minute pitch as an animated storyboard.
 
 **Judge block**
 
 | | |
 | --- | --- |
-| Live app (BSC testnet, chain 97) | <https://keyscrow.mdgooijer.workers.dev> (same app as `keyescrow-web.mdgooijer.workers.dev`) |
-| Mainnet pilot (BSC mainnet, chain 56) | <https://keyescrow-mainnet.mdgooijer.workers.dev>: factory [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E), real BSC-USD, capped on-chain at 0.70 deposit + 0.30 rent per period (max 1 USD per rental) and 5 USD across all open rentals |
-| Sponsor tracks, live state | [/sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors) (status from `/api/integrations`; technical detail on [/integrations](https://keyscrow.mdgooijer.workers.dev/integrations)) |
+| Live app (BSC testnet, chain 97) | <https://keyscrow.app> |
+| Mainnet pilot (BSC mainnet, chain 56) | <https://mainnet.keyscrow.app>: factory [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E), real BSC-USD, capped on-chain at 0.70 deposit + 0.30 rent per period (max 1 USD per rental) and 5 USD across all open rentals |
+| Sponsor tracks, live state | [/sponsors](https://keyscrow.app/sponsors) (status from `/api/integrations`; technical detail on [/integrations](https://keyscrow.app/integrations)) |
 | Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (59 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
 | Tests (26 Nov) | 314 Foundry · 558 vitest (40 files) · 24 agent · 154 Playwright tests in 27 spec files |
 | Size | ~74,000 lines of code + ~5,300 lines of Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries) |
 | Built with | Claude Code: 2.47 billion tokens in total (8.13M output), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~15:50 ICT |
 
 The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
-[agent card](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json). The contracts are in
+[agent card](https://agent.keyscrow.app/.well-known/agent-card.json). The contracts are in
 [one table below](#bsc-testnet-contracts-chain-97).
 
 **Real on-chain vs mocked**
@@ -113,7 +113,7 @@ The screenshots come from a local run of the same build (hence `127.0.0.1` under
 
 | Criterion | Read |
 | --- | --- |
-| Design and usability | [docs/DESIGN.md](docs/DESIGN.md); amounts in baht first; EN, 中文 and EN+中文 ([languages](docs/ARCHITECTURE.md#languages-en--中文--en中文)); the [1-minute cartoon](https://keyscrow.mdgooijer.workers.dev/how-it-works) |
+| Design and usability | [docs/DESIGN.md](docs/DESIGN.md); amounts in baht first; EN, 中文 and EN+中文 ([languages](docs/ARCHITECTURE.md#languages-en--中文--en中文)); the [1-minute cartoon](https://keyscrow.app/how-it-works) |
 | Scalability | [ARCHITECTURE.md §11](docs/ARCHITECTURE.md#11-scalability) and [§7 Cloudflare](docs/ARCHITECTURE.md#7-cloudflare-deployment) |
 | Innovation | The AI drafts, people decide, timeouts protect the renter ([how it works](#how-it-works)); one escrow per rental; every action as REST, MCP and A2A ([docs/AGENT.md](docs/AGENT.md)) |
 | Open-source quality | MIT; [tests and CI](#tests-and-ci); [security review](docs/SECURITY.md); [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -125,15 +125,15 @@ The screenshots come from a local run of the same build (hence `127.0.0.1` under
 
 | What | Link |
 | --- | --- |
-| **Web app** (BSC testnet, chain 97) | <https://keyscrow.mdgooijer.workers.dev> |
-| **Live testnet demo**: one click plays a whole rental with real BSC testnet transactions, no wallet needed | <https://keyscrow.mdgooijer.workers.dev/demo> |
-| **Judge demo**: rent the Mystery Box from your phone | [/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box) · [/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box) · [listing](https://keyscrow.mdgooijer.workers.dev/app/listings/mystery-box) |
-| Pitch storyboard (3 minutes) | <https://keyscrow.mdgooijer.workers.dev/pitch> |
-| How it works, as a 1-minute cartoon | <https://keyscrow.mdgooijer.workers.dev/how-it-works> |
-| Developers: every rental action as REST + MCP, OpenAPI 3.1 | [/developers](https://keyscrow.mdgooijer.workers.dev/developers) · [/api/v1/openapi.json](https://keyscrow.mdgooijer.workers.dev/api/v1/openapi.json) |
-| **AI inspector agent** (ERC-8004 agent #2921) | <https://keyescrow-agent.mdgooijer.workers.dev> |
-| Agent card (A2A) | [/.well-known/agent-card.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json) · ERC-8004 registration file: [/.well-known/agent-registration.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-registration.json) |
-| MCP server (Streamable HTTP, 17 tools) | `POST https://keyescrow-agent.mdgooijer.workers.dev/mcp` |
+| **Web app** (BSC testnet, chain 97) | <https://keyscrow.app> |
+| **Live testnet demo**: one click plays a whole rental with real BSC testnet transactions, no wallet needed | <https://keyscrow.app/demo> |
+| **Judge demo**: rent the Mystery Box from your phone | [/stage/mystery-box](https://keyscrow.app/stage/mystery-box) · [/r/mystery-box](https://keyscrow.app/r/mystery-box) · [listing](https://keyscrow.app/app/listings/mystery-box) |
+| Pitch storyboard (3 minutes) | <https://keyscrow.app/pitch> |
+| How it works, as a 1-minute cartoon | <https://keyscrow.app/how-it-works> |
+| Developers: every rental action as REST + MCP, OpenAPI 3.1 | [/developers](https://keyscrow.app/developers) · [/api/v1/openapi.json](https://keyscrow.app/api/v1/openapi.json) |
+| **AI inspector agent** (ERC-8004 agent #2921) | <https://agent.keyscrow.app> |
+| Agent card (A2A) | [/.well-known/agent-card.json](https://agent.keyscrow.app/.well-known/agent-card.json) · ERC-8004 registration file: [/.well-known/agent-registration.json](https://agent.keyscrow.app/.well-known/agent-registration.json) |
+| MCP server (Streamable HTTP, 17 tools) | `POST https://agent.keyscrow.app/mcp` |
 | 3-minute pitch script | [docs/DEMO.md](docs/DEMO.md) |
 | Submission kit: videos, pitch deck, HackQuest fields, screenshots | [docs/submission](docs/submission/README.md) |
 
@@ -145,7 +145,7 @@ run live. *Owner ignores it* needs 7 real days, so it only runs on a local chain
 Try the MCP server from a terminal:
 
 ```bash
-curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
+curl -s -X POST https://agent.keyscrow.app/mcp \
   -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```

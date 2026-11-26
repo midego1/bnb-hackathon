@@ -16,7 +16,7 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
 由中立的争议处理台裁决。任何一方都无法单独动用押金，超时规则保护租客。所有金额都优先以泰铢显示。
 
 为 BNB Bangkok 2026 黑客松打造（Developer Track、CoinMarketCap x Atlas、ChatAndBuild / Living Brain、Cournot、AWS 路演：
-[/sponsors 每个赛道一张卡片](https://keyscrow.mdgooijer.workers.dev/sponsors)）。MIT 开源，BSC 测试网加一个有上限的主网试点，不发币。
+[/sponsors 每个赛道一张卡片](https://keyscrow.app/sponsors)）。MIT 开源，BSC 测试网加一个有上限的主网试点，不发币。
 
 ## 图解 KeyScrow
 
@@ -36,7 +36,7 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
   </tr>
   <tr>
     <td width="50%" valign="top"><a href="docs/screenshots/shareholders.png"><img src="docs/screenshots/shareholders.png" width="420" alt="股东页：Fleet Vault 总锁仓、股东收益、你的持仓、领取收益"></a><br><b>5.</b> Fleet Vault：股东出资组建车队，并领取车队租金中属于自己的份额。</td>
-    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors：每个赞助赛道一张卡片，显示实时状态"></a><br><b>6.</b> <a href="https://keyscrow.mdgooijer.workers.dev/sponsors">/sponsors</a>：每个赞助赛道一张卡片，显示实时状态。</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/08-sponsors.png"><img src="docs/submission/screenshots/08-sponsors.png" width="420" alt="/sponsors：每个赞助赛道一张卡片，显示实时状态"></a><br><b>6.</b> <a href="https://keyscrow.app/sponsors">/sponsors</a>：每个赞助赛道一张卡片，显示实时状态。</td>
   </tr>
 </table>
 
@@ -59,31 +59,31 @@ flowchart LR
 
 ## 评委速览
 
-**30 秒了解。** 打开 <https://keyscrow.mdgooijer.workers.dev>，选一种方式体验：
+**30 秒了解。** 打开 <https://keyscrow.app>，选一种方式体验：
 
-1. **[/demo](https://keyscrow.mdgooijer.workers.dev/demo)**：一键跑完一整笔摩托车租约，全部是真实的 BSC
+1. **[/demo](https://keyscrow.app/demo)**：一键跑完一整笔摩托车租约，全部是真实的 BSC
    测试网交易。无需钱包，每一步都链接到 BscScan。
-2. **[/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box)** 放在大屏上，
-   **[/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box)** 在手机上打开（扫大屏上的二维码）：
+2. **[/stage/mystery-box](https://keyscrow.app/stage/mystery-box)** 放在大屏上，
+   **[/r/mystery-box](https://keyscrow.app/r/mystery-box)** 在手机上打开（扫大屏上的二维码）：
    你用访客钱包租下我们现场的实物神秘盒子，拍取件和归还照片，拿到 AI 分配方案并完成结算。
-3. **[/duo/mystery-box](https://keyscrow.mdgooijer.workers.dev/duo/mystery-box)**：同一笔租约的分屏视图，左边租客手机，
+3. **[/duo/mystery-box](https://keyscrow.app/duo/mystery-box)**：同一笔租约的分屏视图，左边租客手机，
    右边租车公司（[主视频](docs/submission/duo.mp4)）。
-4. **[/pitch](https://keyscrow.mdgooijer.workers.dev/pitch)**：3 分钟路演的动画分镜。
+4. **[/pitch](https://keyscrow.app/pitch)**：3 分钟路演的动画分镜。
 
 **评委信息**
 
 | | |
 | --- | --- |
-| 在线应用（BSC 测试网，chain 97） | <https://keyscrow.mdgooijer.workers.dev>（与 `keyescrow-web.mdgooijer.workers.dev` 是同一个应用） |
-| 主网试点（BSC 主网，chain 56） | <https://keyescrow-mainnet.mdgooijer.workers.dev>：工厂合约 [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)，真实 BSC-USD，链上上限：押金 0.70 + 每期租金 0.30（每笔租约最多 1 美元），所有未结租约合计 5 美元 |
-| 赞助商赛道与实时状态 | [/sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors)（状态来自 `/api/integrations`；技术细节见 [/integrations](https://keyscrow.mdgooijer.workers.dev/integrations)） |
+| 在线应用（BSC 测试网，chain 97） | <https://keyscrow.app>（与 `keyscrow.app` 是同一个应用） |
+| 主网试点（BSC 主网，chain 56） | <https://mainnet.keyscrow.app>：工厂合约 [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)，真实 BSC-USD，链上上限：押金 0.70 + 每期租金 0.30（每笔租约最多 1 美元），所有未结租约合计 5 美元 |
+| 赞助商赛道与实时状态 | [/sponsors](https://keyscrow.app/sponsors)（状态来自 `/api/integrations`；技术细节见 [/integrations](https://keyscrow.app/integrations)） |
 | 视频（本地链，已填充演示世界） | [duo](docs/submission/duo.mp4)（59 秒）· [引导式 /demo](docs/submission/demo-guided.mp4)（90 秒）· [ELI5](docs/submission/eli5.mp4)（71 秒）· [应用导览](docs/submission/tour.mp4)（77 秒）· [路演幻灯片](docs/submission/deck.pdf) |
 | 测试（11 月 26 日） | Foundry 314 · vitest 558（40 个文件）· 代理 24 · Playwright 154（27 个 spec 文件） |
 | 规模 | 约 74,000 行代码 + 约 5,300 行 Markdown 文档（已跟踪文件；不含锁文件、`contracts/lib`、生成的 ABI、JSON 数据和二进制文件） |
 | 构建方式 | Claude Code：共 24.7 亿 token（输出 813 万），paseo-box + 10 台 boat 虚拟机，按 11 月 26 日约 15:50（泰国时间）的 Claude Code 记录统计 |
 
 AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
-[代理名片](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json)。合约地址只在一处列出：
+[代理名片](https://agent.keyscrow.app/.well-known/agent-card.json)。合约地址只在一处列出：
 [英文 README 的合约表](README.md#bsc-testnet-contracts-chain-97)。
 
 **哪些是真实上链的，哪些是模拟的**
@@ -105,7 +105,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 
 | 评审标准 | 参阅 |
 | --- | --- |
-| 设计与易用性 | [docs/DESIGN.md](docs/DESIGN.md)；金额优先以泰铢显示；支持 EN、中文和 EN+中文；[一分钟动画](https://keyscrow.mdgooijer.workers.dev/how-it-works) |
+| 设计与易用性 | [docs/DESIGN.md](docs/DESIGN.md)；金额优先以泰铢显示；支持 EN、中文和 EN+中文；[一分钟动画](https://keyscrow.app/how-it-works) |
 | 可扩展性 | [ARCHITECTURE.md 第 11 节](docs/ARCHITECTURE.md#11-scalability) 和 [第 7 节 Cloudflare](docs/ARCHITECTURE.md#7-cloudflare-deployment) |
 | 创新性 | AI 起草、人来决定、超时规则保护租客；每笔租约一个托管合约；每个操作都以 REST、MCP 和 A2A 提供（[docs/AGENT.md](docs/AGENT.md)） |
 | 开源质量 | MIT；[测试与 CI](#测试与-ci)；[安全评审](docs/SECURITY.md)；[CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -117,15 +117,15 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 
 | 内容 | 链接 |
 | --- | --- |
-| **Web 应用**（BSC 测试网，chain 97） | <https://keyscrow.mdgooijer.workers.dev> |
-| **测试网实时演示**：一键跑完一整笔租约，全部是真实的 BSC 测试网交易，无需钱包 | <https://keyscrow.mdgooijer.workers.dev/demo> |
-| **评委演示**：用手机租下神秘盒子 | [/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box) · [/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box) |
-| 路演分镜（3 分钟） | <https://keyscrow.mdgooijer.workers.dev/pitch> |
-| 一分钟动画：它是怎么运作的 | <https://keyscrow.mdgooijer.workers.dev/how-it-works> |
-| 开发者：每个租约操作都提供 REST + MCP 接口，OpenAPI 3.1 | [/developers](https://keyscrow.mdgooijer.workers.dev/developers) · [/api/v1/openapi.json](https://keyscrow.mdgooijer.workers.dev/api/v1/openapi.json) |
-| **AI 验车代理**（ERC-8004 agent #2921） | <https://keyescrow-agent.mdgooijer.workers.dev> |
-| 代理名片（A2A） | [/.well-known/agent-card.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json) · ERC-8004 注册文件：[/.well-known/agent-registration.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-registration.json) |
-| MCP 服务器（Streamable HTTP，17 个工具） | `POST https://keyescrow-agent.mdgooijer.workers.dev/mcp` |
+| **Web 应用**（BSC 测试网，chain 97） | <https://keyscrow.app> |
+| **测试网实时演示**：一键跑完一整笔租约，全部是真实的 BSC 测试网交易，无需钱包 | <https://keyscrow.app/demo> |
+| **评委演示**：用手机租下神秘盒子 | [/stage/mystery-box](https://keyscrow.app/stage/mystery-box) · [/r/mystery-box](https://keyscrow.app/r/mystery-box) |
+| 路演分镜（3 分钟） | <https://keyscrow.app/pitch> |
+| 一分钟动画：它是怎么运作的 | <https://keyscrow.app/how-it-works> |
+| 开发者：每个租约操作都提供 REST + MCP 接口，OpenAPI 3.1 | [/developers](https://keyscrow.app/developers) · [/api/v1/openapi.json](https://keyscrow.app/api/v1/openapi.json) |
+| **AI 验车代理**（ERC-8004 agent #2921） | <https://agent.keyscrow.app> |
+| 代理名片（A2A） | [/.well-known/agent-card.json](https://agent.keyscrow.app/.well-known/agent-card.json) · ERC-8004 注册文件：[/.well-known/agent-registration.json](https://agent.keyscrow.app/.well-known/agent-registration.json) |
+| MCP 服务器（Streamable HTTP，17 个工具） | `POST https://agent.keyscrow.app/mcp` |
 | 3 分钟路演脚本（英文） | [docs/DEMO.md](docs/DEMO.md) |
 | CoinMarketCap x Atlas 赛道说明（中文） | [docs/WRITEUP.zh-CN.md](docs/WRITEUP.zh-CN.md) |
 
@@ -137,7 +137,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 在终端里试一下 MCP 服务器：
 
 ```bash
-curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
+curl -s -X POST https://agent.keyscrow.app/mcp \
   -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
