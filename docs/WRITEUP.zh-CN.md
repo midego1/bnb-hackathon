@@ -17,7 +17,7 @@
 |---|---|---|---|
 | CoinMarketCap Pro API | `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 用 `percent_change_24h/7d/30d` 计算每种支付代币的日波动率 → **押金风险缓冲**（稳定币 0 %；BNB 30 天约 15–25 %；超过 60 % 拒绝该代币） | `web/lib/risk.ts`、`web/lib/server/risk`、`GET /api/risk` |
 | CoinMarketCap Pro API | 同上，`convert=THB` | USDT 和 BNB 的泰铢价格：所有金额优先以泰铢显示；把以泰铢计的押金换算成代币数量 | `GET /api/price`、`GET /api/risk` |
-| Atlas 推送式预言机 | SingleFeed `latestRoundData()`（兼容 AggregatorV3），喂价 `ATLAS_FEED_BNB_USD`、`ATLAS_FEED_USDT_USD`，可选 `ATLAS_FEED_USD_THB` | 显示金额和押金估值的首选价格来源，并按 Atlas 的方式做过期检查（`updatedAt` 早于 `ATLAS_MAX_AGE_SECONDS`，默认 1 小时，或从未更新过的喂价，一律拒绝） | `web/lib/server/price`（`readFeed`） |
+| Atlas 推送式预言机 | SingleFeed `decimals()` + `latestRoundData()`（兼容 AggregatorV3，18 位小数），喂价 `ATLAS_FEED_BNB_USD`、`ATLAS_FEED_USDT_USD` | 显示金额和押金估值的**首选美元价格来源**（`GET /api/price` 返回 `"source":"atlas"`），并按 Atlas 的方式做过期检查：从未更新过的喂价，或早于 `ATLAS_MAX_AGE_SECONDS`（默认 1 小时；USDT 喂价心跳为 24 小时，允许到 25 小时）的报价一律拒绝，由 CoinMarketCap 接替 | `web/lib/server/price`（`readFeed`） |
 | Cournot（加分项） | `POST /intelligence/v1/probability` | “BNB 会在还车日前跌破覆盖底价吗？” → 缓冲 × (1 + p) | `GET /api/risk`、`POST /api/cournot` |
 
 **核心思路：** CoinMarketCap（以及 Cournot）决定一笔租约承担多大风险；Atlas 提供为押金估值的链上价格。
@@ -35,7 +35,10 @@
 | 其他 | 地址 |
 |---|---|
 | ERC-8004 Identity Registry（验车代理 #2921） | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
-| Atlas 喂价 | _暂无：Atlas 未公布 BSC 测试网喂价地址，将在比赛现场补充_ |
+| Atlas BNB/USD 喂价，BSC 测试网（心跳 60 秒） | [`0x3957d289ee9c38272377786787ea34f9dd29788d`](https://testnet.bscscan.com/address/0x3957d289ee9c38272377786787ea34f9dd29788d) |
+| Atlas USDT/USD 喂价，BSC 测试网（心跳 24 小时） | [`0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b`](https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b) |
+| Atlas BNB/USD 喂价，BSC 主网（主网试点站点；心跳 60 秒） | [`0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`](https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438) |
+| Atlas USDT/USD 喂价，BSC 主网（主网试点站点；心跳 24 小时） | [`0x9fc000fc9c17578b49853278a517e357201d01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4) |
 
 地址来自 [contracts/deployments/97.json](../contracts/deployments/97.json)。
 
@@ -44,15 +47,12 @@
 **哪些是真实上线的，哪些是演示数据：**
 
 - **已上线：** 合约和交易。托管、租金发放、AI 验车和结算都在 BSC 测试网上真实运行，每一步都可在 BscScan 查到。
-- **演示汇率：** 在线站点目前还没有配置 `CMC_API_KEY`，因此所有泰铢 / 美元金额都基于标注为 *Demo rates* 的演示汇率，
-  而不是 CoinMarketCap 实时报价；风险面板会显示 *CoinMarketCap is not configured*，且不显示缓冲值。
-- **Atlas：** 读取逻辑已完成，但被阻塞，因为 Atlas 尚未公布 BSC 测试网喂价地址，所以目前没有使用任何 Atlas 价格。
+- **Atlas：** 已上线。上面的 Atlas 推送式喂价是测试网站点和主网试点站点的首选美元价格来源（`GET /api/price` 返回 `"source":"atlas"`）。
+- **CoinMarketCap：** 已上线，作为备用价格来源，并提供泰铢汇率和押金波动缓冲。
+- **Atlas Pull API**（带 `consensusScore` 的签名报告）：我们已有密钥，代码尚未调用。
 - **Cournot：** 实时调用默认关闭，尚未发起过概率调用；只有一次免费的 `resolve` 调用成功（2026-11-25）。
 
-**已完成并测试：** CMC 波动率缓冲 + 泰铢换算（基于录制数据的测试；设置 `CMC_API_KEY` 后即可实时调用）、带过期检查的
-Atlas 读取路径（用模拟喂价做了单元测试）、调用日志、`/integrations` 证据页面。
-
-**待项目负责人处理：** CMC 密钥（用于实时调用）、Atlas BSC 测试网喂价地址（若由合约读取，还需加入白名单）。
+**已完成并测试：** CMC 波动率缓冲 + 泰铢换算（基于录制数据的测试）、带过期检查的 Atlas 读取路径（用 8 位和 18 位小数的模拟喂价做了单元测试）、调用日志、`/integrations` 和 `/sponsors` 证据页面。
 
 ## 下一步计划
 

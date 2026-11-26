@@ -43,7 +43,7 @@ Tests: `pnpm test` (Foundry), `pnpm -C web test` (Vitest), `pnpm agent:test`, `c
 
 - [x] The dispute desk sees a history card per party: facts folded from the chain plus remembered entries.
 - [x] After every settlement, one factual entry per party is written (wallet address only, no personal data).
-- [ ] Living Brain live on the deployed site: needs `LIVING_BRAIN_*`; until then the labelled local stand-in.
+- [x] Living Brain live on the testnet site (`/api/integrations`); the mainnet pilot site still uses the labelled local stand-in.
 
 ## Prices and risk (display only)
 
@@ -53,8 +53,9 @@ Tests: `pnpm test` (Foundry), `pnpm -C web test` (Vitest), `pnpm agent:test`, `c
       labelled *Demo rates*.
 - [x] Atlas push-feed reader rejects stale, never-updated or negative answers (tested with a fake feed).
 - [x] Cournot claim, probability and evidence are stored and shown; the probability scales the BNB buffer.
-- [ ] CoinMarketCap live on the deployed site with a logged call: needs `CMC_API_KEY` on the Worker.
-- [ ] Atlas live: no BSC testnet push feeds published; the pull oracle (`ATLAS_API_KEY`) is not wired yet.
+- [x] CoinMarketCap live on the deployed site (`/api/integrations` reports it live; calls show on `/integrations`).
+- [x] Atlas live: BSC testnet and mainnet push feeds are the first price source (`GET /api/price` → `"source":"atlas"`).
+- [ ] Atlas Pull API (signed reports): key available, not called by the code yet.
 - [ ] Cournot live call with proof: waiting for a partner key / paid calls (`COURNOT_LIVE=1`).
 
 ## Fleet vault (testnet prototype)

@@ -81,8 +81,9 @@ The contracts work in token units and **never read a price**, so a price outage 
   itself takes the stablecoin only. Without `CMC_API_KEY` it says "not configured" and computes nothing.
 - **Cournot:** a claim like "Will BNB fall below $X before <date>?"; the latest stored probability scales the BNB
   buffer. Live calls are off unless `COURNOT_LIVE=1`; built, waiting for a partner key / paid calls.
-- **Atlas:** the push-feed reader (`latestRoundData()` with a staleness check) is built and tested with a fake feed.
-  Atlas publishes no BSC testnet push feeds; the pull oracle (signed reports, `ATLAS_API_KEY`) is being wired.
+- **Atlas:** BSC push feeds BNB/USD and USDT/USD (`decimals()` + `latestRoundData()`, 18 decimals, with a staleness
+  check) are the first USD price source on the testnet site and the mainnet pilot site; CoinMarketCap is the fallback
+  and supplies THB. The Pull API (signed reports, `ATLAS_API_KEY`) is available with our key; no code calls it yet.
 - All sponsor calls are server-side and logged without keys (`/integrations`, `/sponsors`).
 
 ## Memory (Living Brain)

@@ -69,11 +69,11 @@ The Fleet Vault is a testnet prototype and not an offer of securities.
 
 What is **built** (in the repo, tested) versus what is **live** on the deployed site today:
 
-| Source | What it does in KeyScrow | Status on the live site (25 Nov) |
+| Source | What it does in KeyScrow | Status on the live site (26 Nov) |
 | --- | --- | --- |
-| CoinMarketCap Pro API `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 24h/7d/30d percent changes → daily volatility → the **deposit risk buffer** (stablecoin 0 %, BNB moderate, > 60 % rejected). Server-side only, cached, every call logged (endpoint, status, credits, never the key) and shown on `/integrations`. | **Built and fixture-tested; not live.** No `CMC_API_KEY` is set on the live site yet, so the risk panel says CoinMarketCap is not configured. |
-| CoinMarketCap Pro API, same endpoint with `convert=THB` | THB price of USDT and BNB: every amount shown in baht first. | **Not live.** The site shows labelled **Demo rates** (fixed 1 USDT = 33 THB, 1 BNB = 650 USD; `GET /api/price` returns `"source":"mock"`). |
-| Atlas push oracle, SingleFeed `latestRoundData()` | First price source for THB/USD amounts, with Atlas's staleness check (never-updated, negative or older than `ATLAS_MAX_AGE_SECONDS` is rejected). | **Built and unit-tested with a fake feed; blocked.** Atlas publishes no BSC testnet feed addresses; they are assigned at onboarding. |
+| CoinMarketCap Pro API `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 24h/7d/30d percent changes → daily volatility → the **deposit risk buffer** (stablecoin 0 %, BNB moderate, > 60 % rejected). Server-side only, cached, every call logged (endpoint, status, credits, never the key) and shown on `/integrations`. | **Live.** `CMC_API_KEY` is set on the live site; every call shows on `/integrations`. |
+| CoinMarketCap Pro API, same endpoint with `convert=THB` | THB price of USDT and BNB: every amount shown in baht first; the USD fallback when Atlas fails. | **Live.** |
+| Atlas push oracle, SingleFeed `latestRoundData()` | First price source for THB/USD amounts, with Atlas's staleness check (never-updated, negative or older than `ATLAS_MAX_AGE_SECONDS` is rejected). | **Live** on the testnet site and the mainnet pilot site: BSC push feeds BNB/USD + USDT/USD (18 decimals), `GET /api/price` returns `"source":"atlas"`. Feed addresses in [WRITEUP.md](../WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97). The Atlas Pull API key is available; not called yet. |
 
 The contracts themselves never read a price: they hold a stablecoin, so a price-feed outage cannot move funds. The
 one-page write-up is [docs/WRITEUP.md](../WRITEUP.md). To make CMC live, set `CMC_API_KEY` on the web Worker and
