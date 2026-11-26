@@ -104,6 +104,7 @@ export const body: DeepPartial<typeof enBody> = {
     },
     copied: "已复制",
     copyAddress: "复制地址",
+    demoPersona: "演示角色",
     now: "现在",
     in: "{left}后",
     duration: { dh: "{d} 天 {h} 小时", hm: "{h} 小时 {m} 分", m: "{m} 分钟" },

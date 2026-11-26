@@ -184,6 +184,7 @@ talks to an RPC that answers chainId 97, signs for chain 97 only, and decrypts t
 | `pnpm e2e:testnet` | happy path (create, fund + prepay, rent release with the 10% one-time fee, return evidence, renter proposal, owner accepts) and dispute path (owner claims all, renter disputes, dispute desk rules); asserts every balance change and that token totals are conserved | ~0.002 tBNB |
 | `pnpm testnet:seed` | leaves an unfunded offer, an active rental and a disputed rental (60-day arbiter window) for the web app | ~0.002 tBNB |
 | `pnpm testnet:fund <address>` | sends 0.01 tBNB and 10,000 mUSDT from the deployer to a tester's wallet | 0.01 tBNB |
+| `pnpm testnet:world plan \| rehearse \| run` | the demo world: 3 fictional shops, 10 fictional renters, 15 rentals with photos, AI splits, desk rulings and per-wallet memory (separate script `web/scripts/testnet-world.mts`, docs/DEMO.md "Demo world") | ~0.03 tBNB |
 
 The owner and renter are throwaway wallets created on first use in `.orca/secrets/testnet-e2e-wallets.json`
 (gitignored, mode 600) and topped up by the deployer to 0.004 tBNB each. The dispute desk is the deployer. Every

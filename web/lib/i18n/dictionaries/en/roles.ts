@@ -242,7 +242,7 @@ export const body = {
     role: { renter: "renter", owner: "owner" },
     memory: "Remembered by Living Brain",
     memoryLocal: "Remembered by the local stand-in (Living Brain not configured)",
-    source: { "living-brain": "Living Brain", local: "local" },
+    source: { "living-brain": "Living Brain", sent: "sent to Living Brain", local: "local" },
     memoryNone: "Nothing remembered yet: one entry is written per party after each settled rental.",
     memoryError: "Living Brain is unavailable right now: showing the on-chain facts only.",
     memoryLimited: "Living Brain's daily limit is reached: showing the on-chain facts only.",

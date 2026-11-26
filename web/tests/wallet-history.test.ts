@@ -175,7 +175,7 @@ function lbFetch(handler: (url: string, body: Record<string, unknown>) => Respon
 describe("Living Brain wallet memory (mocked fetch)", () => {
   it("captures under label wallet:<address> with the tx as idempotency key and the subject header", async () => {
     const { f, calls } = lbFetch(() => Response.json({ id: "src_1" }, { status: 201 }));
-    const m = new LivingBrainWalletMemory(cfg, f);
+    const m = new LivingBrainWalletMemory(cfg, f, () => new MemoryState());
     const text = `Wallet ${RENTER} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
     expect(await m.remember({ wallet: RENTER.toLowerCase(), lease: L1, txHash: H(9), text, at: "2026-11-26T00:00:00Z" })).toEqual({ stored: true });
     expect(calls[0].url).toBe("https://lb.test/v1/brains/keyescrow-scooters/captures");
@@ -190,17 +190,56 @@ describe("Living Brain wallet memory (mocked fetch)", () => {
     });
   });
 
-  it("reads back only entries naming this wallet, with their tx and rental", async () => {
-    const mine = `Wallet ${RENTER.toLowerCase()} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
-    const { f, calls } = lbFetch(() => Response.json([{ title: `wallet:${RENTER.toLowerCase()}`, summary: mine }, { title: `wallet:${OTHER.toLowerCase()}`, summary: "someone else" }, { title: `wallet:${RENTER.toLowerCase()}`, summary: mine, status: "archived" }]));
-    const got = await new LivingBrainWalletMemory(cfg, f).recall(RENTER);
-    expect(calls[0].body).toMatchObject({ query: `wallet:${RENTER.toLowerCase()}` });
-    expect(got).toEqual([{ text: mine, txHash: H(9), lease: L1, source: "living-brain" }]);
+  it("reads its own captures back from the ingest sources by id: compiled ones as Living Brain, the rest as sent", async () => {
+    const state = new MemoryState();
+    const w = RENTER.toLowerCase();
+    const s1 = `Wallet ${w} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
+    const s2 = `Wallet ${w} was the renter of KeyEscrow rental ${L2}: the dispute desk ruled. Transaction ${H(10)}.`;
+    let n = 0;
+    const { f, calls } = lbFetch((url) =>
+      url.endsWith("/captures")
+        ? Response.json({ id: `src_${++n}`, status: "pending" }, { status: 201 })
+        : // Living Brain compiled the first capture (its page has its own title and summary), the second is still queued.
+          Response.json({ items: [
+            { id: "src_1", label: `wallet:${w}`, content: s1, originRef: `${H(9)}:${w}`, status: "completed", createdAt: "2026-11-26T01:00:00Z" },
+            { id: "src_2", label: `wallet:${w}`, content: s2, originRef: `${H(10)}:${w}`, status: "compiling", createdAt: "2026-11-26T02:00:00Z" },
+          ], total: 2, limit: 2, offset: 0 }),
+    );
+    const m = new LivingBrainWalletMemory(cfg, f, () => state);
+    await m.remember({ wallet: w, lease: L1, txHash: H(9), text: s1, at: "2026-11-26T01:00:00Z" });
+    await m.remember({ wallet: w, lease: L2, txHash: H(10), text: s2, at: "2026-11-26T02:00:00Z" });
+    const got = await m.recall(RENTER);
+    expect(calls[2].url).toBe("https://lb.test/v1/brains/keyescrow-scooters/sources?ids=src_1,src_2&limit=2");
+    expect(got).toEqual([
+      { text: s2, txHash: H(10), lease: L2, source: "sent" },
+      { text: s1, txHash: H(9), lease: L1, source: "living-brain" },
+    ]);
+  });
+
+  it("shows what it sent when Living Brain is unreachable, and finds older captures by label", async () => {
+    const state = new MemoryState();
+    const w = RENTER.toLowerCase();
+    const mine = `Wallet ${w} was the renter of KeyEscrow rental ${L1}: settled by agreement. Transaction ${H(9)}.`;
+    const down = lbFetch((url) => (url.endsWith("/captures") ? Response.json({ id: "src_1" }, { status: 201 }) : Response.json({ message: "busy" }, { status: 503 })));
+    const m = new LivingBrainWalletMemory(cfg, down.f, () => state);
+    await m.remember({ wallet: w, lease: L1, txHash: H(9), text: mine, at: "2026-11-26T01:00:00Z" });
+    expect(await m.recall(RENTER)).toEqual([{ text: mine, txHash: H(9), lease: L1, source: "sent" }]);
+
+    // No copy here (captured before this server kept one): the newest sources, filtered to this wallet's label.
+    const { f, calls } = lbFetch(() =>
+      Response.json({ items: [
+        { id: "a", label: `wallet:${w}`, content: mine, status: "completed", createdAt: "2026-11-26T01:00:00Z" },
+        { id: "b", label: `wallet:${OTHER.toLowerCase()}`, content: "someone else", status: "completed" },
+        { id: "c", label: "Scooter x inspection", content: "not a wallet", status: "completed" },
+      ] }),
+    );
+    expect(await new LivingBrainWalletMemory(cfg, f, () => new MemoryState()).recall(RENTER)).toEqual([{ text: mine, txHash: H(9), lease: L1, source: "living-brain" }]);
+    expect(calls[0].url).toBe("https://lb.test/v1/brains/keyescrow-scooters/sources?limit=100");
   });
 
   it("an error from Living Brain falls back to the facts only, labelled", async () => {
     const { f } = lbFetch(() => Response.json({ message: "rate limited" }, { status: 429 }));
-    const h = await walletHistory(RENTER, 31337, { memory: new LivingBrainWalletMemory(cfg, f), state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });
+    const h = await walletHistory(RENTER, 31337, { memory: new LivingBrainWalletMemory(cfg, f, () => new MemoryState()), state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });
     expect(h.facts.asRenter.rentals).toBe(2);
     expect(h.memory).toMatchObject({ provider: "living-brain", entries: [], error: "Living Brain 429: rate limited" });
     expect(h.note).toBe("The AI summarises; the dispute desk decides.");
@@ -235,7 +274,7 @@ describe("Living Brain budget (prepaid credit)", () => {
     const { getSharedState } = await import("@/lib/server/state");
     const cur = await getSharedState().get("rate:livingbrain:calls");
     if (cur) await getSharedState().set("rate:livingbrain:calls", cur.version, null);
-    const m = new LivingBrainWalletMemory(capped, f);
+    const m = new LivingBrainWalletMemory(capped, f, () => new MemoryState());
     const first = await walletHistory(RENTER, 31337, { memory: m, state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });
     expect(first.memory).toMatchObject({ entries: [] });
     const second = await walletHistory(OTHER, 31337, { memory: m, state: new MemoryState(), index: async () => ({ events, chainNow: NOW }) });

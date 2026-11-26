@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Address, Hex } from "viem";
 import type { Env } from "../env";
 import { onCloudflare } from "../platform";
-import { getSharedState, update } from "../state";
+import { getSharedState, update, type SharedState } from "../state";
 import { livingBrainCall, livingBrainConfig, notConfiguredReason, type FetchLike, type MemoryStatus } from "./livingbrain";
 import { sponsorLogDir } from "./log";
 
@@ -27,7 +27,8 @@ export interface RecalledWalletEntry {
   text: string;
   txHash?: Hex;
   lease?: Address;
-  source: "living-brain" | "local";
+  /** `sent`: captured by Living Brain but not compiled yet (or its compile failed), shown from our own copy. */
+  source: "living-brain" | "sent" | "local";
 }
 
 export interface WalletMemory {
@@ -45,29 +46,60 @@ function parse(text: string, source: RecalledWalletEntry["source"]): RecalledWal
   return { text, source, txHash: text.match(TX)?.[0] as Hex | undefined, lease: text.match(RENTAL)?.[1] as Address | undefined };
 }
 
+/** A Living Brain ingest source (GET /sources), the fields we read. */
+type LbSource = { id: string; label?: string; content?: string | null; originRef?: string | null; status?: string; createdAt?: string };
+/** What this server captured for a wallet, kept beside Living Brain: captures compile asynchronously into pages. */
+type SentEntry = { id?: string; text: string; at: string };
+const SENT_KEEP = 10;
+const SENT_TTL_MS = 90 * 86_400_000;
+const sentKey = (wallet: string) => `wallet-memory-sent:${wallet.toLowerCase()}`;
+
+/**
+ * Living Brain as the wallet memory. A capture is asynchronous (POST /captures returns an ingest source that compiles
+ * into pages later), and compiled pages get their own title and summary, so a page search does not find our sentence
+ * by wallet. The reader therefore reads the ingest sources themselves: exact content, label and compile status, in one
+ * GET /sources call (by id for the captures this server recorded, else by label among the newest 100 sources).
+ * Completed sources show as Living Brain, the rest as "sent to Living Brain".
+ */
 export class LivingBrainWalletMemory implements WalletMemory {
   readonly status: MemoryStatus = { provider: "living-brain", configured: true };
   constructor(
     private readonly cfg: ReturnType<typeof livingBrainConfig>,
     private readonly fetchImpl: FetchLike = fetch,
+    private readonly state: () => SharedState = getSharedState,
   ) {}
 
   async recall(wallet: string): Promise<RecalledWalletEntry[]> {
     const w = wallet.toLowerCase();
-    const hits = await livingBrainCall<Array<{ title?: string; summary?: string; status?: string }>>(this.cfg, this.fetchImpl, "POST", "/search", {
-      query: walletLabel(w),
-      topK: 10,
-      minSimilarity: 0.3,
-    });
-    // Search is semantic: keep only pages that name this exact wallet.
-    return (Array.isArray(hits) ? hits : [])
-      .filter((h) => h.status !== "archived" && `${h.title ?? ""} ${h.summary ?? ""}`.toLowerCase().includes(w))
-      .map((h) => parse(h.summary || h.title || "", "living-brain"));
+    const sent = (await this.state().get<SentEntry[]>(sentKey(w)))?.value ?? [];
+    const ids = sent.flatMap((e) => (e.id ? [e.id] : []));
+    // shortcut: without a recorded id (captures from before the copy existed) only the newest 100 sources are scanned.
+    const q = ids.length ? `?ids=${ids.map(encodeURIComponent).join(",")}&limit=${ids.length}` : "?limit=100";
+    let sources: LbSource[];
+    try {
+      sources = (await livingBrainCall<{ items?: LbSource[] }>(this.cfg, this.fetchImpl, "GET", `/sources${q}`))?.items ?? [];
+    } catch (err) {
+      if (!sent.length) throw err;
+      sources = []; // Living Brain unreachable: still show what we sent, labelled as such
+    }
+    const mine = sources.filter((s) => s.label === walletLabel(w) || !!s.originRef?.toLowerCase().endsWith(`:${w}`));
+    const seen = new Set<string>();
+    const rows: { text: string; at: string; source: RecalledWalletEntry["source"] }[] = [];
+    for (const s of mine) {
+      if (!s.content || seen.has(s.id)) continue;
+      seen.add(s.id);
+      rows.push({ text: s.content, at: s.createdAt ?? "", source: s.status === "completed" ? "living-brain" : "sent" });
+    }
+    for (const e of sent) if (!e.id || !seen.has(e.id)) rows.push({ text: e.text, at: e.at, source: "sent" });
+    return rows
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, SENT_KEEP)
+      .map((r) => parse(r.text, r.source));
   }
 
   async remember(e: WalletMemoryEntry) {
     try {
-      await livingBrainCall(this.cfg, this.fetchImpl, "POST", "/captures", {
+      const res = await livingBrainCall<{ id?: string }>(this.cfg, this.fetchImpl, "POST", "/captures", {
         kind: "note",
         label: walletLabel(e.wallet),
         content: e.text,
@@ -76,6 +108,11 @@ export class LivingBrainWalletMemory implements WalletMemory {
         originRef: `${e.txHash}:${e.wallet.toLowerCase()}`,
         source: { channel: "keyescrow", ref: e.txHash, label: walletLabel(e.wallet) },
       });
+      await update<SentEntry[], void>(this.state(), sentKey(e.wallet), (cur = []) => ({
+        value: [...cur.filter((x) => x.text !== e.text), { id: res?.id, text: e.text, at: new Date().toISOString() }].slice(-SENT_KEEP),
+        ttlMs: SENT_TTL_MS,
+        result: undefined,
+      })).catch((err: Error) => console.warn("wallet memory: local copy not kept", err.message));
       return { stored: true };
     } catch (err) {
       return { stored: false, error: (err as Error).message };

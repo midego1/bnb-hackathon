@@ -307,8 +307,11 @@ dispute desk sees about you"). Ask AI and the agent read the same thing through 
   `wallet:<address>`, content one factual sentence (outcome, amounts, rental address, transaction hash),
   `originRef` = `<txHash>:<wallet>` (both parties come from the same transaction, so the wallet is part of the key).
   A marker in shared state skips repeat calls; Living Brain dedupes on `originRef`. Same limit as the scooter memory:
-  20 writes an hour per IP. Reading searches the brain for `wallet:<address>` and keeps only entries naming that
-  wallet, each with its transaction link and its source (Living Brain or local).
+  20 writes an hour per IP. A capture compiles asynchronously into pages that get Living Brain's own title and
+  summary, so reading does not search pages: one `GET /sources` call reads the wallet's ingest sources (by the source
+  ids this server kept in shared state when it captured them; for older captures, by label among the newest 100), with
+  their exact sentence and compile status. Compiled entries show as "Living Brain", queued ones (or all of our own
+  copies when Living Brain is unreachable) as "sent to Living Brain"; each with its transaction link.
 - **Budget (prepaid Living Brain credit).** Every search and capture, scooter memory included, counts against
   `LIVING_BRAIN_DAILY_CALLS` (default 200 per 24 h, in shared state, so across all Worker isolates). Over it nothing is
   called and the card says "daily limit reached: showing the on-chain facts only". Writes: one capture per party per

@@ -1,0 +1,37 @@
+{
+  "_note": "DEMO world for the live demo (pnpm testnet:world, docs/DEMO.md 'Demo world'). Every shop and renter here is FICTIONAL: made-up first names, no real people or businesses. On-chain a wallet is only an address; these names live only in this file and the app shows them with a 'demo persona' badge. Wallet addresses per chain are in demo-world-addresses.json, written by the script: 31337 = the rehearse wallets (keys derived from a public seed, local anvil only), 97 = `pnpm testnet:world run` (keys stay in the gitignored .orca/secrets/demo-world/). Amounts follow web/data/listings.json (THB, at its thbPerUsdt).",
+  "shops": [
+    { "id": "cnx", "name": "Chiang Mai Scooters (demo)", "city": "Chiang Mai", "persona": "Family shop near Nimman. Fair: claims only what the photos show.", "listings": ["honda-click-125i", "yamaha-grand-filano", "honda-scoopy"] },
+    { "id": "hkt", "name": "Phuket Island Rides (demo)", "city": "Phuket", "persona": "Beach-road rental desk. Claims a lot at return.", "listings": ["yamaha-nmax-155", "honda-pcx-160"] },
+    { "id": "bkk", "name": "Bangkok City Wheels (demo)", "city": "Bangkok", "persona": "City fleet owned by BKK-FLEET-1 shareholders: rent and damage payouts go to the Fleet Vault.", "listings": ["vespa-primavera-150", "yamaha-fino-125"], "vault": true }
+  ],
+  "renters": [
+    { "id": "anna", "name": "Anna", "flag": "🇩🇪", "persona": "Careful long-stay nomad: rents by the month, prepays." },
+    { "id": "tom", "name": "Tom", "flag": "🇬🇧", "persona": "Weekend tourist: short rentals, books ahead." },
+    { "id": "lucas", "name": "Lucas", "flag": "🇧🇷", "persona": "Rides hard: a cracked mirror, and a lost dispute over a cracked fairing." },
+    { "id": "mei", "name": "Mei", "flag": "🇸🇬", "persona": "Island hopper: two-week rentals, always on time." },
+    { "id": "kenji", "name": "Kenji", "flag": "🇯🇵", "persona": "Photographer on a slow trip: one clean return, one dispute still open." },
+    { "id": "sofia", "name": "Sofia", "flag": "🇪🇸", "persona": "Remote worker in Bangkok: clean return." },
+    { "id": "priya", "name": "Priya", "flag": "🇮🇳", "persona": "Volunteer teacher in Pai: a small scratch, settled by agreement." },
+    { "id": "olivia", "name": "Olivia", "flag": "🇦🇺", "persona": "Backpacker: disputed an inflated claim and won." },
+    { "id": "emma", "name": "Emma", "flag": "🇳🇱", "persona": "Dive instructor: the desk split a scratch claim." },
+    { "id": "noah", "name": "Noah", "flag": "🇺🇸", "persona": "Pays at the last minute: weekly rent, nothing prepaid." }
+  ],
+  "rentals": [
+    { "id": "r01", "shop": "cnx", "listing": "honda-click-125i", "renter": "anna", "periodDays": 30, "termPeriods": 3, "outcome": "clean" },
+    { "id": "r02", "shop": "bkk", "listing": "yamaha-fino-125", "renter": "tom", "periodDays": 7, "termPeriods": 2, "outcome": "clean" },
+    { "id": "r03", "shop": "hkt", "listing": "honda-pcx-160", "renter": "mei", "periodDays": 14, "termPeriods": 2, "outcome": "clean" },
+    { "id": "r04", "shop": "cnx", "listing": "yamaha-grand-filano", "renter": "kenji", "periodDays": 7, "termPeriods": 2, "outcome": "clean" },
+    { "id": "r05", "shop": "bkk", "listing": "vespa-primavera-150", "renter": "sofia", "periodDays": 14, "termPeriods": 2, "outcome": "clean" },
+    { "id": "r06", "shop": "hkt", "listing": "yamaha-nmax-155", "renter": "lucas", "periodDays": 7, "termPeriods": 2, "outcome": "damage", "damage": "mirror" },
+    { "id": "r07", "shop": "cnx", "listing": "honda-scoopy", "renter": "priya", "periodDays": 14, "termPeriods": 2, "outcome": "damage", "damage": "scratch" },
+    { "id": "r08", "shop": "hkt", "listing": "honda-pcx-160", "renter": "olivia", "periodDays": 7, "termPeriods": 2, "outcome": "dispute", "ownerClaimPct": 60, "ruling": { "ownerSharePct": 0, "reason": "Return photos match the pickup set and the AI found no new damage; the owner showed nothing new. Full deposit to the renter." } },
+    { "id": "r09", "shop": "bkk", "listing": "vespa-primavera-150", "renter": "lucas", "periodDays": 7, "termPeriods": 2, "outcome": "dispute", "damage": "crack", "ownerClaimPct": 40, "ruling": { "ownerSharePct": 100, "reason": "The front fairing crack is visible in the return photos and absent at pickup; the owner's claim matches a fairing repair. Claim upheld." } },
+    { "id": "r10", "shop": "hkt", "listing": "yamaha-nmax-155", "renter": "emma", "periodDays": 30, "termPeriods": 3, "outcome": "dispute", "damage": "scratch", "ownerClaimPct": 50, "ruling": { "ownerSharePct": 50, "reason": "A new scratch on the side panel is real but cosmetic; half the claim covers a touch-up. Split." } },
+    { "id": "r11", "shop": "hkt", "listing": "honda-pcx-160", "renter": "kenji", "periodDays": 14, "termPeriods": 2, "outcome": "open-dispute", "damage": "scratch", "ownerClaimPct": 45 },
+    { "id": "r12", "shop": "cnx", "listing": "honda-click-125i", "renter": "anna", "periodDays": 30, "termPeriods": 3, "outcome": "active", "prepay": 1 },
+    { "id": "r13", "shop": "bkk", "listing": "yamaha-fino-125", "renter": "noah", "periodDays": 7, "termPeriods": 4, "outcome": "active" },
+    { "id": "r14", "shop": "cnx", "listing": "yamaha-grand-filano", "renter": "mei", "periodDays": 14, "termPeriods": 2, "outcome": "active" },
+    { "id": "r15", "shop": "bkk", "listing": "vespa-primavera-150", "renter": "tom", "periodDays": 7, "termPeriods": 2, "outcome": "offer" }
+  ]
+}

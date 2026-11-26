@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
+import { DemoPersona } from "@/components/DemoPersona";
 import { Card, Notice, Skeleton, StatusBadge, useMoney, Amount, AddressTag } from "@/components/ui";
 import { LeaseStatus } from "@/lib/contracts";
 import { chainName } from "@/lib/chains";
@@ -147,6 +148,8 @@ function RentalRow({ r, chainId, scooter, vault, money }: { r: RentalSummary; ch
               {shortAddress(r.address)}
             </Link>
             {scooter && <span className="text-sm">{scooter}</span>}
+            <DemoPersona address={r.landlord} />
+            <DemoPersona address={r.tenant} />
             <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{toVault ? t("backoffice.paysVault") : t("backoffice.paysOwner")}</span>
           </div>
           <p className="text-xs text-subtle">
