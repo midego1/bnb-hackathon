@@ -35,7 +35,7 @@ wrangler's usage metrics are off (`send_metrics: false`, `WRANGLER_SEND_METRICS=
 Versions are pinned: `@opennextjs/cloudflare` 1.20.16 (supports Next `>=16.4.5`; the app runs 16.4.6) and
 `wrangler` 4.159.0, in `web/` and `agent/`.
 
-## The public build: chain 97 only
+## The public build: chain 97 (and the mainnet stage Worker, 56)
 
 Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC testnet:
 
@@ -60,6 +60,14 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
 which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the
 `KeyEscrowState` class is not exported: it inspects `.open-next/worker.js`, not the real entry
 `cloudflare/worker.ts`, and is harmless (the preview and deploy load the class).
+
+**The mainnet stage Worker (chain 56).** `CF_CHAIN_ID=56 pnpm cf:build` builds the same app for BSC mainnet from
+`contracts/deployments/56.json` (no live testnet `/demo`, `NEXT_PUBLIC_BSC_RPC_URL` optional) as a second Worker,
+`keyescrow-mainnet` (wrangler env `mainnet` in `web/wrangler.jsonc`: its own vars `NEXT_PUBLIC_CHAIN_ID=56`,
+`STAGE_DEMO=1`, 10 drips an hour / 30 a day, its own Durable Object, no R2). `cf:preview` and `cf:deploy` follow the
+last build's chain. Its secrets: `DEMO_MAINNET_OWNER_KEY`, `DEMO_MAINNET_FUNDER_KEY`, optional `DEMO_MAINNET_RPC_URL`,
+`STAGE_PRESENTER_CODE` (strongly advised: the presenter's Accept / Reset), set with `--env mainnet`. The real-money
+rules are in [DEPLOY.md](DEPLOY.md) (the judge stage on BSC mainnet). Size on 26 Nov 2026: 2.72 MiB gzip (Free).
 
 Wallet RPC: the browser talks to BSC testnet through `NEXT_PUBLIC_BSC_TESTNET_RPC_URL`, default
 `https://bsc-testnet-rpc.publicnode.com` (contract reads, batched into Multicall3). Event reads for the lease lists and
@@ -206,6 +214,14 @@ pnpm -C agent exec wrangler secret put INSPECTOR_PRIVATE_KEY
 ```
 
 Secrets need the same `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` in the shell (`set -a; . ./.env; set +a`).
+
+The mainnet stage Worker, after `contracts/deployments/56.json` is synced:
+
+```bash
+CF_CHAIN_ID=56 pnpm cf:build                    # keyescrow-mainnet, chain 56
+pnpm cf:deploy                                  # deploys with --env mainnet (the build says which chain it is)
+cd web && for s in DEMO_MAINNET_OWNER_KEY DEMO_MAINNET_FUNDER_KEY DEMO_MAINNET_RPC_URL STAGE_PRESENTER_CODE; do pnpm exec wrangler secret put $s --env mainnet; done
+```
 
 After the agent is live, its ERC-8004 registration still lists the GitHub URL as endpoint. Pointing agent #2921 at
 `https://keyescrow-agent.<subdomain>.workers.dev` is an on-chain `setAgentURI` transaction (see [AGENT.md](AGENT.md),

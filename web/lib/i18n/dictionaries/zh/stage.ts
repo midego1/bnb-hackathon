@@ -8,6 +8,7 @@ export const body: DeepPartial<typeof enBody> = {
     loading: "加载中…",
     disabled: "这台服务器没有开启现场演示。",
     terms: "{rent} / 天 · 押金 {deposit}",
+    realMoney: "真钱（BSC 主网），最多 1 美元",
     qr: "二维码：{url}",
     openHere: "或在本设备上打开",
     timeline: "时间线",
@@ -46,12 +47,16 @@ export const body: DeepPartial<typeof enBody> = {
     connectFirst: "请先连接钱包。",
     offline: "网络不稳定。你的租赁安全地记录在链上，网络恢复后这个屏幕会自动跟上。",
     guestWallet: "测试网临时钱包，不涉及真钱",
+    guestWalletMainnet: "临时钱包 · 真钱（BSC 主网），最多 1 美元",
     yourWallet: "你的钱包",
     another: "换一个钱包",
     money: {
       body: "我们会给这个钱包转一点测试 BNB 作为 Gas 费，再转 {amount} 测试美元（mUSDT）用于租金和押金。仅限测试网，不涉及真钱。",
       button: "领取测试资金",
       sent: { one: "测试资金已发送（{n} 笔交易）。", other: "测试资金已发送（{n} 笔交易）。" },
+      bodyMainnet: "我们会给这个钱包转 {amount} 的真实 BSC-USD（BSC 主网上的 USDT），正好是租金和押金，再转一点 BNB 作为 Gas 费。真钱，最多 1 美元。押金会退回这个钱包。",
+      buttonMainnet: "领取 1 美元用于租用",
+      sentMainnet: { one: "已在 BSC 主网发送（{n} 笔交易）。", other: "已在 BSC 主网发送（{n} 笔交易）。" },
     },
     rent: {
       rent: "租金（1 天）",
@@ -70,6 +75,7 @@ export const body: DeepPartial<typeof enBody> = {
     wallet: {
       guest: "使用临时钱包",
       guestHint: "测试网临时钱包，不涉及真钱。新密钥在这部手机上生成，永远不会离开它。",
+      guestHintMainnet: "真钱（BSC 主网），最多 1 美元。新密钥在这部手机上生成，永远不会离开它。",
       metamask: "连接 MetaMask",
     },
     photos: {
@@ -119,6 +125,7 @@ export const head: DeepPartial<typeof enHead> = {
   judge: {
     wallet: "一键租用",
     money: "领取测试资金",
+    moneyMainnet: "领取 1 美元用于租用",
     rent: "以 {amount} 租用",
     busy: "现在有别人在租用",
     pickup: "拍取件照片",

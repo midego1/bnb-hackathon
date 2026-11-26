@@ -12,7 +12,7 @@
 #   pnpm deploy:opbnb:rehearse        (chainId 5611)
 #   pnpm deploy:mainnet:rehearse      (chainId 56, local anvil only: nothing reaches BSC mainnet)
 #
-# The last step runs one one-period rental (weekly on 56) on the rehearsed deployment and prints the gas of every call,
+# The last step runs one one-period rental (30 days; on 56 the stage rental, 0.30 + 0.70 USDT) on the rehearsed deployment and prints the gas of every call,
 # so the cost per rental can be priced at each network's real gas price (docs/ARCHITECTURE.md).
 #
 # The deployer is a fresh keystore created in a temp dir (password file, also temp) and funded with anvil_setBalance,
@@ -216,8 +216,8 @@ if [[ -f "$F" ]]; then
   if [[ "$CID" == 56 ]]; then
     [[ "$(jq -r .token "$F")" == "$BSC_USD" && "$(jq -r .tokenDecimals "$F")" == 18 && "$(jq -r .tokenSymbol "$F")" == USDT ]] &&
       pass "token = BSC-USD, 18 decimals, read from the token" || fail "unexpected token in $CID.json"
-    [[ "$(jq -r .maxDeposit "$F")" == 5000000000000000000 && "$(jq -r .maxRentPerPeriod "$F")" == 2000000000000000000 &&
-      "$(jq -r .maxActiveValue "$F")" == 25000000000000000000 ]] && pass "default pilot caps 5 / 2 / 25 USDT" || fail "unexpected caps in $CID.json"
+    [[ "$(jq -r .maxDeposit "$F")" == 700000000000000000 && "$(jq -r .maxRentPerPeriod "$F")" == 300000000000000000 &&
+      "$(jq -r .maxActiveValue "$F")" == 5000000000000000000 ]] && pass "default pilot caps 0.70 / 0.30 / 5 USDT (exact, 18 decimals)" || fail "unexpected caps in $CID.json"
   fi
   [[ "$(jq -r .chainId "$F")" == "$CID" && "$(jq -r .deployer "$F")" == "$DEPLOYER" && "$(jq -r .defaultArbiter "$F")" == "$DESK" ]] &&
     pass "chainId $CID, deployer = keystore wallet, roles from env" || fail "unexpected values in $CID.json"
@@ -235,7 +235,7 @@ SHOW_LINES=8 expect 0 "EscrowFactory: standard-JSON input builds" "verify, dry r
   env VERIFY_DRY_RUN=1 bash "$TESTNET_SH" verify
 expect 2 "BSCSCAN_API_KEY is not set" "verify without BSCSCAN_API_KEY refuses" -- bash "$TESTNET_SH" verify
 
-step "8. Gas: the deploy above, then one one-period rental (no damage; weekly on 56) on the rehearsed deployment"
+step "8. Gas: the deploy above, then one one-period rental (30 days, no damage; the stage rental on 56) on the rehearsed deployment"
 # Gas units are identical on 97 and 5611 (same EVM, same bytecode); price them per network, see docs/ARCHITECTURE.md.
 DEPLOY_GAS=0
 for g in $(jq -r '.receipts[].gasUsed' "$FOUNDRY_BROADCAST/Deploy.s.sol/$CID/run-latest.json" 2>/dev/null); do
@@ -257,26 +257,30 @@ tx() { # label key to sig args...
   printf '   %s|%s %-34s %8s gas\n' "$D" "$N" "$label" "$g"
 }
 H=0x$(printf 'ab%.0s' {1..32})
-# Amounts in the token's own decimals (read from the token): 2 rent + 5 deposit fit the mainnet pilot caps.
+# Amounts in the token's own decimals (read from the token). On 56 the stage rental: 0.30 rent + 0.70 deposit, exactly
+# the default pilot caps (1.00 USDT); elsewhere 2 + 5.
 DEC="$(cast call "$TOKEN" 'decimals()(uint8)' --rpc-url "$RPCNET")"
 U() { cast parse-units "$1" "$DEC"; }
 PERIOD=0 # factory default: 30 days
-[[ "$CID" == 56 ]] && PERIOD=604800 # weekly rent on the pilot
+RENT=2 DEP=5 HELD=7
+[[ "$CID" == 56 ]] && RENT=0.30 DEP=0.70 HELD=1
 SIG='createLease((address,address,uint256,uint256,uint32,uint32,uint32,uint32,bytes32))'
 tx "faucet 300 (test setup only)" "$TENANT_KEY" "$TOKEN" 'faucet(address,uint256)' "$TENANT" "$(U 300)" && RENTAL_GAS=0
 if [[ "$CID" == 56 ]]; then
-  expect nonzero "DepositAboveCap" "createLease with a 6 USDT deposit refused by the 5 USDT pilot cap" -- \
-    cast send --private-key "$FRESH_KEY" --rpc-url "$RPCNET" "$FACTORY" "$SIG" "($TENANT,0x0000000000000000000000000000000000000000,$(U 2),$(U 6),1,$PERIOD,0,0,$H)"
+  expect nonzero "DepositAboveCap" "a 1.01 USDT rental (0.71 deposit) refused by the 0.70 USDT deposit cap" -- \
+    cast send --private-key "$FRESH_KEY" --rpc-url "$RPCNET" "$FACTORY" "$SIG" "($TENANT,0x0000000000000000000000000000000000000000,$(U 0.30),$(U 0.71),1,$PERIOD,0,0,$H)"
+  expect nonzero "RentAboveCap" "a 1.01 USDT rental (0.31 rent) refused by the 0.30 USDT rent cap" -- \
+    cast send --private-key "$FRESH_KEY" --rpc-url "$RPCNET" "$FACTORY" "$SIG" "($TENANT,0x0000000000000000000000000000000000000000,$(U 0.31),$(U 0.70),1,$PERIOD,0,0,$H)"
 fi
-tx "createLease (owner)" "$FRESH_KEY" "$FACTORY" "$SIG" "($TENANT,0x0000000000000000000000000000000000000000,$(U 2),$(U 5),1,$PERIOD,0,0,$H)"
+tx "createLease (owner)" "$FRESH_KEY" "$FACTORY" "$SIG" "($TENANT,0x0000000000000000000000000000000000000000,$(U $RENT),$(U $DEP),1,$PERIOD,0,0,$H)"
 LEASE="$(cast call "$FACTORY" 'leasesByTenant(address)(address[])' "$TENANT" --rpc-url "$RPCNET" | tr -d '[]')"
-tx "approve (renter)" "$TENANT_KEY" "$TOKEN" 'approve(address,uint256)' "$LEASE" "$(U 7)"
+tx "approve (renter)" "$TENANT_KEY" "$TOKEN" 'approve(address,uint256)' "$LEASE" "$(U $HELD)"
 tx "fund rent + deposit (renter)" "$TENANT_KEY" "$LEASE" 'fund()'
-[[ "$(cast call "$FACTORY" 'activeValue()(uint256)' --rpc-url "$RPCNET" | cut -d' ' -f1)" == "$(U 7)" ]] &&
-  pass "factory activeValue = 7 tokens held" || fail "activeValue after fund"
+[[ "$(cast call "$FACTORY" 'activeValue()(uint256)' --rpc-url "$RPCNET" | cut -d' ' -f1)" == "$(U $HELD)" ]] &&
+  pass "factory activeValue = $HELD tokens held" || fail "activeValue after fund"
 tx "addEvidence pickup photos (renter)" "$TENANT_KEY" "$LEASE" 'addEvidence(uint8,bytes32)' 0 "$H"
 tx "addEvidence return photos (renter)" "$TENANT_KEY" "$LEASE" 'addEvidence(uint8,bytes32)' 1 "$H"
-tx "propose split + report hash (owner)" "$FRESH_KEY" "$LEASE" 'propose(uint256,bytes32)' "$(U 5)" "$H"
+tx "propose split + report hash (owner)" "$FRESH_KEY" "$LEASE" 'propose(uint256,bytes32)' "$(U $DEP)" "$H"
 tx "accept, settles (renter)" "$TENANT_KEY" "$LEASE" 'accept(uint32)' 1
 [[ "$(cast call "$LEASE" 'status()(uint8)' --rpc-url "$RPCNET")" == 4 ]] &&
   pass "one rental, created to settled: $RENTAL_GAS gas in 7 transactions" || fail "rental did not settle"

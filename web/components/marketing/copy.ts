@@ -273,7 +273,7 @@ claude mcp add --transport http keyescrow \\
       [
         "Next",
         "Capped BSC mainnet pilot",
-        "Not live yet. A small pilot with real USDT, held to limits built into contract v2: at most 5 USDT deposit and 2 USDT rent per payment per rental, and 25 USDT in all escrows together. Lowering the last limit to zero stops new funding at once; a limit never blocks a payout. No Fleet Vault on mainnet.",
+        "Not live yet. A small pilot with real USDT, held to limits built into contract v2: at most 0.70 USDT deposit and 0.30 USDT rent per payment per rental (one rental is at most 1 USD), and 5 USDT in all escrows together. Lowering the last limit to zero stops new funding at once; a limit never blocks a payout. No Fleet Vault on mainnet.",
       ],
       ["Q1 2027", "Pilot with real shops", "10 to 20 real scooter rentals with friendly shops in Chiang Mai and Phuket, on testnet funds. An independent security review of the contracts."],
       ["Q2 to Q3 2027", "Mainnet and opBNB", "A real, widely held stablecoin. Wallet onboarding for people new to crypto. Legal review of the escrow and dispute-desk roles under Thai law."],

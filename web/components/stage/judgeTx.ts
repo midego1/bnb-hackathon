@@ -1,6 +1,6 @@
 "use client";
 
-import type { Address, Hex, PublicClient, WalletClient } from "viem";
+import { parseGwei, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
 import { EvidenceKind, LeaseStatus, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 
 /**
@@ -8,8 +8,19 @@ import { EvidenceKind, LeaseStatus, mockUsdtAbi, rentalEscrowAbi } from "@/lib/c
  * skips what is already done, so a double tap or a reload never pays twice.
  */
 
+/**
+ * BSC mainnet has no base fee and accepts 0.05-0.1 gwei; a default 1 gwei tip would make the judge's ~8 transactions
+ * cost more than the 0.0003 BNB the drip sends. So: the node's price, never above the 0.1 gwei the server signs at.
+ */
+const MAINNET_MAX_GAS_PRICE = parseGwei("0.1");
+async function mainnetGasPrice(pub: PublicClient) {
+  const p = await pub.getGasPrice();
+  return p < MAINNET_MAX_GAS_PRICE ? p : MAINNET_MAX_GAS_PRICE;
+}
+
 async function send(wc: WalletClient, pub: PublicClient, call: { address: Address; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }): Promise<Hex> {
-  const hash = await wc.writeContract({ ...call, account: wc.account!, chain: wc.chain } as never);
+  const fees = wc.chain?.id === 56 ? { type: "legacy", gasPrice: await mainnetGasPrice(pub) } : {};
+  const hash = await wc.writeContract({ ...call, ...fees, account: wc.account!, chain: wc.chain } as never);
   const r = await pub.waitForTransactionReceipt({ hash, timeout: 90_000 });
   if (r.status !== "success") throw new Error("The transaction was reverted on-chain. Try again.");
   return hash;

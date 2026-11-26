@@ -14,14 +14,15 @@ const unusedOptionalDeps = [
   "@x402/svm/exact/client",
 ];
 
-// The Cloudflare Workers build (scripts/cf.mjs, docs/CLOUDFLARE.md) is public: chain 97 only and never the anvil
-// dev-account switcher. Checked here as well as in the wrapper, so no other way of building can skip it.
+// The Cloudflare Workers build (scripts/cf.mjs, docs/CLOUDFLARE.md) is public: chain 97 (or 56, the mainnet stage
+// Worker) only and never the anvil dev-account switcher. Checked here as well as in the wrapper, so no other way of
+// building can skip it.
 if (process.env.KEYESCROW_BUILD_TARGET === "cloudflare") {
   if (process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1") {
     throw new Error("Cloudflare build refused: NEXT_PUBLIC_DEV_ACCOUNTS=1 (the anvil dev accounts) must be off on a public build.");
   }
-  if (process.env.NEXT_PUBLIC_CHAIN_ID !== "97") {
-    throw new Error(`Cloudflare build refused: NEXT_PUBLIC_CHAIN_ID is "${process.env.NEXT_PUBLIC_CHAIN_ID ?? ""}", not 97 (BSC testnet).`);
+  if (process.env.NEXT_PUBLIC_CHAIN_ID !== "97" && process.env.NEXT_PUBLIC_CHAIN_ID !== "56") {
+    throw new Error(`Cloudflare build refused: NEXT_PUBLIC_CHAIN_ID is "${process.env.NEXT_PUBLIC_CHAIN_ID ?? ""}", not 97 (BSC testnet) or 56 (BSC mainnet).`);
   }
 }
 

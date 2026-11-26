@@ -2,8 +2,8 @@ import { parseEther, parseUnits } from "viem";
 import { TOKEN } from "@/lib/contracts";
 
 /**
- * Pure rules of the live stage demo (lib/server/stage/index.ts): when it is on, how much test money one phone gets,
- * and how THB prices become mUSDT. No I/O, so every rule is unit-tested (tests/stage.test.ts).
+ * Pure rules of the live stage demo (lib/server/stage/index.ts): when it is on, how much test money (or, on BSC
+ * mainnet, real money) one phone gets, and how THB prices become mUSDT. No I/O, so every rule is unit-tested (tests/stage.test.ts).
  */
 
 export { stageConfig, type StageChainId, type StageConfig } from "./config";
@@ -52,6 +52,27 @@ export function dripPlan(input: { bnb: bigint; musdt: bigint; need: bigint; fund
     throw new StageError(503, "The test-money wallet is empty right now. Ask the team to refill it, then try again.");
   }
   return { bnb, musdt };
+}
+
+/** BSC mainnet (56): the drip is real money, so it only ever sends what one stage rental needs. */
+export const MAINNET_DRIP_BNB = parseEther("0.0003"); // ~8 judge transactions at BSC's 0.05-0.1 gwei, with room
+export const MAINNET_MAX_USDT_DRIP = parseUnits("1", TOKEN.decimals);
+/** The funder stops handing out money below either of these (the presenter refills it). */
+export const MAINNET_FUNDER_MIN_USDT = parseUnits("2", TOKEN.decimals);
+export const MAINNET_FUNDER_MIN_BNB = parseEther("0.005");
+
+/**
+ * What to send a phone on mainnet: BNB up to MAINNET_DRIP_BNB and BSC-USD up to exactly `need` (rent + deposit, no
+ * margin: the price is fixed in USDT), never more than 1 USDT. Refuses when the funder is under its floors.
+ */
+export function mainnetDripPlan(input: { bnb: bigint; usdt: bigint; need: bigint; funderBnb: bigint; funderUsdt: bigint }): { bnb: bigint; usdt: bigint } {
+  if (input.need > MAINNET_MAX_USDT_DRIP) throw new StageError(500, "The stage rental costs more than 1 USD; refusing to send real money for it.");
+  if (input.funderUsdt < MAINNET_FUNDER_MIN_USDT || input.funderBnb < MAINNET_FUNDER_MIN_BNB) {
+    throw new StageError(503, "The demo wallet is out of money for now. Ask the team to refill it, then try again.");
+  }
+  const bnb = input.bnb >= MAINNET_DRIP_BNB ? BigInt(0) : MAINNET_DRIP_BNB - input.bnb;
+  const usdt = input.usdt >= input.need ? BigInt(0) : input.need - input.usdt;
+  return { bnb, usdt };
 }
 
 /** The presenter code check: open when no code is configured, constant-time-ish compare otherwise. */

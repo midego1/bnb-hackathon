@@ -1,13 +1,13 @@
-import { getAddress, http, parseEventLogs, parseGwei, type Address, type Hash } from "viem";
+import { getAddress, http, isHex, parseEventLogs, parseGwei, type Address, type Hash, type Hex } from "viem";
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { bsc, foundry } from "viem/chains";
 import { actionContext, rpcUrl } from "@/lib/actions/context";
 import { readLease } from "@/lib/actions/lease";
 import { escrowFactoryAbi, getDeployment, mockUsdtAbi, rentalEscrowAbi } from "@/lib/contracts";
 import { hashText } from "@/lib/hash";
 import { getListing, LISTING_THB_PER_USDT, type Listing } from "@/lib/listings";
-import { isFinal, replaceable, same, type StageRental, type StageStatus } from "@/lib/stage";
-import { createChain97, gasPriceFrom, type Chain97 } from "../chain97.mts";
+import { isFinal, MAINNET_STAGE_PRICE, replaceable, same, type StageRental, type StageStatus } from "@/lib/stage";
+import { createChain97, gasPriceFrom, TxStalledError, type Chain97 } from "../chain97.mts";
 import { demoTestnetConfig } from "../demoTestnet/guards";
 import { loadDemoSecrets } from "../demoTestnet/keys";
 import type { Env } from "../env";
@@ -15,6 +15,7 @@ import { getSharedState, hitRateLimit, update, type SharedState } from "../state
 import {
   dripDecision,
   dripPlan,
+  mainnetDripPlan,
   MAX_GAS_PER_TX,
   presenterAllowed,
   StageError,
@@ -30,7 +31,15 @@ import {
  * the judge signs fund, photos and the proposal with their own (guest or real) wallet.
  *
  * Wallets: on BSC testnet (97) the live /demo's wallets (landlord = owner, arbiter = dispute desk, funder) from
- * DEMO_TESTNET_* (demoTestnet/keys.ts); on the local anvil (31337) its public dev keys. Keys never leave the server.
+ * DEMO_TESTNET_* (demoTestnet/keys.ts); on the local anvil (31337) its public dev keys; on BSC mainnet (56) the owner
+ * and funder keys from DEMO_MAINNET_OWNER_KEY / DEMO_MAINNET_FUNDER_KEY and the deployment's dispute desk (the
+ * deployer). Keys never leave the server.
+ *
+ * BSC mainnet is real money, max 1 USD: the price is fixed at 0.30 rent + 0.70 deposit BSC-USD (MAINNET_STAGE_PRICE),
+ * the drip transfers exactly that plus ~0.0003 BNB of gas from the funder (no minting), once per wallet, within the
+ * hourly and daily caps, and stops when the funder is under 2 USDT or 0.005 BNB. The deposit comes back to the guest
+ * wallet, whose key lives in the judge's browser: the server cannot sweep it back, so up to 0.70 USDT plus leftover gas
+ * per judge stays there (accepted; docs/DEPLOY.md).
  * State (the current rental per listing, drip claims, rate limits) lives in SharedState: the Durable Object on Workers.
  * The chain stays the source of truth: the record only says which escrow is the listing's current rental.
  */
@@ -79,6 +88,13 @@ function serial<T>(cfg: StageConfig, fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
+/** A mainnet stage key from env (wrangler secret). The error names the variable, never the value. */
+function mainnetKey(env: Env, name: "DEMO_MAINNET_OWNER_KEY" | "DEMO_MAINNET_FUNDER_KEY"): Hex {
+  const v = env[name];
+  if (!v || !isHex(v) || v.length !== 66) throw new StageError(503, `The mainnet stage needs ${name} (a 32-byte hex key) on the server.`);
+  return v;
+}
+
 async function load(cfg: StageConfig, env: Env): Promise<Loaded> {
   const h = holder(cfg);
   h.loaded ??= (async () => {
@@ -91,6 +107,16 @@ async function load(cfg: StageConfig, env: Env): Promise<Loaded> {
       arbiter = privateKeyToAccount(ANVIL.arbiter).address;
       const f = privateKeyToAccount(ANVIL.funder);
       funder = { address: f.address, account: async () => f };
+    } else if (cfg.chainId === 56) {
+      rpc = env.DEMO_MAINNET_RPC_URL || rpcUrl(56, env);
+      owner = privateKeyToAccount(mainnetKey(env, "DEMO_MAINNET_OWNER_KEY"));
+      const f = privateKeyToAccount(mainnetKey(env, "DEMO_MAINNET_FUNDER_KEY"));
+      funder = { address: f.address, account: async () => f };
+      if (!d.disputeDesk) throw new StageError(503, "The mainnet deployment names no dispute desk.");
+      arbiter = d.disputeDesk;
+      if (same(owner.address, arbiter) || same(owner.address, f.address) || same(f.address, arbiter)) {
+        throw new StageError(503, "The mainnet stage needs three different wallets: owner, funder and dispute desk.");
+      }
     } else {
       const dcfg = demoTestnetConfig(env);
       if (!dcfg) throw new StageError(503, "The stage demo on BSC testnet needs the live demo wallets (DEMO_TESTNET_RUNNER and its keys).");
@@ -100,8 +126,9 @@ async function load(cfg: StageConfig, env: Env): Promise<Loaded> {
       arbiter = s.wallets.arbiter.address;
       funder = s.funder;
     }
-    const chain = cfg.chainId === 31337 ? foundry : undefined;
-    const c = createChain97({ rpc, chain, gasPrice: cfg.chainId === 31337 ? parseGwei("2") : gasPriceFrom(env.TESTNET_GAS_PRICE_GWEI), receiptTimeoutMs: 45_000 });
+    const chain = cfg.chainId === 31337 ? foundry : cfg.chainId === 56 ? bsc : undefined;
+    const gasPrice = cfg.chainId === 31337 ? parseGwei("2") : gasPriceFrom(cfg.chainId === 56 ? env.DEMO_MAINNET_GAS_PRICE_GWEI || "0.1" : env.TESTNET_GAS_PRICE_GWEI);
+    const c = createChain97({ rpc, chain, gasPrice, receiptTimeoutMs: 45_000 });
     // Never sign for a chain the RPC does not answer.
     const id = await c.pub.getChainId();
     if (id !== cfg.chainId) throw new StageError(503, `The stage RPC answers chain ${id}, not ${cfg.chainId}. Refusing to sign.`);
@@ -132,6 +159,7 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
   // The Worker has no room for the price service in this route's chunks (see demoTestnet/http.ts): a fixed demo rate.
   async function price(listing: Listing) {
     const thbPerUsdt = LISTING_THB_PER_USDT;
+    if (cfg.chainId === 56) return { ...MAINNET_STAGE_PRICE, thbPerUsdt };
     // A listing with a monthly price (the demo scooters) is rented by the month: the escrow's rent period is 30 days, so
     // its rent is that month's price and the one-time fee is 10% of it. The stage item only has its price per day.
     return { rent: thbToUnits(listing.monthThb ?? listing.rentThb, thbPerUsdt), deposit: thbToUnits(listing.depositThb, thbPerUsdt), thbPerUsdt };
@@ -181,12 +209,14 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
 
     /**
      * Test money for a phone: tBNB for gas and mUSDT for rent + deposit, once per address (a repeat returns the first
-     * answer), at most `dripsPerHour` phones an hour, never draining the funder.
+     * answer), at most `dripsPerHour` phones an hour, never draining the funder. On BSC mainnet real BSC-USD (exactly
+     * rent + deposit, max 1 USDT) and ~0.0003 BNB, transferred from the funder, also at most `dripsPerDay` a day.
      */
     async drip(slug: string, to: Address) {
       const listing = listingOr404(slug);
       const l = await load(cfg, env);
       if (!l.funder) throw new StageError(503, "No test-money wallet is configured on this server.");
+      if ([l.owner.address, l.arbiter, l.funder.address].some((a) => same(a, to))) throw new StageError(400, "That wallet belongs to the demo itself. Use a guest wallet.");
       const key = dripKey(cfg.chainId, to);
       const now = Date.now();
       const claim = await update<DripRecord, "claim" | "done" | "pending">(state(), key, (cur) => {
@@ -198,9 +228,26 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
       try {
         const rate = await hitRateLimit(state(), `stage-drip:${cfg.chainId}`, { limit: cfg.dripsPerHour, windowMs: 3_600_000 });
         if (!rate.ok) throw new StageError(429, `Enough test money handed out for this hour. Try again in ${Math.ceil(rate.retryAfterSec / 60)} min.`, rate.retryAfterSec);
+        if (cfg.dripsPerDay) {
+          const day = await hitRateLimit(state(), `stage-drip-day:${cfg.chainId}`, { limit: cfg.dripsPerDay, windowMs: 86_400_000 });
+          if (!day.ok) throw new StageError(429, "Enough money handed out for today. Try again tomorrow.", day.retryAfterSec);
+        }
         const p = await price(listing);
         const txs = await serial(cfg, async () => {
           const funder = await l.funder!.account();
+          if (cfg.chainId === 56) {
+            const balanceOf = (a: Address) => l.c.pub.readContract({ address: l.token, abi: mockUsdtAbi, functionName: "balanceOf", args: [a] });
+            const [bnb, usdt, funderBnb, funderUsdt] = await Promise.all([l.c.pub.getBalance({ address: to }), balanceOf(to), l.c.pub.getBalance({ address: funder.address }), balanceOf(funder.address)]);
+            const plan = mainnetDripPlan({ bnb, usdt, need: p.rent + p.deposit, funderBnb, funderUsdt });
+            const out: Hash[] = [];
+            if (plan.bnb > BigInt(0)) {
+              const h = await l.c.sendValue(funder, to, plan.bnb);
+              out.push(h);
+              if ((await l.c.wait(h)).status !== "success") throw new StageError(502, "The gas transfer failed. Try again.");
+            }
+            if (plan.usdt > BigInt(0)) out.push((await send(l, funder, { address: l.token, abi: mockUsdtAbi, functionName: "transfer", args: [to, plan.usdt] })).transactionHash);
+            return out;
+          }
           const [bnb, musdt, funderBnb] = await Promise.all([
             l.c.pub.getBalance({ address: to }),
             l.c.pub.readContract({ address: l.token, abi: mockUsdtAbi, functionName: "balanceOf", args: [to] }),
@@ -220,6 +267,8 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
         console.log(`[stage] drip to ${to}: ${txs.length} txs`);
         return { txs, repeat: false };
       } catch (e) {
+        // Sent but not mined yet: keep the claim pending (DRIP_PENDING_MS), so a retry cannot send the money twice.
+        if (e instanceof TxStalledError) throw new StageError(504, "The money is on its way but the chain is slow. Try again in two minutes.", 120);
         // Free the claim so the phone can retry.
         await update<DripRecord, void>(state(), key, (cur) => (cur?.state === "pending" ? { value: null, result: undefined } : { result: undefined }));
         throw e;

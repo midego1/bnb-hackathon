@@ -37,15 +37,16 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 ///                               fleet owner, on anvil; FEE_RECIPIENT elsewhere)
 ///   FLEET_OPERATOR_FEE_BPS      operator fee in bps of vault income (default 1000 = 10%, max 3000)
 ///   FLEET_NAME / FLEET_SYMBOL   share token metadata (default "KeyEscrow Bangkok Fleet 1" / "BKK-FLEET-1")
-///   MAX_DEPOSIT                 pilot cap: max deposit per lease, in WHOLE tokens (default: 5 on BSC mainnet (56),
-///                               unlimited elsewhere)
-///   MAX_RENT_PER_PERIOD         pilot cap: max rent per period per lease, whole tokens (default 2 on 56, else unlimited)
-///   MAX_ACTIVE_VALUE            pilot cap: max deposits + unreleased rent held by all escrows together, whole tokens
-///                               (default 25 on 56, else unlimited). The factory owner can change all three later.
+///   MAX_DEPOSIT                 pilot cap: max deposit per lease, in tokens, decimals allowed ("0.70"; default: 0.70
+///                               on BSC mainnet (56), unlimited elsewhere)
+///   MAX_RENT_PER_PERIOD         pilot cap: max rent per period per lease, in tokens (default 0.30 on 56, else unlimited)
+///   MAX_ACTIVE_VALUE            pilot cap: max deposits + unreleased rent held by all escrows together, in tokens
+///                               (default 5 on 56, else unlimited). The factory owner can change all three later.
 /// Off anvil the deployer and every role address must not be one of anvil's public default accounts.
 contract Deploy is ScriptBase {
     error FeeBpsOutOfRange(uint256 feeBps);
     error WrongMainnetToken(address token);
+    error BadTokenAmount(string envName, string value);
 
     struct Deployment {
         address token;
@@ -98,9 +99,9 @@ contract Deploy is ScriptBase {
         if (d.token == address(0)) d.token = address(new MockUSDT());
         d.tokenDecimals = IERC20Metadata(d.token).decimals();
         d.tokenSymbol = IERC20Metadata(d.token).symbol();
-        d.maxDeposit = _cap("MAX_DEPOSIT", 5, d.tokenDecimals);
-        d.maxRentPerPeriod = _cap("MAX_RENT_PER_PERIOD", 2, d.tokenDecimals);
-        d.maxActiveValue = _cap("MAX_ACTIVE_VALUE", 25, d.tokenDecimals);
+        d.maxDeposit = _cap("MAX_DEPOSIT", "0.70", d.tokenDecimals);
+        d.maxRentPerPeriod = _cap("MAX_RENT_PER_PERIOD", "0.30", d.tokenDecimals);
+        d.maxActiveValue = _cap("MAX_ACTIVE_VALUE", "5", d.tokenDecimals);
         EscrowFactory factory = new EscrowFactory(
             IERC20(d.token),
             d.owner,
@@ -131,15 +132,45 @@ contract Deploy is ScriptBase {
         _write(d);
     }
 
-    /// @dev Pilot cap from env in whole tokens -> base units. Unset: `mainnetDefault` on BSC mainnet, unlimited elsewhere.
-    function _cap(string memory envName, uint256 mainnetDefault, uint8 decimals)
+    /// @dev Pilot cap from env in tokens ("0.70") -> base units. Unset: `mainnetDefault` on BSC mainnet, unlimited elsewhere.
+    function _cap(string memory envName, string memory mainnetDefault, uint8 decimals)
         internal
         view
         returns (uint256)
     {
-        uint256 unlimited = type(uint256).max;
-        uint256 tokens = vm.envOr(envName, block.chainid == BSC_MAINNET_CHAIN_ID ? mainnetDefault : unlimited);
-        return tokens == unlimited ? unlimited : tokens * 10 ** decimals;
+        string memory v = vm.envOr(envName, string(""));
+        if (bytes(v).length == 0) {
+            if (block.chainid != BSC_MAINNET_CHAIN_ID) return type(uint256).max;
+            v = mainnetDefault;
+        }
+        return _parseUnits(envName, v, decimals);
+    }
+
+    /// @dev "5", "0.70", "12.345" -> base units of a `decimals` token, exact (no floating point). Refuses anything
+    /// else: signs, exponents, two dots, no digits, or more fraction digits than the token has.
+    function _parseUnits(string memory envName, string memory s, uint8 decimals)
+        internal
+        pure
+        returns (uint256 v)
+    {
+        bytes memory b = bytes(s);
+        bool dot;
+        uint256 digits;
+        uint256 frac;
+        for (uint256 i = 0; i < b.length; i++) {
+            bytes1 c = b[i];
+            if (c == "." && !dot) {
+                dot = true;
+            } else if (c >= "0" && c <= "9") {
+                if (dot && ++frac > decimals) revert BadTokenAmount(envName, s);
+                v = v * 10 + (uint8(c) - 48);
+                digits++;
+            } else {
+                revert BadTokenAmount(envName, s);
+            }
+        }
+        if (digits == 0) revert BadTokenAmount(envName, s);
+        v *= 10 ** (decimals - frac);
     }
 
     function _write(Deployment memory d) internal {

@@ -242,8 +242,10 @@ same rules as above, plus:
 - **Real USDT:** the token is BSC-USD `0x55d398326f99059fF775485246999027B3197955` (18 decimals, read from the token
   into `deployments/56.json`). `TOKEN_ADDRESS` may only be unset or that address; MockUSDT is never deployed on 56.
 - **No Fleet Vault** on mainnet: revenue-sharing shares are a testnet prototype ([PRODUCT.md](PRODUCT.md)).
-- **Pilot caps** (whole USDT, from env, default 5 / 2 / 25): `MAX_DEPOSIT` per rental, `MAX_RENT_PER_PERIOD` per rental,
-  `MAX_ACTIVE_VALUE` for everything all escrows hold together. The factory owner changes them later with
+- **Pilot caps** (USDT from env, decimals allowed and parsed exactly, e.g. `MAX_DEPOSIT=0.70`; default 0.70 / 0.30 / 5,
+  so one rental is at most 1 USD): `MAX_DEPOSIT` per rental, `MAX_RENT_PER_PERIOD` per rental, `MAX_ACTIVE_VALUE` for
+  everything all escrows hold together. A 1.01 USD rental (0.71 deposit or 0.31 rent) reverts with `DepositAboveCap` /
+  `RentAboveCap`, which the app shows as "Pilot limit: ...". The factory owner changes them later with
   `cast send <factory> 'setCaps(uint256,uint256,uint256)' <base units> ...` (18 decimals); `setCaps(0, 0, 0)` stops all
   new rentals and funding, payouts keep working.
 - **Second opt-in:** `MAINNET_I_UNDERSTAND=yes` on top of `ALLOW_NON_LOCAL_BROADCAST=true`, checked by the wrapper and
@@ -265,6 +267,31 @@ The web app serves BSC mainnet only in a build with `NEXT_PUBLIC_CHAIN_ID=56` (o
 default PublicNode; explorer bscscan.com). That build lists no testnet, shows no faucet, and every amount uses the
 deployment's 18 decimals; the action API and the agent refuse a chain whose token has other decimals, so set
 `NEXT_PUBLIC_CHAIN_ID=56` (and `KEYESCROW_CHAIN_ID=56`) on the agent too.
+
+### The judge stage on BSC mainnet (real money, max 1 USD)
+
+The live stage demo (`/stage/<slug>` big screen, `/r/<slug>` judge's phone, `lib/server/stage`) has a mainnet mode in
+a `NEXT_PUBLIC_CHAIN_ID=56` build with `STAGE_DEMO=1`. Everything is labelled "Real money (BSC mainnet), max 1 USD".
+
+- **Price:** the stage item costs **0.30 rent + 0.70 deposit BSC-USD** on 56 whatever the listing says in THB (one
+  30-day period; the one-time fee is 10 % of it, 0.03). Baht first on every screen, the USDT beside it. Exactly the
+  default pilot caps, so a 1.01 USD rental reverts ("Pilot limit: ...").
+- **Drip:** real BSC-USD, transferred (never minted) from the funder wallet: exactly what the rental needs (1.00, never
+  more than 1 USDT) plus BNB up to 0.0003 for gas (the phone signs at <= 0.1 gwei; a whole rental costs the judge
+  ~400k gas, ~0.00004 BNB). Once per wallet; `STAGE_DRIPS_PER_HOUR` (default 10, max 30) and `STAGE_DRIPS_PER_DAY`
+  (default 30, max 100) phones; `STAGE_LEASES_PER_HOUR` (default 10). The funder stops (503 "out of money") when it
+  holds < 2 USDT or < 0.005 BNB. Never to the owner, funder or dispute desk.
+- **Wallets** (server env / Worker secrets only, never in git): `DEMO_MAINNET_OWNER_KEY` (the owner: offers the
+  rental, accepts the split; needs ~0.001 BNB), `DEMO_MAINNET_FUNDER_KEY` (the funder: BSC-USD + BNB for the drips; not
+  the deployer), optional `DEMO_MAINNET_RPC_URL` (default `NEXT_PUBLIC_BSC_RPC_URL`, else PublicNode) and
+  `DEMO_MAINNET_GAS_PRICE_GWEI` (default 0.1). The **dispute desk is the deployment's `defaultArbiter`**: deploy with
+  `DEFAULT_ARBITER` = the deployer address. The three must differ, or the stage refuses to start.
+- **Leakage, accepted:** the deposit (0.70 minus any AI claim) and the leftover gas go back to the judge's guest
+  wallet, whose key lives only in that phone's browser. The server cannot sweep it back. So each judge costs at most
+  1.00 USDT + 0.0003 BNB, 30 judges a day at most 30 USDT; the owner gets 0.27 + any claim back, the treasury 0.03.
+- **Rehearsal:** `pnpm stage:mainnet:rehearse` runs drip -> rent -> photos -> AI split -> accept -> settled on a local
+  `anvil --chain-id 56` (BSC-USD mock at the real address, the real mainnet deploy path, fresh keys), checks every
+  balance to the wei, that a 1.01 USD rental reverts with the pilot cap message, and the budget and hourly limits.
 
 ## opBNB testnet (chainId 5611): prepared, not deployed
 

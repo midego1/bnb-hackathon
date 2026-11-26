@@ -1,6 +1,7 @@
 // KeyEscrow web app on Cloudflare Workers (OpenNext adapter). See docs/CLOUDFLARE.md.
 //
-// Build:   pnpm cf:build     (chain 97 only; refuses NEXT_PUBLIC_DEV_ACCOUNTS=1)
+// Build:   pnpm cf:build     (chain 97; CF_CHAIN_ID=56 builds the mainnet stage Worker, env "mainnet" below;
+//                             refuses NEXT_PUBLIC_DEV_ACCOUNTS=1)
 // Preview: pnpm cf:preview   (wrangler dev, local workerd; never talks to the Cloudflare API)
 // Deploy:  pnpm cf:deploy    (needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID; refuses without them)
 //
@@ -48,5 +49,29 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KeyEscrowState"] }],
   // Evidence storage: the private R2 bucket (free tier; no r2.dev URL, no custom domain). Without this binding
   // POST /api/evidence falls back to small photos (<= 256 KB) in the Durable Object.
-  "r2_buckets": [{ "binding": "EVIDENCE", "bucket_name": "keyescrow-evidence" }]
+  "r2_buckets": [{ "binding": "EVIDENCE", "bucket_name": "keyescrow-evidence" }],
+  // The BSC mainnet (56) Worker for the judge stage, real money, max 1 USD: `CF_CHAIN_ID=56 pnpm cf:build`, then
+  // `pnpm cf:deploy` (scripts/cf.mjs adds --env mainnet). Its own name, vars, Durable Object and self-reference (wrangler
+  // does not inherit these); no R2 binding, so stage photos (<= 200 KB) sit in the Durable Object. Secrets:
+  // `wrangler secret put <NAME> --env mainnet` (docs/CLOUDFLARE.md).
+  "env": {
+    "mainnet": {
+      "name": "keyescrow-mainnet",
+      "vars": {
+        "NEXT_PUBLIC_CHAIN_ID": "56",
+        "KEYESCROW_PLATFORM": "cloudflare",
+        "VISION_LLM_PROVIDER": "anthropic",
+        "PRICE_CACHE_TTL_SECONDS": "300",
+        // Real money: 10 phones an hour, 30 a day (lib/server/stage/config.ts; the code caps them at 30 / 100).
+        "STAGE_DEMO": "1",
+        "STAGE_DRIPS_PER_HOUR": "10",
+        "STAGE_DRIPS_PER_DAY": "30"
+      },
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "keyescrow-mainnet" }],
+      "durable_objects": {
+        "bindings": [{ "name": "KEYESCROW_STATE", "class_name": "KeyEscrowState" }]
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["KeyEscrowState"] }]
+    }
+  }
 }
