@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Hex } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
-import { oneTimeFee, periodCount, periodName, rentPerPeriod, summarizeRentals, worstFlag, type ChainEvent } from "@/lib/rentals";
-import { incomeOf, scooterState, type Scooter } from "@/lib/fleet";
+import { oneTimeFee, periodCount, periodName, rentPerPeriod, splitRentals, summarizeRentals, worstFlag, type ChainEvent } from "@/lib/rentals";
+import { incomeOf, scooterByRental, scooterState, type Scooter } from "@/lib/fleet";
 
 const FACTORY = "0x00000000000000000000000000000000000000f1" as Address;
 const LEASE = "0x00000000000000000000000000000000000000a1" as Address;
@@ -109,5 +109,34 @@ describe("rent periods", () => {
     expect(rentPerPeriod(BigInt(100), W)).toBe(BigInt(23)); // 23.33 -> 23
     expect(oneTimeFee(BigInt(700_000_000), W, 1000)).toBe(BigInt(300_000_000)); // 10% of 3,000
     expect(oneTimeFee(BigInt(500_000_000), 30 * 86_400, 1000)).toBe(BigInt(50_000_000));
+  });
+});
+
+describe("rental lists", () => {
+  it("puts open rentals first and folds settled and cancelled ones under Earlier, keeping the newest-first order", () => {
+    const { Created, Active, MoveOut, Disputed, Settled, Cancelled } = LeaseStatus;
+    const rows = [
+      { id: "settled-new", status: Settled },
+      { id: "offer", status: Created },
+      { id: "cancelled", status: Cancelled },
+      { id: "active", status: Active },
+      { id: "unindexed", status: undefined },
+      { id: "return", status: MoveOut },
+      { id: "settled-old", status: Settled },
+      { id: "dispute", status: Disputed },
+    ];
+    const { open, earlier } = splitRentals(rows, (r) => r.status);
+    expect(open.map((r) => r.id)).toEqual(["offer", "active", "unindexed", "return", "dispute"]);
+    expect(earlier.map((r) => r.id)).toEqual(["settled-new", "cancelled", "settled-old"]);
+  });
+
+  it("finds the catalogue scooter a rental is linked to, whatever the address case", () => {
+    const click = { id: "click", name: "Honda Click 125i", rentals: [LEASE.toUpperCase().replace("0X", "0x")] } as unknown as Scooter;
+    const nmax = { id: "nmax", name: "Yamaha NMAX 155", rentals: [VAULT] } as unknown as Scooter;
+    const of = scooterByRental([click, nmax]);
+    expect(of.get(LEASE.toLowerCase())?.name).toBe("Honda Click 125i");
+    expect(of.get(VAULT)?.name).toBe("Yamaha NMAX 155");
+    expect(of.get(OWNER)).toBeUndefined();
+    expect(scooterByRental(undefined).size).toBe(0);
   });
 });

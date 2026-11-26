@@ -41,6 +41,8 @@ export const body: DeepPartial<typeof enBody> = {
       Transfer: "金库流入：{amount}",
     },
     earlier: "更早",
+    earlierRentals: "更早：已结清和已取消（{n}）",
+    noOpen: "目前没有进行中的租赁。",
     what: { rentals: "你的租赁" },
     state: { available: "可租", booked: "已预订，待付款", rented: "已出租", inspection: "验车中", dispute: "争议中" },
   },

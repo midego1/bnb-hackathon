@@ -4,7 +4,9 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
+import { useFleet } from "@/components/roles/shared";
 import { Amount, Skeleton, StatusBadge } from "@/components/ui";
+import { scooterByRental } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { useLease } from "@/lib/hooks/useLease";
 import { useT } from "@/lib/i18n/client";
@@ -14,6 +16,8 @@ import { nextStep, viewerRole } from "./model";
 export function LeaseCard({ address }: { address: Address }) {
   const { address: me } = useAccount();
   const { data: lease, error, refetch, isFetching } = useLease(address);
+  const { data: fleet } = useFleet();
+  const scooter = scooterByRental(fleet?.scooters).get(address.toLowerCase());
   const t = useT();
   if (error && !lease)
     return (
@@ -41,7 +45,10 @@ export function LeaseCard({ address }: { address: Address }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">{t("rental.card.rental")}<span className="font-mono">{shortAddress(address)}</span></p>
+          <p className="text-sm font-medium">
+            {scooter ? `${scooter.name} · ` : t("rental.card.rental")}
+            <span className="font-mono">{shortAddress(address)}</span>
+          </p>
           <p className="text-xs text-subtle">{other}</p>
         </div>
         <StatusBadge status={lease.status} />

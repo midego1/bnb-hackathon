@@ -7,14 +7,15 @@ import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
 import { ActionButton, Amount, Notice } from "@/components/ui";
-import { postFleet, scooterState, type Scooter } from "@/lib/fleet";
+import { postFleet, scooterByRental, scooterState, type Scooter } from "@/lib/fleet";
 import { shortAddress } from "@/lib/format";
 import { useDeployment } from "@/lib/hooks/useDeployment";
 import { useRentals } from "@/lib/hooks/useRentals";
 import { useT } from "@/lib/i18n/client";
+import { splitRentals, type RentalSummary } from "@/lib/rentals";
 import { usePrices } from "@/lib/usePrices";
 import { RentalCard } from "./RentalCard";
-import { useFleet } from "./shared";
+import { EarlierRentals, useFleet } from "./shared";
 import { ScooterStateBadge, thbToUsdt } from "./FleetOwner";
 
 /** Renter with a wallet: their rentals as big cards first, then the scooters they can book. */
@@ -28,8 +29,9 @@ export function Renter() {
   const me = address?.toLowerCase();
   const myBookings = (fleet?.bookings ?? []).filter((b) => b.renter.toLowerCase() === me && b.status !== "declined");
   const myRentals = (index?.rentals ?? []).filter((r) => r.tenant.toLowerCase() === me);
-  const scooterOf = new Map<string, Scooter>();
-  for (const s of fleet?.scooters ?? []) for (const r of s.rentals) scooterOf.set(r.toLowerCase(), s);
+  const { open, earlier } = splitRentals(myRentals, (r) => r.status);
+  const scooterOf = scooterByRental(fleet?.scooters);
+  const card = (r: RentalSummary) => <RentalCard key={r.address} r={r} scooter={scooterOf.get(r.address.toLowerCase())} now={index!.chainNow} you />;
   // Bookable scooters first.
   const scooters = (fleet?.scooters ?? [])
     .map((s) => ({ s, ...scooterState(s, rentalMap, fleet?.bookings) }))
@@ -43,11 +45,20 @@ export function Renter() {
         {myRentals.length === 0 ? (
           <p className="text-base text-muted-foreground">{t("renter.noneYet")}</p>
         ) : (
-          <ul className="space-y-4" data-testid="renter-rentals">
-            {myRentals.map((r) => (
-              <RentalCard key={r.address} r={r} scooter={scooterOf.get(r.address.toLowerCase())} now={index!.chainNow} you />
-            ))}
-          </ul>
+          <>
+            {open.length > 0 ? (
+              <ul className="space-y-4" data-testid="renter-rentals">
+                {open.map(card)}
+              </ul>
+            ) : (
+              <p className="text-base text-muted-foreground">{t("roles.noOpen")}</p>
+            )}
+            {earlier.length > 0 && (
+              <EarlierRentals n={earlier.length} testId="renter-earlier">
+                <ul className="space-y-4">{earlier.map(card)}</ul>
+              </EarlierRentals>
+            )}
+          </>
         )}
       </section>
 
