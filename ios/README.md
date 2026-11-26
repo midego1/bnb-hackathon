@@ -64,8 +64,14 @@ xcodebuild -scheme KeyEscrowE2E -destination 'platform=iOS Simulator,name=iPhone
 
 It rents a demo scooter: test money, offer, fund, pickup + return photos on-chain, AI inspection, proposal, the
 demo shop accepts, settled. Name the scooter with `TEST_RUNNER_E2E_SCOOTER="Honda PCX 160"` in front of the command
-(default: Honda Scoopy-i). A rental left half way is carried on, and a settled one is rented again, so every run is a
+(default: Honda Scoopy). A rental left half way is carried on, and a settled one is rented again, so every run is a
 whole rental. A second test signs an Ask AI approval card.
+
+Last run, on the shared catalogue (`3bb0ace`, both tests green in 107 s, `TEST_RUNNER_E2E_SCOOTER="Vespa Primavera
+150"`): escrow [`0x3ee44F72…6852`](https://testnet.bscscan.com/address/0x3ee44F72152aa0B0f20a44f3c3DB0a08527d6852)
+went from the demo shop's offer to settled
+([`0x80e76f47…43fb`](https://testnet.bscscan.com/tx/0x80e76f4716c36cc865d73d7dc673b367ea053f3ff7386659614e04a23d5643fb)):
+573.09 mUSDT paid in, 293.89 back to the renter, 251.28 to the owner, 27.92 fee.
 
 ## What is in the app
 
