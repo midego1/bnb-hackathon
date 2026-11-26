@@ -28,6 +28,9 @@ export interface AgentDeployment {
   registerTx: `0x${string}`;
   registeredAt: string;
   sdk: string;
+  /** Set by `pnpm agent:set-uri` when the registration file was replaced. */
+  setUriTx?: `0x${string}`;
+  updatedAt?: string;
 }
 
 export interface AgentConfig {

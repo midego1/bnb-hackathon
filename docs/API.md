@@ -152,8 +152,13 @@ State of each sponsor integration (`live`, `not-configured`, `blocked`, `off`), 
 last calls (endpoint, time, status, duration, note). Never returns key values.
 
 `POST /api/settlement` also takes an optional `scooterId`: the inspector then reads that scooter's earlier inspections
-(Living Brain, or the local stand-in) before judging, returns them under `memory`, and stores the new inspection
-(`memoryStored`).
+(Living Brain, or the local stand-in) before judging and returns them under `memory`. That is read-only. To also store
+the inspection, send `lease` (the RentalEscrow address, optional `chainId`): the server checks on-chain that this
+deployment's factory created it (`isLease`), then reads and writes memory under that rental's scooter (the catalogue
+scooter linked to it whose owner is the on-chain landlord, else the rental address), ignoring `scooterId`. What is
+stored: date, rental, findings, new damage yes/no and the report hash. `memoryStored` says whether it was written.
+Writes are limited to 20 an hour per caller IP (over it the inspection still runs, read-only). The agent's
+`inspect_move_out` (A2A, MCP, REST) takes no `lease` and never writes memory.
 
 ## GET /api/chain/index
 

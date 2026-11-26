@@ -9,6 +9,7 @@ import { assertSecretsPageBuildAllowed, settingsSecretsEnabled } from "@/lib/sec
 import { isEnvSet, setEnvValue, validateSecretValue, writeEnvFileAtomic } from "@/lib/server/secrets/envFile";
 import { checkRequest, isAllowedHost, isAllowedIp, RateLimiter } from "@/lib/server/secrets/guard";
 import { restartUnits, secretSpec, SECRETS } from "@/lib/server/secrets/registry";
+import { isTestable } from "@/lib/server/secrets/testers";
 import { auditFile, listSecrets, passcodeFile, restartUnit, secretsConfig, writeSecret, type Systemctl } from "@/lib/server/secrets/service";
 import { createSessionToken, ensurePasscode, passcodeMatches, readCookie, sessionCookie, sessionValid, SESSION_TTL_MS } from "@/lib/server/secrets/session";
 import { secretsPageAllowed } from "@/lib/server/secrets/page";
@@ -67,6 +68,9 @@ describe("value validation", () => {
     expect(validateSecretValue(spec("CMC_API_KEY"), "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c")).toBeTruthy();
     expect(validateSecretValue(spec("BSC_TESTNET_RPC_URL"), "https://bsc-testnet.example/v1/abc?key=1&x=2")).toBeTruthy();
     expect(validateSecretValue(spec("ANTHROPIC_API_KEY"), `sk-ant-api03-${"x".repeat(40)}`)).toBeTruthy();
+    expect(validateSecretValue(spec("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"), "0123456789abcdef0123456789ABCDEF")).toBeTruthy();
+    expect(validateSecretValue(spec("COURNOT_API_KEY"), "ck_live_abc-DEF_123")).toBeTruthy();
+    expect(validateSecretValue(spec("COURNOT_API_BASE"), "https://dev-interface.cournot.ai")).toBeTruthy();
   });
 
   it("rejects newlines, quotes, $, #, spaces, bad formats and over-long values, without echoing the value", () => {
@@ -85,6 +89,10 @@ describe("value validation", () => {
       ["LIVING_BRAIN_API_KEY", "x".repeat(600)],
       ["LIVING_BRAIN_API_KEY", ""],
       ["LIVING_BRAIN_API_KEY", "   "],
+      ["NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", `${secret}0123456789abcdef`],
+      ["COURNOT_API_KEY", `ck_test_${secret}`],
+      ["COURNOT_API_BASE", `https://${secret}.example`],
+      ["COURNOT_API_BASE", "http://interface.cournot.ai"],
     ];
     for (const [name, value] of cases) {
       let msg = "";
@@ -101,8 +109,33 @@ describe("value validation", () => {
 });
 
 describe("allowlist", () => {
-  it("has no NEXT_PUBLIC_ names and refuses them and unknown names", () => {
-    expect(SECRETS.some((s) => s.name.startsWith("NEXT_PUBLIC_"))).toBe(false);
+  it("lists every name of the secrets page request, each with a tester, in its group", () => {
+    const want: Record<string, string> = {
+      CMC_API_KEY: "prices",
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: "wallet",
+      BSC_TESTNET_RPC_URL: "rpc",
+      BSC_MAINNET_RPC_URL: "rpc",
+      PINATA_JWT: "storage",
+      COURNOT_API_KEY: "sponsors",
+      COURNOT_API_BASE: "sponsors",
+      LIVING_BRAIN_API_KEY: "sponsors",
+      LIVING_BRAIN_BRAIN_ID: "sponsors",
+    };
+    for (const [name, group] of Object.entries(want)) {
+      expect(secretSpec(name)?.group, name).toBe(group);
+      expect(isTestable(name), name).toBe(true);
+    }
+    expect(new Set(SECRETS.map((s) => s.name)).size).toBe(SECRETS.length);
+  });
+
+  it("allows only the public WalletConnect id of the NEXT_PUBLIC_ names; it goes to web/.env.local and needs a rebuild", () => {
+    expect(SECRETS.filter((s) => s.name.startsWith("NEXT_PUBLIC_")).map((s) => [s.name, s.public])).toEqual([["NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", true]]);
+    expect(spec("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID").targets).toEqual(["web"]);
+    expect(restartUnits(spec("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"))).toEqual([]);
+    expect(SECRETS.filter((s) => s.public).every((s) => s.name.startsWith("NEXT_PUBLIC_"))).toBe(true);
+  });
+
+  it("refuses other NEXT_PUBLIC_ names and unknown names", () => {
     expect(secretSpec("NEXT_PUBLIC_RPC_URL")).toBeUndefined();
     expect(secretSpec("PATH")).toBeUndefined();
     expect(secretSpec("NODE_OPTIONS")).toBeUndefined();
@@ -117,6 +150,9 @@ describe("allowlist", () => {
     expect(restartUnits(spec("CMC_API_KEY"))).toEqual(["keyescrow-web", "keyescrow-web-testnet"]);
     expect(restartUnits(spec("BSC_TESTNET_RPC_URL"))).toEqual(["keyescrow-web-testnet"]);
     expect(restartUnits(spec("CLOUDFLARE_API_TOKEN"))).toEqual([]);
+    expect(spec("BSC_MAINNET_RPC_URL").targets).toEqual(["root"]);
+    expect(restartUnits(spec("BSC_MAINNET_RPC_URL"))).toEqual([]);
+    expect(spec("COURNOT_API_BASE").targets).toEqual(["web"]);
   });
 });
 

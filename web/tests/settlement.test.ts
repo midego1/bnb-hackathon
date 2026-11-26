@@ -49,8 +49,8 @@ describe("mock settlement", () => {
   });
 
   it("selects Anthropic with a key, default model overridable (no network: constructor only)", () => {
-    expect(visionProviderFromEnv({ ANTHROPIC_API_KEY: "test" })?.model).toBe("claude-opus-5-5");
-    expect(visionProviderFromEnv({ ANTHROPIC_API_KEY: "test", VISION_LLM_MODEL: "claude-sonnet-5-5" })?.model).toBe("claude-sonnet-5-5");
+    expect(visionProviderFromEnv({ ANTHROPIC_API_KEY: "test" })?.model).toBe("claude-sonnet-5-5");
+    expect(visionProviderFromEnv({ ANTHROPIC_API_KEY: "test", VISION_LLM_MODEL: "claude-haiku-5-5" })?.model).toBe("claude-haiku-5-5");
   });
 
   it("is deterministic and sums to the deposit", async () => {

@@ -84,8 +84,7 @@ export const zh: DeepPartial<DemoCopy> = {
       `由 ${name}${agentId !== undefined ? `（ERC-8004 智能体 #${agentId}）` : ""}签名：它的身份登记在 BNB Chain 上，任何人都能核实这份报告出自它手。`,
     unsigned:
       "报告由 KeyEscrow 验车员智能体生成。本地演示未设置 INSPECTOR_PRIVATE_KEY，所以没有签名；设置密钥后，每份报告都由该智能体在 BNB Chain 上的 ERC-8004 身份签名。",
-    meta: (confidence, mock, provider) =>
-      `置信度 ${(confidence * 100).toFixed(0)}% · ${mock ? "演示验车员（未配置 AI 密钥）" : `视觉模型：${provider}`} · 报告`,
+    meta: (confidence, by) => `置信度 ${(confidence * 100).toFixed(0)}% · ${by} · 报告`,
   },
 
   summaryCopy: {

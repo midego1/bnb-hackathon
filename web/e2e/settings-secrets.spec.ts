@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { E2E_SECRETS } from "./env";
+import { E2E_SECRETS, E2E_WEB_PORT } from "./env";
 import { hydrated } from "./hydrated";
 
 /**
@@ -33,8 +33,8 @@ function recordBodies(page: Page) {
   return bodies;
 }
 
-async function unlock(page: Page) {
-  await page.goto("/settings/secrets");
+async function unlock(page: Page, url = "/settings/secrets") {
+  await page.goto(url);
   await expect(page.getByTestId("secrets-unlock")).toBeVisible();
   await hydrated(page.getByTestId("secrets-unlock-submit"));
   await page.getByTestId("secrets-passcode").fill("wrong-passcode");
@@ -134,18 +134,19 @@ test("secrets API: locked without a session, refuses cross-site posts and unknow
     headers: { origin: "http://evil.example" },
   });
   expect(cross.status()).toBe(403);
-  // The page itself: not found through a proxy or from another Host; security headers from next.config.ts. The page
-  // streams (Cache Components), so a refusal is the not-found page with noindex in a 200, never the secrets view; the
-  // API below answers real 403s.
-  const page = await request.get("/settings/secrets");
+  // The page itself: served to a tailnet Host and client (as the paseo-box units see them), a real 404 through a proxy
+  // or from another Host; security headers from next.config.ts. The API below answers real 403s.
+  const page = await request.get("/settings/secrets", { headers: { host: `100.96.145.38:${E2E_WEB_PORT}`, "x-forwarded-for": "100.101.102.103" } });
   expect(page.status()).toBe(200);
   expect(page.headers()["x-frame-options"]).toBe("DENY");
   expect(page.headers()["referrer-policy"]).toBe("no-referrer");
   expect(await page.text()).toContain('data-testid="secrets-page"');
-  for (const headers of [{ "cf-connecting-ip": "1.2.3.4" }, { host: "keyescrow.example.com" }] as Record<string, string>[]) {
-    const refused = await (await request.get("/settings/secrets", { headers })).text();
-    expect(refused).not.toContain('data-testid="secrets-page"');
-    expect(refused).toMatch(/<meta name="robots" content="noindex"/);
+  for (const headers of [{ "cf-connecting-ip": "1.2.3.4" }, { host: "keyescrow.example.com" }, { "x-forwarded-for": "8.8.8.8" }] as Record<string, string>[]) {
+    const refused = await request.get("/settings/secrets", { headers });
+    expect(refused.status()).toBe(404);
+    const text = await refused.text();
+    expect(text).not.toContain('data-testid="secrets-page"');
+    expect(text).toMatch(/<meta name="robots" content="noindex"/);
   }
   const otherHost = await request.get("/api/settings/secrets", { headers: { host: "keyescrow.example.com" } });
   expect(otherHost.status()).toBe(403);
@@ -219,12 +220,12 @@ test("key tests: Test checks the stored value, Test before saving checks the typ
     await expect(rpcRow.getByTestId("secret-test-result")).toContainText("chainId 97");
     expect(readFileSync(E2E_SECRETS.root, "utf8")).toBe(ROOT_TEXT);
 
-    // No free test for Cournot: Can't test, and the stub is never asked.
+    // No free key check for Cournot: the format only, and the stub is never asked.
     const cournot = page.getByTestId("secret-COURNOT_API_KEY");
     await cournot.getByTestId("secret-input").fill("ck_live_abcdefgh1234");
     await cournot.getByTestId("secret-test-typed").click();
-    await expect(cournot.getByTestId("secret-test-result")).toHaveAttribute("data-status", "untestable");
-    await expect(cournot.getByTestId("secret-test-result")).toContainText("without spending credits");
+    await expect(cournot.getByTestId("secret-test-result")).toHaveAttribute("data-status", "valid");
+    await expect(cournot.getByTestId("secret-test-result")).toContainText("ck_live_ key");
 
     expect(stub.hits.filter((h) => h.includes("anthropic")).length).toBe(2);
     expect(stub.hits.some((h) => h.includes("cournot"))).toBe(false);
@@ -247,4 +248,74 @@ test("key tests: Test checks the stored value, Test before saving checks the typ
   } finally {
     await new Promise((r) => stub.server.close(r));
   }
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// As on the paseo-box: a tailnet Host (a MagicDNS name, mapped to the e2e server) and a 100.x client. The page must
+// hydrate and show the passcode prompt first, then every field in its group.
+// ---------------------------------------------------------------------------------------------------------
+
+const TAILNET_HOST = "paseo-box.tail0000.ts.net";
+// File level: launch options force a new worker. Only this name is mapped; the other tests use 127.0.0.1.
+test.use({ launchOptions: { args: [`--host-resolver-rules=MAP ${TAILNET_HOST} 127.0.0.1`] } });
+
+test.describe("from a tailnet host", () => {
+  test("passcode prompt first, then the grouped fields; Test on a mocked RPC", async ({ page }) => {
+    seed();
+    const stub = await startStub();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("console", (m) => {
+      if (m.type() === "error" && !m.text().startsWith("Failed to load resource")) errors.push(m.text());
+    });
+    // A 100.x client, on requests to the app only (anvil's CORS preflight would refuse the extra header).
+    const app = `http://${TAILNET_HOST}:${E2E_WEB_PORT}`;
+    await page.route(`${app}/**`, (route) => route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": "100.96.145.38" } }));
+    try {
+      await page.setViewportSize({ width: 1470, height: 900 });
+      await unlock(page, `${app}/settings/secrets`);
+
+      const groups: Record<string, [string, string[]]> = {
+        prices: ["Prices", ["CMC_API_KEY"]],
+        wallet: ["Wallet connect", ["NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"]],
+        rpc: ["RPC", ["BSC_TESTNET_RPC_URL", "BSC_MAINNET_RPC_URL"]],
+        storage: ["Storage", ["PINATA_JWT"]],
+        sponsors: ["Sponsors", ["COURNOT_API_KEY", "COURNOT_API_BASE", "LIVING_BRAIN_API_KEY", "LIVING_BRAIN_BRAIN_ID"]],
+      };
+      for (const [group, [title, names]] of Object.entries(groups)) {
+        const card = page.getByTestId(`secrets-group-${group}`);
+        await expect(card.getByRole("heading", { level: 2 })).toHaveText(title);
+        for (const name of names) {
+          const row = card.getByTestId(`secret-${name}`);
+          await expect(row.getByTestId("secret-input")).toBeVisible();
+          await expect(row.getByTestId("secret-save")).toBeVisible();
+          await expect(row.getByTestId("secret-test")).toBeVisible();
+          await expect(row.getByTestId("secret-test-typed")).toBeVisible();
+        }
+      }
+      // The public WalletConnect id goes to web/.env.local and needs a rebuild, not a restart.
+      await expect(page.getByTestId("secret-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID").getByTestId("secret-where")).toContainText("web/.env.local");
+      await expect(page.getByTestId("secret-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID").getByTestId("secret-where")).toContainText("rebuild");
+
+      // Test before saving on a mocked RPC: the stub answers chain 97, so the mainnet field says wrong chain.
+      const rpc = `http://127.0.0.1:${E2E_SECRETS.stubPort}/rpc`;
+      const mainnet = page.getByTestId("secret-BSC_MAINNET_RPC_URL");
+      await mainnet.getByTestId("secret-input").fill(rpc);
+      await mainnet.getByTestId("secret-test-typed").click();
+      await expect(mainnet.getByTestId("secret-test-result")).toHaveAttribute("data-status", "invalid");
+      await expect(mainnet.getByTestId("secret-test-result")).toContainText("chainId 97, expected 56");
+      const testnet = page.getByTestId("secret-BSC_TESTNET_RPC_URL");
+      await testnet.getByTestId("secret-input").fill(rpc);
+      await testnet.getByTestId("secret-test-typed").click();
+      await expect(testnet.getByTestId("secret-test-result")).toHaveAttribute("data-status", "valid");
+      await expect(testnet.getByTestId("secret-test-result")).toContainText("chainId 97");
+      expect(readFileSync(E2E_SECRETS.root, "utf8")).toBe(ROOT_TEXT);
+
+      await page.getByTestId("secrets-group-rpc").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(SHOTS, "tailnet-grouped-fields.png") });
+      expect(errors).toEqual([]);
+    } finally {
+      await new Promise((r) => stub.server.close(r));
+    }
+  });
 });

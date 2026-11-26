@@ -51,9 +51,10 @@ Anvil is not reachable from Cloudflare, so `pnpm cf:build` only builds for BSC t
   vars and secrets.
 - `cacheComponents` / `partialPrefetching` are off (with them every page render hangs under workerd; the Node build has
   them off too because every page reads the language cookie in the root layout; nothing uses `"use cache"`), and the
-  BNB Greenfield SDK is replaced by a stub (it adds ~5 MiB and evidence goes to R2 on Workers). Without
-  `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (only injected wallets) the MetaMask and Base Account SDKs, which wagmi's
-  connectors import lazily, are stubbed too (~0.38 MiB gzip).
+  BNB Greenfield SDK is replaced by a stub (it adds ~5 MiB and evidence goes to R2 on Workers). The MetaMask and
+  Base Account SDKs, which wagmi's connectors import lazily, are stubbed too (~0.38 MiB gzip), also with
+  `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` set: the Workers build then offers injected wallets, Rainbow and WalletConnect
+  (`lib/wagmi.ts`), and MetaMask connects as an injected wallet or through WalletConnect.
 
 `cf:build` ends by copying the prerendered pages into the static assets (`opennextjs-cloudflare populateCache local`,
 which deploy repeats), so the preview serves what deploys. That step prints a wrangler warning that the
@@ -70,7 +71,7 @@ Object), so the browser sends no `eth_getLogs`.
 | Route | On Workers |
 | --- | --- |
 | `GET /api/price` | Same sources (Atlas, CoinMarketCap with `CMC_API_KEY`, else mock). The quote is cached in memory per isolate and, across isolates, in the KeyEscrowState Durable Object for `PRICE_CACHE_TTL_SECONDS` (300 in `wrangler.jsonc`). Mock answers are never shared. |
-| `POST /api/settlement` | Same code. Mock without `ANTHROPIC_API_KEY`; signed as agent #2921 with `INSPECTOR_PRIVATE_KEY`. With a live model: 10 inspections per hour per caller IP (Durable Object rate limit). |
+| `POST /api/settlement` | Same code. Mock without `ANTHROPIC_API_KEY`; signed as agent #2921 with `INSPECTOR_PRIVATE_KEY`. With a live model (`claude-sonnet-5-5`): 10 inspections per hour per caller IP and `SETTLEMENT_DAILY_CALLS` (default 300) per 24 hours for the whole Worker (Durable Object rate limits). Photos come from the Durable Object evidence store by hash, or for the `/demo` walkthrough from the static assets by url (`ASSETS` binding). Over the cap, or when Anthropic is busy, the demo inspector answers, labelled. |
 | `POST /api/evidence`, `GET /api/evidence/<hash>` | No disk on Workers. With the `EVIDENCE` R2 bucket bound: stored there as `evidence/<sha256>` (private). Without it: uploads answer **503 "evidence uploads are disabled on this deployment"**, the browser hashes the files itself (the hashes still go on-chain), and lookups 404. The demo's own lease PDF and photos are static files under `/demo/`, so the demo does not need the bucket. |
 | `GET /api/risk` | CoinMarketCap quotes cached per isolate and in the Durable Object (`RISK_CACHE_TTL_SECONDS`); latest Cournot answer from the store below. |
 | `GET/POST /api/cournot` | Committed answers (`web/data/cournot-results.json`) are bundled into the Worker; new live answers go to the Durable Object (newest 100). |
@@ -123,7 +124,8 @@ without them the app runs in mock / read-only mode. **Never** put them in `wrang
 | `KEYESCROW_STATE` | binding (Durable Object `KeyEscrowState`, migration `v1`, SQLite) | Locks, rate limits, caches, the live demo run |
 | `EVIDENCE` | binding (R2 bucket `keyescrow-evidence`), **optional, commented out** | Evidence uploads. R2 needs R2 enabled on the account (a payment method on file, even within the free 10 GB) |
 | `NEXT_PUBLIC_CHAIN_ID`, `KEYESCROW_PLATFORM`, `VISION_LLM_PROVIDER`, `PRICE_CACHE_TTL_SECONDS`, `DEMO_TESTNET_RUNNER` | vars (in `wrangler.jsonc`) | `97`, `cloudflare`, `anthropic`, `300`, `1` |
-| `ANTHROPIC_API_KEY` | secret | Live AI inspection (mock without it) |
+| `ANTHROPIC_API_KEY` | secret | Live AI inspection and Ask AI, both on `claude-sonnet-5-5` (mock / demo model without it) |
+| `SETTLEMENT_DAILY_CALLS`, `ASSISTANT_DAILY_TOKENS`, `VISION_LLM_MODEL`, `ASSISTANT_MODEL` | vars, optional | Cost caps: live inspections per 24 h (default 300), Ask AI tokens per UTC day (default 1000000); models: `claude-sonnet-5-5` (default) or `claude-haiku-5-5` |
 | `INSPECTOR_PRIVATE_KEY` | secret | Signs settlement reports as agent #2921 (must be the registered `reportSigner`) |
 | `CMC_API_KEY` | secret | CoinMarketCap: `/api/price` and the `/api/risk` deposit buffer |
 | `ATLAS_RPC_URL` | secret | Atlas on-chain price feeds; with the vars `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB`, `ATLAS_MAX_AGE_SECONDS` |
@@ -145,7 +147,7 @@ The demo limits (`DEMO_TESTNET_MIN_GAP_S`, `DEMO_TESTNET_RUNS_PER_HOUR`, `DEMO_T
 | `KEYESCROW_RPC_URL_97` | var or secret, optional | RPC of the rental-action tools (default PublicNode) |
 | `AGENT_PUBLIC_URL` | var, optional | Base URL in the agent card / registration file; defaults to the URL the request came in on |
 | `INSPECTOR_PRIVATE_KEY` | secret | Report signer; must match `reportSigner` of agent #2921 or the Worker answers 500 "agent misconfigured" |
-| `ANTHROPIC_API_KEY` | secret | Live vision model (mock without it) |
+| `ANTHROPIC_API_KEY` | secret | Live vision model (mock without it). Not set on the live agent Worker: the key is on keyescrow-web only |
 | `EVIDENCE` | binding (R2), optional, commented out | Same bucket as the web app, to read photos by hash |
 
 For local preview, put secrets in `web/.dev.vars` / `agent/.dev.vars` (gitignored; `web/.dev.vars.example` lists the
@@ -158,12 +160,14 @@ modules); `wrangler deploy --dry-run` reports `Total Upload` 2791 KiB gzip for t
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 13.58 MiB | **2.70 MiB** | fits Free (3 MiB), 0.30 MiB headroom |
+| `keyescrow-web` | 13.86 MiB | **2.77 MiB** | fits Free (3 MiB), 0.23 MiB headroom |
 | `keyescrow-agent` | 4.34 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
 time (`Total Upload ... gzip`) may differ slightly. It reached 2.97 MiB (3043 KiB) before the MetaMask and Base
-Account SDKs were stubbed (-393 KiB, `Total Upload` 2650 KiB). The merges since the first build added
+Account SDKs were stubbed (-393 KiB, `Total Upload` 2650 KiB). With `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` set those
+SDKs used to come back (3.04 MiB gzip, over Free); they now stay stubbed, and the size is the same with or without the
+id (2.77 MiB gzip, 13.89 / 13.86 MiB raw). The merges since the first build added
 0.43 MiB (lease-tools alone 0.23 MiB); the rest is Next's server chunks (wallet libraries, viem per route). Run
 `pnpm cf:build && pnpm cf:preview` then `pnpm cf:size` after big merges: over 3 MiB the web Worker needs Workers Paid
 ($5/month, 10 MiB limit), or a trim of the server bundle.

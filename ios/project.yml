@@ -1,0 +1,84 @@
+name: KeyEscrow
+options:
+  bundleIdPrefix: org.keyescrow
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # No team here on purpose: pick your own (Personal Team) in Xcode > Signing. Never commit a team ID.
+    CODE_SIGN_STYLE: Automatic
+packages:
+  P256K:
+    url: https://github.com/21-DOT-DEV/swift-secp256k1
+    exactVersion: 0.25.1
+targets:
+  KeyEscrow:
+    type: application
+    platform: iOS
+    sources:
+      - KeyEscrow
+    dependencies:
+      - package: P256K
+        product: P256K
+    info:
+      path: KeyEscrow/Info.plist
+      properties:
+        CFBundleDisplayName: KeyEscrow
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight, UIInterfaceOrientationPortraitUpsideDown]
+        NSCameraUsageDescription: KeyEscrow takes pickup and return photos of the rental. Only their SHA-256 fingerprints go on-chain.
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.keyescrow.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_PREVIEWS: YES
+  KeyEscrowTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - KeyEscrowTests
+    dependencies:
+      - target: KeyEscrow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.keyescrow.ios.tests
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/KeyEscrow.app/KeyEscrow"
+  KeyEscrowE2E:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - KeyEscrowE2E
+    dependencies:
+      - target: KeyEscrow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.keyescrow.ios.e2e
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: KeyEscrow
+schemes:
+  KeyEscrow:
+    build:
+      targets:
+        KeyEscrow: all
+        KeyEscrowTests: [test]
+    test:
+      targets:
+        - KeyEscrowTests
+  KeyEscrowE2E:
+    build:
+      targets:
+        KeyEscrow: all
+        KeyEscrowE2E: [test]
+    test:
+      targets:
+        - KeyEscrowE2E

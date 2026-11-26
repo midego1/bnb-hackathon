@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n/client";
 import { LANG_INIT_SCRIPT } from "@/lib/i18n/locales";
@@ -12,6 +12,10 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 /** Public origin of the deployed site (optional, e.g. https://keyescrow.example): makes the social-card image URL absolute. */
 const siteUrl = process.env.SITE_URL;
+
+/** Phones: draw under the notch / home bar (pages pad with env(safe-area-inset-*)); the keyboard shrinks the page, so a
+ * focused input or the Ask AI composer is never hidden behind it. */
+export const viewport: Viewport = { viewportFit: "cover", interactiveWidget: "resizes-content" };
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();

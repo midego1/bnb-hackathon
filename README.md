@@ -62,7 +62,7 @@ The screenshots come from a local run of the same build (hence `127.0.0.1` under
 | Open-source quality | MIT; [tests and CI](#tests-and-ci); [security review](docs/SECURITY.md); [CONTRIBUTING.md](CONTRIBUTING.md) |
 | BNB Chain integration | [What makes it BNB-native](#what-makes-it-bnb-native): ERC-8004 #2921, BSC testnet, opBNB-ready, BNB Greenfield evidence |
 | CoinMarketCap x Atlas track | [docs/WRITEUP.md](docs/WRITEUP.md) and [sponsor integrations](#sponsor-integrations) |
-| Business model and roadmap | [docs/BUSINESS.md](docs/BUSINESS.md): the 10 % one-time fee, dispute desk, Fleet Vault, subscriptions (weekly, every 2 weeks, monthly), the capped mainnet pilot |
+| Business model and roadmap | [docs/BUSINESS.md](docs/BUSINESS.md): the 10 % one-time fee, dispute desk, Fleet Vault, subscriptions (weekly, every 2 weeks, monthly), the capped mainnet pilot, asset pools (roadmap, no token) |
 
 ### All links
 
@@ -240,7 +240,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
 | Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Blocked: no BSC testnet feed addresses published |
-| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging and stores each new one | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
+| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
 ### CoinMarketCap
 
@@ -267,8 +267,9 @@ mainnet) feed addresses; Atlas assigns them during onboarding.
 
 `web/lib/server/sponsors/livingbrain.ts`: before judging, the AI inspector (`POST /api/settlement` and the agent)
 searches the scooter's brain (`POST /v1/brains/{brainId}/search`) for its earlier inspections ("damage listed here
-already existed: do not charge again"). After judging, it stores the new inspection (`POST /v1/brains/{brainId}/captures`,
-`originRef` = report hash for idempotency). The recalled history is part of the hashed report and is shown under the
+already existed: do not charge again"). After judging, `POST /api/settlement` stores the new inspection
+(`POST /v1/brains/{brainId}/captures`, `originRef` = report hash for idempotency), only for a rental it verified
+on-chain and under that rental's scooter, at most 20 writes an hour per IP. The agent's public faces only read. The recalled history is part of the hashed report and is shown under the
 AI proposal as "Scooter memory". Without `LIVING_BRAIN_*`, a local file (`web/.sponsor-logs/inspections.jsonl`)
 stands in, labelled as such.
 

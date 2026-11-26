@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useConfirm } from "@/components/ConfirmDialog";
 import { ActionButton, Card, Notice, PageTitle, Skeleton, inputClass } from "@/components/ui";
 import { useT } from "@/lib/i18n/client";
+import type { SecretGroup } from "@/lib/server/secrets/registry";
 
 /**
  * The write-only secrets page. A value is read from the input once, the input is cleared before the request leaves,
@@ -13,8 +14,7 @@ import { useT } from "@/lib/i18n/client";
 type FileStatus = { target: "root" | "web"; label: string; set: boolean };
 type Secret = {
   name: string;
-  group: string;
-  groupLabel: string;
+  group: SecretGroup;
   purpose: string;
   source: { label: string; url?: string };
   format: string;
@@ -22,6 +22,7 @@ type Secret = {
   files: FileStatus[];
   set: boolean;
   restart: { unit: string; label: string }[];
+  rebuild: boolean;
   testable: boolean;
 };
 type TestOutcome = { status: "valid" | "invalid" | "untestable"; reason: string; testedAt: string; source: "stored" | "typed" };
@@ -97,14 +98,16 @@ export function SecretsView() {
             </ActionButton>
           </div>
           {listing.restartEnabled && <Units units={listing.units} reload={load} />}
-          {groups(listing.secrets).map(([label, items]) => (
-            <Card key={label} title={label}>
-              <ul className="flex flex-col divide-y divide-border">
-                {items.map((s) => (
-                  <SecretRow key={s.name} secret={s} onChanged={() => void load()} />
-                ))}
-              </ul>
-            </Card>
+          {groups(listing.secrets).map(([group, items]) => (
+            <div key={group} data-testid={`secrets-group-${group}`}>
+              <Card title={t(`secrets.groups.${group}`)}>
+                <ul className="flex flex-col divide-y divide-border">
+                  {items.map((s) => (
+                    <SecretRow key={s.name} secret={s} onChanged={() => void load()} />
+                  ))}
+                </ul>
+              </Card>
+            </div>
           ))}
         </div>
       )}
@@ -112,9 +115,9 @@ export function SecretsView() {
   );
 }
 
-function groups(secrets: Secret[]): [string, Secret[]][] {
-  const out = new Map<string, Secret[]>();
-  for (const s of secrets) out.set(s.groupLabel, [...(out.get(s.groupLabel) ?? []), s]);
+function groups(secrets: Secret[]): [Secret["group"], Secret[]][] {
+  const out = new Map<Secret["group"], Secret[]>();
+  for (const s of secrets) out.set(s.group, [...(out.get(s.group) ?? []), s]);
   return [...out];
 }
 
@@ -281,7 +284,7 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
         <p className="text-subtle" data-testid="secret-where">
           {t("secrets.writtenTo", { files })}
           {" · "}
-          {s.restart.length ? <>{t("secrets.restart")} {s.restart.map((u) => `${u.label} (${u.unit})`).join(", ")}</> : t("secrets.noRestart")}
+          {s.rebuild ? t("secrets.rebuild") : s.restart.length ? <>{t("secrets.restart")} {s.restart.map((u) => `${u.label} (${u.unit})`).join(", ")}</> : t("secrets.noRestart")}
         </p>
         {s.note && <p className="text-subtle">{s.note}</p>}
       </div>
@@ -338,7 +341,7 @@ function SecretRow({ secret: s, onChanged }: { secret: Secret; onChanged: () => 
       {savedAt && !error && (
         <p className="text-sm text-success-fg" data-testid="secret-saved">
           {t(savedAt.cleared ? "secrets.cleared" : "secrets.saved", { at: savedAt.at })}
-          {s.restart.length > 0 && t("secrets.restartToUse", { units: s.restart.map((u) => u.label).join(t("secrets.and")) })}
+          {s.rebuild ? t("secrets.rebuildToUse") : s.restart.length > 0 && t("secrets.restartToUse", { units: s.restart.map((u) => u.label).join(t("secrets.and")) })}
         </p>
       )}
     </li>

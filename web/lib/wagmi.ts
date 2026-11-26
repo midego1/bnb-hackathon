@@ -1,5 +1,5 @@
 import { connectorsForWallets, getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
+import { injectedWallet, rainbowWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
 import { anvil, anvilRpcUrl, bsc, bscRpcUrl, bscTestnet, bscTestnetRpcUrl, opBNBTestnet, opBNBTestnetRpcUrl, supportedChains } from "./chains";
 import { devAccountsConnector } from "./devAccounts";
@@ -26,6 +26,9 @@ const walletConnectors = connectorsForWallets([{ groupName: "Browser wallet", wa
  * to injected browser wallets (MetaMask, Rabby, Binance Web3 Wallet extension, ...). The anvil dev
  * account switcher is added only in builds with NEXT_PUBLIC_DEV_ACCOUNTS=1.
  */
+// The Cloudflare build stubs the MetaMask and Base Account SDKs (Worker size, next.config.ts), so its full list leaves
+// out the two wallets that load them: MetaMask still connects as an injected wallet or through WalletConnect.
+const sdkWallets = process.env.KEYESCROW_WALLET_SDKS !== "stubbed";
 // The env check is inlined (not imported) so production builds constant-fold it and drop the dev connector.
 const devAccountsEnabled = process.env.NEXT_PUBLIC_DEV_ACCOUNTS === "1";
 
@@ -37,6 +40,7 @@ export const wagmiConfig =
         chains: supportedChains,
         transports,
         ssr: true,
+        ...(sdkWallets ? {} : { wallets: [{ groupName: "Popular", wallets: [injectedWallet, rainbowWallet, walletConnectWallet] }] }),
       })
     : createConfig({
         chains: supportedChains,

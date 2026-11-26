@@ -10,7 +10,8 @@ import { stageConfig } from "@/lib/server/stage/config";
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary())("stage.metaTitle") };
 }
-export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+// viewportFit cover: the stage's sticky presenter bar pads itself by env(safe-area-inset-bottom) (home indicator).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 async function Inner({ params }: { params: Promise<{ slug: string }> }) {
   await connection(); // STAGE_DEMO is read at request time

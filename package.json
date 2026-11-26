@@ -39,6 +39,8 @@
     "agent:verify": "pnpm -C agent verify",
     "agent:register:check": "pnpm -C agent register check",
     "agent:register": "pnpm -C agent register register",
+    "agent:set-uri:check": "pnpm -C agent register set-uri-check",
+    "agent:set-uri": "pnpm -C agent register set-uri",
     "agent:rehearse": "pnpm -C agent rehearse",
     "cf:build": "pnpm -C web cf:build",
     "cf:preview": "pnpm -C web cf:preview",

@@ -10,11 +10,12 @@ import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
 import { responseWindow } from "@/lib/windows";
 import { formatUsdt, parseUsdt } from "@/lib/format";
 import { hashText } from "@/lib/hash";
+import { useDeployment } from "@/lib/hooks/useDeployment";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
-import { runInspection, type InspectionResult } from "@/lib/settlement";
+import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
 import { dateTimeIn, utcDateTimeIn } from "./copy";
 import { evidenceFromEvents } from "./evidence";
 import { HashLink } from "./EvidencePanel";
@@ -139,7 +140,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
   const [report, setReport] = useState<InspectionResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [scooterId, setScooterId] = useState("");
+  const { chainId } = useDeployment();
   const [refund, setRefund] = useState(formatUsdt(lease.terms.depositAmount).replace(/,/g, ""));
   const [reason, setReason] = useState("");
   const deposit = lease.terms.depositAmount;
@@ -152,7 +153,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
     setInspecting(true);
     setAiError(null);
     try {
-      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined, scooterId: scooterId.trim() || lease.address }));
+      setReport(await runInspection({ deposit, checkIn, checkOut, notes: notes || undefined, lease: lease.address, chainId }));
     } catch (e) {
       setAiError((e as Error).message);
     } finally {
@@ -173,9 +174,6 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
         <div className="mt-3 grid gap-3">
           <Field label={t("rental.move.notes")}>
             <input className={inputClass} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("rental.move.notesPlaceholder")} />
-          </Field>
-          <Field label={t("rental.move.scooterId")} hint={t("rental.move.scooterIdHint")}>
-            <input className={inputClass} value={scooterId} onChange={(e) => setScooterId(e.target.value)} placeholder={t("rental.move.scooterIdPlaceholder")} data-testid="scooter-id" />
           </Field>
           <ActionButton
             variant="secondary"
@@ -200,7 +198,7 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
               <p className="text-sm font-medium">{t("rental.move.aiProposal")}</p>
               <span className="text-xs text-subtle">
                 {t("rental.move.confidence", { pct: (report.confidence * 100).toFixed(0) })}
-                {report.mock ? t("rental.move.demoInspector") : t("rental.move.visionModel", { provider: report.provider })}
+                {answeredBy(report, t)}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -300,7 +298,7 @@ function DisputeButton({ lease }: { lease: LeaseData }) {
   );
 }
 
-/** What the inspector remembered about this scooter before judging (Living Brain or local stand-in). */
+/** The scooter's earlier inspections the inspector read before judging (Living Brain or local stand-in). */
 function MemoryNote({ memory, stored }: { memory: NonNullable<InspectionResult["memory"]>; stored?: boolean }) {
   const t = useT();
   return (
