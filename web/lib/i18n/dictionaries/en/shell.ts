@@ -105,6 +105,7 @@ export const body = {
     },
     copied: "Copied",
     copyAddress: "Copy address",
+    demoPersona: "demo persona",
     now: "now",
     in: "in {left}",
     duration: { dh: "{d}d {h}h", hm: "{h}h {m}m", m: "{m}m" },

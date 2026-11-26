@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { Badge } from "@/components/ui/badge";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
+import { DemoPersona } from "@/components/DemoPersona";
 import { ActionButton, AddressTag, Amount, Card, Countdown, Field, inputClass, Notice, Skeleton, StatusBadge, useMoney } from "@/components/ui";
 import { utcDateTimeIn } from "@/components/lease/copy";
 import { PayeeMrrKpi } from "@/components/subscriptions/OwnerSubscriptions";
@@ -119,6 +120,7 @@ function VaultDashboard() {
                     <Link className="font-mono underline-offset-2 hover:underline" href={`/lease/${r.address}`}>
                       {shortAddress(r.address)}
                     </Link>
+                    <DemoPersona address={r.tenant} />
                   </span>
                   <span className="text-xs text-subtle">
                     {t("holders.rentDamage", { rent: money(r.totals.rentToOwner), damage: money(r.totals.slashed) })}

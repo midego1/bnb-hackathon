@@ -178,6 +178,66 @@ arbiter = dispute desk, funder pays the drips), or on local anvil (31337, its pu
 `STAGE_PRESENTER_CODE` locks Accept / Reset; `STAGE_DRIPS_PER_HOUR` (30) and `STAGE_LEASES_PER_HOUR` (20) cap use.
 Rehearse headless: `cd web && npx playwright test stage`.
 
+## Demo world: 3 shops, 10 renters (`pnpm testnet:world`)
+
+So the dispute desk, the back office and the Living Brain memory have a believable history, `pnpm testnet:world`
+builds a small world on BSC testnet with real contract calls. Everyone in it is **fictional** and labelled DEMO
+(`web/data/demo-world.json`): on-chain a wallet is only an address, and the app shows the name with a **demo persona**
+badge wherever it shows one of these wallets (back office rows, the history cards on the dispute desk and on a
+disputed rental, the Fleet Vault's rentals on /shareholders).
+
+| Shop (owner) | Scooters | Style |
+| --- | --- | --- |
+| Chiang Mai Scooters (demo) | Honda Click 125i, Yamaha Grand Filano, Honda Scoopy (Pai) | fair: claims only what the photos show |
+| Phuket Island Rides (demo) | Yamaha NMAX 155, Honda PCX 160 | claims a lot at return: three of its rentals went to the desk |
+| Bangkok City Wheels (demo) | Vespa Primavera 150, Yamaha Fino 125 | pays the BKK-FLEET-1 Fleet Vault (rent and damage go to shareholders) |
+
+| Renter | History |
+| --- | --- |
+| 🇩🇪 Anna | careful long-stay nomad: a clean monthly return, now a monthly rental with a month prepaid |
+| 🇬🇧 Tom | weekend tourist: a clean week, and a Vespa offer still waiting for his funding |
+| 🇧🇷 Lucas | rides hard: a cracked mirror settled by agreement, then lost a dispute over a cracked fairing |
+| 🇸🇬 Mei | two-week rentals, always on time: one clean return, one active |
+| 🇯🇵 Kenji | a clean week in Chiang Mai, and **the open dispute** with Phuket Island Rides (claim 45 %) for the live demo |
+| 🇪🇸 Sofia | a clean two weeks on the Vespa |
+| 🇮🇳 Priya | a small scratch on the Scoopy in Pai, settled by agreement |
+| 🇦🇺 Olivia | disputed a 60 % claim on clean photos and won the full deposit back |
+| 🇳🇱 Emma | the desk split a 50 % scratch claim in half |
+| 🇺🇸 Noah | pays at the last minute: a weekly Fino, nothing prepaid (a week later the back office flags the rent as due) |
+
+15 rentals at catalogue prices (7, 14 and 30-day rent periods): 5 clean returns and 2 small damages settled by
+agreement (the AI split from `POST /api/settlement` proposed by the renter, accepted by the shop), 3 disputes the desk
+resolved (renter wins, owner wins, split; each ruling's reason is hashed on-chain), 1 dispute left open (60-day desk
+window), 3 active rentals (first period released to the shop, one with an extra period prepaid) and 1 unfunded offer.
+Every funded rental has two pickup photos, returns two return photos (the catalogue photo, cropped and lit slightly
+differently, so every hash differs; damage returns get a drawn scratch or crack), uploaded with `POST /api/evidence`
+and anchored with `addEvidence`. After each settlement the script calls `POST /api/history`, and the server writes one
+Living Brain capture per party.
+
+**What to click:** `/arbiter` (as the dispute desk; or the open dispute's own `/lease/<escrow>` page, no wallet needed) shows Kenji's open dispute with both history cards: Kenji's one
+clean return, and Phuket Island Rides' record of three disputes, what it kept, and what it claimed compared with the
+AI. `/backoffice` shows all three shops' rentals with their badges, flags and payouts. `/shareholders` lists the
+Bangkok rentals paying the vault.
+
+**Run it** (coordinator, with the deployer keystore; the script never prints keys):
+
+```bash
+pnpm testnet:world plan        # cost: transactions, gas, tBNB, AI calls, Living Brain writes; sends nothing
+pnpm testnet:world rehearse    # the whole world on a throwaway anvil + `next start` of web/.next (mock AI, local memory), with asserts
+ALLOW_NON_LOCAL_BROADCAST=true WORLD_SERVER_URL=https://<live app> pnpm testnet:world run
+```
+
+`run` refuses unless the deployer is the factory's dispute desk and holds the plan's tBNB plus a 0.02 reserve. The gas
+price is the RPC's plus a 1 gwei tip (`WORLD_GAS_TIP_GWEI`, 1-2), and you have to type `run demo world on 97` (or set
+`WORLD_CONFIRM` to it). Persona keys are generated into `.orca/secrets/demo-world/<id>.json` (mode 600, gitignored);
+their addresses go to `web/data/demo-world-addresses.json`. **Commit that file and redeploy the web app**: the badges
+come from the bundle. `.orca/demo-world-state.json` marks every step done, so a re-run continues where the last one
+stopped, including after a crash between a broadcast and its receipt. Budget: about 145 transactions (~0.03 tBNB),
+11 AI inspections (live Claude within the server's caps; the server allows 10 an hour per IP, so the script waits out
+the 11th) and at most 31 Living Brain captures, all made by the server. The demo inspector, used in rehearse or when
+the server falls back, charges for every return photo that differs from the pickup set, so its clean returns are not
+clean. The real model judges the photos themselves.
+
 ## If something goes wrong
 
 - **Live demo says someone else is playing:** it starts by itself when the other run ends (a lock lapses after 45 s

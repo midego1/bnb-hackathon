@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import type { Address, Hex } from "viem";
+import { DemoPersona } from "@/components/DemoPersona";
 import { TxLink } from "@/components/roles/shared";
 import { AddressTag, Card, Notice, Skeleton, useMoney } from "@/components/ui";
 import { shortAddress } from "@/lib/format";
@@ -52,7 +53,13 @@ export function WalletHistoryCard({ wallet, party, you = false, lazy = false }: 
 
   return (
     <div data-testid="history-card" data-party={party} className="min-w-0">
-      <Card title={t.h(you ? "history.you" : `history.${party}`)} aside={<AddressTag address={wallet} chainId={chainId} />}>
+      <Card title={t.h(you ? "history.you" : `history.${party}`)} aside={
+          <span className="flex flex-wrap items-center justify-end gap-2">
+            <DemoPersona address={wallet} />
+            <AddressTag address={wallet} chainId={chainId} />
+          </span>
+        }
+      >
         {!open ? (
           <button type="button" onClick={() => setOpen(true)} data-testid="history-open" className="text-sm font-medium underline underline-offset-2">
             {t("history.show")}

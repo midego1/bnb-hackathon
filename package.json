@@ -29,6 +29,7 @@
     "testnet:seed": "node web/scripts/testnet.mts seed",
     "testnet:status": "node web/scripts/testnet.mts status",
     "testnet:fund": "node web/scripts/testnet.mts fund",
+    "testnet:world": "node web/scripts/testnet-world.mts",
     "testnet:web": "bash web/scripts/testnet-web.sh",
     "agent:dev": "pnpm -C agent dev",
     "agent:test": "pnpm -C agent test",
