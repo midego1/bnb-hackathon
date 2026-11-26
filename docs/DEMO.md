@@ -160,6 +160,13 @@ Notes: photos are compressed on the phone to ≤ 200 KB; on Cloudflare without R
 time; an offer left unfunded for 5 minutes may be taken by the next renter. The contracts' shortest term is one month:
 the stage rental is "one day" in the UI and settles the same day.
 
+**Both sides on one screen (`/duo/mystery-box`, unlisted), for the pitch and the video:** left the renter's phone (the
+real `/r` flow in a phone frame, with this browser's own guest wallet), right the rental company's view (headline,
+money strip, photos, timeline, a small QR, *Accept* / *Reset*), under a step bar 1 Rent → 5 Settled. Cards light up
+and a ฿ coin runs along the arrows when money moves (still with reduced motion). When a judge scans the QR and rents on
+their own phone, the left pane mirrors that rental read-only until *Reset stage*. One screen on a laptop or projector
+(1280×720 and up); stacked on a phone. Rehearse: `cd web && npx playwright test duo`.
+
 ### Demo scooter listings: rent one from the landing page
 
 The landing page's grid shows seven **demo scooters** from `web/data/listings.json` (not real shops' offers) next to the

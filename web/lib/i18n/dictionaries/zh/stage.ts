@@ -35,7 +35,14 @@ export const body: DeepPartial<typeof enBody> = {
       code: "演讲者口令",
     },
   },
+  duo: {
+    best: "在笔记本电脑或大屏幕上效果最佳：租客的手机和车主的视图并排显示。",
+    phone: "租客的手机",
+    scan: "用你自己的手机租用",
+    steps: "租赁步骤",
+  },
   judge: {
+    mirror: "正在显示一位评委的手机（{address}），只读。",
     connectFirst: "请先连接钱包。",
     offline: "网络不稳定。你的租赁安全地记录在链上，网络恢复后这个屏幕会自动跟上。",
     guestWallet: "测试网临时钱包，不涉及真钱",
@@ -102,6 +109,12 @@ export const head: DeepPartial<typeof enHead> = {
     proposed: "AI 分配方案：退还 {back}，{kept} 给车主",
     disputed: "争议中：由争议处理台裁决",
     settled: "已结算：双方同意，资金已发放",
+  },
+  duo: {
+    title: "同一笔租赁，双方实时呈现",
+    renter: "租客（手机）",
+    owner: "租赁公司（车主）",
+    step: { rent: "租用", pickup: "取件照片", return: "归还", split: "AI 押金分配", settled: "已结算" },
   },
   judge: {
     wallet: "一键租用",

@@ -15,8 +15,8 @@ import { eventLabel, same, thbText, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { subscribeNothing } from "./wallet";
 
-// The QR encoder loads after the page, not with it.
-const Qr = dynamic(() => import("./Qr"), { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-xl bg-white/80" /> });
+// The QR encoder loads after the page, not with it (here and in /duo).
+export const Qr = dynamic(() => import("./Qr"), { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-xl bg-white/80" /> });
 
 const PHONE = "(max-width: 639px)";
 const subscribeMedia = (cb: () => void) => {
@@ -26,10 +26,10 @@ const subscribeMedia = (cb: () => void) => {
 };
 
 const CODE_KEY = "keyescrow.stage.presenterCode";
-const big = (u: bigint, s?: StageStatus) => thbText(u, s?.price.thbPerUsdt ?? 33);
+export const big = (u: bigint, s?: StageStatus) => thbText(u, s?.price.thbPerUsdt ?? 33);
 
 /** What is happening now, in one line for the back of the room (a headline: Chinese line under it in EN+中文). */
-function headline(s: StageStatus, t: T): ReactNode {
+export function headline(s: StageStatus, t: T): ReactNode {
   const l = s.lease;
   if (s.creating) return t.h("stage.creating");
   if (!l || l.status === "Cancelled") return t.h("stage.scan", { name: s.listing.name });
@@ -49,21 +49,15 @@ function headline(s: StageStatus, t: T): ReactNode {
   }
 }
 
-/** The big-screen presenter view (/stage/<slug>): QR to the phone flow, the rental live, and the owner's buttons. */
-export function StageView({ listing, chainId }: { listing: Listing; chainId: number }) {
-  const { status: s, offline, refresh } = useStageStatus(listing.slug);
-  const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
+/**
+ * The owner's side of the live rental, shared by the big screen and /duo: the polled status, the money it moved and
+ * the presenter's Accept / Reset (behind the presenter code when the server sets one).
+ */
+export function useOwnerSide(slug: string) {
+  const { status: s, offline, refresh } = useStageStatus(slug);
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const t = useT();
-  // Phones get the timeline folded away (under the money and the QR); bigger screens show it all, newest row in view.
-  const phone = useSyncExternalStore(subscribeMedia, () => window.matchMedia(PHONE).matches, () => false);
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const rows = (s?.events ?? []).filter((e) => e.name !== "PayeeSet");
-  useEffect(() => {
-    const el = timelineRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [rows.length]);
 
   async function presenter(action: "accept" | "reset") {
     if (action === "reset" && !window.confirm(t("stage.presenter.resetConfirm"))) return;
@@ -80,7 +74,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
     setBusy(action);
     setError(undefined);
     try {
-      await stageAction(listing.slug, { action, code });
+      await stageAction(slug, { action, code });
       await refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -95,33 +89,45 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
   const funded = s?.events.find((e) => e.name === "Funded");
   const settled = s?.events.findLast((e) => e.name === "Settled");
   const sa = settled?.args as Record<string, bigint> | undefined;
-  const paid = funded ? (funded.args.deposit as bigint) + (funded.args.firstRent as bigint) : undefined;
-  const fee = sa?.fee;
-  const toOwner = sa ? sa.landlordClaim + sa.rentToLandlord - sa.fee : undefined;
-  const back = sa ? sa.tenantRefund + sa.rentToTenant : undefined;
-  const photos = (kind: number) => (s?.events ?? []).filter((e) => e.name === "EvidenceAdded" && Number(e.args.kind) === kind).map((e) => String(e.args.contentHash));
-  const canAccept = l?.status === "MoveOut" && same(l.proposal.proposer, s?.rental?.renter);
-  const link = (kind: "tx" | "address", v: string) => explorerLink(chainId, kind, v);
+  return {
+    s,
+    l,
+    offline,
+    busy,
+    error,
+    presenter,
+    paid: funded ? (funded.args.deposit as bigint) + (funded.args.firstRent as bigint) : undefined,
+    fee: sa?.fee,
+    toOwner: sa ? sa.landlordClaim + sa.rentToLandlord - sa.fee : undefined,
+    back: sa ? sa.tenantRefund + sa.rentToTenant : undefined,
+    photos: (kind: number) => (s?.events ?? []).filter((e) => e.name === "EvidenceAdded" && Number(e.args.kind) === kind).map((e) => String(e.args.contentHash)),
+    canAccept: l?.status === "MoveOut" && same(l.proposal.proposer, s?.rental?.renter),
+    rows: (s?.events ?? []).filter((e) => e.name !== "PayeeSet"),
+  };
+}
+export type OwnerSide = ReturnType<typeof useOwnerSide>;
 
-  const timeline = (
-    <ol className="flex flex-col gap-2 text-base sm:text-lg wide:text-[clamp(1.125rem,0.6rem+0.8vw,1.875rem)]" data-testid="stage-timeline">
-      {rows.map((e) => {
-        const href = link("tx", e.txHash);
-        return (
-          <li key={`${e.txHash}:${e.logIndex}`} className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
-            <span className="min-w-0">{eventLabel(e, t)}</span>
-            {href ? (
-              <a href={href} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center font-mono text-[0.75em] text-info underline pointer-coarse:min-h-11">
-                BscScan {e.txHash.slice(0, 8)}…
-              </a>
-            ) : (
-              <span className="shrink-0 font-mono text-[0.75em] text-subtle">{e.txHash.slice(0, 10)}…</span>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
+/** A scroll box that keeps its newest (last) row in view as rows come in. */
+export function useNewestInView(rows: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [rows]);
+  return ref;
+}
+
+/** The big-screen presenter view (/stage/<slug>): QR to the phone flow, the rental live, and the owner's buttons. */
+export function StageView({ listing, chainId }: { listing: Listing; chainId: number }) {
+  const o = useOwnerSide(listing.slug);
+  const { s, l, offline, paid, fee, toOwner, back, photos, rows } = o;
+  const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
+  const t = useT();
+  // Phones get the timeline folded away (under the money and the QR); bigger screens show it all, newest row in view.
+  const phone = useSyncExternalStore(subscribeMedia, () => window.matchMedia(PHONE).matches, () => false);
+  const timelineRef = useNewestInView(rows.length);
+  const link = (kind: "tx" | "address", v: string) => explorerLink(chainId, kind, v);
+  const timeline = <Timeline rows={rows} chainId={chainId} className="text-base sm:text-lg wide:text-[clamp(1.125rem,0.6rem+0.8vw,1.875rem)]" />;
 
   /*
    * Stacked (phone, iPad portrait): title, status, money 2x2, QR card, photos, timeline, presenter bar sticky at the
@@ -198,24 +204,14 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
         </div>
 
         <div className="sticky bottom-0 order-7 -mx-4 mt-auto flex flex-wrap items-start gap-3 border-t border-border bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 wide:static wide:mx-0 wide:border-0 wide:bg-transparent wide:p-0 wide:backdrop-blur-none [&_button]:min-h-12 [&_button]:px-4 [&_button]:text-base sm:[&_button]:min-h-14 sm:[&_button]:px-6 sm:[&_button]:text-lg wide:[&_button]:min-h-[clamp(3.5rem,6.5vh,5.5rem)] wide:[&_button]:px-[clamp(1.5rem,1.6vw,2.5rem)] wide:[&_button]:text-[clamp(1.125rem,0.4rem+0.85vw,2rem)] wide:[&_p]:text-[clamp(0.75rem,0.3rem+0.45vw,1.125rem)]" data-testid="stage-presenter">
-          <ActionButton className="min-w-0 flex-1 wide:flex-none" busy={busy === "accept"} disabledReason={!canAccept ? t("stage.presenter.acceptWhen") : undefined} onClick={() => presenter("accept")} data-testid="stage-accept">
-            {t("stage.presenter.accept")}
-          </ActionButton>
-          <ActionButton className="shrink-0" variant="secondary" busy={busy === "reset"} onClick={() => presenter("reset")} data-testid="stage-reset">
-            {t("stage.presenter.reset")}
-          </ActionButton>
-          {error && (
-            <div className="basis-full">
-              <Notice kind="error">{error}</Notice>
-            </div>
-          )}
+          <PresenterButtons o={o} />
         </div>
       </div>
     </main>
   );
 }
 
-function Money({ label, value, sub, href, strong }: { label: string; value: string; sub?: ReactNode; href?: string; strong?: boolean }) {
+export function Money({ label, value, sub, href, strong }: { label: string; value: string; sub?: ReactNode; href?: string; strong?: boolean }) {
   return (
     <div className={`@container min-w-0 rounded-2xl border p-3 sm:p-4 ${strong ? "border-info-border bg-info-soft" : "border-border bg-surface"}`}>
       <div className="text-sm text-muted-foreground sm:text-base wide:text-[clamp(1rem,0.5rem+0.6vw,1.5rem)]">{label}</div>
@@ -233,7 +229,7 @@ function Money({ label, value, sub, href, strong }: { label: string; value: stri
   );
 }
 
-function Photos({ title, hashes }: { title: string; hashes: string[] }) {
+export function Photos({ title, hashes }: { title: string; hashes: string[] }) {
   const t = useT();
   if (!hashes.length) return null;
   return (
@@ -246,5 +242,49 @@ function Photos({ title, hashes }: { title: string; hashes: string[] }) {
         ))}
       </div>
     </figure>
+  );
+}
+
+/** The rental's on-chain events in plain words, each with its BscScan link (a local chain shows the hash only). */
+export function Timeline({ rows, chainId, className }: { rows: OwnerSide["rows"]; chainId: number; className: string }) {
+  const t = useT();
+  return (
+    <ol className={`flex flex-col gap-2 ${className}`} data-testid="stage-timeline">
+      {rows.map((e) => {
+        const href = explorerLink(chainId, "tx", e.txHash);
+        return (
+          <li key={`${e.txHash}:${e.logIndex}`} className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
+            <span className="min-w-0">{eventLabel(e, t)}</span>
+            {href ? (
+              <a href={href} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center font-mono text-[0.75em] text-info underline pointer-coarse:min-h-11">
+                BscScan {e.txHash.slice(0, 8)}…
+              </a>
+            ) : (
+              <span className="shrink-0 font-mono text-[0.75em] text-subtle">{e.txHash.slice(0, 10)}…</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** The presenter's Accept (owner) and Reset buttons, with the last error under them. */
+export function PresenterButtons({ o }: { o: OwnerSide }) {
+  const t = useT();
+  return (
+    <>
+      <ActionButton className="min-w-0 flex-1 wide:flex-none" busy={o.busy === "accept"} disabledReason={!o.canAccept ? t("stage.presenter.acceptWhen") : undefined} onClick={() => o.presenter("accept")} data-testid="stage-accept">
+        {t("stage.presenter.accept")}
+      </ActionButton>
+      <ActionButton className="shrink-0" variant="secondary" busy={o.busy === "reset"} onClick={() => o.presenter("reset")} data-testid="stage-reset">
+        {t("stage.presenter.reset")}
+      </ActionButton>
+      {o.error && (
+        <div className="basis-full">
+          <Notice kind="error">{o.error}</Notice>
+        </div>
+      )}
+    </>
   );
 }

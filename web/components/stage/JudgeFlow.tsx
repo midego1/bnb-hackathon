@@ -15,7 +15,7 @@ import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
 import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
-import { judgeStep, same, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
+import { judgeStep, mirroredRenter, same, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { anchorPhotos, fundLease, proposeSplit } from "./judgeTx";
 import { chooseExternal, createGuestKey, forgetGuestKey, guestWallet, loadExternal, loadGuestKey, stagePublicClient, subscribeGuestKey, subscribeNothing } from "./wallet";
@@ -24,8 +24,9 @@ import { chooseExternal, createGuestKey, forgetGuestKey, guestWallet, loadExtern
  * The judge's phone (/r/<slug>): guest wallet -> test money -> rent (owner offers, judge funds) -> pickup photos ->
  * return photos -> AI inspection -> propose the split -> the presenter accepts on the big screen -> money back.
  * Every step is read back from the chain (via /api/stage), so reloading the phone continues where it was.
+ * `duo`: the phone pane of /duo, which shows a judge renting on their own phone read-only (lib/stage mirroredRenter).
  */
-export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: number }) {
+export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing; chainId: number; duo?: boolean }) {
   const guestKey = useSyncExternalStore(subscribeGuestKey, loadGuestKey, () => undefined);
   const external = useSyncExternalStore(subscribeGuestKey, loadExternal, () => false);
   const ready = useSyncExternalStore(subscribeNothing, () => true, () => false);
@@ -63,11 +64,12 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
     }
   }
 
-  const step: JudgeStep | undefined = ready && status ? judgeStep(status, me) : undefined;
+  const mirror = duo && status ? mirroredRenter(status, me) : undefined;
+  const step: JudgeStep | undefined = ready && status ? judgeStep(status, mirror ?? me) : undefined;
   const thb = (units: bigint) => thbText(units, status?.price.thbPerUsdt ?? 33);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={step ?? "loading"}>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={step ?? "loading"} data-mirror={mirror ? "true" : undefined}>
       <header className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL) */}
         <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />
@@ -83,21 +85,29 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
       {!status && !offline && <p className="text-muted-foreground">{t("stage.loading")}</p>}
       {!status && pollError && offline && <Notice kind="error">{pollError}</Notice>}
 
+      {mirror && (
+        <div data-testid="judge-mirror">
+          <Notice>{t("judge.mirror", { address: shortAddress(mirror) })}</Notice>
+        </div>
+      )}
       {status && step && (
-        <Step
-          step={step}
-          status={status}
-          me={me}
-          busy={busy}
-          thb={thb}
-          chainId={chainId}
-          guest={!!guestKey}
-          onGuest={createGuestKey}
-          act={act}
-          signer={signer}
-          pub={pub}
-          setNote={setNote}
-        />
+        // Read-only mirror: its buttons and camera are disabled, its text stays readable (also to screen readers).
+        <fieldset disabled={!!mirror} className="contents">
+          <Step
+            step={step}
+            status={status}
+            me={mirror ?? me}
+            busy={busy}
+            thb={thb}
+            chainId={chainId}
+            guest={!!guestKey}
+            onGuest={createGuestKey}
+            act={act}
+            signer={signer}
+            pub={pub}
+            setNote={setNote}
+          />
+        </fieldset>
       )}
 
       {note && <Notice>{note}</Notice>}

@@ -48,10 +48,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return ["/settings/secrets", "/settings/secrets/:path*", "/api/settings/:path*"].map((source) => ({ source, headers: SECRETS_HEADERS }));
   },
-  // The judge's phone (/r/<slug>) is the stage page in another mode (components/stage/Live.tsx): one page entry
-  // instead of two saves Worker space.
+  // The judge's phone (/r/<slug>) and the split screen (/duo/<slug>) are the stage page in other modes
+  // (components/stage/Live.tsx): one page entry instead of three saves Worker space.
   async rewrites() {
-    return ["/r/:slug"].map((source) => ({ source, destination: "/stage/:slug" }));
+    return ["/r/:slug", "/duo/:slug"].map((source) => ({ source, destination: "/stage/:slug" }));
   },
   // The Playwright run builds into its own directory (with dev accounts on) so it never clobbers `next build`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
