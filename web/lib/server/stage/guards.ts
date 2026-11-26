@@ -1,5 +1,6 @@
 import { parseEther, parseUnits } from "viem";
 import { TOKEN } from "@/lib/contracts";
+import { MIN_GAS_WEI } from "@/lib/stage";
 
 /**
  * Pure rules of the live stage demo (lib/server/stage/index.ts): when it is on, how much test money (or, on BSC
@@ -38,12 +39,17 @@ export function thbToUnits(thb: number, thbPerUsdt: number): bigint {
   return BigInt(cents) * BigInt(10) ** BigInt(TOKEN.decimals - 2);
 }
 
+/** Sends of money to one wallet per day: enough to rent again a few times, too few to farm. */
+export const DRIPS_PER_WALLET_PER_DAY = 5;
+
 /**
- * What to send a phone: tBNB up to DRIP_TBNB and mUSDT up to rent + deposit + margin (capped at the faucet limit).
- * Refuses when the funder would drop below FUNDER_FLOOR.
+ * What to send a phone: nothing unless it is short (mUSDT under `need` = rent + deposit, or tBNB under MIN_GAS_WEI,
+ * what the phone checks); then tBNB up to DRIP_TBNB if gas is short, and mUSDT up to rent + deposit + margin (capped
+ * at the faucet limit). Refuses when the funder would drop below FUNDER_FLOOR.
  */
 export function dripPlan(input: { bnb: bigint; musdt: bigint; need: bigint; funderBnb: bigint }): { bnb: bigint; musdt: bigint } {
-  const bnb = input.bnb >= DRIP_TBNB ? BigInt(0) : DRIP_TBNB - input.bnb;
+  if (input.musdt >= input.need && input.bnb >= MIN_GAS_WEI) return { bnb: BigInt(0), musdt: BigInt(0) };
+  const bnb = input.bnb >= MIN_GAS_WEI ? BigInt(0) : DRIP_TBNB - input.bnb;
   const target = input.need + (input.need * MUSDT_MARGIN_BPS) / BigInt(10_000);
   let musdt = input.musdt >= target ? BigInt(0) : target - input.musdt;
   if (musdt > MAX_MUSDT_DRIP) musdt = MAX_MUSDT_DRIP;
@@ -84,13 +90,12 @@ export function presenterAllowed(cfg: Pick<StageConfig, "presenterCode">, code: 
   return diff === 0;
 }
 
-/** A drip claim: one per address, ever (well, for a week). `pending` guards double taps and two tabs. */
+/** A wallet's last drip (kept a week; the phone shows it). `pending` guards double taps and two tabs. */
 export type DripRecord = { state: "pending"; at: number } | { state: "done"; at: number; txs: string[] };
 /** A pending drip older than this is treated as failed (the request died) and may be retried. */
 export const DRIP_PENDING_MS = 2 * 60_000;
 
-export function dripDecision(cur: DripRecord | undefined, now: number): "claim" | "done" | "pending" {
-  if (!cur) return "claim";
-  if (cur.state === "done") return "done";
-  return now - cur.at > DRIP_PENDING_MS ? "claim" : "pending";
+/** May this drip go ahead: yes unless another one for the same wallet is in flight (a done one may top up). */
+export function dripDecision(cur: DripRecord | undefined, now: number): "claim" | "pending" {
+  return cur?.state === "pending" && now - cur.at <= DRIP_PENDING_MS ? "pending" : "claim";
 }

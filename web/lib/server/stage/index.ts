@@ -16,6 +16,7 @@ import { getSharedState, hitRateLimit, update, type SharedState } from "../state
 import {
   dripDecision,
   dripPlan,
+  DRIPS_PER_WALLET_PER_DAY,
   mainnetDripPlan,
   MAX_GAS_PER_TX,
   presenterAllowed,
@@ -209,8 +210,9 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState, flee
     },
 
     /**
-     * Test money for a phone: tBNB for gas and mUSDT for rent + deposit, once per address (a repeat returns the first
-     * answer), at most `dripsPerHour` phones an hour, never draining the funder. On BSC mainnet real BSC-USD (exactly
+     * Test money for a phone: tBNB for gas and mUSDT for rent + deposit. Sent only while the wallet is short of what the
+     * phone checks (lib/stage judgeStep), so a repeat after a finished rental tops up the shortfall and otherwise sends
+     * nothing. At most DRIPS_PER_WALLET_PER_DAY sends per wallet and `dripsPerHour` in all, never draining the funder. On BSC mainnet real BSC-USD (exactly
      * rent + deposit, max 1 USDT) and ~0.0003 BNB, transferred from the funder, also at most `dripsPerDay` a day.
      */
     async drip(slug: string, to: Address) {
@@ -220,58 +222,71 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState, flee
       if ([l.owner.address, l.arbiter, l.funder.address].some((a) => same(a, to))) throw new StageError(400, "That wallet belongs to the demo itself. Use a guest wallet.");
       const key = dripKey(cfg.chainId, to);
       const now = Date.now();
-      const claim = await update<DripRecord, "claim" | "done" | "pending">(state(), key, (cur) => {
+      let before: DripRecord | undefined; // the last finished drip, kept when this one sends nothing or fails
+      const claim = await update<DripRecord, "claim" | "pending">(state(), key, (cur) => {
+        before = cur?.state === "done" ? cur : undefined;
         const d = dripDecision(cur, now);
         return d === "claim" ? { value: { state: "pending", at: now }, ttlMs: WEEK_MS, result: d } : { result: d };
       });
-      if (claim === "done") return { txs: ((await state().get<DripRecord>(key))?.value as { txs: string[] }).txs, repeat: true };
       if (claim === "pending") throw new StageError(409, "Your test money is already on its way. One moment.", 5);
-      try {
+      const restore = () => update<DripRecord, void>(state(), key, (cur) => (cur?.state === "pending" ? { value: before ?? null, ttlMs: WEEK_MS, result: undefined } : { result: undefined }));
+      // Counted only when money really goes out: a wallet that is not short costs nothing.
+      const limits = async () => {
         const rate = await hitRateLimit(state(), `stage-drip:${cfg.chainId}`, { limit: cfg.dripsPerHour, windowMs: 3_600_000 });
         if (!rate.ok) throw new StageError(429, `Enough test money handed out for this hour. Try again in ${Math.ceil(rate.retryAfterSec / 60)} min.`, rate.retryAfterSec);
         if (cfg.dripsPerDay) {
           const day = await hitRateLimit(state(), `stage-drip-day:${cfg.chainId}`, { limit: cfg.dripsPerDay, windowMs: 86_400_000 });
           if (!day.ok) throw new StageError(429, "Enough money handed out for today. Try again tomorrow.", day.retryAfterSec);
         }
+        const mine = await hitRateLimit(state(), `stage-drip-wallet:${key}`, { limit: DRIPS_PER_WALLET_PER_DAY, windowMs: 86_400_000 });
+        if (!mine.ok) throw new StageError(429, `This wallet got money ${DRIPS_PER_WALLET_PER_DAY} times today. Use another wallet, or try again tomorrow.`, mine.retryAfterSec);
+      };
+      try {
         const p = await price(listing);
-        const txs = await serial(cfg, async () => {
+        const need = p.rent + p.deposit;
+        const { txs, sent } = await serial(cfg, async () => {
           const funder = await l.funder!.account();
+          const out: Hash[] = [];
           if (cfg.chainId === 56) {
             const balanceOf = (a: Address) => l.c.pub.readContract({ address: l.token, abi: mockUsdtAbi, functionName: "balanceOf", args: [a] });
             const [bnb, usdt, funderBnb, funderUsdt] = await Promise.all([l.c.pub.getBalance({ address: to }), balanceOf(to), l.c.pub.getBalance({ address: funder.address }), balanceOf(funder.address)]);
-            const plan = mainnetDripPlan({ bnb, usdt, need: p.rent + p.deposit, funderBnb, funderUsdt });
-            const out: Hash[] = [];
+            const plan = mainnetDripPlan({ bnb, usdt, need, funderBnb, funderUsdt });
+            if (plan.bnb || plan.usdt) await limits();
             if (plan.bnb > BigInt(0)) {
               const h = await l.c.sendValue(funder, to, plan.bnb);
               out.push(h);
               if ((await l.c.wait(h)).status !== "success") throw new StageError(502, "The gas transfer failed. Try again.");
             }
             if (plan.usdt > BigInt(0)) out.push((await send(l, funder, { address: l.token, abi: mockUsdtAbi, functionName: "transfer", args: [to, plan.usdt] })).transactionHash);
-            return out;
+            return { txs: out, sent: { bnb: plan.bnb, token: plan.usdt } };
           }
           const [bnb, musdt, funderBnb] = await Promise.all([
             l.c.pub.getBalance({ address: to }),
             l.c.pub.readContract({ address: l.token, abi: mockUsdtAbi, functionName: "balanceOf", args: [to] }),
             l.c.pub.getBalance({ address: funder.address }),
           ]);
-          const plan = dripPlan({ bnb, musdt, need: p.rent + p.deposit, funderBnb });
-          const out: Hash[] = [];
+          const plan = dripPlan({ bnb, musdt, need, funderBnb });
+          if (plan.bnb || plan.musdt) await limits();
           if (plan.bnb > BigInt(0)) {
             const h = await l.c.sendValue(funder, to, plan.bnb);
             out.push(h);
             await l.c.wait(h);
           }
           if (plan.musdt > BigInt(0)) out.push((await send(l, funder, { address: l.token, abi: mockUsdtAbi, functionName: "faucet", args: [to, plan.musdt] })).transactionHash);
-          return out;
+          return { txs: out, sent: { bnb: plan.bnb, token: plan.musdt } };
         });
+        if (!txs.length) {
+          await restore();
+          return { txs, sent };
+        }
         await update<DripRecord, void>(state(), key, () => ({ value: { state: "done", at: Date.now(), txs }, ttlMs: WEEK_MS, result: undefined }));
         console.log(`[stage] drip to ${to}: ${txs.length} txs`);
-        return { txs, repeat: false };
+        return { txs, sent };
       } catch (e) {
         // Sent but not mined yet: keep the claim pending (DRIP_PENDING_MS), so a retry cannot send the money twice.
         if (e instanceof TxStalledError) throw new StageError(504, "The money is on its way but the chain is slow. Try again in two minutes.", 120);
         // Free the claim so the phone can retry.
-        await update<DripRecord, void>(state(), key, (cur) => (cur?.state === "pending" ? { value: null, result: undefined } : { result: undefined }));
+        await restore();
         throw e;
       }
     },

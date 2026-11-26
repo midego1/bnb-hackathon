@@ -97,7 +97,7 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
             <RentIt listing={listing} mounted={mounted} me={me} status={status} loadError={error} refresh={refresh} />
           ) : (
             <div className="mt-4 flex flex-wrap gap-3">
-              <a href={`/r/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover" data-testid="listing-rent">
+              <a href={`/r/${listing.slug}?chosen=1`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover" data-testid="listing-rent">
                 {t("listing.rentThis")}
               </a>
               <a href={`/stage/${listing.slug}`} className="inline-flex min-h-10 items-center rounded-lg border border-border-strong px-4 py-2 text-sm font-medium">
@@ -171,15 +171,15 @@ function RentIt(p: { listing: Listing; mounted: boolean; me?: Address; status?: 
             </div>
           ) : (
             <>
-              {/* The drip is once per wallet, so it is only ever an extra: "Rent it" is always there. */}
-              {step === "money" && !mine.drip && (
+              {/* The drip tops up a short wallet (a few times a day); "Rent it" is always there too. */}
+              {step === "money" && (
                 <ActionButton className={big} busy={busy === "drip"} disabled={!!busy} onClick={() => run("drip")} data-testid="listing-money">
                   {t("listing.getMoney")}
                 </ActionButton>
               )}
-              {step === "money" && <p className="text-xs text-subtle">{t(mine.drip ? "listing.topUp" : "listing.getMoneyHint")}</p>}
+              {step === "money" && <p className="text-xs text-subtle">{t("listing.getMoneyHint")}</p>}
               <div className="flex flex-wrap items-start gap-3">
-                <ActionButton className={big} variant={step === "money" && !mine.drip ? "secondary" : "primary"} busy={busy === "lease"} disabled={!!busy} onClick={() => run("lease")} data-testid="listing-rent-it">
+                <ActionButton className={big} variant={step === "money" ? "secondary" : "primary"} busy={busy === "lease"} disabled={!!busy} onClick={() => run("lease")} data-testid="listing-rent-it">
                   {t(busy === "lease" ? "listing.rentItBusy" : "listing.rentIt")}
                 </ActionButton>
                 {step === "settled" && lease && (

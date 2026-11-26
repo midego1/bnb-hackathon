@@ -5,17 +5,19 @@ import { noisyBmp } from "./photos";
 
 /**
  * /duo/mystery-box on the throwaway anvil: the renter's phone (the framed /r flow) left, the rental company's view right.
- * One full rental is played through the phone pane; the owner pane, step bar and money follow it, and the presenter
+ * The phone starts on its chooser; picking the Honda Click switches the header, the owner pane and the URL to it. One
+ * full rental is played through the phone pane; the owner pane, step bar and money follow it, and the presenter
  * accepts on the right. Then the settled screen at laptop and projector size, light and dark, 中文 and EN+中文, and a phone.
  *
  * Screenshots go to DUO_SHOTS (default test-results/screenshots/duo).
  */
 
 const SLUG = "mystery-box";
+const HONDA = "honda-click-125i";
 const SHOTS = process.env.DUO_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/duo");
 const phoneOf = (page: Page) => page.frameLocator("[data-testid='duo-phone-frame']");
 
-async function step(phone: FrameLocator, name: string) {
+async function step(phone: FrameLocator | Page, name: string) {
   await expect(phone.getByTestId("judge-flow")).toHaveCount(1);
   await expect(phone.getByTestId("judge-flow")).toHaveAttribute("data-step", name, { timeout: 45_000 });
 }
@@ -51,7 +53,7 @@ async function screen(browser: Browser, width: number, height: number, scheme: "
   await ctx.addCookies([{ name: "ke_lang", value: lang, url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
   const page = await ctx.newPage();
   const at = `${width}x${height} ${scheme} ${lang}`;
-  await page.goto(`/duo/${SLUG}`);
+  await page.goto(`/duo/${HONDA}`);
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "5");
   await expect(page.getByTestId("stage-timeline").locator("li").first()).toBeVisible();
   // This browser has no guest wallet: the phone pane shows the judge's (settled) rental read-only.
@@ -82,12 +84,35 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("stage-qr")).toBeVisible();
   await resetStage(page);
   const phone = phoneOf(page);
-  await expect(page.getByTestId("duo-steps").locator("[aria-current='step']")).toContainText("Rent");
-  await oneScreen(page, "1470x830 idle");
+  // Step 0: the phone shows the catalogue, the Mystery Box preselected; the step bar is at Choose.
+  await step(phone, "choose");
+  await expect(page.getByTestId("duo-steps").locator("[aria-current='step']")).toContainText("Choose");
+  await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "0");
+  await expect(phone.getByTestId(`judge-pick-${SLUG}`)).toHaveAttribute("aria-current", "true");
+  await expect(phone.getByTestId("judge-choose").getByRole("button")).toHaveCount(8);
+  await oneScreen(page, "1470x830 choose");
   // No Ask AI bubble, neither on the page nor in the framed phone.
-  await step(phone, "wallet");
   await expect(page.getByTestId("assistant-bubble")).toHaveCount(0);
   await expect(phone.getByTestId("assistant-bubble")).toHaveCount(0);
+
+  // Pick the Honda Click: the header, the owner pane (its own stage) and the URL switch; the phone goes on to rent it.
+  await phone.getByTestId(`judge-pick-${HONDA}`).click();
+  await step(phone, "wallet");
+  await expect(page).toHaveURL(new RegExp(`/duo/${HONDA}$`));
+  await expect(page.getByTestId("duo-view").locator("header")).toContainText("Honda Click 125i");
+  await expect(page.getByTestId("stage-headline")).toContainText("Honda Click 125i");
+  await expect(page.getByTestId("duo-steps").locator("[aria-current='step']")).toContainText("Rent");
+  await expect(phone.getByRole("heading", { level: 1 })).toHaveText("Honda Click 125i");
+  await resetStage(page); // the presenter buttons now act on the Honda's stage
+  await oneScreen(page, "1470x830 picked");
+  // "Change scooter" goes back to the chooser (the bar too), the Honda now highlighted; pick it again.
+  await phone.getByTestId("judge-change").click();
+  await step(phone, "choose");
+  await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "0");
+  await expect(phone.getByTestId(`judge-pick-${HONDA}`)).toHaveAttribute("aria-current", "true");
+  await phone.getByTestId(`judge-pick-${HONDA}`).click();
+  await step(phone, "wallet");
+  await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "1");
 
   await phone.getByTestId("judge-guest").click();
   await step(phone, "money");
@@ -103,7 +128,7 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await expect(page.getByTestId("stage-amount").first()).toHaveText(/^฿[\d,]+$/);
   await expect(page.getByTestId("duo-flash")).toHaveCount(2);
   await expect(page.locator("[data-testid='duo-flow'][data-moving]")).toHaveCount(1);
-  await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(1);
+  await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(2);
   await page.screenshot({ path: path.join(SHOTS, "duo-1470x830-funded.png") });
 
   await photos(page, "pickup", 1);
@@ -125,7 +150,7 @@ test("duo: a rental played on the phone pane drives the owner pane, then the pre
   await page.getByTestId("stage-accept").click();
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Settled", { timeout: 30_000 });
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "5");
-  await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(5);
+  await expect(page.locator("[data-testid='duo-steps'] [data-state='done']")).toHaveCount(6);
   await expect(page.getByTestId("stage-timeline")).toContainText("Both agreed: money settled");
   // Settled: owner and back-to-renter cards light up too, and a coin runs escrow -> owner.
   await expect(page.getByTestId("duo-flash")).toHaveCount(4);
@@ -166,5 +191,37 @@ test("duo: a judge renting on their own phone is mirrored read-only in the phone
   await expect(phone.getByTestId("judge-rent")).toBeDisabled();
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "Created");
   await resetStage(page);
-  await step(phone, "wallet");
+  await step(phone, "choose"); // free again: the phone opens on its chooser
+});
+
+test("duo + /r: step 0 Choose at 1440x900 and on a 390x844 phone, light and dark", async ({ browser }) => {
+  // Stages no other spec rents, so nothing is mirrored here: the phone opens on its chooser.
+  const [from, to] = ["yamaha-nmax-155", "honda-scoopy"];
+  for (const scheme of ["light", "dark"] as const) {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme });
+    const page = await ctx.newPage();
+    await page.goto(`/duo/${from}`);
+    const phone = phoneOf(page);
+    await step(phone, "choose");
+    await expect(phone.getByTestId(`judge-pick-${from}`)).toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "0");
+    await page.waitForTimeout(400); // the catalogue photos
+    await page.screenshot({ path: path.join(SHOTS, `duo-1440x900-${scheme}-choose.png`) });
+    await phone.getByTestId(`judge-pick-${to}`).click();
+    await step(phone, "wallet");
+    await expect(page).toHaveURL(new RegExp(`/duo/${to}$`));
+    await expect(page.getByTestId("duo-view").locator("header")).toContainText("Honda Scoopy");
+    await expect(page.getByTestId("duo-view")).toHaveAttribute("data-step", "1");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(SHOTS, `duo-1440x900-${scheme}-picked.png`) });
+    await ctx.close();
+
+    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: scheme, hasTouch: true });
+    const p = await mobile.newPage();
+    await p.goto(`/r/${from}`);
+    await step(p, "choose");
+    await p.waitForTimeout(400);
+    await p.screenshot({ path: path.join(SHOTS, `r-390x844-${scheme}-choose.png`) });
+    await mobile.close();
+  }
 });

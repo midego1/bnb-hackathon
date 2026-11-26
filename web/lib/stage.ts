@@ -91,7 +91,16 @@ export function replaceable(s: Pick<StageStatus, "rental" | "lease">, now = Date
   return s.lease.status === "Created" && now - s.rental.createdAt > STALE_OFFER_MS;
 }
 
-/** /duo's step bar, 1 Rent, 2 Pickup photos, 3 Return, 4 AI split, 5 Settled: where the current rental is. */
+/**
+ * The phone's chooser: someone other than `me` holds this item right now (an open rental, or an offer being created),
+ * so its card says "Rented right now" and cannot be picked. One rental per item: each slug has its own stage record.
+ */
+export function takenByOther(s: StageStatus, me: Address | undefined, now = Date.now()): boolean {
+  if (s.rental && same(s.rental.renter, me)) return false;
+  return (!!s.creating && !same(s.creating.renter, me)) || !replaceable(s, now);
+}
+
+/** /duo's step bar after 0 Choose (the phone says when it shows the chooser): 1 Rent, 2 Pickup photos, 3 Return, 4 AI split, 5 Settled. */
 export function duoStep(s: StageStatus | undefined): 1 | 2 | 3 | 4 | 5 {
   const l = s?.lease;
   if (!l || l.status === "Created" || l.status === "Cancelled") return 1;
