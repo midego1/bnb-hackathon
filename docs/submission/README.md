@@ -6,7 +6,7 @@ with the seeded demo world (`pnpm testnet:world rehearse`: 3 shops, 10 renters, 
 | File | What |
 | --- | --- |
 | [HACKQUEST.md](HACKQUEST.md) | Ready-to-paste form fields: name, one-liner, descriptions, BNB Chain, the sponsor tracks, links, test counts |
-| [deck.pdf](deck.pdf) | 10-slide pitch deck, 1920×1080 ([deck.html](deck.html) is the source) |
+| [deck.pdf](deck.pdf) | 11-slide pitch deck, 1920×1080 ([deck.html](deck.html) is the source). Slide 4 shows the native iPhone app in CSS phone frames, so no live phone is needed on stage |
 | [duo.mp4](duo.mp4) · [.webm](duo.webm) | **The hero video (59 s).** `/duo/mystery-box`: the renter's phone on the left, the rental company on the right. Rent, pickup photo, return photo, AI split, the owner accepts, settled |
 | [demo-guided.mp4](demo-guided.mp4) · [.webm](demo-guided.webm) | `/demo`, Guided, happy path, one click from start to the balanced final summary (90 s) |
 | [eli5.mp4](eli5.mp4) · [.webm](eli5.webm) | `/how-it-works`, the cartoon with the "Both agree" ending (71 s) |
@@ -23,7 +23,8 @@ Screenshots:
 | `04-arbiter-history.png` | Dispute desk: the case with the renter's and the owner's history cards |
 | `05-backoffice.png` | Back office: the demo shops' rentals read from the chain |
 | `06-mobile-r.png` | `/r/mystery-box` on a phone: the AI inspection's split, ready to propose |
-| `07-ios.png` | The iOS app (from [ios/screenshots](../../ios/screenshots)) |
+| `07-ios.png` | The iOS app, four Simulator screens in CSS phone frames: browse the catalogue, a listing in 中文 (dark), pay into escrow, settled (from [ios/screenshots](../../ios/screenshots)) |
+| `ios/*.jpg` | JPEG copies of those four screens for the deck (Chromium embeds JPEGs as they are; the PNGs made deck.pdf 5 MB instead of 3) |
 | `08-sponsors.png` | `/sponsors`: one card per sponsor track with its live state (a local Worker preview with the public Atlas feeds and no CMC key, so the CMC sub-chip says *Waiting for key*; the live site has CMC live) |
 | `09-landing-dark.png` | Landing, dark |
 | `10-rental-dark.png` | Rental page, dark |
