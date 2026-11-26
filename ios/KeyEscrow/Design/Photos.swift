@@ -193,13 +193,7 @@ struct PhotoFill: View {
     let asset: String
     var body: some View {
         Color.KE.muted
-            .overlay {
-                if DesignMode.led, let led = DotMatrix.image(asset: asset) {
-                    Image(uiImage: led).resizable().scaledToFill()
-                } else {
-                    Image(asset).resizable().scaledToFill()
-                }
-            }
+            .overlay { Image(asset).resizable().scaledToFill() }
             .clipped()
             .accessibilityHidden(true)
     }
@@ -220,8 +214,7 @@ struct ListingPhoto: View {
             if let asset = PhotoCatalog.asset(forListing: listingId) { PhotoFill(asset: asset) } else { NightTile(symbol: symbol) }
         }
         .overlay {
-            // The LED design draws the bundled copy as a dot matrix; the server photo would cover it.
-            if !DesignMode.led, let url = APIClient().absolute(serverPhoto) {
+            if let url = APIClient().absolute(serverPhoto) {
                 AsyncImage(url: url) { phase in
                     if case .success(let img) = phase { img.resizable().scaledToFill() }
                 }
@@ -239,6 +232,7 @@ struct NightTile: View {
         GeometryReader { geo in
             ZStack {
                 LinearGradient(colors: [Color.KE.night, Color.KE.nightSoft], startPoint: .topLeading, endPoint: .bottomTrailing)
+                if DesignMode.led { LEDDotGrid(spacing: 6, dot: 2.2) }
                 Image(systemName: symbol)
                     .font(.system(size: min(geo.size.width, geo.size.height) * 0.4, weight: .semibold))
                     .foregroundStyle(Color.KE.sign)
@@ -256,9 +250,7 @@ struct ListingThumb: View {
     var symbol = "key.horizontal.fill"
     var body: some View {
         Group {
-            if DesignMode.led, let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = DotMatrix.image(asset: asset, cols: 34) {
-                Image(uiImage: img).resizable().scaledToFill()
-            } else if let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = PhotoCatalog.thumbnail(asset, side: side * 3) {
+            if let id = listingId, let asset = PhotoCatalog.asset(forListing: id), let img = PhotoCatalog.thumbnail(asset, side: side * 3) {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
                 NightTile(symbol: symbol)

@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 /// The two looks of the app. "Photos" is the default (real photos, the web app's slate tokens). "LED sign" is the
-/// marketing page's look (docs/DESIGN.md, web/components/marketing): a night street of LED signboards, the photos
-/// redrawn as glowing dot matrices, amounts in the board's 5x9 LED font.
+/// marketing page's look (docs/DESIGN.md, web/components/marketing): the interface as a night LED signboard (a board of
+/// unlit dots behind every screen, dotted LED frames on cards, amounts in the board's 5x9 LED font); photos stay photos.
 enum Design: String, CaseIterable { case photos, led }
 
 /// The active design, read by the colour tokens and the type scale. Set by AppSettings; the root view is rebuilt
@@ -35,66 +35,30 @@ enum LEDPalette {
     static let teal = Color(uiColor: UIColor(hex: 0x2DD4BF))
 }
 
-// MARK: Photos as LED dot matrices
+// MARK: The LED board behind the interface
 
-/// Redraws a bundled photo as an LED signboard: the picture averaged into a grid, every cell one round LED in that
-/// colour (saturated, glowing), dark cells left as unlit dots. Rendered once per photo and size, then cached.
-enum DotMatrix {
-    private static let cache = NSCache<NSString, UIImage>()
+/// A field of unlit LEDs: the board the signs are on. Drawn once per size (Canvas), behind screens and tiles.
+struct LEDDotGrid: View {
+    var spacing: CGFloat = 9
+    var dot: CGFloat = 1.8
+    var color = Color(uiColor: LEDPalette.dotOff)
 
-    static func image(asset: String, cols: Int = 70) -> UIImage? {
-        let key = "\(asset)@\(cols)" as NSString
-        if let hit = cache.object(forKey: key) { return hit }
-        guard let src = UIImage(named: asset)?.cgImage else { return nil }
-        let rows = max(1, Int((Double(cols) * Double(src.height) / Double(src.width)).rounded()))
-        guard let out = render(src, cols: cols, rows: rows) else { return nil }
-        cache.setObject(out, forKey: key)
-        return out
-    }
-
-    static func render(_ src: CGImage, cols: Int, rows: Int, cell: CGFloat = 16) -> UIImage? {
-        var px = [UInt8](repeating: 0, count: cols * rows * 4)
-        let ok = px.withUnsafeMutableBytes { buf -> Bool in
-            guard let ctx = CGContext(data: buf.baseAddress, width: cols, height: rows, bitsPerComponent: 8, bytesPerRow: cols * 4,
-                                      space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-            else { return false }
-            ctx.interpolationQuality = .high
-            ctx.draw(src, in: CGRect(x: 0, y: 0, width: cols, height: rows))
-            return true
-        }
-        guard ok else { return nil }
-        let size = CGSize(width: CGFloat(cols) * cell, height: CGFloat(rows) * cell)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = true
-        return UIGraphicsImageRenderer(size: size, format: format).image { r in
-            let ctx = r.cgContext
-            LEDPalette.panel.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-            let inset = cell * 0.14
-            for y in 0..<rows {
-                for x in 0..<cols {
-                    let i = (y * cols + x) * 4
-                    var c = UIColor(red: CGFloat(px[i]) / 255, green: CGFloat(px[i + 1]) / 255, blue: CGFloat(px[i + 2]) / 255, alpha: 1)
-                    var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-                    c.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
-                    let rect = CGRect(x: CGFloat(x) * cell + inset, y: CGFloat(y) * cell + inset, width: cell - 2 * inset, height: cell - 2 * inset)
-                    // Signboard contrast: mid-tones sink, highlights glow.
-                    b = pow(b, 1.6)
-                    if b < 0.12 {
-                        // An unlit LED: the board shows through.
-                        ctx.setShadow(offset: .zero, blur: 0, color: nil)
-                        LEDPalette.dotOff.setFill()
-                        ctx.fillEllipse(in: rect)
-                        continue
-                    }
-                    c = UIColor(hue: h, saturation: min(1, s * 1.5 + 0.08), brightness: min(1, 0.35 + b * 0.9), alpha: 1)
-                    ctx.setShadow(offset: .zero, blur: cell * 0.55, color: c.withAlphaComponent(0.75).cgColor)
-                    c.setFill()
-                    ctx.fillEllipse(in: rect)
+    var body: some View {
+        Canvas { ctx, size in
+            var p = Path()
+            var y = spacing / 2
+            while y < size.height {
+                var x = spacing / 2
+                while x < size.width {
+                    p.addEllipse(in: CGRect(x: x - dot / 2, y: y - dot / 2, width: dot, height: dot))
+                    x += spacing
                 }
+                y += spacing
             }
+            ctx.fill(p, with: .color(color))
         }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

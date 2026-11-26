@@ -108,8 +108,12 @@ struct SettingsView: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Group {
-                    if d == .led, let led = DotMatrix.image(asset: PhotoCatalog.hero, cols: 60) {
-                        Image(uiImage: led).resizable().scaledToFill()
+                    if d == .led {
+                        ZStack {
+                            Color(uiColor: LEDPalette.panel)
+                            LEDDotGrid(spacing: 6, dot: 2)
+                            LEDAmount(text: "฿6,800", dot: 2)
+                        }
                     } else {
                         Image(PhotoCatalog.hero).resizable().scaledToFill()
                     }

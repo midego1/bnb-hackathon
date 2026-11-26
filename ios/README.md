@@ -20,10 +20,11 @@ and talks to the live KeyScrow API. Testnet only: the app refuses to sign for an
 | --- | --- |
 | ![](screenshots/catalogue-home-light-en.png) | ![](screenshots/catalogue-vespa-dark-zh.png) |
 
-**Design: LED sign** (Settings > Design). The same app as the night street of the website: every photo redrawn as a
-glowing LED dot matrix (`DotMatrix`, rendered on the phone from the bundled photos), prices in the marketing board's
-5x9 LED digits (`LEDFont`, the glyphs of `web/components/marketing/led.ts`), signage type, amber buttons, always dark.
-Photos (the default) and LED sign switch instantly; `-design led` opens the app in it.
+**Design: LED sign** (Settings > Design). The app as the night street of the website: the interface becomes an LED
+signboard (a board of unlit dots behind every screen, `LEDDotGrid`; dotted LED frames around the cards; prices in the
+marketing board's 5x9 LED digits, `LEDFont`, the glyphs of `web/components/marketing/led.ts`), signage type, amber
+buttons, always dark. Photos stay real photos. Photos (the default design) and LED sign switch instantly; `-design led`
+opens the app in it.
 
 | LED sign: Home · EN | LED sign: a listing · 中文 | The switch in Settings |
 | --- | --- | --- |
