@@ -304,6 +304,7 @@ const TESTERS: Record<string, (value: string, ctx: TestCtx) => Promise<TestResul
 /** Names with no free, read-only check. */
 const UNTESTABLE_REASON: Record<string, string> = {
   LIVING_BRAIN_SUBJECT_ID: "Can't test: any UUID works",
+  ATLAS_API_KEY: "Can't test: no documented free check; it is used on the first Atlas price read",
   GREENFIELD_BUCKET: NO_FREE_TEST,
   GREENFIELD_SP_ENDPOINT: "Can't test: no free health check",
 };

@@ -52,6 +52,14 @@ export const SECRETS: SecretSpec[] = [
     format: "url",
   },
   {
+    name: "ATLAS_API_KEY",
+    group: "prices",
+    purpose: "Atlas Pull API (api.atlasoracle.io): signed price reports for BNB/USD and USDT/USD, verified on-chain. Server-side only.",
+    source: { label: "Atlas Oracle (hackathon key from the Atlas team, or atlasoracle.io)", url: "https://atlasoracle.io/pricing" },
+    targets: ["web"],
+    format: "token",
+  },
+  {
     name: "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
     group: "wallet",
     purpose: "WalletConnect project id: RainbowKit's full wallet list (mobile wallets by QR). Public, not a secret; injected wallets only without it.",
