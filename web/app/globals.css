@@ -21,6 +21,9 @@
  */
 @custom-variant stage (@media (min-width: 1024px) and (min-height: 720px));
 
+/* The /stage big screen's two columns (components/stage/StageView.tsx): landscape and desktop wide (iPad landscape, laptop, projector). */
+@custom-variant wide (@media (min-width: 1024px) and (orientation: landscape));
+
 /* Desktop sidebar collapsed to an icon rail: <html data-sidebar="collapsed"> (lib/sidebar.ts). Below lg it is a drawer. */
 @custom-variant rail {
   @media (min-width: 1024px) {

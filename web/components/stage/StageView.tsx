@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { zeroHash } from "viem";
 import { ActionButton, Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
@@ -17,6 +17,13 @@ import { subscribeNothing } from "./wallet";
 
 // The QR encoder loads after the page, not with it.
 const Qr = dynamic(() => import("./Qr"), { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-xl bg-white/80" /> });
+
+const PHONE = "(max-width: 639px)";
+const subscribeMedia = (cb: () => void) => {
+  const m = window.matchMedia(PHONE);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
 
 const CODE_KEY = "keyescrow.stage.presenterCode";
 const big = (u: bigint, s?: StageStatus) => thbText(u, s?.price.thbPerUsdt ?? 33);
@@ -49,6 +56,14 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const t = useT();
+  // Phones get the timeline folded away (under the money and the QR); bigger screens show it all, newest row in view.
+  const phone = useSyncExternalStore(subscribeMedia, () => window.matchMedia(PHONE).matches, () => false);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const rows = (s?.events ?? []).filter((e) => e.name !== "PayeeSet");
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [rows.length]);
 
   async function presenter(action: "accept" | "reset") {
     if (action === "reset" && !window.confirm(t("stage.presenter.resetConfirm"))) return;
@@ -88,28 +103,74 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
   const canAccept = l?.status === "MoveOut" && same(l.proposal.proposer, s?.rental?.renter);
   const link = (kind: "tx" | "address", v: string) => explorerLink(chainId, kind, v);
 
-  return (
-    <main className="grid min-h-dvh gap-6 p-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:p-10" data-testid="stage-view" data-status={l?.status ?? "none"}>
-      <section className="flex flex-col items-center gap-5 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
-        <img src={listing.photos[0]} alt={listing.name} className="aspect-[4/3] w-full max-w-sm rounded-2xl object-cover" />
-        <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">{listing.name}</h1>
-        <p className="text-2xl text-muted-foreground">
-          {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
-        </p>
-        <div className="aspect-square w-full max-w-[20rem] rounded-2xl bg-white p-3">{url && <Qr text={url} label={t("stage.qr", { url })} />}</div>
-        <p className="break-all font-mono text-2xl" data-testid="stage-url">
-          {url.replace(/^https?:\/\//, "")}
-        </p>
-      </section>
+  const timeline = (
+    <ol className="flex flex-col gap-2 text-base sm:text-lg wide:text-[clamp(1.125rem,0.6rem+0.8vw,1.875rem)]" data-testid="stage-timeline">
+      {rows.map((e) => {
+        const href = link("tx", e.txHash);
+        return (
+          <li key={`${e.txHash}:${e.logIndex}`} className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
+            <span className="min-w-0">{eventLabel(e, t)}</span>
+            {href ? (
+              <a href={href} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center font-mono text-[0.75em] text-info underline pointer-coarse:min-h-11">
+                BscScan {e.txHash.slice(0, 8)}…
+              </a>
+            ) : (
+              <span className="shrink-0 font-mono text-[0.75em] text-subtle">{e.txHash.slice(0, 10)}…</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
 
-      <section className="flex min-w-0 flex-col gap-6">
-        {offline && <Notice kind="warn">{t("stage.offline")}</Notice>}
-        <h2 className="text-4xl font-semibold leading-tight lg:text-5xl" data-testid="stage-headline">
+  /*
+   * Stacked (phone, iPad portrait): title, status, money 2x2, QR card, photos, timeline, presenter bar sticky at the
+   * bottom. `wide` (landscape, >= 1024px: iPad landscape, laptop, projector): QR left, story right, type scaled with
+   * clamp(); with `stage` (at least 720px tall) it is one screen and only the timeline scrolls. The two column divs are
+   * `display: contents` when stacked, so `order-*` puts their children in the stacked order.
+   */
+  return (
+    <main
+      className="flex min-h-dvh flex-col gap-4 px-4 pt-4 sm:gap-5 sm:px-6 sm:pt-6 wide:grid wide:grid-cols-[minmax(0,clamp(17rem,24vw,34rem))_minmax(0,1fr)] wide:gap-[clamp(1.5rem,2.5vw,4rem)] wide:p-[clamp(1.25rem,2.5vw,4rem)] wide:stage:h-dvh wide:stage:grid-rows-[minmax(0,1fr)]"
+      data-testid="stage-view"
+      data-status={l?.status ?? "none"}
+    >
+      <div className="contents wide:flex wide:min-h-0 wide:flex-col wide:items-center wide:gap-[clamp(0.75rem,2vh,1.5rem)] wide:text-center">
+        <header data-testid="stage-title" className="order-1 flex items-center gap-3 wide:flex-col wide:gap-[clamp(0.5rem,1.5vh,1.25rem)]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
+          <img src={listing.photos[0]} alt={listing.name} className="size-14 shrink-0 rounded-xl object-cover sm:size-20 wide:aspect-[4/3] wide:h-[clamp(6rem,20vh,18rem)] wide:w-auto wide:max-w-full wide:rounded-2xl" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl wide:text-[clamp(1.875rem,0.8rem+1.9vw,4rem)] wide:leading-tight">{listing.name}</h1>
+            <p className="text-base text-muted-foreground sm:text-lg wide:mt-1 wide:text-[clamp(1.125rem,0.5rem+1vw,2rem)]">
+              {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
+            </p>
+          </div>
+        </header>
+
+        <section data-testid="stage-qr-card" className="order-4 flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface p-4 text-center wide:my-auto wide:w-full wide:border-0 wide:bg-transparent wide:p-0">
+          <div className="aspect-square w-[min(100%,15rem)] rounded-2xl bg-white p-2 sm:w-[min(100%,18rem)] wide:w-[min(100%,clamp(12rem,38vh,34rem))] wide:p-3">
+            {url && <Qr text={url} label={t("stage.qr", { url })} />}
+          </div>
+          <p className="max-w-full break-all font-mono text-sm sm:text-base wide:text-[clamp(0.875rem,0.3rem+0.8vw,1.75rem)]" data-testid="stage-url">
+            {url.replace(/^https?:\/\//, "")}
+          </p>
+          <a href={`/r/${listing.slug}`} className="inline-flex min-h-11 items-center px-2 text-sm text-info underline wide:hidden" data-testid="stage-open-here">
+            {t("stage.openHere")}
+          </a>
+        </section>
+      </div>
+
+      <div className="contents wide:flex wide:min-h-0 wide:min-w-0 wide:flex-col wide:gap-[clamp(1rem,2.2vh,2rem)]">
+        {offline && (
+          <div className="order-2">
+            <Notice kind="warn">{t("stage.offline")}</Notice>
+          </div>
+        )}
+        <h2 className="order-2 text-2xl font-semibold leading-tight sm:text-3xl wide:text-[clamp(1.75rem,0.75rem+2vw,4rem)]" data-testid="stage-headline">
           {s ? headline(s, t) : t("stage.loading")}
         </h2>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="stage-money">
+        <div className="order-3 grid grid-cols-2 gap-3 wide:grid-cols-4 wide:gap-[clamp(0.75rem,1vw,1.5rem)]" data-testid="stage-money">
           <Money label={t("stage.money.paid")} value={paid !== undefined ? big(paid, s) : "–"} sub={s?.rental && shortAddress(s.rental.renter)} href={s?.rental && link("address", s.rental.renter)} />
           <Money label={t("stage.money.escrow")} value={l ? big(l.balance, s) : "–"} sub={l && shortAddress(l.address)} href={l && link("address", l.address)} strong />
           <Money label={t("stage.money.owner")} value={toOwner !== undefined ? big(toOwner, s) : "–"} sub={s && shortAddress(s.owner)} href={s && link("address", s.owner)} />
@@ -117,53 +178,57 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
         </div>
 
         {(photos(0).length > 0 || photos(1).length > 0) && (
-          <div className="flex flex-wrap gap-6">
+          <div className="order-5 flex flex-wrap gap-4 wide:gap-6" data-testid="stage-photos">
             <Photos title={t("stage.photos.pickup")} hashes={photos(0)} />
             <Photos title={t("stage.photos.return")} hashes={photos(1)} />
           </div>
         )}
 
-        <ol className="flex flex-col gap-2 text-xl" data-testid="stage-timeline">
-          {(s?.events ?? [])
-            .filter((e) => e.name !== "PayeeSet")
-            .slice(-8)
-            .map((e) => {
-              const href = link("tx", e.txHash);
-              return (
-                <li key={`${e.txHash}:${e.logIndex}`} className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
-                  <span>{eventLabel(e, t)}</span>
-                  {href ? (
-                    <a href={href} target="_blank" rel="noreferrer" className="shrink-0 font-mono text-base text-info underline">
-                      BscScan {e.txHash.slice(0, 8)}…
-                    </a>
-                  ) : (
-                    <span className="shrink-0 font-mono text-base text-subtle">{e.txHash.slice(0, 10)}…</span>
-                  )}
-                </li>
-              );
-            })}
-        </ol>
+        <div ref={timelineRef} data-testid="stage-timeline-box" className="order-6 wide:min-h-0 wide:flex-1 wide:overflow-y-auto">
+          {phone ? (
+            <details className="rounded-2xl border border-border bg-surface px-4">
+              <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium" data-testid="stage-timeline-toggle">
+                {t("stage.timeline")} ({rows.length})
+              </summary>
+              <div className="pb-3">{timeline}</div>
+            </details>
+          ) : (
+            timeline
+          )}
+        </div>
 
-        <div className="mt-auto flex flex-wrap items-start gap-3 [&_button]:min-h-14 [&_button]:px-6 [&_button]:text-lg">
-          <ActionButton busy={busy === "accept"} disabledReason={!canAccept ? t("stage.presenter.acceptWhen") : undefined} onClick={() => presenter("accept")} data-testid="stage-accept">
+        <div className="sticky bottom-0 order-7 -mx-4 mt-auto flex flex-wrap items-start gap-3 border-t border-border bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 wide:static wide:mx-0 wide:border-0 wide:bg-transparent wide:p-0 wide:backdrop-blur-none [&_button]:min-h-12 [&_button]:px-4 [&_button]:text-base sm:[&_button]:min-h-14 sm:[&_button]:px-6 sm:[&_button]:text-lg wide:[&_button]:min-h-[clamp(3.5rem,6.5vh,5.5rem)] wide:[&_button]:px-[clamp(1.5rem,1.6vw,2.5rem)] wide:[&_button]:text-[clamp(1.125rem,0.4rem+0.85vw,2rem)] wide:[&_p]:text-[clamp(0.75rem,0.3rem+0.45vw,1.125rem)]" data-testid="stage-presenter">
+          <ActionButton className="min-w-0 flex-1 wide:flex-none" busy={busy === "accept"} disabledReason={!canAccept ? t("stage.presenter.acceptWhen") : undefined} onClick={() => presenter("accept")} data-testid="stage-accept">
             {t("stage.presenter.accept")}
           </ActionButton>
-          <ActionButton variant="secondary" busy={busy === "reset"} onClick={() => presenter("reset")} data-testid="stage-reset">
+          <ActionButton className="shrink-0" variant="secondary" busy={busy === "reset"} onClick={() => presenter("reset")} data-testid="stage-reset">
             {t("stage.presenter.reset")}
           </ActionButton>
+          {error && (
+            <div className="basis-full">
+              <Notice kind="error">{error}</Notice>
+            </div>
+          )}
         </div>
-        {error && <Notice kind="error">{error}</Notice>}
-      </section>
+      </div>
     </main>
   );
 }
 
 function Money({ label, value, sub, href, strong }: { label: string; value: string; sub?: ReactNode; href?: string; strong?: boolean }) {
   return (
-    <div className={`rounded-2xl border p-4 ${strong ? "border-info-border bg-info-soft" : "border-border bg-surface"}`}>
-      <div className="text-lg text-muted-foreground">{label}</div>
-      <div className="text-4xl font-bold tabular-nums">{value}</div>
-      {sub && (href ? <a href={href} target="_blank" rel="noreferrer" className="font-mono text-sm text-subtle underline">{sub}</a> : <div className="font-mono text-sm text-subtle">{sub}</div>)}
+    <div className={`@container min-w-0 rounded-2xl border p-3 sm:p-4 ${strong ? "border-info-border bg-info-soft" : "border-border bg-surface"}`}>
+      <div className="text-sm text-muted-foreground sm:text-base wide:text-[clamp(1rem,0.5rem+0.6vw,1.5rem)]">{label}</div>
+      {/* Sized to the card (cqi), never wrapped: "฿10,000" always fits on one line. */}
+      <div className="whitespace-nowrap text-[clamp(1.25rem,21cqi,4.5rem)] font-bold leading-tight tabular-nums" data-testid="stage-amount">{value}</div>
+      {sub &&
+        (href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="block truncate font-mono text-xs text-subtle underline sm:text-sm wide:text-[clamp(0.875rem,0.3rem+0.55vw,1.375rem)] pointer-coarse:py-3.5">
+            {sub}
+          </a>
+        ) : (
+          <div className="truncate font-mono text-xs text-subtle sm:text-sm wide:text-[clamp(0.875rem,0.3rem+0.55vw,1.375rem)]">{sub}</div>
+        ))}
     </div>
   );
 }
@@ -173,11 +238,11 @@ function Photos({ title, hashes }: { title: string; hashes: string[] }) {
   if (!hashes.length) return null;
   return (
     <figure>
-      <figcaption className="mb-1 text-lg text-muted-foreground">{title}</figcaption>
+      <figcaption className="mb-1 text-base text-muted-foreground sm:text-lg wide:text-[clamp(1rem,0.5rem+0.6vw,1.5rem)]">{title}</figcaption>
       <div className="flex gap-2">
         {hashes.map((h) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={h} src={evidenceUrl(h)} alt={t("stage.photos.alt", { title })} className="h-28 w-28 rounded-lg bg-muted object-cover" />
+          <img key={h} src={evidenceUrl(h)} alt={t("stage.photos.alt", { title })} className="size-20 rounded-lg bg-muted object-cover sm:size-24 wide:size-[clamp(5rem,12vh,9rem)]" />
         ))}
       </div>
     </figure>

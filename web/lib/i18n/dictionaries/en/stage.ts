@@ -7,6 +7,8 @@ export const body = {
     disabled: "The live stage demo is not enabled on this server.",
     terms: "{rent} / day · {deposit} deposit",
     qr: "QR code: {url}",
+    openHere: "or open on this device",
+    timeline: "Timeline",
     offline: "Reconnecting… the rental is safe on-chain; this screen catches up when the network is back.",
     money: { paid: "Renter paid", escrow: "In escrow", owner: "Owner got", back: "Back to renter", fee: "fee {fee}" },
     photos: { pickup: "Pickup", return: "Return", alt: "{title} photo" },

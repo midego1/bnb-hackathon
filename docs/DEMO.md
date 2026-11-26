@@ -143,6 +143,9 @@ We bring a physical **KeyEscrow Mystery Box** (฿200/day, ฿1,000 deposit; edi
 
 1. **Big screen** shows the QR, the live status, the money strip (renter paid, in escrow, owner got, back to renter +
    fee) and the timeline with BscScan links. It polls every 2 s and keeps the last state through Wi-Fi drops.
+   It fits any screen: two columns on a landscape screen at least 1024 px wide (projector, laptop, iPad landscape; one
+   screen without scrolling when at least 720 px tall), stacked on an iPad in portrait or a phone (presenter buttons
+   in a bar at the bottom, *or open on this device* under the QR).
 2. **Judge's phone:** *Use a guest wallet* (a fresh testnet key made on the phone, kept in its localStorage, never
    sent anywhere) or *Connect MetaMask* (shown only with a browser wallet or a WalletConnect project id) →
    *Get test money* (0.002 tBNB + the mUSDT for rent and deposit, once per address) → *Pay into escrow* (the demo
