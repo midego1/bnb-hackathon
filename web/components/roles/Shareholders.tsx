@@ -161,6 +161,7 @@ function AssetPoolsCard() {
             role="progressbar"
             aria-label={t("holders.pools.example")}
             aria-valuenow={POOL_EXAMPLE_PCT}
+            aria-valuetext={t("holders.pools.filled", { pct: POOL_EXAMPLE_PCT })}
             aria-valuemin={0}
             aria-valuemax={100}
             className="mt-3 h-2 overflow-hidden rounded-full bg-border"
