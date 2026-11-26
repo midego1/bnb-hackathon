@@ -146,7 +146,11 @@ We bring a physical **KeyScrow Mystery Box** (฿200/day, ฿1,000 deposit; edit
    It fits any screen: two columns on a landscape screen at least 1024 px wide (projector, laptop, iPad landscape; one
    screen without scrolling when at least 720 px tall), stacked on an iPad in portrait or a phone (presenter buttons
    in a bar at the bottom, *or open on this device* under the QR).
-2. **Judge's phone:** *Use a guest wallet* (a fresh testnet key made on the phone, kept in its localStorage, never
+2. **Judge's phone:** first *Choose what to rent*: the shared catalogue (the 7 scooters + the box) as cards, the QR's
+   item highlighted; a card someone else is renting says *Rented right now*. Tap one → its flow, with *Change scooter*
+   to go back (skipped while this phone's own rental is under way, on BSC mainnet, and from the listing page's *Rent*
+   button). Each item has its own stage (one rental per item); the big screen follows only its own item. Then
+   *Use a guest wallet* (a fresh testnet key made on the phone, kept in its localStorage, never
    sent anywhere) or *Connect MetaMask* (shown only with a browser wallet or a WalletConnect project id) →
    *Get test money* (0.002 tBNB + the mUSDT for rent and deposit, once per address) → *Pay into escrow* (the demo
    owner creates the rental for that address, the phone approves and funds) → pickup photos → hand the box back →
@@ -164,7 +168,8 @@ the stage rental is "one day" in the UI and settles the same day.
 
 **Both sides on one screen (`/duo/mystery-box`, unlisted), for the pitch and the video:** left the renter's phone (the
 real `/r` flow in a phone frame, with this browser's own guest wallet), right the rental company's view (headline,
-money strip, photos, timeline, a small QR, *Accept* / *Reset*), under a step bar 1 Rent → 5 Settled. Cards light up
+money strip, photos, timeline, a small QR, *Accept* / *Reset*), under a step bar Choose → Rent → Pickup photos → Return → AI split → Settled. The phone opens on its chooser;
+picking e.g. the Honda Click switches the header, the owner pane and the URL to `/duo/honda-click-125i`. Cards light up
 and a ฿ coin runs along the arrows when money moves (still with reduced motion). When a judge scans the QR and rents on
 their own phone, the left pane mirrors that rental read-only until *Reset stage*. One screen on a laptop or projector
 (1280×720 and up); stacked on a phone. Rehearse: `cd web && npx playwright test duo`.
