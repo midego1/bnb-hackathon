@@ -291,6 +291,14 @@ export function flagsFor(r: RentalSummary, now: bigint, failed: Hex[] = []): Ren
   return flags;
 }
 
+/** Settled or cancelled: nothing left to do, so the lists fold it under "Earlier". Unknown (not indexed yet) counts as open. */
+export const isClosed = (status: LeaseStatus | undefined) => status === LeaseStatus.Settled || status === LeaseStatus.Cancelled;
+
+/** Open rentals (awaiting funding, active, return, dispute) and the closed ones, each keeping the given order (newest first). */
+export function splitRentals<T>(items: readonly T[], status: (item: T) => LeaseStatus | undefined) {
+  return { open: items.filter((x) => !isClosed(status(x))), earlier: items.filter((x) => isClosed(status(x))) };
+}
+
 /** Worst flag level of a rental, for sorting and badges. */
 export function worstFlag(flags: RentalFlag[]): FlagLevel | undefined {
   if (flags.some((f) => f.level === "danger")) return "danger";

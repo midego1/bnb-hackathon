@@ -87,6 +87,13 @@ export function scooterState(s: Scooter, rentals: Map<string, RentalSummary>, bo
   return { state: "available" };
 }
 
+/** The catalogue scooter each rental escrow is linked to, by lowercase escrow address: its name titles the rental cards. */
+export function scooterByRental(scooters: readonly Scooter[] = []): Map<string, Scooter> {
+  const out = new Map<string, Scooter>();
+  for (const s of scooters) for (const r of s.rentals) out.set(r.toLowerCase(), s);
+  return out;
+}
+
 /** Owner (or vault) income of a set of rentals: net rent paid out + deposit kept for damage. */
 export function incomeOf(rentals: RentalSummary[]) {
   let rent = BigInt(0);

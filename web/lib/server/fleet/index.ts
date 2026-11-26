@@ -86,6 +86,9 @@ export const fleetActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("linkRental"), scooterId: z.string().min(1).max(80), lease: address }),
 ]);
 
+/** Store actions: the public ones plus `reset`, which only the presenter-guarded stage reset sends (not in the POST schema). */
+export type StoreAction = FleetAction | { action: "reset" };
+
 export class FleetError extends Error {
   constructor(
     message: string,
@@ -119,7 +122,7 @@ export class FleetStore {
     await rename(tmp, this.file(chainId));
   }
 
-  apply(chainId: number, action: FleetAction): Promise<FleetData> {
+  apply(chainId: number, action: StoreAction): Promise<FleetData> {
     const run = this.queue.then(async () => {
       const data = await this.read(chainId);
       applyAction(data, action, new Date().toISOString());
@@ -140,7 +143,7 @@ export const MAX_SCOOTERS = 200;
 export const MAX_BOOKINGS = 500;
 
 /** Mutates `data` with one action. Exported for tests. */
-export function applyAction(data: FleetData, a: FleetAction, now: string) {
+export function applyAction(data: FleetData, a: StoreAction, now: string) {
   const scooter = (id: string) => {
     const s = data.scooters.find((x) => x.id === id);
     if (!s) throw new FleetError(`unknown scooter ${id}`, 404);
@@ -202,6 +205,11 @@ export function applyAction(data: FleetData, a: FleetAction, now: string) {
     case "linkRental":
       link(scooter(a.scooterId), a.lease);
       return;
+    case "reset":
+      // Every scooter bookable again: listings and plans stay, rental links and bookings go (the escrows stay on-chain).
+      for (const s of data.scooters) s.rentals = [];
+      data.bookings = [];
+      return;
   }
 }
 
@@ -220,7 +228,7 @@ export class SharedFleetStore {
     return (await this.state().get<FleetData>(this.key(chainId)))?.value ?? demoFleet(chainId);
   }
 
-  apply(chainId: number, action: FleetAction): Promise<FleetData> {
+  apply(chainId: number, action: StoreAction): Promise<FleetData> {
     return update<FleetData, FleetData>(this.state(), this.key(chainId), (cur) => {
       const data = cur ?? demoFleet(chainId);
       applyAction(data, action, new Date().toISOString());

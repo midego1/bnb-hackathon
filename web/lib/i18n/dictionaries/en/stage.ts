@@ -31,7 +31,7 @@ export const body = {
       accept: "Accept the split (owner)",
       acceptWhen: "Accept appears once the renter proposes a split.",
       reset: "Reset stage",
-      resetConfirm: "Reset the stage? The current rental stays on-chain, but the next scan starts a fresh one.",
+      resetConfirm: "Reset the stage? The current rental stays on-chain, but the next scan starts a fresh one, and every fleet scooter is bookable again.",
       code: "Presenter code",
     },
   },

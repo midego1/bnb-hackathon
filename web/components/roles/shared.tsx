@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { ChevronDown, TriangleAlert } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { Hex } from "viem";
@@ -100,4 +100,18 @@ export function When({ ts }: { ts: bigint }) {
 export function useFleet() {
   const { chainId } = useDeployment();
   return useQuery({ queryKey: ["fleet", chainId], queryFn: () => fetchFleet(chainId), refetchInterval: 8_000 });
+}
+
+/** Settled and cancelled rentals, folded away under the open ones (renter and owner lists). */
+export function EarlierRentals({ n, testId, children }: { n: number; testId: string; children: ReactNode }) {
+  const t = useT();
+  return (
+    <details className="group mt-6" data-testid={testId}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-base font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <ChevronDown aria-hidden className="size-4 -rotate-90 transition-transform group-open:rotate-0 motion-reduce:transition-none" />
+        {t("roles.earlierRentals", { n })}
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
+  );
 }

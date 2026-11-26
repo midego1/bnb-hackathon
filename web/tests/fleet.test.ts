@@ -2,7 +2,10 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applyAction, FleetStore, MAX_BOOKINGS, MAX_SCOOTERS, SEEDED_31337, fleetActionSchema } from "@/lib/server/fleet";
+import { applyAction, FleetStore, MAX_BOOKINGS, MAX_SCOOTERS, SEEDED_31337, SharedFleetStore, fleetActionSchema } from "@/lib/server/fleet";
+import { getStage } from "@/lib/server/stage";
+import { MemoryState } from "@/lib/server/state";
+import { getAddress } from "viem";
 import type { FleetData } from "@/lib/fleet";
 
 const RENTER = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
@@ -51,5 +54,51 @@ describe("fleet store", () => {
   it("rejects bad input", () => {
     expect(fleetActionSchema.safeParse({ action: "addScooter", owner: "0x1", name: "x", location: "y", rentThb: 1, depositThb: 1, vault: false }).success).toBe(false);
     expect(fleetActionSchema.safeParse({ action: "addScooter", owner: RENTER, name: "Click", location: "Pai", rentThb: 3000, depositThb: 6000, vault: false, photo: "https://evil" }).success).toBe(false);
+  });
+});
+
+describe("fleet reset (stage 'Reset stage')", () => {
+  const PLAN = { priceThb: 3000, depositThb: 6000, maxPeriods: 6, periodDays: 30 } as const;
+  async function used(store: FleetStore | SharedFleetStore) {
+    let d = await store.apply(97, { action: "addScooter", owner: getAddress(RENTER), name: "Honda Click 125i", location: "Pai", rentThb: 3000, depositThb: 6000, vault: false });
+    const id = d.scooters[0].id;
+    await store.apply(97, { action: "offerPlan", scooterId: id, plan: PLAN });
+    await store.apply(97, { action: "linkRental", scooterId: id, lease: getAddress(LEASE) });
+    d = await store.apply(97, { action: "book", scooterId: id, renter: getAddress(RENTER) });
+    expect(d.bookings).toHaveLength(1);
+    return id;
+  }
+  const isReset = (d: FleetData, id: string) => {
+    expect(d.scooters).toHaveLength(1);
+    expect(d.scooters[0]).toMatchObject({ id, name: "Honda Click 125i", plan: PLAN, rentals: [] });
+    expect(d.bookings).toEqual([]);
+  };
+
+  it("keeps every scooter and its plan, clears rental links and bookings, in the file store and the Durable Object store", async () => {
+    const file = new FleetStore(mkdtempSync(path.join(tmpdir(), "fleet-")));
+    const id = await used(file);
+    isReset(await file.apply(97, { action: "reset" }), id);
+    isReset(await file.read(97), id);
+
+    const mem = new MemoryState();
+    const shared = new SharedFleetStore(() => mem);
+    const id2 = await used(shared);
+    isReset(await shared.apply(97, { action: "reset" }), id2);
+    isReset(await shared.read(97), id2);
+  });
+
+  it("is not a public fleet action", () => {
+    expect(fleetActionSchema.safeParse({ action: "reset" }).success).toBe(false);
+  });
+
+  it("runs with the stage reset, behind the same presenter code", async () => {
+    const mem = new MemoryState();
+    const fleet = new SharedFleetStore(() => mem);
+    const id = await used(fleet);
+    const stage = getStage({ STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "97", STAGE_PRESENTER_CODE: "letmein" }, () => mem, () => fleet)!;
+    await expect(stage.reset("mystery-box", "wrong")).rejects.toMatchObject({ status: 403 });
+    expect((await fleet.read(97)).bookings).toHaveLength(1);
+    await stage.reset("mystery-box", "letmein");
+    isReset(await fleet.read(97), id);
   });
 });

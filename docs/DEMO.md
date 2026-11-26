@@ -153,7 +153,9 @@ We bring a physical **KeyScrow Mystery Box** (฿200/day, ฿1,000 deposit; edit
    return photos → *Run the AI inspection* → *Propose this split*.
 3. **Presenter:** *Accept the split (owner)* on the big screen. Both screens show *Settled*; the phone says
    *Your ฿X are back* with a BscScan link.
-4. *Reset stage* forgets the current rental (it stays on-chain) so the next judge starts fresh.
+4. *Reset stage* forgets the current rental (it stays on-chain) so the next judge starts fresh. It also makes every fleet
+   scooter on that chain bookable again: scooters and plans stay, their rental links and all booking requests are cleared
+   (shop dashboards keep their on-chain history through the chain index).
 
 Notes: photos are compressed on the phone to ≤ 200 KB; on Cloudflare without R2 they live in the Durable Object for
 7 days. Every step is read back from the chain, so reloading either screen continues where it was. One rental at a

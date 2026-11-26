@@ -10,6 +10,7 @@ import { getStage, scrub, StageError } from "@/lib/server/demoTestnet/http"; // 
  *   GET  /api/stage/<slug>[?renter=0x..]   the item, its current rental (chain reads + events) and the phone's balances
  *   POST /api/stage/<slug>  {action: "drip" | "lease", address}   the judge's phone: test money, then the owner's offer
  *   POST /api/stage/<slug>  {action: "accept" | "reset", code?}   the presenter's buttons (server-signed by the owner)
+ *     reset also clears the fleet's rental links and booking requests for this chain (every scooter bookable again)
  * Bigints are {"$n": "..."} (lib/chainIndex encodeJson).
  */
 const address = z.string().refine((a) => isAddress(a), "not an address").transform((a) => getAddress(a));

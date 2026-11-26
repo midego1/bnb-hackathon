@@ -32,7 +32,7 @@ export const body: DeepPartial<typeof enBody> = {
       accept: "接受分配（车主）",
       acceptWhen: "租客提出分配后才能接受。",
       reset: "重置现场",
-      resetConfirm: "要重置现场吗？当前租赁仍保留在链上，但下一次扫码会开始新的租赁。",
+      resetConfirm: "要重置现场吗？当前租赁仍保留在链上，但下一次扫码会开始新的租赁，车队里的每辆摩托车也会重新可租。",
       code: "演讲者口令",
     },
   },

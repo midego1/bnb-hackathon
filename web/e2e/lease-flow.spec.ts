@@ -118,7 +118,13 @@ test("owner creates, renter funds, rent is released, AI proposal accepted", asyn
   await actAs(page, "tenant");
   const address = leaseUrl.split("/").pop()!;
   const card = page.locator(`[data-testid="renter-rental"][data-address="${address}"]`);
+  // Settled rentals are folded under "Earlier", below the open ones.
+  const earlier = page.getByTestId("renter-earlier");
+  await expect(earlier).toContainText("Earlier: settled and cancelled");
+  await expect(card).toBeHidden();
+  await earlier.locator("summary").click();
   await expect(card.getByTestId("status-badge")).toHaveText("Settled");
+  await expect(card).toBeVisible();
   await shot(page, "05-tenant-leases");
 
   // The seed script leaves one rental in dispute for the dispute desk.

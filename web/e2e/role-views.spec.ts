@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { E2E_WEB_PORT } from "./env";
 
@@ -57,6 +58,9 @@ test("back office lists every seeded rental with flags, transactions and vault i
 
 test("fleet owner lists a scooter, renter books it, owner offers the rental, renter pays", async ({ page }) => {
   const problems = watchProblems(page);
+  // A presenter "Reset stage" (phone.spec, stage.spec) clears the fleet's rental links: link the seeded dispute again.
+  const { disputedLease } = JSON.parse(readFileSync(path.resolve(__dirname, "../../contracts/deployments/31337.demo.example.json"), "utf8"));
+  expect((await page.request.post("/api/fleet?chainId=31337", { data: { action: "linkRental", scooterId: "scoopy-i-pai", lease: disputedLease } })).ok()).toBe(true);
   await page.goto("/app");
   await view(page, "landlord", "landlord");
   await expect(page.getByTestId("fleet-list").getByTestId("scooter-card").first()).toBeVisible();

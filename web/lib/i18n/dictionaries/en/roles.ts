@@ -41,6 +41,9 @@ export const body = {
       Transfer: "Vault inflow: {amount}",
     },
     earlier: "earlier",
+    /** Folded section under the open rentals (renter and owner lists). */
+    earlierRentals: "Earlier: settled and cancelled ({n})",
+    noOpen: "No open rentals right now.",
     what: { rentals: "your rentals" },
     state: { available: "Available", booked: "Booked, awaiting payment", rented: "Rented", inspection: "In inspection", dispute: "In dispute" },
   },

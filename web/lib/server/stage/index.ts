@@ -11,6 +11,7 @@ import { createChain97, gasPriceFrom, TxStalledError, type Chain97 } from "../ch
 import { demoTestnetConfig } from "../demoTestnet/guards";
 import { loadDemoSecrets } from "../demoTestnet/keys";
 import type { Env } from "../env";
+import { getFleetStore, type FleetStore } from "../fleet";
 import { getSharedState, hitRateLimit, update, type SharedState } from "../state";
 import {
   dripDecision,
@@ -141,12 +142,12 @@ async function load(cfg: StageConfig, env: Env): Promise<Loaded> {
 export type StageService = ReturnType<typeof stageService>;
 
 /** The stage service, or undefined when the stage demo is off (STAGE_DEMO unset, another chain): routes answer 404. */
-export function getStage(env: Env = process.env, state: () => SharedState = getSharedState) {
+export function getStage(env: Env = process.env, state: () => SharedState = getSharedState, fleet: () => Pick<FleetStore, "apply"> = getFleetStore) {
   const cfg = stageConfig(env);
-  return cfg ? stageService(cfg, env, state) : undefined;
+  return cfg ? stageService(cfg, env, state, fleet) : undefined;
 }
 
-function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
+function stageService(cfg: StageConfig, env: Env, state: () => SharedState, fleet: () => Pick<FleetStore, "apply">) {
   const listingOr404 = (slug: string): Listing => {
     const l = getListing(slug);
     if (!l) throw new StageError(404, "There is no such item.");
@@ -352,11 +353,15 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
       return { hash: r.transactionHash, repeat: false };
     },
 
-    /** Presenter: forget the current rental so the next judge starts fresh (the old escrow stays on-chain as is). */
+    /**
+     * Presenter: forget the current rental so the next judge starts fresh (the old escrow stays on-chain as is), and
+     * make every fleet scooter of this chain bookable again (rental links and bookings cleared, listings kept).
+     */
     async reset(slug: string, code?: string) {
       listingOr404(slug);
       if (!presenterAllowed(cfg, code)) throw new StageError(403, "Wrong presenter code.");
       await update<Record_, void>(state(), recordKey(cfg.chainId, slug), () => ({ value: null, result: undefined }));
+      await fleet().apply(cfg.chainId, { action: "reset" });
       return { ok: true };
     },
   };
