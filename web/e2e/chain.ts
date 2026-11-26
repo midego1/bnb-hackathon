@@ -10,7 +10,7 @@
 import { test } from "@playwright/test";
 import { E2E_RPC_URL } from "./env";
 
-async function rpc<T>(method: string, params: unknown[] = []): Promise<T> {
+export async function rpc<T>(method: string, params: unknown[] = []): Promise<T> {
   const res = await fetch(E2E_RPC_URL, {
     method: "POST",
     headers: { "content-type": "application/json" },
