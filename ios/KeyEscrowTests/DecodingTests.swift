@@ -89,4 +89,30 @@ final class DecodingTests: XCTestCase {
         XCTAssertTrue(r.succeeded)
         XCTAssertEqual(r.logs.count, 1)
     }
+
+    /// The settled payout read from a receipt (used when the chain index is behind) equals what the indexed event gives.
+    func testSettledFlowFromReceipt() throws {
+        let lease = "0x758fda4c2c5C1A121106ce91B15348E2a2b84dEd"
+        func word(_ n: UInt64) -> String { String(repeating: "0", count: 64 - String(n, radix: 16).count) + String(n, radix: 16) }
+        // Settled(tenantRefund 161.82, landlordClaim 20, rentToLandlord 90.91, rentToTenant 0, fee 9.091, basis)
+        let data = "0x" + [161_820_000, 20_000_000, 90_910_000, 0, 9_091_000].map(word).joined() + String(repeating: "ab", count: 32)
+        let json = """
+        {"transactionHash":"0xb3d492c143c0aa250584952b984cc2aaae1c9f3be841c6c144dac6cc70b5da64","status":"0x1","blockNumber":"0x8a2f3c1",
+         "logs":[{"address":"0x7aF0035c254bC760231BCcFF3403A714611c35B1","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],"data":"0x\(word(1))"},
+                 {"address":"\(lease.lowercased())","topics":["\(RentalStory.settledTopic)"],"data":"\(data)"}]}
+        """
+        let receipt = try JSONDecoder().decode(TxReceipt.self, from: Data(json.utf8))
+        XCTAssertEqual(RentalStory.settledTopic.count, 66)
+        let f = try XCTUnwrap(RentalStory.settledFlow(from: receipt, lease: lease))
+        XCTAssertEqual(f.backToRenter, BigUInt(161_820_000))
+        XCTAssertEqual(f.toOwner, BigUInt(101_819_000)) // claim + rent - fee
+        XCTAssertEqual(f.fee, BigUInt(9_091_000))
+        XCTAssertNil(RentalStory.settledFlow(from: receipt, lease: "0xEC84093A157192E4A31f0fc31B5edE806a97CCa3"), "another escrow's log is not ours")
+        // No events at all: the receipt is the payout. With an indexed Settled event the events win.
+        XCTAssertEqual(RentalStory.payout(events: [], receipt: f), f)
+        let ix = try fixture("chain_index", as: ChainIndex.self)
+        let settled = try XCTUnwrap(ix.events.first { $0.name == "Settled" })
+        let events = ix.events(of: settled.address)
+        XCTAssertEqual(RentalStory.payout(events: events, receipt: f), RentalStory.moneyFlow(events))
+    }
 }

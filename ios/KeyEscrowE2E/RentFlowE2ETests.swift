@@ -21,6 +21,14 @@ final class RentFlowE2ETests: XCTestCase {
         return "timeout"
     }
 
+    /// Keeps a screenshot of the step in the test result (xcrun xcresulttool export attachments ...).
+    private func snap(_ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     private func tap(_ id: String) {
         let b = el(id)
         XCTAssertTrue(b.waitForExistence(timeout: 30), id)
@@ -35,30 +43,32 @@ final class RentFlowE2ETests: XCTestCase {
         app.launch()
         let scooter = app.staticTexts[ProcessInfo.processInfo.environment["E2E_SCOOTER"] ?? "Honda Scoopy-i"]
         XCTAssertTrue(scooter.waitForExistence(timeout: 30))
-        for _ in 0..<4 where !scooter.isHittable { app.swipeUp() }
+        for _ in 0..<10 where !scooter.isHittable { app.swipeUp() } // the cards are a screen tall each
         scooter.tap()
         tap("rent-it")
 
         var step = waitFor(["flow-money", "flow-rent", "flow-sample-check_in", "flow-sample-check_out", "flow-inspect", "flow-propose", "flow-shop-accept", "flow-settled"], timeout: 60)
-        if step == "flow-money" { tap("flow-money"); step = waitFor(["flow-rent"]) }
-        if step == "flow-rent" { tap("flow-rent"); step = waitFor(["flow-sample-check_in"]) }
+        if step == "flow-money" { snap("1-money"); tap("flow-money"); step = waitFor(["flow-rent"]) }
+        if step == "flow-rent" { snap("2-pay"); tap("flow-rent"); step = waitFor(["flow-sample-check_in"]) }
         if step == "flow-sample-check_in" {
-            tap("flow-sample-check_in"); tap("flow-save-check_in")
+            tap("flow-sample-check_in"); snap("3-pickup"); tap("flow-save-check_in")
             step = waitFor(["flow-sample-check_out"])
         }
         if step == "flow-sample-check_out" {
-            tap("flow-sample-check_out"); tap("flow-save-check_out")
+            tap("flow-sample-check_out"); snap("4-return"); tap("flow-save-check_out")
             step = waitFor(["flow-inspect"])
         }
         if step == "flow-inspect" {
+            snap("5-inspect")
             tap("flow-inspect")
             step = waitFor(["flow-propose"])
         }
-        if step == "flow-propose" { tap("flow-propose"); step = waitFor(["flow-shop-accept"]) }
-        if step == "flow-shop-accept" { tap("flow-shop-accept"); step = waitFor(["flow-settled"]) }
+        if step == "flow-propose" { snap("5-split"); tap("flow-propose"); step = waitFor(["flow-shop-accept"]) }
+        if step == "flow-shop-accept" { snap("6-accept"); tap("flow-shop-accept"); step = waitFor(["flow-settled"]) }
         XCTAssertEqual(step, "flow-settled")
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.lifetime = .keepAlways
-        add(shot)
+        Thread.sleep(forTimeInterval: 1.5) // let the tick finish drawing
+        snap("7-settled")
+        app.swipeUp()
+        snap("8-receipt")
     }
 }
