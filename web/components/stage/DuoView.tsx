@@ -7,7 +7,7 @@ import { explorerLink } from "@/lib/chains";
 import { formatFiat } from "@/lib/fiat";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
-import type { Listing } from "@/lib/listings";
+import { getListing, type Listing } from "@/lib/listings";
 import { duoStep } from "@/lib/stage";
 import { big, headline, Money, Photos, PresenterButtons, Qr, Timeline, useNewestInView, useOwnerSide } from "./StageView";
 import { subscribeNothing } from "./wallet";
@@ -16,20 +16,36 @@ import { subscribeNothing } from "./wallet";
 const W = 390;
 const H = 844;
 const BEZEL = 10;
-const STEPS = ["rent", "pickup", "return", "split", "settled"] as const;
+const STEPS = ["choose", "rent", "pickup", "return", "split", "settled"] as const;
 
 /**
  * /duo/<slug>, for the pitch and the video: the renter's phone (the real /r flow, framed) left and the rental company's
  * view of the same rental right (the /stage pieces), under a step bar. Laptop and projector: one screen, nothing
  * scrolls but the timeline. Phones: stacked, with a note that it is best on a laptop.
+ * The phone starts on its chooser (step 0) and posts what it picked: the header, owner pane and URL follow that item.
  */
-export function DuoView({ listing, chainId }: { listing: Listing; chainId: number }) {
+export function DuoView({ listing: first, chainId }: { listing: Listing; chainId: number }) {
+  const [slug, setSlug] = useState(first.slug);
+  const [choosing, setChoosing] = useState(true);
+  const [phoneSrc] = useState(`/r/${first.slug}?duo=1`); // the phone navigates itself; reloading it would lose its place
+  useEffect(() => {
+    const onMessage = (e: MessageEvent<{ duoSlug?: unknown; choosing?: unknown }>) => {
+      const to = e.data?.duoSlug;
+      if (e.origin !== window.location.origin || typeof to !== "string" || !getListing(to)) return;
+      setSlug(to);
+      setChoosing(e.data.choosing === true);
+      if (window.location.pathname !== `/duo/${to}`) window.history.replaceState(null, "", `/duo/${to}`);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  const listing = getListing(slug) ?? first;
   const o = useOwnerSide(listing.slug);
   const { s, l, offline, paid, fee, toOwner, back, photos, rows } = o;
   const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
   const timelineRef = useNewestInView(rows.length);
   const t = useT();
-  const at = duoStep(s);
+  const at = choosing ? 0 : duoStep(s);
   const link = (kind: "tx" | "address", v: string) => explorerLink(chainId, kind, v);
   const [pickup, dropoff] = [photos(0), photos(1)];
   const money = (u: bigint | undefined) => (u !== undefined ? big(u, s) : "–");
@@ -54,8 +70,7 @@ export function DuoView({ listing, chainId }: { listing: Listing; chainId: numbe
           </div>
         </div>
         <ol aria-label={t("duo.steps")} className="flex min-w-0 flex-1 items-center gap-2 wide:min-w-[36rem]" data-testid="duo-steps">
-          {STEPS.map((key, i) => {
-            const n = i + 1;
+          {STEPS.map((key, n) => {
             const state = n < at || at === 5 ? "done" : n === at ? "current" : "todo";
             return (
               <li key={key} className={`flex min-w-0 flex-1 items-center gap-2 ${n === at ? "max-sm:flex-none" : ""}`} aria-current={n === at ? "step" : undefined} data-state={state}>
@@ -64,7 +79,7 @@ export function DuoView({ listing, chainId }: { listing: Listing; chainId: numbe
                     state === "done" ? "bg-success text-white" : state === "current" ? "bg-primary text-primary-foreground ring-4 ring-ring/40" : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {state === "done" ? "✓" : n}
+                  {state === "done" ? "✓" : n + 1}
                 </span>
                 <span
                   className={`min-w-0 text-sm leading-tight wide:text-[clamp(0.875rem,0.4rem+0.45vw,1.25rem)] ${n === at ? "font-semibold text-foreground" : "text-muted-foreground max-sm:sr-only"}`}
@@ -85,7 +100,7 @@ export function DuoView({ listing, chainId }: { listing: Listing; chainId: numbe
       <div className="flex flex-col gap-4 wide:grid wide:grid-cols-[auto_minmax(0,1fr)] wide:stage:min-h-0 wide:stage:flex-1 wide:stage:grid-cols-[minmax(0,calc((100dvh_-_9rem)*0.47))_minmax(0,1fr)] wide:stage:grid-rows-[minmax(0,1fr)] wide:gap-[clamp(1rem,1.6vw,2.5rem)]">
         <section aria-labelledby="duo-renter-label" className="flex min-w-0 flex-col items-center gap-2 wide:stage:min-h-0" data-testid="duo-renter">
           <PaneLabel id="duo-renter-label">{t.h("duo.renter")}</PaneLabel>
-          <Phone src={`/r/${listing.slug}?duo=1`} title={t("duo.phone")} />
+          <Phone src={phoneSrc} title={t("duo.phone")} />
         </section>
 
         <section aria-labelledby="duo-owner-label" className="flex min-w-0 flex-col gap-3 rounded-3xl border border-border bg-surface/60 p-3 sm:p-4 wide:stage:min-h-0 wide:stage:gap-[clamp(0.75rem,1.6vh,1.5rem)] wide:stage:p-[clamp(1rem,1.4vw,2rem)]" data-testid="duo-owner">
