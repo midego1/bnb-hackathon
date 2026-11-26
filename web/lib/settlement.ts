@@ -14,8 +14,9 @@ export type InspectionResult = {
   /** ERC-8004 identity of the KeyEscrow Inspector agent that signed reportHash (docs/AGENT.md). */
   inspector?: { name: string; address: Hex; agentId?: string; agentRegistry?: string };
   inspectorSignature?: Hex;
-  /** Per-scooter inspection memory the inspector read first (Living Brain, or the local stand-in). */
+  /** Per-scooter inspection memory the inspector read before judging (Living Brain, or the local stand-in). */
   memory?: { provider: "living-brain" | "local"; configured: boolean; reason?: string; scooterId: string; recalled: string[]; error?: string };
+  /** True when this inspection was written to memory: only for a rental the server verified on-chain. */
   memoryStored?: boolean;
 };
 
@@ -29,8 +30,11 @@ export async function runInspection(input: {
   checkIn: InspectionPhoto[];
   checkOut: InspectionPhoto[];
   notes?: string;
-  /** Scooter plate or listing id: keys the inspector's memory. */
+  /** Scooter plate or listing id whose memory is read (read-only). */
   scooterId?: string;
+  /** The rental being inspected: the server checks it on-chain, then reads and writes that rental's scooter memory. */
+  lease?: Hex;
+  chainId?: number;
 }): Promise<InspectionResult> {
   const res = await fetch("/api/settlement", {
     method: "POST",
@@ -43,6 +47,7 @@ export async function runInspection(input: {
       checkOut: input.checkOut.map(photoRef),
       ...(input.notes ? { notes: input.notes } : {}),
       ...(input.scooterId ? { scooterId: input.scooterId } : {}),
+      ...(input.lease ? { lease: input.lease, chainId: input.chainId } : {}),
     }),
   });
   const body = await res.json().catch(() => ({}));

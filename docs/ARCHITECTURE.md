@@ -257,7 +257,7 @@ inspection (ERC-8183 / x402) is roadmap.
 | Service | Route | In → out | Secrets (server env only) | Fallback |
 | --- | --- | --- | --- | --- |
 | AI inspection | `POST /api/settlement` (web), `inspect_move_out` (agent) | pickup + return photo sets and the deposit → `{tenantRefund, landlordClaim, reasons[], confidence}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL`, `INSPECTOR_PRIVATE_KEY` | Deterministic demo inspector, labelled in the UI |
-| Scooter memory | inside the inspection | earlier inspections of the scooter → "do not charge again" notes in the report | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/inspections.jsonl` (none on Workers) |
+| Scooter memory | inside the inspection | earlier inspections of the scooter → "do not charge again" notes in the report; the web route writes the new one only for a rental verified on-chain (agent: read-only) | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/inspections.jsonl` (none on Workers) |
 | Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates* |
 | Deposit risk | `GET /api/risk`, `POST /api/cournot` | deposit, days → buffer from CMC volatility × (1 + Cournot p) | `CMC_API_KEY`, `COURNOT_LIVE` | "not configured", no buffer shown |
 | Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | file → SHA-256 `contentHash` (bytes32) + a stored copy | `GREENFIELD_*` | Node: local `web/.evidence/`. Workers: R2 bucket `EVIDENCE` if bound, else small photos (≤ 256 KB, 500 files, 7 days) in the Durable Object |

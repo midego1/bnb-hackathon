@@ -40,7 +40,9 @@ export function assistantDeps(req: Request, env: Record<string, string | undefin
           currency: "USDT",
           checkIn: [{ hash: lease.checkInHash }],
           checkOut: [{ hash: lease.checkOutHash }],
-          scooterId: lease.address,
+          // The route verifies the rental on-chain before it writes this inspection to the scooter's memory.
+          lease: lease.address,
+          chainId: lease.chainId,
         }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };

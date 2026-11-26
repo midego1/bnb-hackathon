@@ -13,7 +13,7 @@ export function nodeEvidenceStore(): Promise<EvidenceStore> {
   return storePromise;
 }
 
-/** Node only: Living Brain when configured, else web/.sponsor-logs/inspections.jsonl (shared with the web app). */
+/** Node only: Living Brain when configured, else web/.sponsor-logs/inspections.jsonl (shared with the web app; read-only here). */
 export async function nodeInspectionMemory(): Promise<InspectionMemory> {
   process.env.SPONSOR_LOG_DIR ??= path.join(REPO_DIR, "web", ".sponsor-logs");
   const m = await import("../../web/lib/server/sponsors/livingbrain.ts");
