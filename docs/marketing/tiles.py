@@ -110,7 +110,7 @@ def today() -> str:
 
 
 def mark(x: float, y: float, size: float) -> str:
-    """The KeyScrow mark (web/components/LogoMark.tsx): a house with a keyhole on an amber tile."""
+    """The earlier KeyScrow mark (a house with a keyhole on an amber tile), kept in the drawn tiles; the web mark is now the app icon (web/public/brand)."""
     s = size / 64
     return (
         f'<g transform="translate({x} {y}) scale({s})">'

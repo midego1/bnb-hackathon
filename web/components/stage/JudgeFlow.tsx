@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoMark } from "@/components/LogoMark";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { type Address, type Hex, type WalletClient } from "viem";
@@ -74,6 +75,7 @@ export function JudgeFlow({ listing, chainId, duo = false }: { listing: Listing;
         {/* eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL) */}
         <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />
         <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"><LogoMark className="size-6 shrink-0" />KeyScrow</p>
           <h1 className="truncate text-xl font-semibold">{listing.name}</h1>
           <p className="text-sm text-muted-foreground">
             {t("stage.terms", stageTerms(listing, chainId))}

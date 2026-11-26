@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoMark } from "@/components/LogoMark";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { zeroHash } from "viem";
@@ -145,6 +146,7 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
           {/* eslint-disable-next-line @next/next/no-img-element -- small static listing photo */}
           <img src={listing.photos[0]} alt={listing.name} className="size-14 shrink-0 rounded-xl object-cover sm:size-20 wide:aspect-[4/3] wide:h-[clamp(6rem,20vh,18rem)] wide:w-auto wide:max-w-full wide:rounded-2xl" />
           <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground wide:justify-center wide:text-[clamp(1rem,0.5rem+0.6vw,1.5rem)]"><LogoMark className="size-6 shrink-0 wide:size-[clamp(1.5rem,3.5vh,2.5rem)]" />KeyScrow</p>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl wide:text-[clamp(1.875rem,0.8rem+1.9vw,4rem)] wide:leading-tight">{listing.name}</h1>
             <p className="text-base text-muted-foreground sm:text-lg wide:mt-1 wide:text-[clamp(1.125rem,0.5rem+1vw,2rem)]">
               {t("stage.terms", stageTerms(listing, chainId))}
