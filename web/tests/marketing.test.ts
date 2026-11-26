@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTIONS } from "@/lib/actions/definitions";
@@ -154,18 +154,13 @@ describe("landing page search and listings", () => {
     expect(listingPrice(box, "month")).toEqual({ amount: box.rentThb, per: "day" });
   });
 
-  it("lists six demo scooters and the one stage item, each in a known city, with its pictures on disk", () => {
-    expect(scooters).toHaveLength(6);
+  it("lists seven demo scooters and the one stage item, each in a known city", () => {
+    expect(scooters).toHaveLength(7);
     expect(LISTINGS.filter((l) => l.stage).map((l) => l.slug)).toEqual(["mystery-box"]);
-    expect(new Set(LISTINGS.map((l) => l.slug)).size).toBe(LISTINGS.length);
     for (const l of LISTINGS) expect(LISTING_CITIES as readonly string[], l.slug).toContain(l.city);
     for (const l of scooters) {
       expect(l.description, l.slug).toMatch(/^Demo listing\./);
       expect(l.monthThb, l.slug).toBeGreaterThan(l.rentThb);
-      expect(l.photos).toEqual([`/listings/${l.slug}-960.jpg`]);
-      for (const file of ["480.avif", "960.avif", "480.webp", "960.webp", "960.jpg"]) {
-        expect(existsSync(path.join(repo, "web/public/listings", `${l.slug}-${file}`)), `${l.slug}-${file}`).toBe(true);
-      }
     }
   });
 

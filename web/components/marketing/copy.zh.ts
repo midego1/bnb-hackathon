@@ -62,8 +62,8 @@ export const zh: DeepPartial<LandingCopy> = {
     demoTag: "演示租赁信息",
     stageTag: "现场舞台演示",
     onStage: "现场舞台，BNB Bangkok",
-    alt: (name, place) => `LED 画面：${place}的一辆 ${name} 摩托车。`,
-    boxAlt: "KeyEscrow 神秘盒子的插画，它在现场舞台上被租用。",
+    alt: (name, place) => `${name} 的照片：${place}这条演示房源的车型。`,
+    boxAlt: "一只封好的纸箱的照片，代表在现场舞台上被租用的 KeyEscrow 神秘盒子。",
   },
   counter: {
     title: "同样的柜台，没人扣你的护照。",
@@ -286,6 +286,7 @@ claude mcp add --transport http keyescrow \\
       business: "商业模式",
       writeup: "CoinMarketCap x Atlas 技术说明",
       deploy: "测试网部署",
+      credits: "照片署名",
     },
   },
 };

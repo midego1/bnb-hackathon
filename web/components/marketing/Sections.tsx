@@ -4,7 +4,7 @@ import { LangSwitch } from "@/components/LangSwitch";
 import { LogoMark } from "@/components/LogoMark";
 import { ACTIONS } from "@/lib/actions/definitions";
 import { docsUrl, REPO_URL } from "@/lib/links";
-import type { Listing } from "@/lib/listings";
+import { LISTING_PHOTOS, photoSrcSet, type Listing } from "@/lib/listings";
 import { getDictionary } from "@/lib/i18n/server";
 import {
   ARBITER_DAYS,
@@ -74,7 +74,6 @@ function Tile({ name, alt, label }: { name: string; alt: string; label: string }
 }
 
 const CARD_SIZES = "(min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw";
-const cardSet = (slug: string, ext: string) => [480, 960].map((w) => `/listings/${slug}-${w}.${ext} ${w}w`).join(", ");
 
 /** One listing of the grid: the picture, what it is, where, what it costs for the chosen length, and the deposit. One link. */
 function ListingCard({ l, search, c, city }: { l: Listing; search: ListingSearch; c: LandingCopy["listings"]; city: (name: string) => string }) {
@@ -82,21 +81,18 @@ function ListingCard({ l, search, c, city }: { l: Listing; search: ListingSearch
   const place = l.area ? `${l.area}, ${city(l.city)}` : c.onStage;
   // The other price: by the month when the card leads with the day, by the day otherwise.
   const other = l.monthThb === undefined ? undefined : lead.per === "day" ? ([l.monthThb, "month"] as const) : ([l.rentThb, "day"] as const);
-  const IMG = "mk-card-art";
+  const [photo] = l.photos;
+  const { width, height } = LISTING_PHOTOS[photo];
   return (
     <li>
       <Link prefetch={false} href={`/app/listings/${l.slug}`} className="mk-card" data-testid="mk-listing" data-slug={l.slug} data-city={l.city}>
         <span className="mk-card-frame">
-          {l.stage ? (
-            // eslint-disable-next-line @next/next/no-img-element -- the stage item's own small SVG
-            <img src={l.photos[0]} width={400} height={300} alt={c.boxAlt} loading="lazy" decoding="async" className={IMG} />
-          ) : (
-            <picture>
-              <source type="image/avif" srcSet={cardSet(l.slug, "avif")} sizes={CARD_SIZES} />
-              <source type="image/webp" srcSet={cardSet(l.slug, "webp")} sizes={CARD_SIZES} />
-              <img src={`/listings/${l.slug}-960.jpg`} width={960} height={720} alt={c.alt(l.name, place)} loading="lazy" decoding="async" className={IMG} />
-            </picture>
-          )}
+          {/* The real photo (Wikimedia Commons, credited on /credits). */}
+          <picture>
+            <source type="image/avif" srcSet={photoSrcSet(photo, "avif")} sizes={CARD_SIZES} />
+            <source type="image/webp" srcSet={photoSrcSet(photo, "webp")} sizes={CARD_SIZES} />
+            <img src={photo} srcSet={photoSrcSet(photo, "jpg")} sizes={CARD_SIZES} width={width} height={height} alt={l.stage ? c.boxAlt : c.alt(l.name, place)} loading="lazy" decoding="async" className="mk-card-art" />
+          </picture>
           <span className="mk-card-tag">{l.stage ? c.stageTag : c.demoTag}</span>
         </span>
         <h3 className="mk-h3 mt-4 text-xl">{l.name}</h3>
@@ -699,6 +695,7 @@ export async function SiteFooter({ demo }: { demo: boolean }) {
         [docsUrl("BUSINESS.md"), l.business, true],
         [docsUrl("WRITEUP.md"), l.writeup, true],
         [docsUrl("DEPLOY.md"), l.deploy, true],
+        ["/credits", l.credits],
       ],
     ],
   ];

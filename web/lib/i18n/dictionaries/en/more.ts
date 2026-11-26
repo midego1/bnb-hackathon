@@ -122,6 +122,19 @@ export const body = {
     qrLabel: "Demo PromptPay QR code",
   },
 
+  credits: {
+    metaTitle: "Photo credits · KeyEscrow",
+    lead: "The listing photos on this site and in the KeyEscrow iOS app are real photos from Wikimedia Commons, free to use under the licences below. They show the model of each listing, not the listed scooter, and the shops and places in them are not connected to KeyEscrow.",
+    usedFor: "Used for",
+    author: "Author",
+    license: "Licence",
+    source: "File on Wikimedia Commons",
+    changed: "What we changed",
+    note: "Note",
+    sameLicense: "Our cropped and resized versions are shared under the same licence as each original. The LED pictures of the landing page are our own drawings.",
+    api: "The same list, as JSON: ",
+  },
+
   dev: {
     metaTitle: "Developers · KeyEscrow",
     lead: {
@@ -136,6 +149,7 @@ export const body = {
       outputs: ", outputs give ",
       base: " (base units) and ",
       end: ".",
+      catalogue: "Listings: the one catalogue of the website and the iOS app, with prices in THB and the credit of every photo. Public, no key, cached for 5 minutes: ",
     },
     field: "Field",
     type: "Type",
@@ -273,4 +287,5 @@ export const head = {
     step2: "2. Fund the escrow from your wallet",
   },
   dev: { title: "Developers" },
+  credits: { title: "Photo credits" },
 };

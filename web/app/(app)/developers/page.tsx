@@ -42,6 +42,15 @@ export default async function DevelopersPage() {
           <code>display</code>
           {t("dev.notes.end")}
         </p>
+        <p data-testid="dev-catalogue">
+          {t("dev.notes.catalogue")}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a JSON endpoint, not a page */}
+          <a className="underline" href="/api/listings">
+            <code>GET /api/listings</code>
+          </a>
+          {", "}
+          <code>GET /api/listings/&lt;slug&gt;</code>
+        </p>
         <pre className="overflow-x-auto rounded-xl bg-muted p-3 text-xs">BASE=http://127.0.0.1:3000   # this app</pre>
       </div>
 
