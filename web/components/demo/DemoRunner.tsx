@@ -587,8 +587,8 @@ export function DemoRunner({ testnet }: { testnet?: TestnetInfo } = {}) {
         )}
       </div>
 
-      {/* The stage: actors | current step + live lease page | timeline. */}
-      <div className="grid gap-3 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] stage:min-h-0 stage:flex-1 stage:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
+      {/* The stage: actors | current step + live lease page | timeline (an unfolded foldable shares its narrower width out). */}
+      <div className="grid gap-3 lg:grid-cols-[16.5rem_minmax(0,1fr)_18rem] stage:min-h-0 stage:flex-1 stage:grid-rows-[minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem] fold:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="order-2 lg:order-none lg:flex lg:flex-col stage:min-h-0">
           <ActorBoard
             wallets={wallets}

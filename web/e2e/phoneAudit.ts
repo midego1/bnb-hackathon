@@ -4,9 +4,9 @@ import type { Page } from "@playwright/test";
 
 type Finding = string;
 
-/** Everything wrong with what is on screen now (see the file comment). Runs in the page. */
-export async function audit(page: Page): Promise<Finding[]> {
-  const found = await page.evaluate(() => {
+/** Everything wrong with what is on screen now (see the file comment). Runs in the page. `min`: the smallest control, in px (44 on a phone, 40 on an unfolded foldable, e2e/fold.spec.ts). */
+export async function audit(page: Page, min = 44): Promise<Finding[]> {
+  const found = await page.evaluate((min) => {
     const out: string[] = [];
     const name = (el: Element) => {
       const t = (el.getAttribute("aria-label") || (el as HTMLElement).innerText || el.getAttribute("title") || "").trim().replace(/\s+/g, " ");
@@ -29,11 +29,12 @@ export async function audit(page: Page): Promise<Finding[]> {
         const parent = el.parentElement;
         if (parent && (parent.innerText || "").trim().length > (el as HTMLElement).innerText.trim().length + 2) continue;
       }
-      const r = el.getBoundingClientRect();
+      // A checkbox or radio is tapped through its label: the label's box counts.
+      const r = (el.matches("[type='checkbox'], [type='radio']") ? (el.closest("label") ?? el) : el).getBoundingClientRect();
       const hit = el.hasAttribute("data-hit") ? 24 : 0; // the ::after hit area reaches 12 px out on each side
       const s = getComputedStyle(el);
       const textLink = el.tagName === "A" && s.backgroundColor === "rgba(0, 0, 0, 0)" && parseFloat(s.borderTopWidth) === 0;
-      const [minW, minH] = textLink ? [0, 24] : [44, 44];
+      const [minW, minH] = textLink ? [0, 24] : [min, min];
       if (r.height + hit < minH - 0.5 || r.width + hit < minW - 0.5) out.push(`tap target ${Math.round(r.width)}x${Math.round(r.height)}: ${name(el)}`);
     }
 
@@ -47,7 +48,7 @@ export async function audit(page: Page): Promise<Finding[]> {
       if (clipped && !h.closest("[data-phone-audit='skip']")) out.push(`text cut off: ${name(h)}`);
     }
     return out;
-  });
+  }, min);
   const bubble = page.getByTestId("assistant-bubble");
   if ((await bubble.count()) && (await bubble.isVisible())) {
     for (const where of ["top", "bottom"] as const) {

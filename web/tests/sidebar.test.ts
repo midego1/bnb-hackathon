@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSidebarSnapshot, setSidebar, SIDEBAR_INIT_SCRIPT, SIDEBAR_STORAGE_KEY, subscribeSidebar, syncSidebarToRoute } from "@/lib/sidebar";
 
-/** A tiny stand-in for <html> and localStorage (the tests run in node). */
-function fakeBrowser({ storageThrows = false } = {}) {
+/** A tiny stand-in for <html>, localStorage and matchMedia (the tests run in node). `fold`: an unfolded foldable. */
+function fakeBrowser({ storageThrows = false, fold = false } = {}) {
   const store = new Map<string, string>();
   const documentElement = { dataset: {} as Record<string, string> };
   const localStorage = {
@@ -16,7 +16,7 @@ function fakeBrowser({ storageThrows = false } = {}) {
     },
   };
   vi.stubGlobal("document", { documentElement });
-  vi.stubGlobal("window", { localStorage });
+  vi.stubGlobal("window", { localStorage, matchMedia: (q: string) => ({ matches: fold && q.includes("aspect-ratio") }) });
   return { store, html: documentElement };
 }
 
@@ -59,6 +59,15 @@ describe("sidebar state", () => {
     syncSidebarToRoute("/landlord");
     expect(getSidebarSnapshot()).toBe("expanded");
     expect(changes).toHaveBeenCalledTimes(4);
+  });
+
+  it("an unfolded foldable opens with the rail until the user picks", () => {
+    const { html } = fakeBrowser({ fold: true });
+    runInit("/tenant");
+    expect(html.dataset.sidebar).toBe("collapsed");
+    setSidebar("expanded", "/tenant");
+    runInit("/landlord");
+    expect(html.dataset.sidebar).toBe("expanded");
   });
 
   it("works without storage (private mode, blocked site data)", () => {

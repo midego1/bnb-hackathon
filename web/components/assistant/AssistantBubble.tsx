@@ -2,6 +2,7 @@
 
 import { ChevronDown, Sparkles } from "lucide-react";
 import { useEffect, useState, type RefObject } from "react";
+import { FOLD_MEDIA } from "@/lib/fold";
 import { useT } from "@/lib/i18n/client";
 
 /**
@@ -42,7 +43,7 @@ export function AssistantBubble({
       data-tucked={tucked || undefined}
       className={`fixed z-[75] inline-flex items-center justify-center rounded-full border border-border bg-background text-foreground shadow-xl transition hover:scale-105 hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none motion-reduce:hover:scale-100 ${
         small ? "right-1 bottom-1 size-8" : "right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] size-14"
-      } max-sm:right-3 max-sm:bottom-[calc(0.75rem+env(safe-area-inset-bottom))] max-sm:size-12 ${open ? "max-sm:hidden" : ""} ${tucked ? "max-sm:translate-x-[46px]" : ""}`}
+      } max-sm:right-3 max-sm:bottom-[calc(0.75rem+env(safe-area-inset-bottom))] max-sm:size-12 ${open ? "max-sm:hidden" : ""} ${tucked ? "max-sm:translate-x-[46px] fold:translate-x-[56px]" : ""}`}
     >
       {open ? (
         <ChevronDown aria-hidden className={small ? "size-4 max-sm:size-5" : "size-6 max-sm:size-5"} />
@@ -61,13 +62,13 @@ export function AssistantBubble({
   );
 }
 
-/** Phones only: is a button, link or field under the bubble's own spot (its layout box, not the tucked one)? */
+/** Phones and unfolded foldables: is a button, link or field under the bubble's own spot (its layout box, not the tucked one)? */
 function useTucked(ref: RefObject<HTMLButtonElement | null>) {
   const [tucked, setTucked] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const phone = window.matchMedia("(max-width: 639.98px)");
+    const phone = window.matchMedia(`(max-width: 639.98px), ${FOLD_MEDIA}`);
     let frame = 0;
     const check = () => {
       cancelAnimationFrame(frame);

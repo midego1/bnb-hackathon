@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogoMark } from "@/components/LogoMark";
 import { LangSwitch } from "@/components/LangSwitch";
 import { ThemeCycleButton } from "@/components/ThemeSwitch";
+import { FOLD_MEDIA } from "@/lib/fold";
 import { getDictionary } from "@/lib/i18n/server";
 import { LISTING_CITIES } from "@/lib/listings";
 import type { ListingSearch } from "@/lib/marketing";
@@ -12,8 +13,9 @@ import { Search } from "./Search";
 const WIDE = [1000, 1600, 2400];
 const TALL = [600, 900, 1200];
 const set = (name: string, widths: number[], ext: string) => widths.map((w) => `/marketing/${name}-${w}.${ext} ${w}w`).join(", ");
-const PHONE = "(max-width: 767px)";
-const DESKTOP = "(min-width: 768px)";
+// An unfolded foldable gets the desktop picture and layout.
+const PHONE = `(max-width: 767px) and (not (${FOLD_MEDIA}))`;
+const DESKTOP = `(min-width: 768px), ${FOLD_MEDIA}`;
 // The art covers the hero and is a little wider than it (it pans), so it renders wider than the viewport.
 const WIDE_SIZES = "115vw";
 const TALL_SIZES = "130vw";
@@ -26,12 +28,13 @@ export async function SiteHeader() {
   const c = (await getDictionary()).of(landingCopy).header;
   return (
     <header className="mk-night mk-top">
-      <nav aria-label="Site" className="mx-auto flex w-full max-w-7xl items-center gap-2 px-5 py-4 sm:gap-3 sm:px-8">
+      <nav aria-label="Site" className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-2 px-5 py-4 sm:gap-3 sm:px-8">
         <Link prefetch={false} href="/" className="flex items-center gap-2 text-lg sm:gap-2.5 sm:text-xl" aria-label={c.home}>
           <LogoMark className="h-8 w-8" />
           <span className="mk-display">KeyScrow</span>
         </Link>
-        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] whitespace-nowrap text-muted-foreground xl:flex">
+        {/* An unfolded foldable: the same links, on their own row under the logo. */}
+        <ul className="ml-8 hidden items-center gap-7 text-[0.95rem] whitespace-nowrap text-muted-foreground xl:flex fold:order-last fold:ml-0 fold:flex fold:w-full fold:justify-between">
           {c.nav.map(([href, label]) => (
             <li key={href}>
               <a href={href} className="transition-colors hover:text-foreground">
@@ -97,7 +100,7 @@ export async function Hero({ demo, search }: { demo: boolean; search: ListingSea
         <div className="mk-glow" aria-hidden />
         <div className="mk-scrim" aria-hidden />
 
-        <div className="mx-auto flex w-full max-w-7xl flex-col justify-start px-5 pt-20 pb-6 sm:px-8 md:pt-28 xl:flex-1 xl:justify-center xl:pt-24 xl:pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col justify-start px-5 pt-20 pb-6 sm:px-8 md:pt-28 xl:flex-1 xl:justify-center xl:pt-24 xl:pb-12 fold:flex-1 fold:justify-center fold:pt-32 fold:pb-12">
           <div className="max-w-[46rem]">
             <h1 className="mk-display">{t.head(landingCopy, (x) => lines(x.hero.h1))}</h1>
             <p className="mk-hero-copy mt-4 max-w-[36rem] text-base leading-relaxed text-foreground sm:mt-5 sm:text-xl sm:leading-relaxed">

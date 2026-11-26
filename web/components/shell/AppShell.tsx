@@ -123,7 +123,7 @@ function Sidebar({ drawerOpen, closeDrawer, settings }: { drawerOpen: boolean; c
         </Button>
       </div>
 
-      <nav aria-label={t("shell.main")} className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+      <nav aria-label={t("shell.main")} className="min-h-0 flex-1 overflow-y-auto px-3 py-2 fold:px-2">
         {NAV_GROUPS.map((g) => (
           <div key={g.id} className="mb-3 last:mb-0 rail:mb-2 rail:border-b rail:border-sidebar-border rail:pb-2 rail:last:border-0">
             <p id={`nav-${g.id}`} className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase rail:sr-only">
