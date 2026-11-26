@@ -34,7 +34,7 @@ const worst = (page: Page) => page.evaluate(() => (window as unknown as { __of: 
 test("switch to 中文 on the landing page: /, /how-it-works and /demo change and it survives a reload", async ({ page }) => {
   await page.goto("/");
   const h1 = page.getByRole("heading", { level: 1 });
-  await expect(h1).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
+  await expect(h1).toHaveText(/Rent the motorbike\.\s*Keep your passport\./);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByTestId("ai-translated")).toHaveCount(0);
 
@@ -72,7 +72,7 @@ test("switch to 中文 on the landing page: /, /how-it-works and /demo change an
   // And back to English.
   await page.goto("/");
   await lang(page, "en").click();
-  await expect(h1).toHaveText(/Rent the scooter\.\s*Keep your passport\./);
+  await expect(h1).toHaveText(/Rent the motorbike\.\s*Keep your passport\./);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 

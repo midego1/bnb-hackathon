@@ -42,7 +42,7 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 | Atlas USDT/USD feed, BSC mainnet (mainnet pilot site; heartbeat 24 h) | [`0x9fc000fc9c17578b49853278a517e357201d01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4) |
 | Atlas Pull API feed ids · official signer | BNB/USD 633, USDT/USD 649 · `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600` |
 | PancakeSwap V2 router (mainnet "Pay with BNB") | `0x10ED43C718714eb63d5aA57B78B54704E256024E` |
-| `AtlasSwapGuard` (testnet "Pay with BNB" demo swap) | _to deploy: `contracts/script/DeployAtlasSwapGuard.s.sol`_ |
+| `AtlasSwapGuard` (testnet "Pay with BNB" demo swap; reads the Atlas BNB/USD feed, max age 120 s) | [`0xD26dBba1eE904c95d3467F479FC4410b0400b6bA`](https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA) |
 
 ## Atlas in the product
 
@@ -62,16 +62,18 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 
 ## Status (be precise for judges)
 
-- Live on the testnet site and the mainnet pilot site: the Atlas push feeds above are the first USD price source
-  (`GET /api/price` → `"source":"atlas"`); CoinMarketCap is live as the fallback, the THB rate and the deposit volatility
-  buffer. Every call shows on `/integrations` and `/sponsors`.
-- Built and tested: the Atlas read path with the staleness check (unit tests with fake 8- and 18-decimal feeds), the CMC
-  volatility buffer and THB conversion (fixture tests), call logging.
-- Built and tested, not live yet: the Atlas Pull API client + signature verification against the official signer +
-  consensus guard (unit tests with a mocked API and a test-key fixture), Pay with BNB (Foundry tests for
-  `AtlasSwapGuard`, Playwright on anvil) and the settlement price proof. Live once `ATLAS_API_KEY` is set on the site
-  (our key is available); the testnet swap also needs `AtlasSwapGuard` deployed (and the feed readable by a contract,
-  not whitelist-only). A live check that real Pull API reports verify against the official signer is still to do.
+- Live on <https://keyscrow.app> (BSC testnet) and <https://mainnet.keyscrow.app> (mainnet pilot): the Atlas push feeds
+  above are the first USD price source (`GET /api/price` → `"source":"atlas"`); CoinMarketCap is live as the fallback,
+  the THB rate and the deposit volatility buffer. Every call shows on `/integrations` and `/sponsors`.
+- Live on <https://keyscrow.app>: the Atlas Pull API. The signed BNB/USD + USDT/USD report is verified against the
+  official signer before it is used (`GET /api/price` → `atlas.ok: true`, consensus HEALTHY on 26 Nov). On top of it,
+  Pay with BNB runs under the Atlas guard (the `AtlasSwapGuard` demo swap at `0xD26dBba1eE904c95d3467F479FC4410b0400b6bA`)
+  and AI settlements that charge damage carry the signed price proof. The mainnet pilot site has no Pull API key: it
+  shows push-feed prices only, so Pay with BNB is refused there (fails closed).
+- Built and tested: the Atlas read path with the staleness check (unit tests with fake 8- and 18-decimal feeds), the
+  Pull API client, signature verification and consensus guard (unit tests with a mocked API and a test-key fixture),
+  Pay with BNB (Foundry tests for `AtlasSwapGuard`, Playwright on anvil), the CMC volatility buffer and THB conversion
+  (fixture tests), call logging.
 - The escrow contracts read no price at all (they hold a stablecoin); only the testnet `AtlasSwapGuard` demo swap reads
   the Atlas feed, before funding.
 

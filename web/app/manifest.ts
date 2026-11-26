@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "KeyScrow",
     short_name: "KeyScrow",
     description:
-      "Scooter deposits in escrow on BNB Chain. Rent the scooter, keep your passport.",
+      "Motorbike deposits in escrow on BNB Chain. Rent the motorbike, keep your passport.",
     start_url: "/app",
     display: "standalone",
     background_color: "#0d0b2a",
