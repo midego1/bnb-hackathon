@@ -7,7 +7,7 @@ with the seeded demo world (`pnpm testnet:world rehearse`: 3 shops, 10 renters, 
 | --- | --- |
 | [HACKQUEST.md](HACKQUEST.md) | Ready-to-paste form fields: name, one-liner, descriptions, BNB Chain, the sponsor tracks, links, test counts |
 | [deck.pdf](deck.pdf) | 11-slide pitch deck, 1920×1080 ([deck.html](deck.html) is the source). Slide 4 shows the native iPhone app in CSS phone frames, so no live phone is needed on stage |
-| [duo.mp4](duo.mp4) · [.webm](duo.webm) | **The hero video (59 s).** `/duo/mystery-box`: the renter's phone on the left, the rental company on the right. Rent, pickup photo, return photo, AI split, the owner accepts, settled |
+| [duo.mp4](duo.mp4) · [.webm](duo.webm) | **The hero video (60 s).** `/duo`: the renter's phone on the left, the rental company with the LED money board on the right. The phone opens on the catalogue; picking the Honda Click 125i switches the whole screen to it (฿250 for a day + ฿6,800 deposit). Test money, pay into escrow (coins run renter → escrow), pickup photo, return photo, AI split, the owner accepts, settled (coins run back to the renter and on to the owner, KeyScrow fee ฿25, once). Script: [`web/scripts/record-duo.mjs`](../../web/scripts/record-duo.mjs) |
 | [demo-guided.mp4](demo-guided.mp4) · [.webm](demo-guided.webm) | `/demo`, Guided, happy path, one click from start to the balanced final summary (90 s) |
 | [eli5.mp4](eli5.mp4) · [.webm](eli5.webm) | `/how-it-works`, the cartoon with the "Both agree" ending (71 s) |
 | [tour.mp4](tour.mp4) · [.webm](tour.webm) | App tour (77 s): landing, search, a listing with a real photo, a rental page in dispute, `/backoffice` with the demo shops, `/arbiter` with the renter's and owner's history cards, Ask AI answering "what is this renter's history?" |
@@ -18,7 +18,7 @@ Screenshots:
 | File | What |
 | --- | --- |
 | `01-landing.png` | Landing: the LED hero and the search |
-| `02-duo.png` | `/duo/mystery-box`, settled |
+| `02-duo.png` | `/duo/honda-click-125i`, settled: the LED money board with ฿6,206 back to the renter, ฿819 to the owner, KeyScrow fee ฿25, once |
 | `03-rental.png` | Rental page: a rental in dispute, money in baht, the next step |
 | `04-arbiter-history.png` | Dispute desk: the case with the renter's and the owner's history cards |
 | `05-backoffice.png` | Back office: the demo shops' rentals read from the chain |

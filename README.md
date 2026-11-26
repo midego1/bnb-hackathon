@@ -29,7 +29,7 @@ plus a capped mainnet pilot, no token.
 ## KeyScrow in pictures
 
 <p align="center">
-  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the rental company on the right. Rent, pickup photo, return photo, AI split, the owner accepts, settled"></a><br>
+  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the rental company with the LED money board on the right. Choose a scooter, pay into escrow, pickup photo, return photo, AI split, the owner accepts, settled"></a><br>
   <sub>One whole rental in 60 seconds: the renter's phone on the left, the rental company on the right (<a href="docs/submission/duo.mp4">full video</a>).</sub>
 </p>
 
@@ -39,7 +39,7 @@ plus a capped mainnet pilot, no token.
     <td width="50%" valign="top"><a href="docs/submission/inspection.png"><img src="docs/submission/inspection.png" width="420" alt="Pickup and return photos of the same scooter side, and the AI return inspection splitting the deposit"></a><br><b>2.</b> At return, the AI inspector compares the pickup and return photos and drafts the deposit split.</td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo after settlement: renter paid, in escrow, owner got, back to renter, every transaction"></a><br><b>3.</b> The renter proposes, the shop accepts, and the money moves at once, with every step on BscScan.</td>
+    <td width="50%" valign="top"><a href="docs/submission/screenshots/02-duo.png"><img src="docs/submission/screenshots/02-duo.png" width="420" alt="/duo after settlement: the LED money board with the deposit back to the renter, the rent and claim to the owner, the one-time KeyScrow fee, every transaction"></a><br><b>3.</b> The renter proposes, the shop accepts, and the money moves at once, with every step on BscScan.</td>
     <td width="50%" valign="top"><a href="docs/submission/screenshots/05-backoffice.png"><img src="docs/submission/screenshots/05-backoffice.png" width="420" alt="Back office: every rental and its deposit, rent paid out and slashes, read from the contracts"></a><br><b>4.</b> The shop's back office: every rental, deposit and rent payout, read straight from the chain.</td>
   </tr>
   <tr>
@@ -85,7 +85,7 @@ flowchart LR
 | Live app (BSC testnet, chain 97) | <https://keyscrow.app> |
 | Mainnet pilot (BSC mainnet, chain 56) | <https://mainnet.keyscrow.app>: factory [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E), real BSC-USD, capped on-chain at 0.70 deposit + 0.30 rent per period (max 1 USD per rental) and 5 USD across all open rentals |
 | Sponsor tracks, live state | [/sponsors](https://keyscrow.app/sponsors) (status from `/api/integrations`; technical detail on [/integrations](https://keyscrow.app/integrations)) |
-| Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (59 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
+| Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (60 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
 | Tests (26 Nov) | 314 Foundry · 558 vitest (40 files) · 24 agent · 154 Playwright tests in 27 spec files |
 | Size | ~74,000 lines of code + ~5,300 lines of Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries) |
 | Built with | Claude Code: 2.47 billion tokens in total (8.13M output), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~15:50 ICT |
@@ -105,7 +105,7 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 
 | `/duo`: renter phone left, rental company right | `/stage` big screen, settled | `/r` on the judge's phone |
 | --- | --- | --- |
-| ![/duo/mystery-box after settlement: the renter's phone on the left, the rental company's screen on the right, every transaction](docs/submission/screenshots/02-duo.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
+| ![/duo/honda-click-125i after settlement: the renter's phone on the left, the rental company's LED money board on the right, every transaction](docs/submission/screenshots/02-duo.png) | ![/stage/mystery-box after settlement: renter paid, in escrow, owner got, back to renter, every transaction](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box: the AI inspection's split, ready to propose](docs/screenshots/judges/stage-phone.png) |
 
 The screenshots come from a local run of the same build (hence `127.0.0.1` under the QR code).
 
