@@ -112,7 +112,7 @@ export function HashLink({ hash, label, href }: { hash: Hex; label?: string; hre
   const t = useT();
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <a href={href ?? evidenceUrl(hash)} target="_blank" rel="noreferrer" title={`SHA-256 ${hash}`} className="break-all font-mono text-xs underline decoration-dotted underline-offset-2">
+      <a href={href ?? evidenceUrl(hash)} target="_blank" rel="noreferrer" title={`SHA-256 ${hash}`} className="inline-flex items-center break-all font-mono text-xs underline decoration-dotted underline-offset-2">
         {label ? `${label} · ` : ""}
         {hash.slice(0, 18)}…{hash.slice(-6)}
       </a>

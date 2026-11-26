@@ -272,7 +272,8 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
       variant="ghost"
       size="xs"
       title={done ? t("ui.copied") : text}
-      className="h-auto px-1 py-0.5 text-subtle hover:bg-transparent hover:text-foreground dark:hover:bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
+      data-hit=""
+      className="relative h-auto px-1 py-0.5 after:absolute after:-inset-3 after:content-[''] text-subtle hover:bg-transparent hover:text-foreground dark:hover:bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
       onClick={() => {
         navigator.clipboard?.writeText(value).then(() => {
           setDone(true);

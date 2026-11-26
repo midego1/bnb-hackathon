@@ -37,7 +37,7 @@ export async function SiteHeader() {
         <span className="ml-auto flex items-center gap-2 sm:gap-2.5">
           <LangSwitch className="hidden border-white/25 bg-white/10 text-white sm:inline-flex" />
           <ThemeCycleButton className="inline-flex !h-10 !w-10 !rounded-full !border-white/25 !bg-white/10 !text-white hover:!bg-white/20" />
-          <Link prefetch={false} href="/app" data-testid="mk-open-app" className="mk-btn mk-btn-line !min-h-10 !px-3.5 !py-2 !text-[0.95rem] sm:!px-4">
+          <Link prefetch={false} href="/app" data-testid="mk-open-app" className="mk-btn mk-btn-line !min-h-11 !px-3.5 sm:!min-h-10 !py-2 !text-[0.95rem] sm:!px-4">
             {c.openApp}
           </Link>
         </span>

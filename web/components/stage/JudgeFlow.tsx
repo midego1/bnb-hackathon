@@ -67,7 +67,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
   const thb = (units: bigint) => thbText(units, status?.price.thbPerUsdt ?? 33);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-5" data-testid="judge-flow" data-step={step ?? "loading"}>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={step ?? "loading"}>
       <header className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- small static photo or a local photo preview (blob URL) */}
         <img src={listing.photos[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />

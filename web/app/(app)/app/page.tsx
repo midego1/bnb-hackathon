@@ -25,10 +25,10 @@ export default async function Home() {
           {t("home.lead")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/landlord" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover">
+          <Link href="/landlord" className="inline-flex items-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover">
             {t("home.owner")}
           </Link>
-          <Link href="/tenant" className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium hover:border-border-hover">
+          <Link href="/tenant" className="inline-flex items-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium hover:border-border-hover">
             {t("home.renter")}
           </Link>
           <Link
@@ -39,10 +39,10 @@ export default async function Home() {
             <Play aria-hidden className="size-3.5 fill-current" />
             {t("home.eli5")}
           </Link>
-          <a href={docsUrl("DEMO.md")} className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+          <a href={docsUrl("DEMO.md")} className="inline-flex items-center gap-1 py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
             {t("home.demoDoc")} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </a>
-          <Link href="/integrations" className="py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline" data-testid="integrations-link">
+          <Link href="/integrations" className="inline-flex items-center gap-1 py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline" data-testid="integrations-link">
             {t("home.integrations")} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
@@ -52,7 +52,7 @@ export default async function Home() {
       <section className="mt-12" aria-labelledby="how">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="how" className="text-lg font-semibold">{t.h("home.how")}</h2>
-          <Link href="/how-it-works" className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+          <Link href="/how-it-works" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
             {t("home.cartoon")} <ArrowRight aria-hidden className="inline size-3.5 align-[-2px]" />
           </Link>
         </div>
@@ -95,11 +95,11 @@ export default async function Home() {
       </section>
 
       <section className="mt-10 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-        <a href={REPO_URL} className="font-medium underline-offset-4 hover:underline">{t("home.links.repo")}</a>
-        <a href={docsUrl("ARCHITECTURE.md")} className="underline-offset-4 hover:underline">{t("home.links.architecture")}</a>
-        <a href={docsUrl("BUSINESS.md")} className="underline-offset-4 hover:underline">{t("home.links.business")}</a>
-        <a href={docsUrl("WRITEUP.md")} className="underline-offset-4 hover:underline">{t("home.links.writeup")}</a>
-        <a href={docsUrl("API.md")} className="underline-offset-4 hover:underline">{t("home.links.api")}</a>
+        <a href={REPO_URL} className="inline-flex items-center font-medium underline-offset-4 hover:underline">{t("home.links.repo")}</a>
+        <a href={docsUrl("ARCHITECTURE.md")} className="inline-flex items-center underline-offset-4 hover:underline">{t("home.links.architecture")}</a>
+        <a href={docsUrl("BUSINESS.md")} className="inline-flex items-center underline-offset-4 hover:underline">{t("home.links.business")}</a>
+        <a href={docsUrl("WRITEUP.md")} className="inline-flex items-center underline-offset-4 hover:underline">{t("home.links.writeup")}</a>
+        <a href={docsUrl("API.md")} className="inline-flex items-center underline-offset-4 hover:underline">{t("home.links.api")}</a>
       </section>
     </div>
   );

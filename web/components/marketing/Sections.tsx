@@ -21,9 +21,8 @@ async function copyFor<K extends keyof LandingCopy>(key: K) {
 
 function Ext({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="mk-link inline-flex items-center gap-1">
-      {children}
-      <ExternalIcon />
+    <a href={href} className="mk-link">
+      {children} <span className="inline-block align-[-2px]"><ExternalIcon /></span>
     </a>
   );
 }
@@ -498,11 +497,11 @@ export async function SiteFooter({ demo }: { demo: boolean }) {
                 {links.map(([href, label, external]) => (
                   <li key={href}>
                     {external ? (
-                      <a href={href} className="text-muted-foreground transition-colors hover:text-foreground">
+                      <a href={href} className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </a>
                     ) : (
-                      <Link prefetch={false} href={href} className="text-muted-foreground transition-colors hover:text-foreground">
+                      <Link prefetch={false} href={href} className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground">
                         {label}
                       </Link>
                     )}

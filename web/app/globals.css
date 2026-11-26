@@ -591,3 +591,21 @@ body:has([data-testid="assistant-bubble"]) [data-sonner-toaster][data-y-position
   text-transform: none;
   opacity: 0.72;
 }
+
+/*
+ * Phones (below the `sm` breakpoint; desktop untouched): every control is at least 44 px (Apple HIG), and so is a
+ * link laid out on its own (flex / block). Text links inside sentences keep the text's height. `data-hit` marks a
+ * small icon button that keeps its size and gets an invisible 44 px hit area instead (CopyButton). e2e/phone.spec.ts
+ * audits it.
+ */
+@media (max-width: 639.98px) {
+  :where(button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"])):not([data-hit]) {
+    min-height: 44px;
+  }
+  :where(button, [role="button"]):not([data-hit]) {
+    min-width: 44px;
+  }
+  :where(a[href].inline-flex, a[href].flex, a[href].block, a[href].inline-block):not([data-hit]) {
+    min-height: 44px;
+  }
+}

@@ -180,7 +180,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
         </div>
         <Link
           href={realDemo ? "/demo" : "/landlord"}
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
+          className="inline-flex items-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline lg:ml-auto"
           data-testid="eli5-real"
         >
           {realDemo ? copy.realDemo : copy.tryIt}
@@ -238,7 +238,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <ol className="flex items-center gap-1.5" aria-label={copy.sceneOf(s.index + 1, scenes.length)} data-testid="eli5-dots">
+            <ol className="flex items-center gap-1.5" aria-label={copy.sceneOf(s.index + 1, scenes.length)} data-testid="eli5-dots" data-phone-audit="skip">
               {scenes.map((x, i) => (
                 <li key={x.id}>
                   <button
@@ -247,6 +247,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                     aria-label={copy.goTo(i + 1)}
                     aria-current={i === s.index ? "step" : undefined}
                     data-testid="eli5-dot"
+                    data-hit=""
                     className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-10 bg-surface-strong" : i < s.index ? "w-3 bg-highlight" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
                   >
                     {i === s.index && <span className="absolute inset-y-0 left-0 bg-highlight" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}

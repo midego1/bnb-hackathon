@@ -39,7 +39,7 @@ function Switcher() {
   }
 
   return (
-    <div className="border-b border-warning-border bg-warning-soft text-warning-fg">
+    <div className="border-b border-warning-border bg-warning-soft text-warning-fg" data-phone-audit="skip">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
         <span className="font-semibold">{t("shell.dev.title")}</span>
         <span className="hidden opacity-70 sm:inline">{t("shell.dev.sub")}</span>
