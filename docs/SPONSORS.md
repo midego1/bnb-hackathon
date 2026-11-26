@@ -136,14 +136,28 @@ Docs: <https://coinmarketcap.com/api/documentation/>
 
 ## Evidence checklist before submitting
 
-- [ ] Repo access for judges, README with setup (README done: setup + "Sponsor integrations"; repo access is the owner's)
+State on 26 Nov 2026. The same list, per track with evidence links, is on <https://keyscrow.app/sponsors>
+(data: `web/lib/sponsorChecklist.ts`).
+
+- [ ] Repo access for judges: README with setup + "Sponsor integrations" is done; the repo is private and goes public
+      on Fri 27 Nov in the morning, before the deadline
 - [x] Contract addresses on BSC testnet listed in README and write-up
-- [ ] CMC API call logs: logging is built (`web/.sponsor-logs/cmc.jsonl`, `/integrations`); needs `CMC_API_KEY` and one run
-- [x] Atlas feed addresses/feedIds used, listed: BSC testnet + mainnet BNB/USD and USDT/USD push feeds and Pull API feed ids 633/649 in [WRITEUP.md](WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97), live as the first price source (26 Nov) (still to check: whether a contract may read the testnet feed, for `AtlasSwapGuard`)
-- [ ] README "Cournot Integration" section with proof of call: section done; proof pending the owner's go for one live call
-- [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md) (team contacts still to fill in)
-- [ ] Videos: ≤ 3 min (CMC x Atlas), 3–5 min (Living Brain), Cournot backup recording
-- [ ] Project submitted on HackQuest with all tracks selected, confirmation received
+- [x] CMC API call logs: `CMC_API_KEY` is set on <https://keyscrow.app>; live calls (USD + THB quotes) show on
+      `/integrations` and `/api/integrations`
+- [x] Atlas live on <https://keyscrow.app> and <https://mainnet.keyscrow.app>: BNB/USD and USDT/USD push feeds are the
+      first price source (`GET /api/price` → `"source":"atlas"`), the Pull API signed reports (feed ids 633/649) give the
+      consensus badge, the Pay with BNB guard and the settlement price proof; addresses in
+      [WRITEUP.md](WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)
+- [x] `AtlasSwapGuard` on BSC testnet: [`0xD26dBba1eE904c95d3467F479FC4410b0400b6bA`](https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA)
+      (reads the Atlas BNB/USD feed on-chain, max age 120 s; Pay with BNB on chain 97)
+- [ ] README "Cournot Integration" section with proof of call: section done; no live call yet (waiting for a partner
+      key / paid calls), so no proof
+- [ ] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md) done; team names still to fill in
+- [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 59 s, `demo-guided.mp4` 90 s,
+      `tour.mp4` 77 s, `eli5.mp4` 71 s); the 3–5 min Living Brain memory video and a Cournot live-call recording are
+      not made yet
+- [ ] Project submitted on HackQuest with all tracks selected: not submitted yet; fields ready in
+      [submission/HACKQUEST.md](submission/HACKQUEST.md)
 
 ## To verify with sponsors at the venue
 
