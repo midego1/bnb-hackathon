@@ -9,14 +9,45 @@ struct CapturedPhoto: Identifiable, Equatable {
     let jpeg: Data
     let sha256: String
 
-    init?(image: UIImage, maxSide: CGFloat = 1600) {
-        let scale = min(1, maxSide / max(image.size.width, image.size.height))
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let resized = UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
-        guard let data = resized.jpegData(compressionQuality: 0.75) else { return nil }
-        self.image = resized
+    /// The upload limit we aim for: the Worker stores at most 256 KB per file (web/lib/server/evidence/state.ts
+    /// STATE_EVIDENCE_MAX_BYTES) and answers 507 above it; 200,000 bytes is the web /r flow's target too
+    /// (web/components/stage/photo.ts MAX_PHOTO_BYTES).
+    static let maxUploadBytes = 200_000
+
+    /// Long side in pixels and JPEG quality, tried in order until the photo fits. A normal camera photo fits at the
+    /// first or second step; the small sizes at the end only matter for pathological images (noise).
+    static let ladder: [(side: CGFloat, quality: CGFloat)] = [
+        (1280, 0.75), (1280, 0.6), (1280, 0.5), (1280, 0.4),
+        (1024, 0.5), (1024, 0.4), (800, 0.5), (800, 0.4),
+        (640, 0.4), (512, 0.35), (400, 0.3),
+    ]
+
+    /// Resizes and re-encodes until the JPEG is at most `maxUploadBytes`, then hashes those exact bytes (the hash on
+    /// chain must be the hash of what is uploaded). Falls back to the smallest encoding if nothing fits.
+    init?(image: UIImage) {
+        var smallest: (UIImage, Data)?
+        for step in Self.ladder {
+            let resized = Self.resized(image, longSide: step.side)
+            guard let data = resized.jpegData(compressionQuality: step.quality) else { continue }
+            if smallest == nil || data.count < smallest!.1.count { smallest = (resized, data) }
+            if data.count <= Self.maxUploadBytes { break }
+        }
+        guard let (img, data) = smallest else { return nil }
+        self.image = img
         self.jpeg = data
         self.sha256 = "0x" + SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Draws `image` with its long side at most `longSide` *pixels*. The renderer's scale is pinned to 1: the default
+    /// is the screen scale (3x on an iPhone), which would make a "1280 px" photo 3840 px.
+    static func resized(_ image: UIImage, longSide: CGFloat) -> UIImage {
+        let px = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        let f = min(1, longSide / max(px.width, px.height))
+        let size = CGSize(width: (px.width * f).rounded(), height: (px.height * f).rounded())
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
     }
 
     static func == (a: CapturedPhoto, b: CapturedPhoto) -> Bool { a.id == b.id }
@@ -38,6 +69,14 @@ struct CapturedPhoto: Identifiable, Equatable {
             ])
         }
         return CapturedPhoto(image: img)
+    }
+}
+
+/// The server refused a photo as too large (HTTP 507 / 413). Worded for the person, in the app's language.
+struct PhotoTooLargeError: LocalizedError {
+    var errorDescription: String? {
+        let zh = (UserDefaults.standard.string(forKey: "lang") ?? (Locale.preferredLanguages.first?.hasPrefix("zh") == true ? "zh" : "en")) == "zh"
+        return zh ? "照片太大，服务器无法保存。请重新拍一张。" : "Photo too large for the server. Please take it again."
     }
 }
 

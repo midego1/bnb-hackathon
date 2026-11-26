@@ -241,7 +241,16 @@ final class RentFlowModel: ObservableObject {
         let shots = photos
         act("photos") { [self] in
             var hashes = shots.map(\.sha256)
-            if let up = try? await api.uploadEvidence(shots.map(\.jpeg)), up.items.count == shots.count { hashes = up.items.map { $0.hash.lowercased() } }
+            do {
+                let up = try await api.uploadEvidence(shots.map(\.jpeg))
+                if up.items.count == shots.count { hashes = up.items.map { $0.hash.lowercased() } }
+            } catch let e as APIError where e.status == 507 || e.status == 413 {
+                // Too large for the server: say so and let the person retake, instead of anchoring a photo nobody stored.
+                photos = []
+                throw PhotoTooLargeError()
+            } catch {
+                // Any other upload failure: the fingerprints computed here still go on-chain (as before).
+            }
             let anchored = Set(photoHashes(kind: kind == "check_in" ? 0 : 1))
             for h in hashes where !anchored.contains(h) {
                 let p = try await api.prepare("add_evidence", ["lease": lease, "from": me, "kind": kind, "contentHash": h])
