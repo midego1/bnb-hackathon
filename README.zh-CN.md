@@ -22,7 +22,7 @@ AI 验车会对比取车和还车的照片，起草一份押金分配方案。�
 
 <p align="center">
   <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="一笔租约从头到尾：左边是租客手机，右边是车主手机，中间是托管保险箱。选车、付款（保险箱装满）、取车照片、还车照片、AI 分配（硬币变成分配的颜色）、车主接受、结算完成（保险箱清空分给双方，一枚硬币是手续费）"></a><br>
-  <sub>64 秒看完一整笔租约：左边是租客手机，右边是车主手机，中间是托管保险箱（<a href="docs/submission/duo.mp4">完整视频</a>）。</sub>
+  <sub>64 秒看完一整笔租约：左边是租客手机，右边是车主手机，中间是托管保险箱（<a href="docs/submission/duo.mp4">带英文旁白的完整视频</a>）。</sub>
 </p>
 
 <table>

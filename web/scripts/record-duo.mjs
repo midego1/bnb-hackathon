@@ -12,6 +12,7 @@
 //                                                 {start, end}: the trim marks in seconds
 //   ffmpeg -i in.webm -ss S -to E -an -c:v libx264 -preset slow -crf 30 -pix_fmt yuv420p -movflags +faststart duo.mp4
 //   ffmpeg -i in.webm -ss S -to E -an -c:v libvpx-vp9 -crf 40 -b:v 0 -row-mt 1 -deadline good -cpu-used 4 duo.webm
+//   then the sound (voice-over, coins, chime, pad; picture copied): bash web/scripts/duo-audio.sh (needs Piper)
 //   GIF (720 px, 10 fps): palettegen=max_colors=64:stats_mode=diff, then paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";

@@ -30,7 +30,7 @@ plus a capped mainnet pilot, no token.
 
 <p align="center">
   <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the owner's phone on the right, the escrow vault between them. Choose a scooter, pay (the vault fills), pickup photo, return photo, AI split (the coins take its colours), the owner accepts, settled (the vault drains to both sides, one coin is the fee)"></a><br>
-  <sub>One whole rental in 64 seconds: the renter's phone on the left, the owner's phone on the right, the escrow vault in the middle (<a href="docs/submission/duo.mp4">full video</a>).</sub>
+  <sub>One whole rental in 64 seconds: the renter's phone on the left, the owner's phone on the right, the escrow vault in the middle (<a href="docs/submission/duo.mp4">full video with voice-over</a>).</sub>
 </p>
 
 <table>
