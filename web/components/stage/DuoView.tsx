@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { LogoMark } from "@/components/LogoMark";
 import { Notice } from "@/components/ui";
-import { explorerLink } from "@/lib/chains";
 import { formatFiat } from "@/lib/fiat";
-import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import { getListing, type Listing } from "@/lib/listings";
-import { duoStep } from "@/lib/stage";
-import { big, headline, Money, Photos, PresenterButtons, Qr, Timeline, useNewestInView, useOwnerSide } from "./StageView";
+import { duoStep, moneyBoard, type StageStatus } from "@/lib/stage";
+import { MoneyBoard, type BoardLabels, type FlowFrame } from "@/components/marketing/MoneyBoard";
+import { big, headline, Photos, PresenterButtons, Qr, Timeline, useNewestInView, useOwnerSide } from "./StageView";
 import { subscribeNothing } from "./wallet";
 
 /** The phone the renter pane draws: an iPhone-sized viewport (CSS px), scaled to fit, inside a bezel. */
@@ -41,14 +40,12 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
   }, []);
   const listing = getListing(slug) ?? first;
   const o = useOwnerSide(listing.slug);
-  const { s, l, offline, paid, fee, toOwner, back, photos, rows } = o;
+  const { s, l, offline, photos, rows } = o;
   const url = useSyncExternalStore(subscribeNothing, () => `${window.location.origin}/r/${listing.slug}`, () => "");
   const timelineRef = useNewestInView(rows.length);
   const t = useT();
   const at = choosing ? 0 : duoStep(s);
-  const link = (kind: "tx" | "address", v: string) => explorerLink(chainId, kind, v);
   const [pickup, dropoff] = [photos(0), photos(1)];
-  const money = (u: bigint | undefined) => (u !== undefined ? big(u, s) : "–");
 
   return (
     <main
@@ -119,24 +116,7 @@ export function DuoView({ listing: first, chainId }: { listing: Listing; chainId
 
           {offline && <Notice kind="warn">{t("stage.offline")}</Notice>}
 
-          {s && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)]" data-testid="stage-money">
-              <Moving value={money(paid)}>
-                <Money label={t("stage.money.paid")} value={money(paid)} sub={s.rental && shortAddress(s.rental.renter)} href={s.rental && link("address", s.rental.renter)} />
-              </Moving>
-              <Flow moving={money(paid)} />
-              <Moving value={money(l?.balance)}>
-                <Money label={t("stage.money.escrow")} value={money(l?.balance)} sub={l && shortAddress(l.address)} href={l && link("address", l.address)} strong />
-              </Moving>
-              <Flow moving={money(toOwner)} />
-              <Moving value={money(toOwner)}>
-                <Money label={t("stage.money.owner")} value={money(toOwner)} sub={shortAddress(s.owner)} href={link("address", s.owner)} />
-              </Moving>
-              <Moving value={money(back)}>
-                <Money label={t("stage.money.back")} value={money(back)} sub={fee !== undefined ? t("stage.money.fee", { fee: big(fee, s) }) : undefined} />
-              </Moving>
-            </div>
-          )}
+          {s && <Board s={s} />}
 
           <div className={`flex flex-col gap-3 wide:stage:min-h-0 wide:stage:flex-1 ${pickup.length || dropoff.length ? "sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:grid-rows-[minmax(0,1fr)] sm:gap-5" : ""}`}>
             {(pickup.length > 0 || dropoff.length > 0) && (
@@ -192,40 +172,37 @@ function Phone({ src, title }: { src: string; title: string }) {
   );
 }
 
-/** Counts the times `value` changed to an amount since the pane mounted (the first state shown is not a move). */
-function useMoves(value: string) {
-  const [last, setLast] = useState(value);
-  const [moves, setMoves] = useState(0);
-  if (value !== last) {
-    setLast(value);
-    if (value !== "–") setMoves(moves + 1);
-  }
-  return moves;
-}
-
-/** A money card that lights up briefly when its amount changes (demo-flash: off with reduced motion). */
-function Moving({ value, children }: { value: string; children: ReactNode }) {
-  const moves = useMoves(value);
+/**
+ * The landing page's LED money board, live: what this rental's renter, escrow and owner hold now (lib/stage
+ * moneyBoard). A new transfer re-keys the tracks, so the coins chase and the amount tag flies in again.
+ */
+function Board({ s }: { s: StageStatus }) {
+  const t = useT();
+  const m = moneyBoard(s);
+  const baht = (u: bigint) => big(u, s);
+  const labels: BoardLabels = {
+    label: t("duo.board.label"),
+    renter: t("duo.board.renter"),
+    escrow: t("duo.board.escrow"),
+    escrowSub: t("duo.board.escrowSub"),
+    owner: t("duo.board.owner"),
+    renterHas: t("duo.board.renterHas"),
+    held: t("duo.board.held"),
+    ownerHas: t("duo.board.ownerHas"),
+    passport: t("duo.board.passport"),
+    fee: t("duo.board.fee", { fee: baht(m.fee ?? BigInt(0)) }),
+  };
+  const frame: FlowFrame = {
+    renter: baht(m.renter),
+    escrow: baht(m.escrow),
+    owner: baht(m.owner),
+    a: m.phase === "funded" && m.paid !== undefined ? { dir: "fwd", tag: baht(m.paid) } : m.phase === "settled" ? { dir: "rev", tag: baht(m.renter) } : undefined,
+    b: m.phase === "settled" ? { tag: baht(m.owner) } : undefined,
+    fee: !!m.fee,
+  };
   return (
-    <div className="relative grid">
-      {children}
-      {moves > 0 && <span key={moves} aria-hidden className="demo-flash pointer-events-none absolute inset-0 rounded-2xl bg-flash-up ring-2 ring-success" data-testid="duo-flash" />}
-    </div>
-  );
-}
-
-/** The arrow between two cards; a ฿ coin runs along it when money moves that way (static with reduced motion). */
-function Flow({ moving }: { moving: string }) {
-  const moves = useMoves(moving);
-  return (
-    <div aria-hidden className="relative hidden w-[clamp(1.75rem,2.6vw,3.5rem)] items-center sm:flex" data-testid="duo-flow" data-moving={moves > 0 || undefined}>
-      <span className="h-0.5 w-full rounded bg-border-strong" />
-      <span className="absolute right-0 border-y-[6px] border-l-[9px] border-y-transparent border-l-border-strong" />
-      {moves > 0 && (
-        <span key={moves} className="duo-coin absolute top-1/2 grid size-[1.375rem] place-items-center rounded-full bg-warning text-xs font-bold text-black shadow">
-          ฿
-        </span>
-      )}
+    <div className="mk-night duo-board rounded-2xl p-4" data-testid="duo-board" data-phase={m.phase}>
+      <MoneyBoard labels={labels} frame={frame} trackKey={`${s.rental?.lease}${m.phase}`} />
     </div>
   );
 }

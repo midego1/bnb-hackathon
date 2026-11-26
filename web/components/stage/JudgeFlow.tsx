@@ -295,7 +295,7 @@ function Step(p: StepProps) {
       return (
         <Big title={t.h("judge.rent", { amount: thb(status.price.rent) })}>
           <dl className="grid grid-cols-2 gap-y-1 text-lg">
-            <dt className="text-muted-foreground">{t(status.listing.monthThb ? "judge.rent.month" : "judge.rent.rent")}</dt>
+            <dt className="text-muted-foreground">{t("judge.rent.rent")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.rentAmount : status.price.rent)}</dd>
             <dt className="text-muted-foreground">{t("judge.rent.deposit")}</dt>
             <dd className="text-right font-semibold tabular-nums">{thb(lease && p.step === "fund" ? lease.terms.depositAmount : status.price.deposit)}</dd>

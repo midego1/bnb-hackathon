@@ -80,11 +80,11 @@ export const body = {
     body: "Rent and deposit go into this rental's own escrow on BNB Chain. The AI inspector compares pickup and return photos; both sides agree on the split.",
     /** A demo scooter: rented with the wallet connected in the app (the Mystery Box is rented from a phone, below). */
     demo: "Demo listing, not a real shop's offer. It runs on a test network and you pay with test money.",
-    how: "Rent it by the month: the demo owner offers you this rental on-chain, then you pay the deposit and the first month's rent into its escrow.",
+    how: "Rent it for a day: the demo owner offers you this rental on-chain, then you pay the deposit and one day's rent into its escrow.",
     gate: "rent this scooter",
     loading: "Checking whether it is free…",
     getMoney: "Get test money",
-    getMoneyHint: "This wallet is short of gas or test USDT for the deposit and the first month. The demo tops up what is missing.",
+    getMoneyHint: "This wallet is short of gas or test USDT for the deposit and one day's rent. The demo tops up what is missing.",
     rentIt: "Rent it",
     rentItBusy: "The owner is creating your offer…",
     fund: "Your offer is ready: pay the deposit",

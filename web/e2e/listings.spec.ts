@@ -5,7 +5,7 @@ import { hydrated } from "./hydrated";
 /**
  * A demo scooter listing (/app/listings/<slug>) rented with the wallet connected in the app, on a throwaway anvil with
  * the dev account switcher (no browser wallet): connect -> "Rent it" (the demo owner's offer: a real createLease,
- * signed on the server) -> the rental page, where the renter approves and funds the deposit and the first month's rent.
+ * signed on the server) -> the rental page, where the renter approves and funds the deposit and one day's rent (the stage price).
  *
  * Like e2e/stage.spec.ts this leaves its rental on-chain and only resets the server's record of it. No
  * restoreChainAfterEachTest() here: the server counts the owner's nonces locally, and a chain reverted under it would
@@ -49,7 +49,7 @@ test("a renter rents a demo scooter from its listing: the owner's offer, then de
   await expect(terms).toContainText("฿250 / day");
   await expect(terms).toContainText("฿3,400 / month");
   await expect(terms).toContainText("฿6,800");
-  await expect(page.getByTestId("listing-flow")).toContainText("the deposit and the first month's rent");
+  await expect(page.getByTestId("listing-flow")).toContainText("the deposit and one day's rent");
   await expect(terms).toContainText("Nimman, Chiang Mai");
   await expect(page.getByTestId("listing-demo")).toContainText("Demo listing");
   await expect(page.getByTestId("listing-demo")).toContainText("test money");
@@ -84,7 +84,7 @@ test("a renter rents a demo scooter from its listing: the owner's offer, then de
   await expect(page.getByText("You are the renter")).toBeVisible();
   await shot(page, "listing-scooter-offer");
 
-  // 4. The renter pays the deposit and the first month's rent into the escrow.
+  // 4. The renter pays the deposit and one day's rent into the escrow.
   await expect(page.getByTestId("approve")).toBeEnabled(); // the wallet's balance and allowance are loaded
   const faucet = page.getByTestId("faucet");
   if (await faucet.isEnabled()) {

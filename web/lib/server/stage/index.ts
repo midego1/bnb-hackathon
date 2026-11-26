@@ -162,9 +162,9 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState, flee
   async function price(listing: Listing) {
     const thbPerUsdt = LISTING_THB_PER_USDT;
     if (cfg.chainId === 56) return { ...MAINNET_STAGE_PRICE, thbPerUsdt };
-    // A listing with a monthly price (the demo scooters) is rented by the month: the escrow's rent period is 30 days, so
-    // its rent is that month's price and the one-time fee is 10% of it. The stage item only has its price per day.
-    return { rent: thbToUnits(listing.monthThb ?? listing.rentThb, thbPerUsdt), deposit: thbToUnits(listing.depositThb, thbPerUsdt), thbPerUsdt };
+    // Every stage rental is "one day" (box and scooters alike): its rent is the listing's price per day, paid as the
+    // escrow's one 30-day period (so the one-time fee is 10% of it), and it settles the same day.
+    return { rent: thbToUnits(listing.rentThb, thbPerUsdt), deposit: thbToUnits(listing.depositThb, thbPerUsdt), thbPerUsdt };
   }
 
   async function send(l: Loaded, who: PrivateKeyAccount, call: Parameters<Chain97["sendCall"]>[1]) {

@@ -41,6 +41,19 @@ export const body = {
     phone: "The renter's phone",
     scan: "Rent it on your own phone",
     steps: "Rental steps",
+    /** The money board (the landing page's LED board, live). */
+    board: {
+      label: "Where this rental's money is now",
+      renter: "Renter",
+      escrow: "Escrow",
+      escrowSub: "this rental's own contract",
+      owner: "Owner",
+      renterHas: "with the renter",
+      held: "in escrow",
+      ownerHas: "with the owner",
+      passport: "Passport: still in your pocket",
+      fee: "KeyScrow fee {fee}, once",
+    },
   },
   /** The judge's phone (/r/<slug>, components/stage/JudgeFlow.tsx). */
   judge: {
@@ -65,7 +78,6 @@ export const body = {
     },
     rent: {
       rent: "Rent (1 day)",
-      month: "Rent (1 month)",
       deposit: "Deposit (comes back)",
       body: "The money goes into this rental's own escrow contract on BNB Chain, not to the owner. Nobody can take the deposit alone.",
       preparing: "The owner is preparing your rental…",
