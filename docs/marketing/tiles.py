@@ -3,7 +3,7 @@
 
     python3 docs/marketing/tiles.py OUT_DIR      # writes today.svg and escrow.svg (960x720)
 
-Both are drawn for an 80x60 LED grid (dotfx, cell 12): bold flat shapes, and the baht amount in a 5x9 dot font with
+Both are drawn for an 80x60 LED grid (coins.py, cell 12): bold flat shapes, and the baht amount in a 5x9 dot font with
 one font pixel per LED cell. See README.md in this folder for the rest of the pipeline.
 """
 import sys

@@ -4,7 +4,7 @@
     python3 docs/marketing/scene.py OUT_DIR      # writes street-wide.svg (2400x1200) and street-tall.svg (1200x2000)
 
 The scooter is the same one as the demo "photos" (web/public/demo/checkin-left-side.svg), redrawn for night.
-See README.md in this folder for the rest of the pipeline (SVG -> PNG -> dotfx LED -> AVIF/WebP/JPEG).
+See README.md in this folder for the rest of the pipeline (SVG -> PNG -> coins.py: LED coins -> AVIF/WebP/JPEG).
 """
 import random
 import sys

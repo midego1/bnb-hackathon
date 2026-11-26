@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -89,6 +90,14 @@ describe("marketing page facts", () => {
     const business = read("docs/BUSINESS.md");
     expect(business).toContain("at most 5 USDT deposit and 2 USDT rent per period per rental, 25 USDT held in all escrows together");
     expect(body).toContain("at most 5 USDT deposit and 2 USDT rent per payment per rental, and 25 USDT in all escrows together");
+  });
+
+  it("draws its coins with BNB Chain's own logomark, unchanged (docs/marketing/README.md, The BNB mark)", () => {
+    const mark = readFileSync(path.join(repo, "web/public/marketing/bnb-symbol.svg"));
+    expect(createHash("sha256").update(mark).digest("hex")).toBe("b8ff1ce0b5af2e2d9bcf5ec89fedd5224079f4f7267e306e23e8d691024f5eff");
+    // The tracks' coin carries the same outline.
+    const d = /<path d="([^"]+)"/.exec(mark.toString())![1];
+    expect(readFileSync(path.join(repo, "web/public/marketing/bnb-coin.svg"), "utf8")).toContain(`d="${d}"`);
   });
 
   it("can show every amount of the money board on its LED panel", () => {

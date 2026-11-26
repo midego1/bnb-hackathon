@@ -54,7 +54,7 @@ export async function SiteHeader() {
 }
 
 /**
- * First screen: the street at night (our own vector scene run through dotfx's LED preset, docs/marketing), the
+ * First screen: the street at night (our own vector scene as LED dots that are tiny coins, docs/marketing), the
  * promise, and the search that leads into the listings below. The three other ways in sit under it as smaller buttons.
  * The artwork is the LCP element, so it is preloaded per viewport class and never lazy.
  */
@@ -89,6 +89,9 @@ export async function Hero({ demo, search }: { demo: boolean; search: ListingSea
                 fetchPriority="high"
               />
             </picture>
+            {/* The sign's tubes flicker and the scooter's headlight sweeps the road (landing.css, CSS only). */}
+            <span className="mk-fx mk-flicker" aria-hidden />
+            <span className="mk-fx mk-beam" aria-hidden />
           </div>
         </div>
         <div className="mk-glow" aria-hidden />
