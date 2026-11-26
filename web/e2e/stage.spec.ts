@@ -1,5 +1,6 @@
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
 import path from "node:path";
+import { E2E_WEB_PORT } from "./env";
 
 /**
  * The live judge demo on a throwaway anvil: the big screen (/stage/mystery-box) and a judge's phone (/r/mystery-box)
@@ -43,6 +44,66 @@ async function resetStage(stage: Page) {
   await expect(stage.getByTestId("stage-view")).toHaveAttribute("data-status", "none");
 }
 
+/** Every screen the big-screen view is checked on: [width, height, touch]. Two columns on landscape >= 1024px. */
+const SCREENS: [number, number, boolean][] = [
+  [1920, 1080, false], // projector
+  [2560, 1440, false],
+  [1470, 830, false], // laptop
+  [1280, 720, false],
+  [1180, 820, true], // iPad landscape
+  [1366, 1024, true],
+  [820, 1180, true], // iPad portrait
+  [1024, 1366, true],
+  [390, 844, true], // phone
+  [360, 780, true],
+];
+const STAGE_SHOTS = process.env.STAGE_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/stage");
+
+type Box = { x: number; y: number; width: number; height: number };
+const overlap = (a: Box, b: Box) => a.x < b.x + b.width - 1 && b.x < a.x + a.width - 1 && a.y < b.y + b.height - 1 && b.y < a.y + a.height - 1;
+
+/** The big screen at one size: no sideways scroll, QR and presenter buttons on screen, blocks apart, amounts on one line. */
+async function checkScreen(browser: Browser, [width, height, touch]: [number, number, boolean], scheme: "light" | "dark", lang: "en" | "zh" | "both") {
+  const ctx = await browser.newContext({ viewport: { width, height }, colorScheme: scheme, hasTouch: touch });
+  await ctx.addCookies([{ name: "ke_lang", value: lang, url: `http://127.0.0.1:${E2E_WEB_PORT}` }]);
+  const page = await ctx.newPage();
+  const at = `${width}x${height} ${scheme} ${lang}`;
+  await page.goto(`/stage/${SLUG}`);
+  await expect(page.getByTestId("stage-qr")).toBeVisible();
+  await expect(page.getByTestId("stage-timeline").locator("li").first()).toBeVisible({ visible: width >= 640 });
+  const wide = width >= 1024 && width > height;
+  const m = await page.evaluate(() => ({ sw: document.scrollingElement!.scrollWidth, sh: document.scrollingElement!.scrollHeight }));
+  expect(m.sw, `sideways scroll at ${at}`).toBeLessThanOrEqual(width);
+  // Landscape screens are one screen (only the timeline scrolls inside), like /demo.
+  if (wide) expect(m.sh, `page scroll at ${at}`).toBeLessThanOrEqual(height);
+  // The presenter's buttons are on screen without scrolling (sticky bar when stacked), big enough to tap.
+  for (const id of ["stage-accept", "stage-reset"]) {
+    await expect(page.getByTestId(id), `${id} at ${at}`).toBeInViewport({ ratio: 1 });
+    if (touch) expect((await page.getByTestId(id).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  // Amounts never wrap or spill out of their card.
+  for (const el of await page.getByTestId("stage-amount").all()) {
+    expect(await el.evaluate((e) => e.scrollWidth <= e.clientWidth), `amount overflows at ${at}`).toBe(true);
+  }
+  const ids = ["stage-title", "stage-headline", "stage-money", "stage-qr-card", "stage-photos", "stage-timeline-box"].concat(wide ? ["stage-presenter"] : []);
+  const boxes = await Promise.all(ids.map(async (id) => [id, await page.getByTestId(id).boundingBox()] as const));
+  for (const [i, [a, ba]] of boxes.entries()) for (const [b, bb] of boxes.slice(i + 1)) if (ba && bb) expect(overlap(ba, bb), `${a} overlaps ${b} at ${at}`).toBe(false);
+  await page.screenshot({ path: path.join(STAGE_SHOTS, `${width}x${height}-${scheme}${lang === "en" ? "" : `-${lang}`}.png`) });
+  if (!wide) {
+    // Stacked: the QR scrolls into view uncovered by the sticky bar; at the very end the bar covers nothing.
+    if (touch) {
+      await expect(page.getByTestId("stage-open-here")).toHaveAttribute("href", `/r/${SLUG}`);
+      expect((await page.getByTestId("stage-open-here").boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.getByTestId("stage-qr").evaluate((e) => e.scrollIntoView({ block: "start" }));
+    expect(overlap((await page.getByTestId("stage-qr").boundingBox())!, (await page.getByTestId("stage-presenter").boundingBox())!), `presenter bar covers the QR at ${at}`).toBe(false);
+    await page.evaluate(() => window.scrollTo(0, document.scrollingElement!.scrollHeight));
+    expect(overlap((await page.getByTestId("stage-timeline-box").boundingBox())!, (await page.getByTestId("stage-presenter").boundingBox())!), `presenter bar covers the timeline at ${at}`).toBe(false);
+    await page.screenshot({ path: path.join(STAGE_SHOTS, `${width}x${height}-${scheme}${lang === "en" ? "" : `-${lang}`}-end.png`) });
+  }
+  await ctx.close();
+}
+
 async function step(phone: Page, name: string) {
   // Right after a reload the streamed page can briefly hold two copies of the flow; wait for the settled one.
   await expect(phone.getByTestId("judge-flow")).toHaveCount(1);
@@ -64,7 +125,7 @@ async function photos(phone: Page, kind: "pickup" | "return", seed: number) {
 
 for (const mobile of [true, false]) {
   test(`a judge rents the Mystery Box on stage (${mobile ? "phone" : "desktop"} viewport)`, async ({ page: stage, browser }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(mobile ? 240_000 : 480_000);
     const problems: string[] = [];
     await stage.setViewportSize({ width: 1920, height: 1080 });
     await stage.goto(`/stage/${SLUG}`);
@@ -119,6 +180,14 @@ for (const mobile of [true, false]) {
     if (mobile) {
       await shot(stage, "stage-big-screen-settled");
       await shot(phone, "stage-phone-4-settled");
+    }
+
+    // The settled stage (every block filled) on every screen size, light and dark; 中文 and EN+中文 on the tightest ones.
+    if (!mobile) {
+      for (const screen of SCREENS) for (const scheme of ["light", "dark"] as const) await checkScreen(browser, screen, scheme, "en");
+      for (const screen of SCREENS.filter(([w, h]) => [360, 1180, 1280].includes(w) && h <= 820)) {
+        for (const lang of ["zh", "both"] as const) await checkScreen(browser, screen, "light", lang);
+      }
     }
 
     // One rental at a time: a second phone sees it is free again only because this one settled.
