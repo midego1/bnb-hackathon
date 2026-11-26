@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { asReopened, searchChats, type StoredChat } from "@/lib/assistant/history";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
-import { ItemView } from "./ItemView";
+import { ChatItems } from "./ItemView";
 
 const when = (at: number, t: T) => {
   const m = Math.round((Date.now() - at) / 60_000);
@@ -151,10 +151,8 @@ export function ReadOnlyChat({ chat, onBack, onContinue }: { chat: StoredChat; o
         </Button>
         <span className="min-w-0 flex-1 truncate font-medium">{chat.title}</span>
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-        {asReopened(chat.items).map((item) => (
-          <ItemView key={item.id} item={item} />
-        ))}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+        <ChatItems items={asReopened(chat.items)} />
       </div>
       <div className="border-t border-border p-3">
         <Button type="button" onClick={onContinue} data-testid="assistant-continue" className="h-9 w-full hover:bg-primary-hover">

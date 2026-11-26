@@ -54,7 +54,7 @@ test("roles group is the role switcher: active item, demo account follows, keybo
   await expect(page.getByTestId("view-landlord")).toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId("view-tenant")).not.toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId("dev-role-landlord")).toHaveAttribute("aria-pressed", "true");
-  // Keyboard, from a fresh load: the skip link comes first, then the sidebar (logo, collapse button, Ask AI, the roles).
+  // Keyboard, from a fresh load: the skip link comes first, then the sidebar (logo, collapse button, the roles).
   await page.reload();
   await expect(page.getByTestId("view-landlord")).toHaveAttribute("aria-current", "page");
   await page.keyboard.press("Tab");
@@ -63,15 +63,15 @@ test("roles group is the role switcher: active item, demo account follows, keybo
   await page.keyboard.press("Tab");
   await expect(toggle(page)).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(page.getByTestId("ask-ai-entry")).toBeFocused();
-  await page.keyboard.press("Tab");
   await expect(page.getByTestId("view-tenant")).toBeFocused();
   // Demo and Build groups.
   await expect(page.getByTestId("nav-demo")).toHaveAttribute("href", "/demo");
   await expect(page.getByTestId("nav-eli5")).toHaveAttribute("href", "/how-it-works");
   await expect(page.getByTestId("nav-developers")).toHaveAttribute("href", "/developers");
   await expect(page.getByTestId("nav-integrations")).toHaveAttribute("href", "/integrations");
-  await expect(page.locator("#ask-ai-slot").getByTestId("ask-ai-entry")).toBeVisible();
+  // Ask AI is the bubble bottom right, not a sidebar row.
+  await expect(page.getByTestId("sidebar").getByRole("button", { name: "Ask AI" })).toHaveCount(0);
+  await expect(page.getByTestId("assistant-bubble")).toBeVisible();
 });
 
 test("collapse to an icon rail: remembered across reloads; /demo and /how-it-works open collapsed", async ({ page }) => {

@@ -1,22 +1,24 @@
 # Ask AI
 
-Ask AI is KeyEscrow's in-app assistant: a side panel that answers questions about rentals and makes changes for you,
+Ask AI is KeyEscrow's in-app assistant: a floating chat (a bubble bottom right) that answers questions about rentals and makes changes for you,
 as the connected wallet, through the same rental actions as the REST API and the agent's MCP / A2A tools. It never
 holds a key: every change is a transaction your own wallet signs after you approve a card.
 
 Code: `web/lib/assistant/` (engine, tools, cards, approvals, limits, demo model), `web/app/api/assistant/` (routes),
-`web/components/assistant/` (panel, cards, edge light), `web/lib/server/assistant.ts` (the web host).
+`web/components/assistant/` (bubble, chat window, cards, edge light), `web/lib/server/assistant.ts` (the web host).
 
 **Status:** on `main` after this branch: the panel, the demo model, Claude through `@anthropic-ai/sdk`, approvals
 signed by the connected wallet on anvil (31337) or BSC testnet (97), unit tests and a Playwright test with the demo
-model. It opens from the **Ask AI** row at the top of the sidebar (expanded, icon rail and the phone drawer) or with
-Ctrl+J / Cmd+J.
+model. It opens from the **Ask AI** bubble bottom right of every app page or with Ctrl+J / Cmd+J.
 
 ## What it does
 
-- **Open / close:** Ctrl+J (Cmd+J on a Mac), or the **Ask AI** row in the sidebar. On a desktop it is a column on the right and
-  the page reflows beside it (drag its left edge, or **Widen** to half the window); on the one-screen stages (`/demo`,
-  `/how-it-works`) it floats bottom right so the stage keeps its width; on a phone it is a bottom sheet.
+- **Open / close:** Ctrl+J (Cmd+J on a Mac), or the round **Ask AI** bubble bottom right (the only entry point). The chat
+  window floats above the bubble (400 px wide, up to 640 px tall) and scales in from it; the page never reflows. On a
+  phone it is a full-height sheet. On the one-screen stages (`/demo`, `/how-it-works`, `/pitch`) the bubble is small
+  and tucked into the corner, clear of the stage controls; the landing page and the live judge demo (`/stage`, `/r`)
+  have none. A dot on the bubble: violet while a change waits for approval, or a reply that came in while it was
+  closed. Messages are chat bubbles: yours on the right, Ask AI's answers, steps, cards and approvals on the left.
 - **Reads** run at once: `get_lease`, `list_leases`, `explain_status`, `quote`, and `inspect_return` (the AI return
   inspection over the photos anchored on the rental).
 - **Changes** (`prepare_create_lease`, `prepare_fund`, `prepare_propose_settlement`, `prepare_accept`,

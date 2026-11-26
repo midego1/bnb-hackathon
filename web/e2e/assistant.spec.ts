@@ -3,9 +3,9 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Ask AI with the demo model (no key: the e2e server blanks ANTHROPIC_API_KEY) on the e2e anvil: open with Cmd/Ctrl+J,
- * read a rental, create one through an approval card signed by the dev wallet, decline, Stop, and the edge-light
- * states. Screenshots (light + dark, 1470x830) go to ASSISTANT_SHOTS (default test-results/screenshots/ask-ai).
+ * Ask AI with the demo model (no key: the e2e server blanks ANTHROPIC_API_KEY) on the e2e anvil: the bubble bottom
+ * right and Cmd/Ctrl+J open the floating chat window; read a rental, create one through an approval card signed by
+ * the dev wallet, decline, Stop, and the edge-light states. Screenshots (light + dark, 1470x830) go to ASSISTANT_SHOTS (default test-results/screenshots/ask-ai).
  */
 
 const SHOTS = process.env.ASSISTANT_SHOTS ?? path.resolve(__dirname, "../test-results/screenshots/ask-ai");
@@ -77,7 +77,8 @@ test("Cmd+J opens Ask AI; 'Where is my deposit?' on a rental shows the server's 
   await expect(edge(page)).toHaveAttribute("data-assistant-state", "reading");
   await expect(page.getByTestId("assistant-status")).toHaveAttribute("data-state", "reading");
 
-  const card = page.getByTestId("assistant-card-lease");
+  // The server's card sits inside Ask AI's chat bubble (left), the question in the person's (right).
+  const card = page.getByTestId("assistant-turn").getByTestId("assistant-card-lease");
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute("data-status", "Active");
   await expect(card).toContainText("฿"); // baht first
@@ -91,9 +92,13 @@ test("Cmd+J opens Ask AI; 'Where is my deposit?' on a rental shows the server's 
   await expect(page.getByTestId("assistant-answer").last()).toContainText(/next/i);
   expect(problems).toEqual([]);
 
-  // Ctrl+J again closes it and the page gets its full width back.
+  const user = (await page.getByTestId("assistant-user").last().boundingBox())!;
+  const turn = (await page.getByTestId("assistant-turn").last().boundingBox())!;
+  expect(user.x, "the person's message is on the right").toBeGreaterThan(turn.x);
+
+  // Ctrl+J again closes it.
   await page.keyboard.press("ControlOrMeta+j");
-  await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
+  await expect(page.getByTestId("assistant-panel")).toBeHidden();
 });
 
 test("create a rental: approval card -> approve -> dev wallet signs -> done card, the page follows to the new rental", async ({ page }) => {
@@ -113,6 +118,13 @@ test("create a rental: approval card -> approve -> dev wallet signs -> done card
   // Waiting for approval: steady violet edge, the tab title says so.
   await expect(edge(page)).toHaveAttribute("data-assistant-state", "waiting");
   await expect(page).toHaveTitle(/^\(Approval needed\) /);
+  await expect(page.getByTestId("assistant-panel")).toHaveAttribute("data-assistant-state", "waiting");
+  // Closed, the bubble keeps a violet dot until the change is approved or declined.
+  await page.getByTestId("assistant-bubble").click();
+  await expect(page.getByTestId("assistant-panel")).toBeHidden();
+  await expect(page.getByTestId("assistant-bubble")).toHaveAttribute("data-dot", "waiting");
+  await page.getByTestId("assistant-bubble").click();
+  await expect(approval).toBeVisible();
 
   for (const theme of ["light", "dark"] as const) {
     await setTheme(page, theme);
@@ -210,37 +222,73 @@ test("light + dark: a rental card and the panel on the renter's rental", async (
   await setTheme(page, "light");
 });
 
-test("the Ask AI row in the sidebar opens the panel: expanded, icon rail and the phone drawer", async ({ page }) => {
-  await page.goto("/tenant");
-  const entry = page.getByTestId("ask-ai-entry");
-  await expect(entry).toBeVisible();
-  await expect(entry).toContainText("Ask AI");
-  await entry.click();
-  await expect(page.getByTestId("assistant-panel")).toBeVisible();
-  await expect(entry).toHaveAttribute("aria-pressed", "true");
-  await entry.click();
-  await expect(page.getByTestId("assistant-panel")).toHaveCount(0);
+test("the bubble opens a floating window: no reflow, no page scroll at 1470x830, a full-height sheet on a phone", async ({ page }) => {
+  await page.goto("/app");
+  const bubble = page.getByTestId("assistant-bubble");
+  const panel = page.getByTestId("assistant-panel");
+  await expect(bubble).toBeVisible();
+  await expect(bubble).toHaveAccessibleName("Ask AI");
+  await expect(bubble).toHaveAttribute("title", /Ask AI/);
+  await expect(page.getByTestId("sidebar").getByRole("button", { name: "Ask AI" })).toHaveCount(0); // one entry point
+  const b = (await bubble.boundingBox())!;
+  expect(Math.round(b.width)).toBe(56);
+  expect(b.x + b.width, "bottom right").toBeGreaterThan(1470 - 24);
+  expect(b.y + b.height).toBeGreaterThan(830 - 24);
+  const main = (await page.locator("main").boundingBox())!;
 
-  // Icon rail: the row is an icon, still named "Ask AI".
-  await page.getByRole("button", { name: "Collapse sidebar" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-sidebar", "collapsed");
-  await expect(page.getByRole("button", { name: "Ask AI" })).toBeVisible();
-  await page.getByRole("button", { name: "Ask AI" }).click();
-  await expect(page.getByTestId("assistant-panel")).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, "rail-panel-open-light.png") });
-  await page.keyboard.press("ControlOrMeta+j");
-  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await bubble.click();
+  await expect(panel).toBeVisible();
+  await expect(panel).toBeInViewport({ ratio: 1 });
+  await expect(bubble).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("assistant-input")).toBeFocused();
+  const w = (await panel.boundingBox())!;
+  expect(Math.round(w.width)).toBe(400);
+  expect(w.y + w.height, "the window sits above the bubble").toBeLessThanOrEqual(b.y);
+  expect((await page.locator("main").boundingBox())!.width, "the page does not reflow").toBe(main.width);
+  expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth), "no sideways scroll").toBeLessThanOrEqual(0);
+  await page.screenshot({ path: path.join(SHOTS, "bubble-window-light.png") });
 
-  // Phone: the drawer closes and the panel opens as a bottom sheet.
+  // The bubble closes it again (focus goes back to the bubble); the window is kept, hidden, for the next open.
+  await bubble.click();
+  await expect(panel).toBeHidden();
+  await expect(bubble).toBeFocused();
+  await expect(page.locator("html[data-assistant-open]")).toHaveCount(0);
+
+  // Phone: a full-height sheet; the bubble steps aside while it is open; close comes back to the bubble.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByTestId("menu-open").click();
-  await page.getByTestId("ask-ai-entry").click();
-  await expect(page.getByTestId("menu-open")).toHaveAttribute("aria-expanded", "false");
-  const sheet = page.getByTestId("assistant-panel");
-  await expect(sheet).toBeVisible();
-  await expect(sheet).toBeInViewport({ ratio: 1 });
-  expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
-  await page.screenshot({ path: path.join(SHOTS, "mobile-sheet-light.png") });
+  await expect(bubble).toBeInViewport({ ratio: 1 });
+  for (const theme of ["light", "dark"] as const) {
+    await setTheme(page, theme);
+    await page.reload();
+    await page.screenshot({ path: path.join(SHOTS, `phone-bubble-${theme}.png`) });
+    await bubble.click();
+    await expect(panel).toBeVisible();
+    const sheet = (await panel.boundingBox())!;
+    expect([sheet.x, sheet.y, sheet.width, sheet.height].map(Math.round)).toEqual([0, 0, 390, 844]);
+    await expect(bubble).toBeHidden();
+    await expect(page.getByTestId("assistant-input")).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: path.join(SHOTS, `phone-sheet-${theme}.png`) });
+    await page.getByTestId("assistant-close").click();
+    await expect(panel).toBeHidden();
+    await expect(bubble).toBeVisible();
+  }
+  await setTheme(page, "light");
+});
+
+test("a reply that lands while the window is closed puts a dot on the bubble", async ({ page }) => {
+  await page.goto(`/lease/${SEEDED_LEASE}`);
+  await actAs(page, "tenant");
+  await openPanel(page);
+  await holdNextRun(page, 1500);
+  await ask(page, "Where is my deposit?");
+  await page.keyboard.press("ControlOrMeta+j");
+  await expect(page.getByTestId("assistant-panel")).toBeHidden();
+  await expect(page.getByTestId("assistant-bubble")).toHaveAttribute("data-dot", "unread", { timeout: 20_000 });
+  await page.getByTestId("assistant-bubble").click();
+  await expect(page.getByTestId("assistant-card-lease")).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+j");
+  await expect(page.getByTestId("assistant-bubble")).not.toHaveAttribute("data-dot", /.*/);
 });
 
 test("model picker: only Sonnet 5.5 and Haiku 5.5, per chat; /model; the server refuses anything else", async ({ page }) => {
@@ -334,4 +382,27 @@ test("history: New chat keeps the chat; open it read-only, rename, continue, del
   await expect(page.getByText("No earlier chats in this browser yet.")).toBeVisible();
   await actAs(page, "landlord");
   await expect(items).toHaveCount(1);
+});
+
+test("on the one-screen stages the bubble is small and clear of the stage controls", async ({ page }) => {
+  for (const [url, ids] of [
+    ["/pitch?autoplay=0", ["pitch-back", "pitch-play", "pitch-next", "pitch-dot"]],
+    ["/how-it-works?autoplay=0", ["eli5-back", "eli5-play", "eli5-next", "eli5-dot"]],
+    ["/demo", ["demo-play", "demo-speed-fast", "demo-mode-step"]],
+  ] as const) {
+    await page.goto(url);
+    const bubble = page.getByTestId("assistant-bubble");
+    await expect(bubble).toBeInViewport({ ratio: 1 });
+    const b = (await bubble.boundingBox())!;
+    expect(Math.round(b.width), `small bubble on ${url}`).toBe(32);
+    for (const id of ids) {
+      await expect(page.getByTestId(id).first()).toBeVisible();
+      for (const el of await page.getByTestId(id).all()) {
+        const c = (await el.boundingBox())!;
+        const apart = c.x + c.width <= b.x || b.x + b.width <= c.x || c.y + c.height <= b.y || b.y + b.height <= c.y;
+        expect(apart, `${id} is not under the bubble on ${url}`).toBe(true);
+      }
+    }
+    await page.screenshot({ path: path.join(SHOTS, `stage-bubble-${url.split("?")[0].slice(1)}.png`) });
+  }
 });

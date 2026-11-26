@@ -4,15 +4,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { canFollow } from "@/lib/assistant/composer";
 import { safeAppPath } from "@/lib/assistant/paths";
-import { AssistantEdge } from "./AssistantEdge";
 import dynamic from "next/dynamic";
-import { MIN_WIDTH } from "./constants";
+import { AssistantBubble } from "./AssistantBubble";
+import { AssistantEdge } from "./AssistantEdge";
 import { useAssistantRun } from "./useAssistantRun";
 
 type Ctx = { open: boolean; setOpen: (v: boolean) => void; toggle: () => void };
 const AssistantContext = createContext<Ctx | null>(null);
 
-/** The panel UI loads on first open, not with every page. */
+/** The chat window loads on first open, not with every page. */
 const AssistantPanel = dynamic(() => import("./AssistantPanel").then((m) => m.AssistantPanel), { ssr: false });
 
 export function useAssistantPanel(): Ctx {
@@ -22,8 +22,8 @@ export function useAssistantPanel(): Ctx {
 }
 
 const FOLLOW_KEY = "keyescrow.assistant.follow";
-const WIDTH_KEY = "keyescrow.assistant.width";
-const DEFAULT_WIDTH = 400;
+/** The one-screen stages: a small bubble, clear of their controls (see AssistantBubble). */
+const STAGES = ["/demo", "/how-it-works", "/pitch"];
 
 function readStorage(key: string): string | null {
   try {
@@ -41,9 +41,10 @@ function writeStorage(key: string, value: string) {
 }
 
 /**
- * Ask AI: the panel (right column on desktop, bottom sheet on phones), the window-edge light and Cmd+J / Ctrl+J.
- * Renders no wrapper element, so page layout (the one-screen /demo) is untouched; while open on desktop the page gets
- * room on the right through `html[data-assistant-open]` (app/globals.css).
+ * Ask AI: the launcher bubble (bottom right), the floating chat window above it (a full-height sheet on phones), the
+ * window-edge light and Cmd+J / Ctrl+J. Everything is fixed on top of the page, which never reflows;
+ * `html[data-assistant-open]` marks the open state. Only the app shell mounts this provider, so the landing page and
+ * the live judge demo (/stage, /r) have no bubble.
  */
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -74,30 +75,24 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
 function AssistantRoot({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
   const [follow, setFollowState] = useState(true);
-  const [width, setWidthState] = useState(DEFAULT_WIDTH);
-  const [wide, setWide] = useState(false);
+  // Mounted from the first open on, so it can animate closed and keeps its view and draft between opens.
+  const [loaded, setLoaded] = useState(false);
   const pathname = usePathname() ?? "/";
   const router = useRouter();
   const panelRef = useRef<HTMLElement | null>(null);
+  const bubbleRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    // Restore saved settings after hydration (the server render uses the defaults).
+    // Restore the saved setting after hydration (the server render uses the default).
     const f = readStorage(FOLLOW_KEY);
-    const w = Number(readStorage(WIDTH_KEY));
     queueMicrotask(() => {
       if (f === "0") setFollowState(false);
-      if (Number.isFinite(w) && w >= MIN_WIDTH) setWidthState(w);
     });
   }, []);
 
   const setFollow = useCallback((v: boolean) => {
     setFollowState(v);
     writeStorage(FOLLOW_KEY, v ? "1" : "0");
-  }, []);
-  const setWidth = useCallback((w: number) => {
-    setWidthState(w);
-    setWide(false);
-    writeStorage(WIDTH_KEY, String(Math.round(w)));
   }, []);
 
   const followRef = useRef(follow);
@@ -119,16 +114,28 @@ function AssistantRoot({ open, setOpen }: { open: boolean; setOpen: (v: boolean)
 
   const assistant = useAssistantRun({ path: pathname, onNavigate });
 
-  // Room for the panel on desktop, and the width it takes.
   useEffect(() => {
     const root = document.documentElement;
-    if (open) root.setAttribute("data-assistant-open", "");
-    else root.removeAttribute("data-assistant-open");
-    root.style.setProperty("--assistant-width", wide ? "50vw" : `${width}px`);
-  }, [open, width, wide]);
+    if (open) {
+      root.setAttribute("data-assistant-open", "");
+      queueMicrotask(() => setLoaded(true));
+    } else {
+      root.removeAttribute("data-assistant-open");
+      // Closing with focus inside the (now inert) window: give it back to the bubble.
+      if (panelRef.current?.contains(document.activeElement)) bubbleRef.current?.focus();
+    }
+  }, [open]);
+
+  // The bubble's dot: a change waiting for approval, or a reply that came in while the window was closed.
+  const state = assistant.run.state;
+  const count = assistant.run.items.length;
+  const [seen, setSeen] = useState(count);
+  useEffect(() => {
+    if (open || count < seen) queueMicrotask(() => setSeen(count));
+  }, [open, count, seen]);
+  const dot = state === "waiting" ? "waiting" : !open && count > seen ? "unread" : null;
 
   // "(Approval needed)" in the tab title while a change waits.
-  const state = assistant.run.state;
   useEffect(() => {
     if (state !== "waiting") return;
     const prefix = "(Approval needed) ";
@@ -145,22 +152,23 @@ function AssistantRoot({ open, setOpen }: { open: boolean; setOpen: (v: boolean)
     };
   }, [state, pathname]);
 
+  const small = STAGES.includes(pathname);
   return (
     <>
       <AssistantEdge state={state} />
-      {open && (
+      {(open || loaded) && (
         <AssistantPanel
           ref={panelRef}
+          open={open}
+          small={small}
           assistant={assistant}
           path={pathname}
           follow={follow}
           onFollow={setFollow}
-          wide={wide}
-          onWidth={setWidth}
-          onWide={() => setWide((w) => !w)}
           onClose={() => setOpen(false)}
         />
       )}
+      <AssistantBubble ref={bubbleRef} open={open} onToggle={() => setOpen(!open)} dot={dot} small={small} />
     </>
   );
 }
