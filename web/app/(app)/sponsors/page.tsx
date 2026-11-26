@@ -56,7 +56,7 @@ export default async function SponsorsPage() {
     },
     {
       id: "cmcAtlas",
-      state: live.has("cmc") ? "live" : "waiting",
+      state: live.has("cmc") || live.has("atlas") ? "live" : "waiting",
       sub: [
         ["cmc", live.has("cmc") ? "live" : "waiting"],
         ["atlas", live.has("atlas") ? "live" : "waiting"],
@@ -68,6 +68,10 @@ export default async function SponsorsPage() {
       ],
       proof: [
         [docsUrl("WRITEUP.md"), "writeup"],
+        ["https://testnet.bscscan.com/address/0x3957d289ee9c38272377786787ea34f9dd29788d", "atlasBnbTestnet"],
+        ["https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b", "atlasUsdtTestnet"],
+        ["https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438", "atlasBnbMainnet"],
+        ["https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4", "atlasUsdtMainnet"],
         [docsUrl("SPONSORS.md"), "sponsorsDoc"],
       ],
     },

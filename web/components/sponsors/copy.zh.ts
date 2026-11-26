@@ -16,9 +16,9 @@ export const zh: DeepPartial<SponsorsCopy> = {
     },
     cmcAtlas: {
       name: "CoinMarketCap x Atlas",
-      body: "CoinMarketCap 用泰铢（USD/THB）为每个金额定价，其波动率决定押金缓冲；BSC 测试网上的 Atlas 拉取式预言机正在接入，作为链上价格校验。",
-      cmc: "CoinMarketCap Pro API：USD/THB 与押金波动缓冲",
-      atlas: "BSC 测试网上的 Atlas 拉取式预言机（接入中）",
+      body: "BSC 上的 Atlas 推送式喂价（BNB/USD、USDT/USD）是首选价格来源，并做过期检查；CoinMarketCap 作为备用来源，用泰铢为每个金额定价，其波动率决定押金缓冲。下一步：用我们的密钥接入 Atlas Pull API 签名报告。",
+      cmc: "CoinMarketCap Pro API：备用价格、USD/THB 与押金波动缓冲",
+      atlas: "BSC 测试网和主网上的 Atlas 推送式喂价：首选价格来源",
     },
     livingBrain: {
       name: "ChatAndBuild / Living Brain",
@@ -50,6 +50,10 @@ export const zh: DeepPartial<SponsorsCopy> = {
     integrationsApi: "/api/integrations（原始状态）",
     price: "/api/price（当前汇率来源）",
     writeup: "CoinMarketCap x Atlas 说明",
+    atlasBnbTestnet: "Atlas BNB/USD 喂价（测试网）",
+    atlasUsdtTestnet: "Atlas USDT/USD 喂价（测试网）",
+    atlasBnbMainnet: "Atlas BNB/USD 喂价（主网）",
+    atlasUsdtMainnet: "Atlas USDT/USD 喂价（主网）",
     sponsorsDoc: "赞助方要求",
     arbiter: "带历史卡片的争议处理台",
     backoffice: "后台：演示租车行",

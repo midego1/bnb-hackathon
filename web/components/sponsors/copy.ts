@@ -16,9 +16,9 @@ const en = {
     },
     cmcAtlas: {
       name: "CoinMarketCap x Atlas",
-      body: "CoinMarketCap prices every amount in baht (USD/THB) and its volatility sets the deposit buffer; the Atlas pull oracle on BSC testnet is being wired as the on-chain price check.",
-      cmc: "CoinMarketCap Pro API: USD/THB and the deposit volatility buffer",
-      atlas: "Atlas pull oracle on BSC testnet (being wired)",
+      body: "Atlas push feeds on BSC (BNB/USD, USDT/USD) are the first price source, with a staleness check; CoinMarketCap is the fallback, prices every amount in baht and its volatility sets the deposit buffer. Next: Atlas Pull API signed reports, with our key.",
+      cmc: "CoinMarketCap Pro API: fallback price, USD/THB and the deposit volatility buffer",
+      atlas: "Atlas push feeds on BSC testnet and mainnet: the first price source",
     },
     livingBrain: {
       name: "ChatAndBuild / Living Brain",
@@ -50,6 +50,10 @@ const en = {
     integrationsApi: "/api/integrations (raw state)",
     price: "/api/price (current rate source)",
     writeup: "CoinMarketCap x Atlas write-up",
+    atlasBnbTestnet: "Atlas BNB/USD feed (testnet)",
+    atlasUsdtTestnet: "Atlas USDT/USD feed (testnet)",
+    atlasBnbMainnet: "Atlas BNB/USD feed (mainnet)",
+    atlasUsdtMainnet: "Atlas USDT/USD feed (mainnet)",
     sponsorsDoc: "Sponsor requirements",
     arbiter: "Dispute desk with history cards",
     backoffice: "Back office: demo shops",
