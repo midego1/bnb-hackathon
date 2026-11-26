@@ -143,8 +143,10 @@ flowchart TB
 | **`/settings/secrets`** | A write-only page for setting API keys on the team's own box. It is on only when the server has `SETTINGS_SECRETS_ENABLED=1`, answers only local or tailnet clients on a non-public host, needs a passcode, and never shows a value back. A Cloudflare build with the flag fails, and Workers ignore it at runtime. See [SETUP.md](SETUP.md). |
 | **Ask AI** | A bubble bottom right of every app page (and Ctrl/Cmd+J) opens a floating chat window: reads, approval cards signed by your wallet, follow along. See [ASSISTANT.md](ASSISTANT.md). |
 
-Listing data (the scooter catalogue and booking requests, `/api/fleet`) is off-chain and demo-grade: it is a file
-under Node and the Durable Object on Cloudflare. Rental money and state live only in the escrows; a listing links to
+The listings anyone can rent (the landing grid, `/app/listings/<slug>`, the stage item and the iOS app's Browse) are
+one static catalogue, `web/data/listings.json` (`lib/listings.ts`), served read-only by `GET /api/listings` with real,
+credited photos (`/credits`). The fleet owner's own scooters and booking requests (`/api/fleet`) are separate,
+off-chain and demo-grade: a file under Node and the Durable Object on Cloudflare. Rental money and state live only in the escrows; a listing links to
 its rentals by escrow address.
 
 ### The demo runner
@@ -261,7 +263,8 @@ inspection (ERC-8183 / x402) is roadmap.
 | Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates* |
 | Deposit risk | `GET /api/risk`, `POST /api/cournot` | deposit, days → buffer from CMC volatility × (1 + Cournot p) | `CMC_API_KEY`, `COURNOT_LIVE` | "not configured", no buffer shown |
 | Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | file → SHA-256 `contentHash` (bytes32) + a stored copy | `GREENFIELD_*` | Node: local `web/.evidence/`. Workers: R2 bucket `EVIDENCE` if bound, else small photos (≤ 256 KB, 500 files, 7 days) in the Durable Object |
-| Listings | `GET/POST /api/fleet` | scooter catalogue and booking requests | none | Node: `web/.fleet/<chainId>.json`. Workers: the Durable Object |
+| Listing catalogue | `GET /api/listings[/<slug>]` | → the listings of the web and the iOS app, prices in THB, photos with credits | none | static (`web/data/listings.json`) |
+| Fleet | `GET/POST /api/fleet` | the fleet owner's scooters and booking requests | none | Node: `web/.fleet/<chainId>.json`. Workers: the Durable Object |
 | Actions | `/api/v1/<action>`, `/api/v1/openapi.json` | see [§4](#4-actions-rest-openapi-mcp-a2a) | none (public RPC) | none |
 | Live demo | `/api/demo-testnet/*` | see [§3](#the-demo-runner) | `DEMO_TESTNET_KEYS`, `DEMO_TESTNET_FUNDER_KEY` | off: 404 |
 | Live judge demo | `/api/stage/<slug>`, pages `/stage/<slug>`, `/r/<slug>` | test money for a phone, the owner's offer, presenter accept/reset; status polled every 2 s ([DEMO.md](DEMO.md#live-judge-demo-a-judge-rents-a-real-box-stage)) | `DEMO_TESTNET_*` (owner, desk, funder), `STAGE_PRESENTER_CODE` | off unless `STAGE_DEMO=1`: 404 |

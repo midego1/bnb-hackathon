@@ -9,6 +9,7 @@ vars only (see `.env.example`). None of them use the `NEXT_PUBLIC_` prefix.
 | `POST /api/settlement` | Vision LLM (Anthropic Claude, `ANTHROPIC_API_KEY`) | Deterministic mock proposal |
 | `GET /api/price` | Atlas on-chain feeds, then CoinMarketCap Pro (`CMC_API_KEY`) | Static demo rates |
 | `POST /api/evidence`, `GET /api/evidence/<hash>` | BNB Greenfield (`GREENFIELD_*`) | Local disk (`web/.evidence`, gitignored) |
+| `GET /api/listings`, `GET /api/listings/<slug>` | `web/data/listings.json` (static) | none needed |
 | `GET/POST /api/v1/<action>`, `GET /api/v1/openapi.json` | Chain RPC (read-only, `KEYESCROW_RPC_URL_<chainId>`) | Anvil / PublicNode defaults |
 
 Amounts are integer strings in token base units. MockUSDT has 6 decimals, so `"500000000"` = 500 USDT. This matches
@@ -72,6 +73,37 @@ Provider config: `VISION_LLM_PROVIDER` (`anthropic` by default, or `mock`) and `
 another provider, implement `VisionProvider` in `web/lib/server/settlement/vision.ts`.
 
 Errors: 400 for invalid input (`details` lists the zod issues), 502 when the model fails or its output is unusable.
+
+## GET /api/listings
+
+The one listing catalogue of the website and the iOS app: the demo scooters and the stage item, from
+`web/data/listings.json`. Public, read-only, `Cache-Control: public, max-age=300`. `GET /api/listings/<slug>` answers
+one item in the same shape (404 `{"error"}` for an unknown slug). Photo URLs are absolute on the host that was asked.
+
+```json
+{
+  "thbPerUsdt": 33,
+  "listings": [
+    {
+      "slug": "honda-click-125i", "name": "Honda Click 125i", "description": "Demo listing. ...",
+      "location": "Nimman, Chiang Mai", "city": "Chiang Mai", "area": "Nimman",
+      "rentThb": 250, "monthThb": 3400, "depositThb": 6800, "stage": false, "demo": true,
+      "photos": [{
+        "url": "https://<host>/listings/photos/honda-click-125i-1200.jpg", "width": 1200, "height": 900,
+        "alt": "A grey Honda Click on its stand on an empty road lined with trees",
+        "credit": { "title": "Honda Click, Trang, Thailand", "author": "Vyacheslav Argenberg", "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+          "source": "https://commons.wikimedia.org/wiki/File:Honda_Click,_Trang,_Thailand.jpg",
+          "changes": "Cropped to 4:3 and resized ...", "note": "A stand-in: ..." }
+      }]
+    }
+  ]
+}
+```
+
+`rentThb` is per day, `monthThb` per month (`null` when the listing only rents by the day, like the stage item). Each
+photo also exists at 480 and 960 px and as AVIF and WebP (`-480.webp`, `-960.avif`, ...). The slugs are those of
+`/app/listings/<slug>` and `/api/stage/<slug>`.
 
 ## GET /api/price
 
