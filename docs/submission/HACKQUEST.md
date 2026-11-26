@@ -133,7 +133,7 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 | Developers (REST, MCP, OpenAPI) | <https://keyscrow.app/developers> |
 | AI inspector agent (ERC-8004 #2921) | <https://agent.keyscrow.app> |
 | Repo | <https://github.com/midego1/bnb-hackathon> |
-| Video (hero): `/duo` full run, two phones and a vault: the renter's phone left as the iPhone app (choose a scooter, pay, photos, AI split), the owner's phone right (Accept), the escrow vault between them filling, taking the split's colours and draining (64 s) | [duo.mp4](duo.mp4) · [webm](duo.webm) |
+| Video (hero): `/duo` full run, two phones and a vault: the renter's phone left as the iPhone app (choose a scooter, pay, photos, AI split), the owner's phone right (Accept), the escrow vault between them filling, taking the split's colours and draining (64 s, English voice-over) | [duo.mp4](duo.mp4) · [webm](duo.webm) |
 | Video: `/demo` guided one-click run (90 s) | [demo-guided.mp4](demo-guided.mp4) · [webm](demo-guided.webm) |
 | Video: app tour, landing to Ask AI (77 s) | [tour.mp4](tour.mp4) · [webm](tour.webm) |
 | Video: ELI5 cartoon, happy ending (71 s) | [eli5.mp4](eli5.mp4) · [webm](eli5.webm) |

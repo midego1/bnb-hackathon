@@ -153,7 +153,7 @@ State on 26 Nov 2026. The same list, per track with evidence links, is on <https
 - [x] README "Cournot Integration" section with proof of call: live call 26 Nov 13:06 UTC, request id 7dcbb40bfbfdebad018e9bcad0d70c51, p = 0.30
       key / paid calls), so no proof
 - [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md), team KeyScrow
-- [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 59 s, `demo-guided.mp4` 90 s,
+- [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 64 s, `demo-guided.mp4` 90 s,
       `tour.mp4` 77 s, `eli5.mp4` 71 s); the 3–5 min Living Brain memory video and a Cournot live-call recording are
       not made yet
 - [ ] Project submitted on HackQuest with all tracks selected: not submitted yet; fields ready in

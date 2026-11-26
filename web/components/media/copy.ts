@@ -20,7 +20,7 @@ const en = {
     links: "Links",
   },
   videos: {
-    duo: { title: "Renter and rental company, side by side", body: "The hero video. The renter's phone on the left, the rental company on the right: rent, pickup photo, return photo, the AI's split, the owner accepts, settled." },
+    duo: { title: "Renter and rental company, side by side", body: "The hero video. The renter's phone on the left, the rental company on the right: rent, pickup photo, return photo, the AI's split, the owner accepts, settled. With an English voice-over." },
     "demo-guided": { title: "The guided demo", body: "/demo on the happy path, one click from start to the final summary with every balance." },
     eli5: { title: "How it works, as a cartoon", body: "/how-it-works: the whole idea in plain words, with the ending where both sides agree." },
     tour: { title: "App tour", body: "The landing page, search, a listing, a rental in dispute, the back office, the dispute desk with history cards and Ask AI." },
