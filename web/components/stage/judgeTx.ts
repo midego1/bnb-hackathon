@@ -26,7 +26,13 @@ const TESTNET_GAS_PRICE = parseGwei("1");
 
 async function send(wc: WalletClient, pub: PublicClient, call: { address: Address; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }): Promise<Hex> {
   const id = wc.chain?.id;
-  const fees = id === 56 ? { type: "legacy", gasPrice: await mainnetGasPrice(pub) } : id === 97 ? { type: "legacy", gasPrice: TESTNET_GAS_PRICE } : {};
+  // On testnet the nonce comes from the last mined block, so a stuck low-tip transaction is replaced, not queued behind.
+  const fees =
+    id === 56
+      ? { type: "legacy", gasPrice: await mainnetGasPrice(pub) }
+      : id === 97
+        ? { type: "legacy", gasPrice: TESTNET_GAS_PRICE, nonce: await pub.getTransactionCount({ address: wc.account!.address, blockTag: "latest" }) }
+        : {};
   const hash = await wc.writeContract({ ...call, ...fees, account: wc.account!, chain: wc.chain } as never);
   const r = await pub.waitForTransactionReceipt({ hash, timeout: 90_000 });
   if (r.status !== "success") throw new Error("The transaction was reverted on-chain. Try again.");
