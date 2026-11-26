@@ -45,7 +45,7 @@ The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 | --- | --- |
 | One escrow contract per rental; creating, funding, rent payouts, evidence hashes, proposals and settlements in `/demo` and `/stage` are real transactions | The money is MockUSDT test money with no value; `/demo` and `/stage` sign with throwaway server-side demo wallets and a guest wallet |
 | ERC-8004 registration of agent #2921 in the Identity Registry | The AI inspection on the live site is a deterministic *demo inspector* (no model key set); with a key, a vision LLM returns the same JSON |
-| The contracts, verified on BscScan | Prices show *Demo rates* (no CoinMarketCap key yet; Atlas publishes no testnet feed); Cournot and Living Brain are built but not live ([state per sponsor](#sponsor-integrations)) |
+| The contracts, verified on BscScan | Prices show *Demo rates* (no CoinMarketCap key yet; the Atlas feeds are published but not configured on the live site yet); Cournot and Living Brain are built but not live ([state per sponsor](#sponsor-integrations)) |
 | Photo and document fingerprints (SHA-256) | The photos themselves are off-chain; the *Pay with PromptPay* page is a simulation that mints test USDT |
 
 | `/demo`, mid-run | `/stage` big screen, settled | `/r` on the judge's phone |
@@ -241,7 +241,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 |---|---|---|---|
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
-| Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Blocked: no BSC testnet feed addresses published |
+| Atlas | `latestRoundData()` with a staleness check is the first price source; push feed + Pull API consensus guard Pay with BNB; signed report = settlement price proof | `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY` | Built and tested (mocked API); feed addresses known, not yet set on the live site |
 | Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
 ### CoinMarketCap
@@ -260,10 +260,19 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 
 `web/lib/server/price/index.ts` reads Atlas SingleFeed proxies (`decimals()` + `latestRoundData()`, compatible with
 AggregatorV3). It rejects answers that were never updated (`answer == 0` / `updatedAt == 0`), negative answers and
-stale answers (`now - updatedAt > ATLAS_MAX_AGE_SECONDS`, default 3600), as in Atlas's example code. When
-`ATLAS_RPC_URL`, `ATLAS_FEED_USDT_USD` and `ATLAS_FEED_BNB_USD` are set, it is the first price source for every
-THB/USD amount. **Blocked:** docs.atlasoracle.io and `oracle-atlas/push-oracle-interfaces` publish no BSC testnet (or
-mainnet) feed addresses; Atlas assigns them during onboarding.
+stale answers (`now - updatedAt > ATLAS_MAX_AGE_SECONDS`, default 3600; the USDT/USD feed, which updates rarely,
+`ATLAS_USDT_MAX_AGE_SECONDS`, default 2 days), as in Atlas's example code. When `ATLAS_RPC_URL`,
+`ATLAS_FEED_USDT_USD` and `ATLAS_FEED_BNB_USD` are set, it is the first price source for every THB/USD amount. BSC
+testnet feeds: BNB/USD `0x3957d289ee9c38272377786787ea34f9dd29788d`, USDT/USD `0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b`
+(mainnet: `0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`, `0x9fc000fc9c17578b49853278a517e357201d01e4`).
+
+`web/lib/server/price/atlas.ts` adds the Atlas Pull API (`POST https://api.atlasoracle.io/report/v1/price/latest`,
+feeds 633 BNB/USD and 649 USDT/USD, `ATLAS_API_KEY` server-side only): the signed report is verified against the
+official signer `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600` and its consensus per feed is read. Together they guard
+**Pay with BNB** on the funding panel (amountOutMin = 99 % of the Atlas value; refused on a feed older than 2x its
+heartbeat, a consensus other than HEALTHY/DEGRADED, or a swap quote more than 2 % off Atlas), show the badge "Priced by
+Atlas · updated N s ago · consensus 0.94 HEALTHY", and attach the signed report as the price proof of an AI settlement
+that charges damage. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#atlas-guard-pay-with-bnb-and-price-proof).
 
 ### Living Brain (ChatAndBuild)
 

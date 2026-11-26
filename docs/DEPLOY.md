@@ -172,6 +172,22 @@ faucet (`MockUSDT.faucet(to, amount)`, see `contracts/src/mocks/MockUSDT.sol`) a
 
 `Seed.s.sol` is anvil-only and refuses chain 97. On testnet, use `pnpm testnet:seed` (below) or create rentals in the app.
 
+**Pay with BNB on testnet (AtlasSwapGuard).** PancakeSwap has no pool for MockUSDT on BSC testnet, so "Pay with BNB"
+swaps through a small demo contract that sells test mUSDT at the Atlas BNB/USD feed price. Deploy it next to the
+existing deployment (it reads `token` from `contracts/deployments/97.json` and writes `atlasSwapGuard` back into it):
+
+```bash
+cd contracts && ALLOW_NON_LOCAL_BROADCAST=true forge script script/DeployAtlasSwapGuard.s.sol \
+  --rpc-url "$RPC_URL" --account <keystore> --sender <deployer> --broadcast   # preflight: drop --broadcast
+cd .. && pnpm -C web sync:contracts   # then rebuild the web app
+```
+
+It uses the Atlas testnet BNB/USD feed `0x3957d289ee9c38272377786787ea34f9dd29788d` (override `ATLAS_FEED_BNB_USD`)
+and refuses answers older than 240 s (`ATLAS_GUARD_MAX_AGE`). If Atlas runs that feed in whitelist mode, the guard
+address must be whitelisted first, or every swap reverts (fail closed). Without a guard address the button is
+hidden. The web server also needs `ATLAS_RPC_URL`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD` and `ATLAS_API_KEY`
+(Pull API consensus): without them Pay with BNB is shown but refused.
+
 ## 9. Live checks on BSC testnet
 
 `web/scripts/testnet.mts` drives the deployed contracts from `deployments/97.json` with real transactions. It only

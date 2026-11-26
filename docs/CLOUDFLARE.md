@@ -136,7 +136,8 @@ without them the app runs in mock / read-only mode. **Never** put them in `wrang
 | `SETTLEMENT_DAILY_CALLS`, `ASSISTANT_DAILY_TOKENS`, `VISION_LLM_MODEL`, `ASSISTANT_MODEL` | vars, optional | Cost caps: live inspections per 24 h (default 300), Ask AI tokens per UTC day (default 1000000); models: `claude-sonnet-5-5` (default) or `claude-haiku-5-5` |
 | `INSPECTOR_PRIVATE_KEY` | secret | Signs settlement reports as agent #2921 (must be the registered `reportSigner`) |
 | `CMC_API_KEY` | secret | CoinMarketCap: `/api/price` and the `/api/risk` deposit buffer |
-| `ATLAS_RPC_URL` | secret | Atlas on-chain price feeds; with the vars `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB`, `ATLAS_MAX_AGE_SECONDS` |
+| `ATLAS_RPC_URL` | secret | Atlas on-chain price feeds; with the vars `ATLAS_FEED_USDT_USD`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USD_THB`, `ATLAS_MAX_AGE_SECONDS`, `ATLAS_USDT_MAX_AGE_SECONDS`, `ATLAS_HEARTBEAT_SECONDS` |
+| `ATLAS_API_KEY` | secret | Atlas Pull API: consensus for the Pay with BNB guard and the signed price proof on settlements |
 | `COURNOT_API_KEY` | secret | Cournot oracle prepaid key; live calls also need the var `COURNOT_LIVE=1` (`COURNOT_MAX_LIVE_CALLS` optional) |
 | `LIVING_BRAIN_API_KEY` | secret | Living Brain inspection memory, with `LIVING_BRAIN_SUBJECT_ID` and `LIVING_BRAIN_BRAIN_ID` (secrets or vars) |
 | `LIVING_BRAIN_DAILY_CALLS` | var | Cap on Living Brain calls per 24 h, default 200 (counted in the Durable Object); over it the dispute desk shows on-chain facts only |

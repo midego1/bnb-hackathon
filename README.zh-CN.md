@@ -38,7 +38,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 | --- | --- |
 | 每笔租约一个托管合约；`/demo` 和 `/stage` 里的创建、注资、租金发放、凭证哈希、提议和结算都是真实交易 | 资金是没有价值的 MockUSDT 测试币；`/demo` 和 `/stage` 用服务器上的一次性演示钱包和访客钱包签名 |
 | 代理 #2921 在 ERC-8004 Identity Registry 中的注册 | 在线站点的 AI 验车是确定性的*演示验车员*（未配置模型密钥）；配置密钥后，视觉大模型返回同样格式的 JSON |
-| 合约本身，已在 BscScan 验证 | 价格显示 *Demo rates*（尚无 CoinMarketCap 密钥；Atlas 未公布测试网喂价地址）；Cournot 和 Living Brain 已实现但未上线 |
+| 合约本身，已在 BscScan 验证 | 价格显示 *Demo rates*（尚无 CoinMarketCap 密钥；Atlas 喂价地址已公布，尚未在线上配置）；Cournot 和 Living Brain 已实现但未上线 |
 | 照片和文件的指纹（SHA-256） | 照片本身存在链下；*PromptPay 支付*页面是模拟，只会发放测试 USDT |
 
 | `/demo` 运行中 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |

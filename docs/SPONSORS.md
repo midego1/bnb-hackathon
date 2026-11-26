@@ -139,7 +139,7 @@ Docs: <https://coinmarketcap.com/api/documentation/>
 - [ ] Repo access for judges, README with setup (README done: setup + "Sponsor integrations"; repo access is the owner's)
 - [x] Contract addresses on BSC testnet listed in README and write-up
 - [ ] CMC API call logs: logging is built (`web/.sponsor-logs/cmc.jsonl`, `/integrations`); needs `CMC_API_KEY` and one run
-- [ ] Atlas feed addresses/feedIds used, listed: blocked, Atlas publishes no BSC testnet addresses (ask at the venue)
+- [x] Atlas feed addresses/feedIds used, listed: push feeds + Pull API feed ids 633/649 in [WRITEUP.md](WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97) (still to check: whether a contract may read the testnet feed, for `AtlasSwapGuard`)
 - [ ] README "Cournot Integration" section with proof of call: section done; proof pending the owner's go for one live call
 - [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md) (team contacts still to fill in)
 - [ ] Videos: ≤ 3 min (CMC x Atlas), 3–5 min (Living Brain), Cournot backup recording
