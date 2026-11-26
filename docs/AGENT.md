@@ -392,7 +392,32 @@ ALLOW_NON_LOCAL_BROADCAST=true pnpm agent:register          # asks you to type "
   `INSPECTOR_AGENT_REGISTRY` and `INSPECTOR_PRIVATE_KEY` (the key of `INSPECTOR_SIGNER_ADDRESS`).
 - **Endpoint.** The registration file lists `AGENT_PUBLIC_URL` as the A2A and MCP endpoint. Until the agent runs
   somewhere public, other agents cannot reach that URL, but the identity, the `reportSigner` and the signed reports
-  still verify. If the URL changes later, the owner can call `setAgentURI` with a new file.
+  still verify. If the URL changes later, point the identity at it with `pnpm agent:set-uri` (below).
+
+## Point the registered agent at its public URL (`setAgentURI`)
+
+Agent #2921 was registered with GitHub tree pages as its A2A and MCP endpoints. The live agent is the Worker
+([CLOUDFLARE.md](CLOUDFLARE.md)), so the owner replaces the registration file:
+
+```bash
+# same .env names as above (INSPECTOR_SIGNER_ADDRESS not needed); AGENT_PUBLIC_URL = the live Worker
+AGENT_PUBLIC_URL=https://keyescrow-agent.mdgooijer.workers.dev pnpm agent:set-uri:check   # preflight, sends nothing
+AGENT_PUBLIC_URL=https://keyescrow-agent.mdgooijer.workers.dev ALLOW_NON_LOCAL_BROADCAST=true pnpm agent:set-uri
+# asks you to type "set-uri"; `-- --yes` skips it
+```
+
+- It reads `agentId` and the registry from `agent/deployments/97.json` and rebuilds the file with the SDK's
+  `AgentURIGenerator` (same as `registerAgent`, including `registrations[]`): A2A at
+  `<AGENT_PUBLIC_URL>/.well-known/agent-card.json`, MCP at `<AGENT_PUBLIC_URL>/mcp`.
+- Preflight runs the same checks as registration (chainId 97 only, 56 refused; one wallet; anvil accounts refused;
+  gas for about 600k). It also checks that `ownerOf(agentId)` is `DEPLOYER_ADDRESS`, refuses a loopback
+  `AGENT_PUBLIC_URL`, and prints the endpoints on-chain now and the new ones. If the file on-chain is already the new
+  one, nothing is sent.
+- The broadcast needs `ALLOW_NON_LOCAL_BROADCAST=true` and the typed confirmation. It calls the SDK's
+  `setAgentUri`, reads `tokenURI` back, and must find the new file. Then it updates `agent/deployments/97.json`:
+  `agentURI`, `publicUrl`, `setUriTx`, `updatedAt` (`registerTx` and `registeredAt` stay). Commit the file.
+- Check with `BSC_TESTNET_RPC_URL=… AGENT_URL=https://keyescrow-agent.mdgooijer.workers.dev pnpm agent:verify`.
+  With `--report <file>`, set `AGENT_PUBLIC_URL` to get the endpoint check.
 
 ## Local rehearsal
 
@@ -407,11 +432,13 @@ the SDK uses, with the same events; 6 forge tests) and places it with `anvil_set
 registry address. `register.ts` then runs unchanged: same chainId, same registry address, only the RPC URL differs.
 The deployer is a fresh keystore in a temp dir, funded with `anvil_setBalance`.
 
-It checks 23 things: preflight failures (nothing set, unreachable RPC, chainId 56, anvil account, two wallets,
+It checks 33 things: preflight failures (nothing set, unreachable RPC, chainId 56, anvil account, two wallets,
 unfunded), that preflight sends nothing, refusal without `ALLOW_NON_LOCAL_BROADCAST` and without confirmation, the
 registration itself (agent #0, `97.json`, an on-chain `tokenURI` with `registrations[]`), refusal to register twice,
 the agent starting with that identity, the MCP and A2A calls, `pnpm agent:verify` against the registry, the agent
-refusing a key that is not the registered `reportSigner`, and an unchanged git status. Everything is removed on exit.
+refusing a key that is not the registered `reportSigner`, `set-uri` (verify flagging the old endpoints, a non-owner
+refused, check / no flag / no confirmation sending nothing, the update with `97.json` and `tokenURI` matching, verify
+passing on the new URL, a repeat sending nothing), and an unchanged git status. Everything is removed on exit.
 
 ## Why the SDK rather than a generated Studio project
 

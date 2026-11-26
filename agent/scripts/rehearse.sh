@@ -152,7 +152,8 @@ grep -q 'registrations":\[{"agentId":0' <<<"$(echo "${URI#data:application/json;
   pass "on-chain tokenURI is the SDK registration file with registrations[agentId 0]" || fail "tokenURI lacks registrations"
 expect 1 "already registered as agent #0" "second register refuses (97.json exists)" -- \
   "${cfg[@]}" ALLOW_NON_LOCAL_BROADCAST=true "${REGISTER[@]}" register --yes
-[[ ! -e "$AGENT/deployments/97.json" ]] && pass "nothing written to agent/deployments/97.json" || fail "agent/deployments/97.json exists"
+[[ "$(repo_state)" == "$BEFORE" ]] && pass "nothing written to agent/deployments (the real 97.json untouched)" ||
+  fail "agent/deployments changed"
 
 step "5. The agent signs reports as ERC-8004 agent #0; MCP + A2A calls; on-chain verification"
 AGENT_ENV=(env AGENT_PORT="$PAGENT" INSPECTOR_PRIVATE_KEY="$SIGNER_KEY" INSPECTOR_DEPLOYMENT="$F")
@@ -170,7 +171,34 @@ SHOW_LINES=12 expect 0 "VERIFIED: signed by KeyEscrow Inspector, ERC-8004 agent 
 expect 1 "lists reportSigner" "agent refuses a key that is not the registered reportSigner" -- \
   timeout 30 env AGENT_PORT="$PDEAD" INSPECTOR_PRIVATE_KEY="$OTHER_KEY" INSPECTOR_DEPLOYMENT="$F" "${TSX[@]}" src/main.ts
 
-step "6. Repo left clean"
+step "6. setAgentURI: point the agent at a new public URL (pnpm agent:set-uri), with the same guards"
+NEWURL="http://localhost:$PAGENT" # same agent, another URL: the registered endpoints no longer match it
+uri() { cast call "$REGISTRY" 'tokenURI(uint256)(string)' 0 --rpc-url "$RPC97" | tr -d '"'; }
+URI0="$(uri)" NONCE0="$(cast nonce "$DEPLOYER" --rpc-url "$RPC97")"
+expect 1 "fix with pnpm agent:set-uri" "verify flags endpoints that are not on the new URL" -- \
+  env BSC_TESTNET_RPC_URL="$RPC97" AGENT_URL="$NEWURL" "${TSX[@]}" scripts/verify.ts
+expect 1 "is owned by" "set-uri-check refuses a DEPLOYER_ADDRESS that does not own the agent" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" DEPLOYER_ADDRESS="$SIGNER" "${REGISTER[@]}" set-uri-check
+SHOW_LINES=10 expect 0 "preflight OK; nothing was sent" "set-uri-check" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" "${REGISTER[@]}" set-uri-check
+expect 3 "ALLOW_NON_LOCAL_BROADCAST=true" "set-uri without ALLOW_NON_LOCAL_BROADCAST" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" "${REGISTER[@]}" set-uri --yes
+expect 3 "pass --yes" "set-uri with the flag but no confirmation (no TTY)" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" ALLOW_NON_LOCAL_BROADCAST=true "${REGISTER[@]}" set-uri </dev/null
+[[ "$(cast nonce "$DEPLOYER" --rpc-url "$RPC97")" == "$NONCE0" && "$(uri)" == "$URI0" ]] &&
+  pass "nothing sent so far (nonce and tokenURI unchanged)" || fail "a refused set-uri changed the chain"
+SHOW_LINES=8 expect 0 "now lists $NEWURL/.well-known/agent-card.json, $NEWURL/mcp" "set-uri --yes" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" ALLOW_NON_LOCAL_BROADCAST=true "${REGISTER[@]}" set-uri --yes
+[[ "$(jq -r .agentURI "$F")" == "$(uri)" && "$(uri)" != "$URI0" && "$(jq -r .publicUrl "$F")" == "$NEWURL" &&
+  "$(jq -r .setUriTx "$F")" =~ ^0x[0-9a-f]{64}$ && "$(jq -r .registerTx "$F")" =~ ^0x && "$(jq -r .updatedAt "$F")" != null ]] &&
+  pass "97.json: agentURI = new on-chain tokenURI, publicUrl, setUriTx, updatedAt; registerTx kept" ||
+  fail "unexpected 97.json after set-uri"
+SHOW_LINES=4 expect 0 "VERIFIED" "verify: endpoints on the new URL, registrations[] still agent #0" -- \
+  env BSC_TESTNET_RPC_URL="$RPC97" AGENT_URL="$NEWURL" "${TSX[@]}" scripts/verify.ts
+expect 1 "already has this agentURI" "set-uri again with the same URL sends nothing" -- \
+  "${cfg[@]}" AGENT_PUBLIC_URL="$NEWURL" ALLOW_NON_LOCAL_BROADCAST=true "${REGISTER[@]}" set-uri --yes
+
+step "7. Repo left clean"
 dirty="$(diff <(printf "%s\n" "$BEFORE") <(printf "%s\n" "$(repo_state)") || true)"
 [[ -z "$dirty" ]] && pass "git status of agent/deployments and contracts unchanged" || { fail "repo changes:"; echo "$dirty" | indent; }
 
