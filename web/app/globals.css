@@ -24,9 +24,33 @@
 /* The /stage big screen's two columns (components/stage/StageView.tsx): landscape and desktop wide (iPad landscape, laptop, projector). */
 @custom-variant wide (@media (min-width: 1024px) and (orientation: landscape));
 
+/*
+ * An unfolded foldable (Galaxy Z Fold, Pixel Fold, OnePlus Open: about 673x841 to 856x690 CSS px, either way round)
+ * gets the desktop layout: `fold` is 600-1023 px wide and near-square (3/4 to 3/2, room for the browser bars in
+ * landscape), and Tailwind's md and lg (with max-md) count it as desktop, so every md:/lg: switch, the sidebar and the
+ * grids follow. Phones (folded cover screens included), portrait tablets and every window from 1024 px are as before.
+ * Plain CSS media queries and lib/fold.ts (FOLD_MEDIA, for scripts) spell the same condition out; keep them in step.
+ */
+@custom-variant fold (@media (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2));
+@custom-variant md {
+  @media (width >= 48rem), (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2) {
+    @slot;
+  }
+}
+@custom-variant lg {
+  @media (width >= 64rem), (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2) {
+    @slot;
+  }
+}
+@custom-variant max-md {
+  @media (width < 48rem) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
+    @slot;
+  }
+}
+
 /* Desktop sidebar collapsed to an icon rail: <html data-sidebar="collapsed"> (lib/sidebar.ts). Below lg it is a drawer. */
 @custom-variant rail {
-  @media (min-width: 1024px) {
+  @media (width >= 64rem), (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2) {
     :where([data-sidebar="collapsed"]) & {
       @slot;
     }
@@ -610,5 +634,17 @@ body:has([data-testid="assistant-bubble"]) [data-sonner-toaster][data-y-position
   }
   :where(a[href].inline-flex, a[href].flex, a[href].block, a[href].inline-block):not([data-hit]) {
     min-height: 44px;
+  }
+}
+/* Unfolded foldables (the `fold` variant): the desktop layout, touch-sized. Every control is at least 40 px. */
+@media (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2) {
+  :where(button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"])):not([data-hit]) {
+    min-height: 40px;
+  }
+  :where(button, [role="button"]):not([data-hit]) {
+    min-width: 40px;
+  }
+  :where(a[href].inline-flex, a[href].flex, a[href].block, a[href].inline-block):not([data-hit]) {
+    min-height: 40px;
   }
 }

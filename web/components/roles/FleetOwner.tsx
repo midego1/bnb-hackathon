@@ -130,7 +130,7 @@ export function FleetOwner() {
             {[...disputes, ...active.filter((r) => r.flags.length > 0)].map((r) => (
               <li key={r.address} className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={r.status} />
-                <Link href={`/lease/${r.address}`} className="font-mono underline-offset-2 hover:underline">{shortAddress(r.address)}</Link>
+                <Link href={`/lease/${r.address}`} className="font-mono underline-offset-2 hover:underline fold:inline-flex fold:min-h-10 fold:items-center">{shortAddress(r.address)}</Link>
                 {r.flags.map((f) => <FlagBadge key={f.code} flag={f} />)}
               </li>
             ))}
@@ -297,7 +297,7 @@ function AddScooterForm({ owner, hasVault, chainId }: { owner?: Address; hasVaul
         <Field label={t("fleet.deposit")} hint={t("fleet.depositHint")}>
           <input className={inputClass} name="depositThb" inputMode="numeric" value={deposit} onChange={(e) => setDeposit(e.target.value.replace(/\D/g, ""))} required />
         </Field>
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+        <label className="flex items-center gap-2 text-sm sm:col-span-2 fold:min-h-10">
           <input type="checkbox" checked={vault && hasVault} disabled={!hasVault} onChange={(e) => setVault(e.target.checked)} name="vault" />
           {t("fleet.vault")}
           {!hasVault && t("fleet.noVault")}

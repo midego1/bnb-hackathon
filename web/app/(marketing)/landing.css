@@ -289,7 +289,7 @@ html.dark .mk section.mk-night {
  * Phones, tablets and small laptops: no overlap. The headline sits in the night sky and the street follows below it
  * in the normal flow, fading up into the sky, so the copy can never land on the lit shop at any width.
  */
-@media (max-width: 1279px) {
+@media (max-width: 1279px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-hero {
     min-height: max(100svh - 4rem, 44rem);
   }
@@ -316,7 +316,7 @@ html.dark .mk section.mk-night {
       radial-gradient(70% 18% at 55% 90%, color-mix(in srgb, var(--mk-amber) 24%, transparent), transparent 70%);
   }
 }
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-hero {
     min-height: max(100svh - 8.5rem, 48rem);
   }
@@ -324,7 +324,7 @@ html.dark .mk section.mk-night {
     min-height: 26rem;
   }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   /* The upright picture (street-tall), its sign and its lamp; the lights are softer and come less often on a phone. */
   .mk-art-pan {
     --iw: 1200;
@@ -563,7 +563,7 @@ html.dark .mk section.mk-night {
   transform: translateY(1px);
 }
 /* Phones: the bar is one pill that sums up the search; tapping it opens the fields under it. */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-search {
     margin-top: 1.25rem;
   }
@@ -612,6 +612,22 @@ html.dark .mk section.mk-night {
     margin-top: 0.25rem;
   }
 }
+/* Unfolded foldables (the `fold` variant, app/globals.css): the desktop page with 40 px tap targets. */
+@media (600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2) {
+  .mk-top ul a,
+  .mk-proof-links > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+  }
+  .mk-search label {
+    padding-block: 0.2rem;
+  }
+  .mk-search select,
+  .mk-search input {
+    min-height: 2.5rem;
+  }
+}
 /* The other ways in, under the search: smaller than it. */
 .mk-ways {
   display: flex;
@@ -625,7 +641,7 @@ html.dark .mk section.mk-night {
   font-size: 0.95rem;
 }
 /* Phones: no icons and tighter pills, so two of them share a row down to 360 px. */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk .mk-btn-sm {
     padding-inline: 0.8rem;
     font-size: 0.9rem;
@@ -860,7 +876,7 @@ html.dark .mk section.mk-night {
   line-height: 1.15;
 }
 /* Phones: the steps shrink to four numbered buttons and one caption says what the current step does. */
-@media (max-width: 767px) {
+@media (max-width: 767px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-steps {
     gap: 0.5rem;
     margin-top: 1.25rem;
@@ -939,7 +955,7 @@ html.dark .mk section.mk-night {
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 55%);
   mask-image: linear-gradient(90deg, transparent, #000 55%);
 }
-@media (max-width: 899px) {
+@media (max-width: 899px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-closing-art {
     display: none;
   }

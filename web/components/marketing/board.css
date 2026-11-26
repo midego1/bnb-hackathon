@@ -203,7 +203,7 @@
   }
 }
 /* Tablets and phones: the board stands upright, money runs down into the escrow and back up. */
-@media (max-width: 899px) {
+@media (max-width: 899px) and (not ((600px <= width < 1024px) and (3/4 <= aspect-ratio <= 3/2))) {
   .mk-board {
     grid-template-columns: minmax(0, 1fr);
   }

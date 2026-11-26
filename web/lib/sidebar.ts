@@ -1,10 +1,13 @@
+import { FOLD_MEDIA } from "./fold";
+
 /**
  * Desktop sidebar: expanded (labels) or collapsed to an icon rail. <html data-sidebar="expanded|collapsed"> drives the
  * layout through CSS (the `rail:` variant in app/globals.css), so the server markup never depends on the state and
  * SIDEBAR_INIT_SCRIPT sets it in <head> before first paint (no jump on load).
  *
  * The user's choice is kept in localStorage. The one-screen stages (/demo, /how-it-works, /pitch) always open with the rail
- * collapsed so the stage keeps its width; toggling there lasts for that visit only.
+ * collapsed so the stage keeps its width; toggling there lasts for that visit only. An unfolded foldable (lib/fold.ts)
+ * opens with the rail too until the user picks, so its narrower page keeps the desktop columns.
  */
 export const SIDEBAR_STORAGE_KEY = "keyescrow-sidebar";
 export const STAGE_ROUTES: readonly string[] = ["/demo", "/how-it-works", "/pitch"];
@@ -12,18 +15,19 @@ export const STAGE_ROUTES: readonly string[] = ["/demo", "/how-it-works", "/pitc
 export type SidebarState = "expanded" | "collapsed";
 
 /** Self-contained: it is stringified into the inline <head> script. */
-function initialSidebar(key: string, stages: readonly string[], pathname: string): SidebarState {
+function initialSidebar(key: string, stages: readonly string[], fold: string, pathname: string): SidebarState {
   const onStage = stages.some((s) => pathname === s || pathname.startsWith(s + "/"));
   if (onStage) return "collapsed";
   let stored: string | null = null;
   try {
     stored = window.localStorage.getItem(key);
   } catch {}
+  if (stored === null && window.matchMedia(fold).matches) return "collapsed";
   return stored === "collapsed" ? "collapsed" : "expanded";
 }
 
 export const SIDEBAR_INIT_SCRIPT =
-  `document.documentElement.dataset.sidebar=(${initialSidebar.toString()})(${JSON.stringify(SIDEBAR_STORAGE_KEY)},${JSON.stringify(STAGE_ROUTES)},location.pathname)`;
+  `document.documentElement.dataset.sidebar=(${initialSidebar.toString()})(${JSON.stringify(SIDEBAR_STORAGE_KEY)},${JSON.stringify(STAGE_ROUTES)},${JSON.stringify(FOLD_MEDIA)},location.pathname)`;
 
 const listeners = new Set<() => void>();
 
@@ -55,5 +59,5 @@ export function setSidebar(state: SidebarState, pathname: string) {
 
 /** After a client-side navigation: the state a fresh load of `pathname` would get. */
 export function syncSidebarToRoute(pathname: string) {
-  apply(initialSidebar(SIDEBAR_STORAGE_KEY, STAGE_ROUTES, pathname));
+  apply(initialSidebar(SIDEBAR_STORAGE_KEY, STAGE_ROUTES, FOLD_MEDIA, pathname));
 }

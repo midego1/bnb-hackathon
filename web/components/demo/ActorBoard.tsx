@@ -125,7 +125,7 @@ function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; val
       <div className="relative flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
           <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone[id]}`} />
-          <span className="sm:truncate">{copy.name}</span>
+          <span className="sm:truncate fold:whitespace-normal">{copy.name}</span>
         </p>
         {delta !== undefined && (
           <span
@@ -140,7 +140,7 @@ function MoneyCard({ id, value, delta, active, receiving }: { id: WalletKey; val
           </span>
         )}
       </div>
-      <p className={`relative text-[13px] hidden tall:block sm:truncate ${tag(guidedCopy, active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(guidedCopy, active, receiving) ?? copy.note}</p>
+      <p className={`relative text-[13px] hidden tall:block sm:truncate fold:whitespace-normal ${tag(guidedCopy, active, receiving) ? tagTone(active) : "text-subtle"}`}>{tag(guidedCopy, active, receiving) ?? copy.note}</p>
       {value === undefined ? (
         <p className="relative mt-0.5 text-sm text-subtle">{"empty" in copy ? copy.empty : "…"}</p>
       ) : (
