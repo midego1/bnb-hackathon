@@ -19,7 +19,7 @@ const ls = (dir, re) => readdirSync(join(REPO, dir)).filter((f) => re.test(f)).s
 
 /**
  * [folder, repo-relative source, in the zip]. Duplicates stay out of the zip to keep it under 25 MiB: the .webm and the
- * .gif repeat the .mp4 videos, the iOS .jpg files are JPEG copies of iOS PNGs. They stay separate downloads.
+ * .gif repeat the .mp4 videos, the iOS .jpg files are JPEG copies of iOS PNGs, and docs/screenshots holds older development shots. They stay separate downloads.
  */
 const FILES = [
   ...["duo", "demo-guided", "eli5", "tour"].flatMap((v) => [
@@ -31,8 +31,9 @@ const FILES = [
   ["deck", "docs/submission/deck-cover.jpg", true],
   ...ls("docs/submission/screenshots", /\.png$/).map((f) => ["screenshots/web", f, true]),
   ["screenshots/web", "docs/submission/inspection.png", true],
-  ...ls("docs/screenshots", /\.png$/).map((f) => ["screenshots/web", f, true]),
-  ...ls("docs/screenshots/judges", /\.png$/).map((f) => ["screenshots/web", f, true]),
+  // The older development shots stay separate downloads: with them the zip passes 25 MiB.
+  ...ls("docs/screenshots", /\.png$/).map((f) => ["screenshots/web", f, false]),
+  ...ls("docs/screenshots/judges", /\.png$/).map((f) => ["screenshots/web", f, false]),
   ...ls("ios/screenshots", /\.png$/).map((f) => ["screenshots/ios", f, true]),
   ...ls("docs/submission/screenshots/ios", /\.jpg$/).map((f) => ["screenshots/ios", f, false]),
   ["brand", "ios/KeyEscrow/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png", true],

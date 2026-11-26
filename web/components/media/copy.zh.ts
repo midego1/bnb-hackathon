@@ -7,7 +7,7 @@ export const zh: DeepPartial<MediaCopy> = {
   title: "媒体资料",
   lead: "KeyScrow 的全部视频、路演幻灯片、截图、标志和文档：可以单独下载每个文件，也可以打包成一个 .zip 一次下载。",
   zip: "下载全部（.zip，{size}）",
-  zipNote: "共 {n} 个文件，分文件夹存放：videos/、deck/、screenshots/web/、screenshots/ios/、brand/、docs/。.webm 和 .gif 视频以及 iOS 的 .jpg 副本与其他文件重复，只能单独下载。",
+  zipNote: "共 {n} 个文件，分文件夹存放：videos/、deck/、screenshots/web/、screenshots/ios/、brand/、docs/。.webm 和 .gif 视频、iOS 的 .jpg 副本以及较早的开发截图只能单独下载。",
   download: "下载",
   github: "在 GitHub 查看",
   sections: {
