@@ -183,7 +183,7 @@ cd .. && pnpm -C web sync:contracts   # then rebuild the web app
 ```
 
 It uses the Atlas testnet BNB/USD feed `0x3957d289ee9c38272377786787ea34f9dd29788d` (override `ATLAS_FEED_BNB_USD`)
-and refuses answers older than 240 s (`ATLAS_GUARD_MAX_AGE`). If Atlas runs that feed in whitelist mode, the guard
+and refuses answers older than 120 s (`ATLAS_GUARD_MAX_AGE`). If Atlas runs that feed in whitelist mode, the guard
 address must be whitelisted first, or every swap reverts (fail closed). Without a guard address the button is
 hidden. The web server also needs `ATLAS_RPC_URL`, `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD` and `ATLAS_API_KEY`
 (Pull API consensus): without them Pay with BNB is shown but refused.

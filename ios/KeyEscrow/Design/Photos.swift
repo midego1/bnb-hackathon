@@ -22,22 +22,30 @@ struct PhotoCredit: Identifiable, Equatable {
     var id: String { asset }
 }
 
-/// The app's real photos, bundled and mapped by listing id: they are never fetched at runtime. Only a listing the
-/// app has no photo for falls back to the catalogue's own picture URL (ListingPhoto).
+/// The app's real photos, bundled, mapped by listing slug (the slugs of GET /api/listings and the website). A listing
+/// shows the catalogue's photo from the server; the bundled copy is what shows offline or while that loads.
 enum PhotoCatalog {
     static let hero = "photo-hero-street"
 
     private static let byListing: [String: String] = [
         "mystery-box": "photo-mystery-box",
-        "click-125i-cnx": "photo-click-125i-cnx",
-        "scoopy-i-pai": "photo-scoopy-i-pai",
-        "nmax-155-patong": "photo-nmax-155-patong",
-        "pcx-160-bkk": "photo-pcx-160-bkk",
-        "fino-125-bkk": "photo-fino-125-bkk",
+        "honda-click-125i": "photo-click-125i-cnx",
+        "honda-scoopy": "photo-scoopy-i-pai",
+        "yamaha-nmax-155": "photo-nmax-155-patong",
+        "honda-pcx-160": "photo-pcx-160-bkk",
+        "yamaha-fino-125": "photo-fino-125-bkk",
+        "vespa-primavera-150": "photo-vespa-primavera-150",
+        "yamaha-grand-filano": "photo-grand-filano",
     ]
 
-    static func asset(forListing id: String) -> String? { byListing[id] }
-    static func credit(forListing id: String) -> PhotoCredit? { byListing[id].flatMap(credit(asset:)) }
+    /// Listing ids of app builds before the shared catalogue -> its slug (rentals stored on a phone keep the old id).
+    static let legacySlugs = [
+        "click-125i-cnx": "honda-click-125i", "scoopy-i-pai": "honda-scoopy", "nmax-155-patong": "yamaha-nmax-155",
+        "pcx-160-bkk": "honda-pcx-160", "fino-125-bkk": "yamaha-fino-125",
+    ]
+
+    static func asset(forListing id: String) -> String? { byListing[legacySlugs[id] ?? id] }
+    static func credit(forListing id: String) -> PhotoCredit? { asset(forListing: id).flatMap(credit(asset:)) }
     static func credit(asset: String) -> PhotoCredit? { credits.first { $0.asset == asset } }
     static var listingIds: [String] { Array(byListing.keys) }
 
@@ -60,7 +68,7 @@ enum PhotoCatalog {
                     author: "Vyacheslav Argenberg", license: "CC BY 4.0", licenseURL: by4,
                     source: "https://commons.wikimedia.org/wiki/File:Honda_Click,_Trang,_Thailand.jpg",
                     changes: "credits.changes.cropped", note: "credits.note.click"),
-        PhotoCredit(asset: "photo-scoopy-i-pai", use: "Honda Scoopy-i",
+        PhotoCredit(asset: "photo-scoopy-i-pai", use: "Honda Scoopy",
                     title: "2022 Honda Scoopy 110",
                     author: "MoCars", license: "CC0 1.0", licenseURL: "https://creativecommons.org/publicdomain/zero/1.0/",
                     source: "https://commons.wikimedia.org/wiki/File:2022_Honda_Scoopy_110.jpg",
@@ -80,6 +88,16 @@ enum PhotoCatalog {
                     author: "Addvisor", license: "CC BY-SA 4.0", licenseURL: bySA4,
                     source: "https://commons.wikimedia.org/wiki/File:Yamaha_Fino.jpg",
                     changes: "credits.changes.cropped", note: "credits.note.fino"),
+        PhotoCredit(asset: "photo-vespa-primavera-150", use: "Vespa Primavera 150",
+                    title: "2021 Vespa Primavera 75th, rear left",
+                    author: "Mr.choppers", license: "CC BY-SA 3.0", licenseURL: "https://creativecommons.org/licenses/by-sa/3.0/",
+                    source: "https://commons.wikimedia.org/wiki/File:2021_Vespa_Primavera_75th,_rear_left.jpg",
+                    changes: "credits.changes.plate", note: "credits.note.vespa"),
+        PhotoCredit(asset: "photo-grand-filano", use: "Yamaha Grand Filano",
+                    title: "2022 Yamaha Grand Filano Hybrid Connected",
+                    author: "Chanokchon", license: "CC BY-SA 4.0", licenseURL: bySA4,
+                    source: "https://commons.wikimedia.org/wiki/File:2022_Yamaha_Grand_Filano_Hybrid_Connected.jpg",
+                    changes: "credits.changes.people", note: "credits.note.pcx"),
         PhotoCredit(asset: "place-bangkok", use: "place.bangkok",
                     title: "Bangkok skytrain sunset",
                     author: "Diliff", license: "CC BY-SA 3.0", licenseURL: "https://creativecommons.org/licenses/by-sa/3.0/",
@@ -181,7 +199,8 @@ struct PhotoFill: View {
     }
 }
 
-/// The picture of a listing: the bundled photo first; the server's photo only as a fallback; else a night tile.
+/// The picture of a listing: the catalogue's photo from the server (GET /api/listings; URLSession's cache keeps it), over
+/// the bundled copy of the same photo, which is what shows offline or while it loads; else a night tile.
 struct ListingPhoto: View {
     let listingId: String
     var serverPhoto: String?
@@ -191,20 +210,18 @@ struct ListingPhoto: View {
     init(listingId: String, symbol: String = "scooter") { self.listingId = listingId; self.symbol = symbol }
 
     var body: some View {
-        if let asset = PhotoCatalog.asset(forListing: listingId) {
-            PhotoFill(asset: asset)
-        } else {
-            NightTile(symbol: symbol)
-                .overlay {
-                    if let url = APIClient().absolute(serverPhoto) {
-                        AsyncImage(url: url) { phase in
-                            if case .success(let img) = phase { img.resizable().scaledToFill() }
-                        }
-                    }
-                }
-                .clipped()
-                .accessibilityHidden(true)
+        Group {
+            if let asset = PhotoCatalog.asset(forListing: listingId) { PhotoFill(asset: asset) } else { NightTile(symbol: symbol) }
         }
+        .overlay {
+            if let url = APIClient().absolute(serverPhoto) {
+                AsyncImage(url: url) { phase in
+                    if case .success(let img) = phase { img.resizable().scaledToFill() }
+                }
+            }
+        }
+        .clipped()
+        .accessibilityHidden(true)
     }
 }
 

@@ -16,6 +16,10 @@ and talks to the live KeyScrow API. Testnet only: the app refuses to sign for an
 | --- | --- | --- | --- |
 | ![](screenshots/rentals-dark-en.png) | ![](screenshots/ask-approval-light-en.png) | ![](screenshots/credits-light-en.png) | ![](screenshots/settings-light-zh.png) |
 
+| KeyScrow, the shared catalogue (8 listings) · light · EN | A catalogue listing (Vespa Primavera 150) · dark · 中文 |
+| --- | --- |
+| ![](screenshots/catalogue-home-light-en.png) | ![](screenshots/catalogue-vespa-dark-zh.png) |
+
 All screenshots (Simulator, iPhone 17, light + dark, EN + 中文) are in [`screenshots/`](screenshots). The rental shown is
 a real one the E2E test made on BSC testnet: escrow
 [`0x0389…fe87`](https://testnet.bscscan.com/address/0x0389ED3e927165653ea482931C0eD17f3BD2fe87). The photos are real
@@ -60,14 +64,20 @@ xcodebuild -scheme KeyEscrowE2E -destination 'platform=iOS Simulator,name=iPhone
 
 It rents a demo scooter: test money, offer, fund, pickup + return photos on-chain, AI inspection, proposal, the
 demo shop accepts, settled. Name the scooter with `TEST_RUNNER_E2E_SCOOTER="Honda PCX 160"` in front of the command
-(default: Honda Scoopy-i). A rental left half way is carried on, and a settled one is rented again, so every run is a
+(default: Honda Scoopy). A rental left half way is carried on, and a settled one is rented again, so every run is a
 whole rental. A second test signs an Ask AI approval card.
+
+Last run, on the shared catalogue (`3bb0ace`, both tests green in 107 s, `TEST_RUNNER_E2E_SCOOTER="Vespa Primavera
+150"`): escrow [`0x3ee44F72…6852`](https://testnet.bscscan.com/address/0x3ee44F72152aa0B0f20a44f3c3DB0a08527d6852)
+went from the demo shop's offer to settled
+([`0x80e76f47…43fb`](https://testnet.bscscan.com/tx/0x80e76f4716c36cc865d73d7dc673b367ea053f3ff7386659614e04a23d5643fb)):
+573.09 mUSDT paid in, 293.89 back to the renter, 251.28 to the owner, 27.92 fee.
 
 ## What is in the app
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | A full-bleed photo of a Thai street at night (a real "motorcycle for rent" sign in it) with the promise over it, a row of destinations that filters the list, then Airbnb-style cards: the live **Mystery Box** (`GET /api/stage/mystery-box`) and the demo scooters (`GET /api/fleet`), each with a real photo, price per day, place, "deposit protected by escrow" and a *Live on stage* / *Demo listing* badge. Listing page: big photo header, rent and deposit, why the deposit is safe, a sticky *Rent it* bar with the price. |
+| **Home** | A full-bleed photo of a Thai street at night (a real "motorcycle for rent" sign in it) with the promise over it, a row of destinations that filters the list, then Airbnb-style cards from the website's own catalogue (`GET /api/listings`, `web/data/listings.json`): the live **Mystery Box** and the demo scooters, with the same slugs, names, prices and real photos as `/app/listings/<slug>`, each with price per day, place, "deposit protected by escrow" and a *Live on stage* / *Demo listing* badge. Listing page: big photo header, rent and deposit, why the deposit is safe, a sticky *Rent it* bar with the price. |
 | **Rent it** (from a listing) | The `/r` judge flow, native, with a named seven-step stepper: get test money → the owner offers → *Pay into escrow* (`prepare_fund`) → pickup photos → return photos (SHA-256, `POST /api/evidence`, `prepare_add_evidence`) → AI inspection (`POST /api/settlement`, agent #2921) → propose the split (`prepare_propose_settlement`) → owner accepts → settled (a drawn tick, the amount back, how the escrow paid out). Every transaction lands on a paper receipt with its BscScan link as soon as it is mined. Steps are read back from the chain, so leaving and coming back continues where it was. |
 | **My rentals** | `list_leases` for the guest wallet, with the listing's photo where this phone made the rental. Rental page: photo, status banner, money tiles (renter paid / in escrow / owner got / back to renter, baht + mUSDT) and a split bar, period strip, `explain_status` in plain words, a timeline on a rail (`/api/chain/index`) with an icon per event and BscScan links. Pull to refresh. |
 | **Ask AI** | Chat against `POST /api/assistant` (Server-Sent Events). Approval cards show the exact unsigned steps; *Approve and sign* signs them with the guest wallet, then resumes the run with the tx hashes. When the server says it runs its demo model the app shows a *Demo model* pill. |
@@ -80,29 +90,31 @@ step, a success and an error; the tick, the live dot and the press feedback stay
 
 ## Photos
 
-Every picture in the app is a real photo with a free licence, bundled with the app
-(`KeyEscrow/Resources/Assets.xcassets/Photos`, about 2 MB): one per demo listing, the street at night on Home, a box
-for the Mystery Box and four destination tiles. All eleven come from Wikimedia Commons (CC0, CC BY or CC BY-SA, none
-with a non-commercial or no-derivatives clause); each licence was read from the file's own page. The bundled photos
-are never fetched at runtime: they are mapped by listing id (`PhotoCatalog` in `KeyEscrow/Design/Photos.swift`), and
-the catalogue's own photo URL (a stand-in walkthrough picture) is only the fallback for a listing id the app has no
-photo for (none today).
+Every picture in the app is a real photo with a free licence: one per catalogue listing (seven scooters and the
+Mystery Box), the street at night on Home and four destination tiles. All thirteen come from Wikimedia Commons (CC0,
+CC BY or CC BY-SA, none with a non-commercial or no-derivatives clause); each licence was read from the file's own
+page. The listing photos are the website's own (`web/data/listings.json`, credited on its `/credits` page): the app
+shows the catalogue's photo URL from `GET /api/listings` and keeps a bundled copy of each (`KeyEscrow/Resources/
+Assets.xcassets/Photos`, about 2.5 MB, mapped by listing slug in `PhotoCatalog`, `KeyEscrow/Design/Photos.swift`) for
+offline use and while the photo loads. Rentals saved under the app's older listing ids (`click-125i-cnx`, …) still find
+their photo through `PhotoCatalog.legacySlugs`.
 
 The photos illustrate the demo listings; they do not show the exact scooters. Where the picture is a stand-in the
-credits say so: the Honda Click is an earlier Click (2007), the Scoopy is a Scoopy 110 photographed in Bali, the
-Fino's page does not state its place or model year, the box is not the one on the stage. In the street photo the phone numbers on the shop signs and the print on a T-shirt are
-blurred; the shops in it are not connected to KeyScrow.
+credits say so: the Honda Click is an earlier Click photographed in Thailand in 2007, the Scoopy is a Scoopy 110
+photographed in Bali, the Vespa is a Primavera 125 with the same body as the 150, the Fino's model year may differ, the
+box is not the one on the stage. Phone numbers on the shop signs, a T-shirt print, a number plate and two people in
+the background are blurred; the shops in the street photo are not connected to KeyScrow.
 
 Title, author, licence, source and what was changed for each photo: [CREDITS.md](CREDITS.md), and in the app under
-Settings > About > Photo credits. To add or replace one: put the JPEG in an image set under `Assets.xcassets/Photos`,
-map and credit it in `PhotoCatalog`, add the row to CREDITS.md (`PhotoTests` fails when the asset folder, the list in
-code and CREDITS.md do not name the same photos with the same credit).
+Settings > About > Photo credits. `PhotoTests` fails when the asset folder, the list in code and CREDITS.md do not
+name the same photos with the same credit, or when a catalogue listing (`KeyEscrowTests/Fixtures/listings.json`) has
+no bundled copy credited as the catalogue credits it.
 
 ## What is real on-chain vs demo
 
 | Real (BSC testnet, chain 97, contract v2 from `contracts/deployments/97.json`) | Demo |
 | --- | --- |
-| Every escrow the app creates or funds (`EscrowFactory` `0x04D7…9315`, MockUSDT `0x7aF0…35B1`). | Scooter listings: the off-chain, demo-grade catalogue (`/api/fleet`), labelled *Demo listing*. |
+| Every escrow the app creates or funds (`EscrowFactory` `0x04D7…9315`, MockUSDT `0x7aF0…35B1`). | Scooter listings: the website's demo catalogue (`/api/listings`), labelled *Demo listing*. |
 | Every transaction: signed on the phone with the guest wallet, sent through `https://bsc-testnet-rpc.publicnode.com`. | **Demo scooters' owner** is a second test key on the phone ("demo shop wallet"): it signs `createLease` (from `prepare_create_lease`) and `accept`. The guest wallet lends it 0.0004 tBNB for gas. |
 | Photo fingerprints (`addEvidence`), the proposal with the inspector's `reportHash`, the settlement. | **Mystery Box owner** is the KeyScrow server (`/api/stage` `lease`); the presenter accepts on the big screen. |
 | Test money: `/api/stage` drip (tBNB + mUSDT from the team's funder, once per address) and `MockUSDT.faucet` signed by the guest wallet. | AI inspector on the live server is the deterministic demo inspector (no vision key there); the app says so. Baht use the demo rate (33 THB/USDT) when the price API is in mock mode, and says so. |
@@ -141,7 +153,7 @@ ios/
     Features/Home|Rent|Rentals|AskAI|Settings
     Support/                  AppSettings, L10n (EN + 中文 side by side), Money (baht / mUSDT / tBNB)
     Design/                   colour tokens, type scale, cards, buttons, stepper parts; Photos.swift (photos + credits)
-    Resources/Assets.xcassets icon, launch colour, Photos/ (the eleven bundled photos)
+    Resources/Assets.xcassets icon, launch colour, Photos/ (the thirteen bundled photos)
   KeyEscrowTests/             signer vectors (viem), calldata policy, API decoding (live fixtures), money + i18n, photos
   KeyEscrowE2E/               live rent-a-scooter run and Ask AI approval on BSC testnet
   CREDITS.md                  every photo: title, author, licence, source, what was changed

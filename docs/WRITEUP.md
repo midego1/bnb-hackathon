@@ -17,8 +17,8 @@ the deposit must keep covering a THB repair bill for the whole rental. That is a
 | Source | Endpoint / feed | Used for | Where |
 |---|---|---|---|
 | CoinMarketCap Pro API | `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | `percent_change_24h/7d/30d` → daily volatility per payment token → **deposit risk buffer** (stablecoin 0 %, BNB ≈ 15–25 % for 30 days, > 60 % rejected) | `web/lib/risk.ts`, `web/lib/server/risk`, `GET /api/risk` |
-| CoinMarketCap Pro API | same, `convert=THB` | THB price of USDT and BNB: every amount shown THB first; the THB deposit converted into tokens | `GET /api/price`, `GET /api/risk` |
-| Atlas push oracle | SingleFeed `latestRoundData()` (AggregatorV3, 18 decimals), feeds `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD`, optional `ATLAS_FEED_USD_THB` | First price source for display and deposit valuation, with the Atlas staleness check (`updatedAt` older than `ATLAS_MAX_AGE_SECONDS`, default 1 h, or a never-updated feed is rejected); BNB/USD also **guards "Pay with BNB"** (refused beyond 2x its 120 s heartbeat) | `web/lib/server/price` (`readFeed`), `web/lib/server/price/atlas.ts` |
+| CoinMarketCap Pro API | same, `convert=THB` | THB price of USDT and BNB: every amount shown THB first; the THB deposit converted into tokens; the USD price fallback when Atlas fails | `GET /api/price`, `GET /api/risk` |
+| Atlas push oracle | SingleFeed `decimals()` + `latestRoundData()` (AggregatorV3, 18 decimals), feeds `ATLAS_FEED_BNB_USD`, `ATLAS_FEED_USDT_USD` | **First USD price source** for display and deposit valuation (`GET /api/price` answers `"source":"atlas"`), with the Atlas staleness check: a never-updated feed or an answer older than `ATLAS_MAX_AGE_SECONDS` (default 1 h; the USDT feed's 24 h heartbeat is allowed up to 25 h) is rejected and CoinMarketCap takes over; BNB/USD also **guards "Pay with BNB"** (refused beyond 2x its 60 s heartbeat) | `web/lib/server/price` (`readFeed`, `fetchAtlas`), `web/lib/server/price/atlas.ts` |
 | Atlas Pull API | `POST https://api.atlasoracle.io/report/v1/price/latest` `{feedIds: [633, 649], signed: true}`, header `X-API-KEY` (server-side) | Consensus per feed: Pay with BNB refuses unless BNB/USD is HEALTHY or DEGRADED; the **signed report**, verified against the official signer, is the price proof on AI settlement reports that charge damage | `web/lib/server/price/atlas.ts`, `POST /api/settlement` |
 | Cournot (bonus) | `POST /intelligence/v1/probability` | "Will BNB fall below the coverage floor before the return date?" → buffer × (1 + p) | `GET /api/risk`, `POST /api/cournot` |
 
@@ -36,8 +36,10 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 | Also used | Address |
 |---|---|
 | ERC-8004 Identity Registry (inspector agent #2921) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Atlas BNB/USD push feed (testnet / mainnet) | `0x3957d289ee9c38272377786787ea34f9dd29788d` / `0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438` |
-| Atlas USDT/USD push feed (testnet / mainnet) | `0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b` / `0x9fc000fc9c17578b49853278a517e357201d01e4` |
+| Atlas BNB/USD feed, BSC testnet (heartbeat 60 s) | [`0x3957d289ee9c38272377786787ea34f9dd29788d`](https://testnet.bscscan.com/address/0x3957d289ee9c38272377786787ea34f9dd29788d) |
+| Atlas USDT/USD feed, BSC testnet (heartbeat 24 h) | [`0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b`](https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b) |
+| Atlas BNB/USD feed, BSC mainnet (mainnet pilot site; heartbeat 60 s) | [`0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`](https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438) |
+| Atlas USDT/USD feed, BSC mainnet (mainnet pilot site; heartbeat 24 h) | [`0x9fc000fc9c17578b49853278a517e357201d01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4) |
 | Atlas Pull API feed ids · official signer | BNB/USD 633, USDT/USD 649 · `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600` |
 | PancakeSwap V2 router (mainnet "Pay with BNB") | `0x10ED43C718714eb63d5aA57B78B54704E256024E` |
 | `AtlasSwapGuard` (testnet "Pay with BNB" demo swap) | _to deploy: `contracts/script/DeployAtlasSwapGuard.s.sol`_ |
@@ -46,7 +48,7 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 
 1. **Atlas-guarded "Pay with BNB".** A renter without the stablecoin pays the deposit + first rent in BNB: the app
    swaps exactly what is missing. `amountOutMin` = 99 % of the Atlas BNB/USD value of the BNB sent. It fails closed:
-   no swap when the push feed is older than 2x its heartbeat, when the Pull API consensus is not HEALTHY/DEGRADED, when
+   no swap when the push feed is older than 2x its 60 s heartbeat, when the Pull API consensus is not HEALTHY/DEGRADED, when
    the signed report does not verify, or when the pool quote is more than 2 % away from Atlas ("Price not trustworthy
    right now"). BSC mainnet swaps on the PancakeSwap V2 router, capped at 1 USDT (the pilot's deposit + rent caps).
    BSC testnet has no PancakeSwap pool for our MockUSDT, so a small, clearly labelled `AtlasSwapGuard` contract stands
@@ -60,12 +62,18 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 
 ## Status (be precise for judges)
 
-- Built and tested: CMC volatility buffer + THB conversion (fixture tests; live once `CMC_API_KEY` is set), Atlas push
-  read path with staleness check, Atlas Pull API client + signature verification + consensus guard (unit tests with a
-  mocked API and a test-key fixture), Pay with BNB (Foundry tests for `AtlasSwapGuard`, Playwright on anvil), call
-  logging, `/integrations` evidence page.
-- Pending the owner: deploy `AtlasSwapGuard` on BSC testnet (and check the Atlas feed is open-read for a contract, not
-  whitelist-only), set `ATLAS_API_KEY`; a live check that real Pull API reports verify against the official signer.
+- Live on the testnet site and the mainnet pilot site: the Atlas push feeds above are the first USD price source
+  (`GET /api/price` → `"source":"atlas"`); CoinMarketCap is live as the fallback, the THB rate and the deposit volatility
+  buffer. Every call shows on `/integrations` and `/sponsors`.
+- Built and tested: the Atlas read path with the staleness check (unit tests with fake 8- and 18-decimal feeds), the CMC
+  volatility buffer and THB conversion (fixture tests), call logging.
+- Built and tested, not live yet: the Atlas Pull API client + signature verification against the official signer +
+  consensus guard (unit tests with a mocked API and a test-key fixture), Pay with BNB (Foundry tests for
+  `AtlasSwapGuard`, Playwright on anvil) and the settlement price proof. Live once `ATLAS_API_KEY` is set on the site
+  (our key is available); the testnet swap also needs `AtlasSwapGuard` deployed (and the feed readable by a contract,
+  not whitelist-only). A live check that real Pull API reports verify against the official signer is still to do.
+- The escrow contracts read no price at all (they hold a stablecoin); only the testnet `AtlasSwapGuard` demo swap reads
+  the Atlas feed, before funding.
 
 ## What we would build next
 

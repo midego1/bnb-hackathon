@@ -2,7 +2,7 @@
 
 # KeyScrow
 
-KeyScrow（开发期间曾名 KeyEscrow：在线网址和部分截图中仍为 keyescrow）。
+KeyScrow（开发期间曾名 KeyEscrow：代理网址、iOS 项目目录和部分旧截图中仍为 keyescrow）。
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -15,18 +15,33 @@ KeyScrow（开发期间曾名 KeyEscrow：在线网址和部分截图中仍为 k
 AI 验车会对比取车和还车的照片，起草一份押金分配方案。一方在链上提出，另一方接受，资金立即到账。若双方谈不拢，
 由中立的争议处理台裁决。任何一方都无法单独动用押金，超时规则保护租客。所有金额都优先以泰铢显示。
 
-为 BNB Bangkok 2026 黑客松打造（Developer Track，CoinMarketCap x Atlas 赛道）。MIT 开源，仅运行在 BSC 测试网，不发币。
+为 BNB Bangkok 2026 黑客松打造（Developer Track、CoinMarketCap x Atlas、ChatAndBuild / Living Brain、Cournot、AWS 路演：
+[/sponsors 每个赛道一张卡片](https://keyscrow.mdgooijer.workers.dev/sponsors)）。MIT 开源，BSC 测试网加一个有上限的主网试点，不发币。
 
 ## 评委速览
 
-**30 秒了解。** 打开 <https://keyescrow-web.mdgooijer.workers.dev>，三种体验方式任选其一：
+**30 秒了解。** 打开 <https://keyscrow.mdgooijer.workers.dev>，选一种方式体验：
 
-1. **[/demo](https://keyescrow-web.mdgooijer.workers.dev/demo)**：一键跑完一整笔摩托车租约，全部是真实的 BSC
+1. **[/demo](https://keyscrow.mdgooijer.workers.dev/demo)**：一键跑完一整笔摩托车租约，全部是真实的 BSC
    测试网交易。无需钱包，每一步都链接到 BscScan。
-2. **[/stage/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/stage/mystery-box)** 放在大屏上，
-   **[/r/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/r/mystery-box)** 在手机上打开（扫大屏上的二维码）：
+2. **[/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box)** 放在大屏上，
+   **[/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box)** 在手机上打开（扫大屏上的二维码）：
    你用访客钱包租下我们现场的实物神秘盒子，拍取件和归还照片，拿到 AI 分配方案并完成结算。
-3. **[/pitch](https://keyescrow-web.mdgooijer.workers.dev/pitch)**：3 分钟路演的动画分镜。
+3. **[/duo/mystery-box](https://keyscrow.mdgooijer.workers.dev/duo/mystery-box)**：同一笔租约的分屏视图，左边租客手机，
+   右边租车公司（[主视频](docs/submission/duo.mp4)）。
+4. **[/pitch](https://keyscrow.mdgooijer.workers.dev/pitch)**：3 分钟路演的动画分镜。
+
+**评委信息**
+
+| | |
+| --- | --- |
+| 在线应用（BSC 测试网，chain 97） | <https://keyscrow.mdgooijer.workers.dev>（与 `keyescrow-web.mdgooijer.workers.dev` 是同一个应用） |
+| 主网试点（BSC 主网，chain 56） | <https://keyescrow-mainnet.mdgooijer.workers.dev>：工厂合约 [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)，真实 BSC-USD，链上上限：押金 0.70 + 每期租金 0.30（每笔租约最多 1 美元），所有未结租约合计 5 美元 |
+| 赞助商赛道与实时状态 | [/sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors)（状态来自 `/api/integrations`；技术细节见 [/integrations](https://keyscrow.mdgooijer.workers.dev/integrations)） |
+| 视频（本地链，已填充演示世界） | [duo](docs/submission/duo.mp4)（59 秒）· [引导式 /demo](docs/submission/demo-guided.mp4)（90 秒）· [ELI5](docs/submission/eli5.mp4)（71 秒）· [应用导览](docs/submission/tour.mp4)（77 秒）· [路演幻灯片](docs/submission/deck.pdf) |
+| 测试（11 月 26 日） | Foundry 314 · vitest 558（40 个文件）· 代理 24 · Playwright 154（27 个 spec 文件） |
+| 规模 | 约 74,000 行代码 + 约 5,300 行 Markdown 文档（已跟踪文件；不含锁文件、`contracts/lib`、生成的 ABI、JSON 数据和二进制文件） |
+| 构建方式 | Claude Code：共 24.7 亿 token（输出 813 万），paseo-box + 10 台 boat 虚拟机，按 11 月 26 日约 15:50（泰国时间）的 Claude Code 记录统计 |
 
 AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 [代理名片](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json)。合约地址只在一处列出：
@@ -38,12 +53,12 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 | --- | --- |
 | 每笔租约一个托管合约；`/demo` 和 `/stage` 里的创建、注资、租金发放、凭证哈希、提议和结算都是真实交易 | 资金是没有价值的 MockUSDT 测试币；`/demo` 和 `/stage` 用服务器上的一次性演示钱包和访客钱包签名 |
 | 代理 #2921 在 ERC-8004 Identity Registry 中的注册 | 在线站点的 AI 验车是确定性的*演示验车员*（未配置模型密钥）；配置密钥后，视觉大模型返回同样格式的 JSON |
-| 合约本身，已在 BscScan 验证 | 价格显示 *Demo rates*（尚无 CoinMarketCap 密钥；Atlas 喂价地址已公布，尚未在线上配置）；Cournot 和 Living Brain 已实现但未上线 |
+| 合约本身，已在 BscScan 验证 | 价格已上线：Atlas 推送式喂价为首选来源，CoinMarketCap 作为备用来源并提供泰铢汇率；Cournot 已实现，等待合作方密钥 |
 | 照片和文件的指纹（SHA-256） | 照片本身存在链下；*PromptPay 支付*页面是模拟，只会发放测试 USDT |
 
-| `/demo` 运行中 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |
+| `/duo`：左边租客手机，右边租车公司 | `/stage` 大屏，已结算 | 评委手机上的 `/r` |
 | --- | --- | --- |
-| ![引导式 /demo 第 7/10 步：AI 验车员以泰铢给出的分配方案、实时余额和每笔交易哈希](docs/submission/screenshots/4-demo-mid-run.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
+| ![结算后的 /duo/mystery-box：左边是租客手机，右边是租车公司的屏幕，以及每笔交易](docs/submission/screenshots/02-duo.png) | ![结算后的 /stage/mystery-box：租客已付、托管中、车主所得、退还租客，以及每笔交易](docs/screenshots/judges/stage-big-screen.png) | ![/r/mystery-box：AI 验车的分配方案，可以提交](docs/screenshots/judges/stage-phone.png) |
 
 截图来自同一版本的本地运行（因此二维码下方显示 `127.0.0.1`）。
 
@@ -51,7 +66,7 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 
 | 评审标准 | 参阅 |
 | --- | --- |
-| 设计与易用性 | [docs/DESIGN.md](docs/DESIGN.md)；金额优先以泰铢显示；支持 EN、中文和 EN+中文；[一分钟动画](https://keyescrow-web.mdgooijer.workers.dev/how-it-works) |
+| 设计与易用性 | [docs/DESIGN.md](docs/DESIGN.md)；金额优先以泰铢显示；支持 EN、中文和 EN+中文；[一分钟动画](https://keyscrow.mdgooijer.workers.dev/how-it-works) |
 | 可扩展性 | [ARCHITECTURE.md 第 11 节](docs/ARCHITECTURE.md#11-scalability) 和 [第 7 节 Cloudflare](docs/ARCHITECTURE.md#7-cloudflare-deployment) |
 | 创新性 | AI 起草、人来决定、超时规则保护租客；每笔租约一个托管合约；每个操作都以 REST、MCP 和 A2A 提供（[docs/AGENT.md](docs/AGENT.md)） |
 | 开源质量 | MIT；[测试与 CI](#测试与-ci)；[安全评审](docs/SECURITY.md)；[CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -63,12 +78,12 @@ AI 验车员是 BSC 测试网上的 ERC-8004 代理 **#2921**：
 
 | 内容 | 链接 |
 | --- | --- |
-| **Web 应用**（BSC 测试网，chain 97） | <https://keyescrow-web.mdgooijer.workers.dev> |
-| **测试网实时演示**：一键跑完一整笔租约，全部是真实的 BSC 测试网交易，无需钱包 | <https://keyescrow-web.mdgooijer.workers.dev/demo> |
-| **评委演示**：用手机租下神秘盒子 | [/stage/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/stage/mystery-box) · [/r/mystery-box](https://keyescrow-web.mdgooijer.workers.dev/r/mystery-box) |
-| 路演分镜（3 分钟） | <https://keyescrow-web.mdgooijer.workers.dev/pitch> |
-| 一分钟动画：它是怎么运作的 | <https://keyescrow-web.mdgooijer.workers.dev/how-it-works> |
-| 开发者：每个租约操作都提供 REST + MCP 接口，OpenAPI 3.1 | [/developers](https://keyescrow-web.mdgooijer.workers.dev/developers) · [/api/v1/openapi.json](https://keyescrow-web.mdgooijer.workers.dev/api/v1/openapi.json) |
+| **Web 应用**（BSC 测试网，chain 97） | <https://keyscrow.mdgooijer.workers.dev> |
+| **测试网实时演示**：一键跑完一整笔租约，全部是真实的 BSC 测试网交易，无需钱包 | <https://keyscrow.mdgooijer.workers.dev/demo> |
+| **评委演示**：用手机租下神秘盒子 | [/stage/mystery-box](https://keyscrow.mdgooijer.workers.dev/stage/mystery-box) · [/r/mystery-box](https://keyscrow.mdgooijer.workers.dev/r/mystery-box) |
+| 路演分镜（3 分钟） | <https://keyscrow.mdgooijer.workers.dev/pitch> |
+| 一分钟动画：它是怎么运作的 | <https://keyscrow.mdgooijer.workers.dev/how-it-works> |
+| 开发者：每个租约操作都提供 REST + MCP 接口，OpenAPI 3.1 | [/developers](https://keyscrow.mdgooijer.workers.dev/developers) · [/api/v1/openapi.json](https://keyscrow.mdgooijer.workers.dev/api/v1/openapi.json) |
 | **AI 验车代理**（ERC-8004 agent #2921） | <https://keyescrow-agent.mdgooijer.workers.dev> |
 | 代理名片（A2A） | [/.well-known/agent-card.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-card.json) · ERC-8004 注册文件：[/.well-known/agent-registration.json](https://keyescrow-agent.mdgooijer.workers.dev/.well-known/agent-registration.json) |
 | MCP 服务器（Streamable HTTP，17 个工具） | `POST https://keyescrow-agent.mdgooijer.workers.dev/mcp` |
@@ -132,15 +147,15 @@ pnpm dev                                             # 打开 http://localhost:3
 不做部署：合约、Web（lint、单元测试、构建）、代理，以及端到端测试（`e2e:chain` + 在临时 anvil 上跑 Playwright）。
 
 ```bash
-cd contracts && forge build && forge test   # 305 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 30 个文件共 393 个 vitest 测试（服务端路由、操作、演示、赞助商、多语言；离线）
+cd contracts && forge build && forge test   # 314 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT、AtlasSwapGuard
+pnpm -C web lint && pnpm -C web test        # eslint + 40 个文件共 558 个 vitest 测试（服务端路由、操作、演示、赞助商、多语言；离线）
 pnpm -C web build                           # 生产构建
-pnpm agent:test                             # 21 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign
+pnpm agent:test                             # 24 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign
 pnpm e2e:chain                              # 用真实交易 + 时间快进跑完每条结算路径，独立 anvil :28545
-cd web && npx playwright test               # 20 个文件共 108 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
+cd web && npx playwright test               # 27 个文件共 154 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
 ```
 
-数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.70 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
+数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.88 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
 
 ---
 

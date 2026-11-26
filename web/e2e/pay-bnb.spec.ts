@@ -37,7 +37,7 @@ async function createShortLease(): Promise<Address> {
   return created.args.escrow;
 }
 
-/** Fresh MockAtlasFeed answer (the guard refuses one older than 240 s on the anvil clock). */
+/** Fresh MockAtlasFeed answer (the guard refuses one older than 120 s on the anvil clock). */
 async function refreshFeed() {
   const hash = await wallet.writeContract({ account: devAccounts.landlord, chain: null, address: feed, abi: parseAbi(["function set(int256)"]), functionName: "set", args: [BigInt(650) * BigInt(10) ** BigInt(18)] });
   await pub.waitForTransactionReceipt({ hash });
@@ -54,7 +54,7 @@ async function stubAtlas(page: Page, consensusStatus: string, ok: boolean) {
       bnbUsdE18: "650000000000000000000",
       bnbUsd: 650,
       updatedAt: new Date(now - 20_000).toISOString(),
-      maxAgeSec: 240,
+      maxAgeSec: 120,
       consensus: { score: 0.94, status: consensusStatus },
       fetchedAt: new Date(now).toISOString(),
     };

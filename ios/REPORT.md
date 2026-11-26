@@ -38,7 +38,9 @@ MVP 1-5 and stretch 6-7 are in; stretch 8 (WalletConnect) is not.
 7. **Ask AI.** Chat bubbles over `POST /api/assistant` (SSE), suggestions, steps, cards, approval cards. *Approve and
    sign* signs the server's exact steps with the guest wallet and resumes with the hashes. **Verified by
    `AskAIE2ETests` (passed):** "Create a rental …" → approval card → signed on the phone → escrow
-   [`0x11125062…7171`](https://testnet.bscscan.com/address/0x111250620c0DA4b35655584f5E066e75799C7171) created.
+   [`0x11125062…7171`](https://testnet.bscscan.com/address/0x111250620c0DA4b35655584f5E066e75799C7171) created
+   (latest run, on the shared catalogue:
+   [`0x9953077d…9bf1`](https://testnet.bscscan.com/address/0x9953077d815a0EA3C0BE0301FA47Db25F01A9bf1)).
 
 ## Design pass (26 Nov)
 
@@ -85,7 +87,7 @@ times: one request took 16 s at about 11:15; see the notes for the coordinator):
    Where the app cannot know (a rental settled elsewhere, index behind) it shows "–" and says the history is
    incomplete, instead of ฿0.
 
-**Verified** with the new UI, live on BSC testnet (Simulator wallet `0xb32B…e49A`): six escrows, each taken from
+**Verified** with the new UI, live on BSC testnet (Simulator wallet `0xb32B…e49A`): seven escrows, each taken from
 the offer to settled by the E2E test:
 
 | Scooter | Escrow | Settled by | Paid in → back to renter / owner / fee (mUSDT) |
@@ -95,13 +97,21 @@ the offer to settled by the E2E test:
 | Honda PCX 160 | [`0x0d4637F1…6c6E`](https://testnet.bscscan.com/address/0x0d4637F13a3735C14F8326c479F7cd3b49696c6E) | [`0x84a426d9…a128`](https://testnet.bscscan.com/tx/0x84a426d9b6cc5a2d9d49edd19fdf8e4e05d6b0624b8fdacb5c8949c8aad6a128) | 436.36 → 258.91 / 162.905 / 14.545 |
 | Yamaha Fino 125 | [`0xC16fB878…78aE`](https://testnet.bscscan.com/address/0xC16fB8789a5622eedB66238E09e8b9B0D34778aE) | [`0x9dd8deeb…abff`](https://testnet.bscscan.com/tx/0x9dd8deeb6df40615e432e4b3608d1c79356f7048e86c91ee53af612b2d4eabff) | |
 | Honda Scoopy-i (in the screenshots) | [`0x0389ED3e…fe87`](https://testnet.bscscan.com/address/0x0389ED3e927165653ea482931C0eD17f3BD2fe87) | [`0xd1ea3bc4…1e3f`](https://testnet.bscscan.com/tx/0xd1ea3bc44fde40db74322c11c894d3ded3cc59222ef570341794e750e76f1e3f) | 264.73 → 161.49 / 94.416 / 8.824 |
-| Honda Click 125i, rented again (last run, final code) | [`0x13431c31…1511`](https://testnet.bscscan.com/address/0x13431c31715794c7C5fd30313a446b67996C1511) | [`0xa5b9322e…f89c`](https://testnet.bscscan.com/tx/0xa5b9322e1b252d7595b5715e9aded9fa572d855584a8bedb044609b96d6cf89c) | 299.99 → 199.99 / 90.00 / 10.00 |
+| Honda Click 125i, rented again (final code of the design pass) | [`0x13431c31…1511`](https://testnet.bscscan.com/address/0x13431c31715794c7C5fd30313a446b67996C1511) | [`0xa5b9322e…f89c`](https://testnet.bscscan.com/tx/0xa5b9322e1b252d7595b5715e9aded9fa572d855584a8bedb044609b96d6cf89c) | 299.99 → 199.99 / 90.00 / 10.00 |
+| Vespa Primavera 150 (shared catalogue, `3bb0ace`) | [`0x3ee44F72…6852`](https://testnet.bscscan.com/address/0x3ee44F72152aa0B0f20a44f3c3DB0a08527d6852) | [`0x80e76f47…43fb`](https://testnet.bscscan.com/tx/0x80e76f4716c36cc865d73d7dc673b367ea053f3ff7386659614e04a23d5643fb) | 573.09 → 293.89 / 251.28 / 27.92 |
 
-The amounts are read from each settling transaction's `Settled` event. The last two rows were the whole
+The amounts are read from each settling transaction's `Settled` event. The Scoopy-i and the second Click rows were the whole
 `KeyEscrowE2E` scheme in one go, both tests green: the Scoopy-i run (Ask AI approval signed on the phone 21 s, rent
-flow 81 s), and the last Click run (22 s and 85 s) on the final code, which includes the photo-compression commit
-`26fac4a` that landed during this pass. That last run began on an already settled scooter: the test tapped *Rent it
+flow 81 s), and the second Click run (22 s and 85 s) on the design pass's final code, which includes the photo-compression commit
+`26fac4a` that landed during this pass. That Click run began on an already settled scooter: the test tapped *Rent it
 again* and did a whole new rental.
+
+After the KeyScrow rename and the shared catalogue (`GET /api/listings`, commit `3bb0ace`) the whole scheme ran
+again, both tests green: Ask AI 20 s (approval signed on the phone, rental
+[`0x9953077d…9bf1`](https://testnet.bscscan.com/address/0x9953077d815a0EA3C0BE0301FA47Db25F01A9bf1) created), rent flow
+87 s on the Vespa Primavera 150, a listing that exists only in the new catalogue: offer by the demo shop, pay, pickup
+and return photos on-chain, AI check, proposal, accept, settled (last row of the table). The inspector proposed the
+whole deposit back (293.89 to the renter, nothing kept), so the owner's 251.28 is the month's rent less the fee.
 
 Not every run was green. None of the failures was a fault of the redesign, and each made a test sturdier:
 
@@ -194,8 +204,8 @@ compares the asset folder, the list in code and CREDITS.md.
   web. Ask AI answers with a real model (`mock: false`) and may ask a question back instead of preparing a change.
   At about 12:00 the server could not reach its chain node for a minute or two (HTTP 502 from `prepare_fund`, and an
   assistant run that never finished).
-- **Gas of the Simulator's test wallets** after these runs: guest `0xb32B…e49A` 0.00054 tBNB, demo shop
-  `0x239D…1e34` 0.00033 tBNB. A whole E2E run costs about 0.0001 tBNB between them. Under 0.0003 tBNB the flow asks
+- **Gas of the Simulator's test wallets** after the last run (Vespa Primavera 150, `3bb0ace`): guest `0xb32B…e49A`
+  0.00044 tBNB, demo shop `0x239D…1e34` 0.00026 tBNB, enough for about one more whole run. A whole E2E run costs about 0.0001 tBNB between them. Under 0.0003 tBNB the flow asks
   for test money, and the drip is once per address: then make a new test wallet in Settings, or top the address up
   from a BNB testnet faucet.
 - No server code was changed. The stage API's origin check passes because a native app sends no `Origin` header.

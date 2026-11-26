@@ -96,7 +96,7 @@ flowchart TB
 | `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds one rental's deposit and rent. Releases rent per period on the rental's own schedule (`rentPeriod`: 7, 14 or 30 days), charges the one-time fee (10 % of the monthly-equivalent rent) on the first rent payout, stops the rent clock at the move-out (`moveOutAt`), anchors evidence hashes, and settles the deposit by agreement, ruling or timeout. Initialised once, not upgradeable, no admin functions. |
 | `FleetVault` | `contracts/src/FleetVault.sol` | Testnet prototype. Investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim into it. `sync()` splits new income into the operator fee (immutable, max 30 %; 10 % on testnet) and a per-share accumulator that holders `claim()`. Shares redeem 1:1. |
 | `MockUSDT` | `contracts/src/mocks/MockUSDT.sol` | Testnet-only stablecoin: 6 decimals, faucet capped at 10,000 per call. Not a project token. |
-| `AtlasSwapGuard` | `contracts/src/AtlasSwapGuard.sol` | Testnet/anvil demo swap behind "Pay with BNB" (never on mainnet). PancakeSwap has no pool for MockUSDT on BSC testnet, so this contract exposes the two PancakeSwap V2 router functions the app calls (`getAmountsOut`, `swapExactETHForTokens`) and sells test BNB for mUSDT (minted through the faucet) at the Atlas BNB/USD push-feed price, 1 mUSDT = 1 USD. Reverts on a stale (`maxAge`, 240 s = 2x the 120 s heartbeat), never-updated or non-positive Atlas answer and below `amountOutMin`. Not part of the escrow: rentals never read a price. Deployed by `script/DeployAtlasSwapGuard.s.sol` (anvil: with a `MockAtlasFeed`, from dev account 9, fixed addresses). |
+| `AtlasSwapGuard` | `contracts/src/AtlasSwapGuard.sol` | Testnet/anvil demo swap behind "Pay with BNB" (never on mainnet). PancakeSwap has no pool for MockUSDT on BSC testnet, so this contract exposes the two PancakeSwap V2 router functions the app calls (`getAmountsOut`, `swapExactETHForTokens`) and sells test BNB for mUSDT (minted through the faucet) at the Atlas BNB/USD push-feed price, 1 mUSDT = 1 USD. Reverts on a stale (`maxAge`, 120 s = 2x the 60 s heartbeat), never-updated or non-positive Atlas answer and below `amountOutMin`. Not part of the escrow: rentals never read a price. Deployed by `script/DeployAtlasSwapGuard.s.sol` (anvil: with a `MockAtlasFeed`, from dev account 9, fixed addresses). |
 
 Safety properties enforced in code:
 
@@ -298,7 +298,7 @@ isolate), and served as `atlas` on `GET /api/price`:
 
 - **Push:** the BNB/USD SingleFeed (`latestRoundData()`, 18 decimals; BSC testnet
   `0x3957d289ee9c38272377786787ea34f9dd29788d`, mainnet `0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`), refused when
-  older than 2x its heartbeat (`ATLAS_HEARTBEAT_SECONDS`, default 120 s).
+  older than 2x its heartbeat (`ATLAS_HEARTBEAT_SECONDS`, default 60 s).
 - **Pull:** `POST https://api.atlasoracle.io/report/v1/price/latest` `{feedIds: [633, 649], signed: true}` with
   `X-API-KEY` (`ATLAS_API_KEY`, never in the browser). The signed payload (`[feedId 4 B][price 10 B][timestamp 6 B]` ×
   n, then a count byte) is checked as Atlas's consumer contract does: keccak256 without an EIP-191 prefix, low-s,
@@ -595,11 +595,11 @@ sequenceDiagram
 
 | Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 305 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 393 in 30 files |
-| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 21 |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT, AtlasSwapGuard) | `cd contracts && forge test` | 314 |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 544 in 39 files |
+| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 24 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
-| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 108 tests in 20 files |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo, Pay with BNB (Atlas guard) | `cd web && npx playwright test` | 154 tests in 27 files |
 
 CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
 secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.

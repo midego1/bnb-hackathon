@@ -17,7 +17,7 @@ import {ScriptBase} from "./utils/ScriptBase.sol";
 /// Anvil: a MockAtlasFeed at 650 USD/BNB, both sent from anvil dev account 9 (nonces 0 and 1), so the addresses are
 /// the same on every fresh anvil whatever else ran before. BSC testnet: the Atlas BNB/USD push feed
 /// (ATLAS_FEED_BNB_USD, default below). Refused on BSC mainnet, which uses the real PancakeSwap router.
-/// Env: ATLAS_GUARD_MAX_AGE seconds (default 240: twice the feed's 120 s heartbeat), DEPLOYMENTS_DIR.
+/// Env: ATLAS_GUARD_MAX_AGE seconds (default 120: twice the feed's 60 s heartbeat), DEPLOYMENTS_DIR.
 contract DeployAtlasSwapGuard is ScriptBase {
     address internal constant ATLAS_BNB_USD_TESTNET = 0x3957d289ee9C38272377786787ea34F9dd29788D;
 
@@ -28,7 +28,7 @@ contract DeployAtlasSwapGuard is ScriptBase {
         if (!_isLocal() && block.chainid != BSC_TESTNET_CHAIN_ID) revert OnlyLocalOrBscTestnet(block.chainid);
         string memory path = string.concat(_deploymentsDir(), "/", vm.toString(block.chainid), ".json");
         IFaucetToken token = IFaucetToken(vm.parseJsonAddress(vm.readFile(path), ".token"));
-        uint256 maxAge = vm.envOr("ATLAS_GUARD_MAX_AGE", uint256(240));
+        uint256 maxAge = vm.envOr("ATLAS_GUARD_MAX_AGE", uint256(120));
 
         IAtlasFeed feed;
         if (_isLocal()) {

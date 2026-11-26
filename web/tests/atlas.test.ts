@@ -24,7 +24,7 @@ const status = (over: Partial<AtlasStatus> = {}): AtlasStatus => ({
   bnbUsdE18: PRICE.toString(),
   bnbUsd: 650,
   updatedAt: new Date(NOW - 30_000).toISOString(),
-  maxAgeSec: 240,
+  maxAgeSec: 120,
   consensus: { score: 0.94, status: "HEALTHY" },
   fetchedAt: new Date(NOW).toISOString(),
   ...over,
@@ -84,12 +84,12 @@ describe("Atlas guard: fail closed", () => {
   });
 
   it("refuses a push feed older than 2x its heartbeat", async () => {
-    const { status: s } = await loadAtlas(env, deps(nowSec - 241, pull() as never));
+    const { status: s } = await loadAtlas(env, deps(nowSec - 121, pull() as never));
     expect(s.ok).toBe(false);
     expect(s.reason).toMatch(/stale/);
-    expect(s.maxAgeSec).toBe(240);
+    expect(s.maxAgeSec).toBe(120);
     // ...and the client re-checks the age against now (the status can be up to 30 s old).
-    expect(planBnbSwap(BigInt(1), 6, status({ updatedAt: new Date(NOW - 241_000).toISOString() }), 97, NOW)).toEqual({ ok: false, why: "atlas" });
+    expect(planBnbSwap(BigInt(1), 6, status({ updatedAt: new Date(NOW - 121_000).toISOString() }), 97, NOW)).toEqual({ ok: false, why: "atlas" });
   });
 
   it("refuses when the Pull API consensus is CRITICAL (or SPLIT_MARKET, WARNING)", async () => {
@@ -112,7 +112,7 @@ describe("Atlas guard: fail closed", () => {
     expect(unsigned.proof).toBeNull();
     for (const c of ["HEALTHY", "DEGRADED"]) {
       const { status: s, proof } = await loadAtlas(env, deps(nowSec - 30, pull(c) as never));
-      expect(s).toMatchObject({ ok: true, bnbUsdE18: PRICE.toString(), bnbUsd: 650, consensus: { score: 0.94, status: c }, maxAgeSec: 240 });
+      expect(s).toMatchObject({ ok: true, bnbUsdE18: PRICE.toString(), bnbUsd: 650, consensus: { score: 0.94, status: c }, maxAgeSec: 120 });
       expect(proof?.hash).toBe(keccak256(fixture.data.payload));
       expect(planBnbSwap(BigInt(1), 6, s, 97, NOW).ok).toBe(true);
     }

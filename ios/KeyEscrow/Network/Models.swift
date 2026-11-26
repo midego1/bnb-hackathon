@@ -1,6 +1,6 @@
 import Foundation
 
-/// JSON shapes of the live KeyScrow API (https://keyescrow-web.mdgooijer.workers.dev). Fixtures in KeyEscrowTests.
+/// JSON shapes of the live KeyScrow API (https://keyscrow.mdgooijer.workers.dev). Fixtures in KeyEscrowTests.
 
 /// Any JSON value (event args, error details).
 enum JSONValue: Codable, Equatable {
@@ -157,20 +157,45 @@ struct Prepared: Codable, Equatable {
 
 struct APIErrorBody: Codable { let error: String; let code: String? }
 
-/// GET /api/fleet: the off-chain, demo-grade scooter catalogue.
-struct Fleet: Codable, Equatable {
-    struct Scooter: Codable, Equatable, Identifiable {
-        let id: String
-        let owner: String
-        let name: String
-        let location: String
-        let photo: String?
-        let rentThb: Double
-        let depositThb: Double
-        let vault: Bool?
+/// GET /api/listings: the one listing catalogue, shared with the website (web/data/listings.json).
+struct Catalogue: Codable, Equatable {
+    struct Photo: Codable, Equatable {
+        struct Credit: Codable, Equatable {
+            let title: String
+            let author: String
+            let license: String
+            let licenseUrl: String
+            let source: String
+            let changes: String
+            let note: String?
+        }
+        /// Absolute URL of the 1200 px JPEG on the server that answered.
+        let url: String
+        let width: Int
+        let height: Int
+        let alt: String
+        let credit: Credit
     }
 
-    let scooters: [Scooter]
+    struct Item: Codable, Equatable, Identifiable {
+        let slug: String
+        let name: String
+        let description: String
+        let location: String
+        let city: String
+        let area: String?
+        /// Rent per day; `monthThb` per month when the listing offers one (the scooters).
+        let rentThb: Double
+        let monthThb: Double?
+        let depositThb: Double
+        let stage: Bool
+        let demo: Bool
+        let photos: [Photo]
+        var id: String { slug }
+    }
+
+    let thbPerUsdt: Double
+    let listings: [Item]
 }
 
 /// GET /api/price

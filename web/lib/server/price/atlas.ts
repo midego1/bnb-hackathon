@@ -13,7 +13,7 @@ import { atlasConfigured, readFeed, type PriceEnv } from ".";
 
 export interface AtlasEnv extends PriceEnv {
   ATLAS_API_KEY?: string;
-  /** BNB/USD push feed heartbeat in seconds (default 120, as observed on BSC testnet); answers older than 2x are refused. */
+  /** BNB/USD push feed heartbeat in seconds (default 60, Atlas's BSC BNB/USD heartbeat); answers older than 2x are refused. */
   ATLAS_HEARTBEAT_SECONDS?: string;
 }
 
@@ -102,7 +102,7 @@ const readBnbUsd = (env: AtlasEnv, maxAgeSec: number) =>
 export async function loadAtlas(env: AtlasEnv, deps: AtlasDeps = {}): Promise<{ status: AtlasStatus; proof: AtlasPriceProof | null }> {
   const now = deps.now?.() ?? Date.now();
   const heartbeat = Number(env.ATLAS_HEARTBEAT_SECONDS);
-  const maxAgeSec = 2 * (Number.isFinite(heartbeat) && heartbeat > 0 ? heartbeat : 120);
+  const maxAgeSec = 2 * (Number.isFinite(heartbeat) && heartbeat > 0 ? heartbeat : 60);
   const base = { ok: false, maxAgeSec, fetchedAt: new Date(now).toISOString() };
   const [push, pull] = await Promise.allSettled([
     atlasConfigured(env) ? (deps.readBnbUsd ?? readBnbUsd)(env, maxAgeSec) : Promise.reject(new Error("Atlas feeds are not configured")),

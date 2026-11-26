@@ -1,119 +1,132 @@
 # Product spec
 
-Source of truth for what we build for BNB Bangkok (HackQuest). Sponsor requirements are in
-[SPONSORS.md](SPONSORS.md); the definition of done is in [ACCEPTANCE.md](ACCEPTANCE.md).
+Source of truth for what KeyScrow is and does, for BNB Bangkok (HackQuest). Sponsor requirements are in
+[SPONSORS.md](SPONSORS.md); the definition of done is in [ACCEPTANCE.md](ACCEPTANCE.md); how the code is built is in
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
-Submission deadline: **27 November, 09:00 Bangkok time (UTC+7)**. Hard deadline.
+Submission deadline: **27 November 2026, 09:00 Bangkok time (UTC+7)**. Hard deadline.
 
 ## One-liner
 
-A scooter rental platform for Thailand where an AI inspector checks the vehicle's condition
-via photos, deposits are held in on-chain escrow on BNB Chain, and owners (or fleet investors)
-get paid automatically. No passport held hostage, no bogus damage claims.
+KeyScrow: rent a scooter in Thailand without leaving your passport. The deposit and the rent sit in a small escrow
+contract on BNB Chain, one per rental; an AI inspector drafts the deposit split at return, the two parties settle it
+on-chain, and a neutral dispute desk rules when they disagree.
 
-## Problem (pitch story)
+## Problem
 
-- Tourists renting scooters in Thailand commonly have to leave their passport as a deposit and
-  are exposed to bogus damage claims at return.
-- Owners in turn face real damage from renters, with no reliable proof.
-- Both sides lack a neutral, trusted inspector and a fair deposit system.
+- Tourists renting a scooter in Thailand usually leave their passport, or a stack of cash, as the deposit. At return
+  the shop alone decides what every scratch costs.
+- Shops have the opposite problem: real damage and no proof beyond a few chat photos.
+- Nobody neutral sits in between, and nobody goes to court over a few thousand baht.
+
+## Roles
+
+| Role | Does |
+| --- | --- |
+| **Owner** (a shop, or a fleet with a payee) | Lists a scooter, creates the rental offer, receives rent, proposes or accepts a deposit split |
+| **Renter** | Funds deposit + first rent period, pays later periods, takes pickup and return photos, proposes or accepts a split |
+| **Dispute desk** (arbiter) | Rules on a disputed deposit within its window. KeyScrow's desk is the factory default; an owner may name another |
+| **Shareholders** | Hold `BKK-FLEET-1` shares of a Fleet Vault that receives a fleet's rent and damage payouts (testnet prototype) |
+| **AI inspector** | ERC-8004 agent #2921. Compares pickup and return photos and **drafts** a split with reasons and a report hash. It never signs a transaction |
 
 ## Core flow
 
-1. **List.** Owner lists a scooter: photos, daily price in THB, deposit amount in THB.
-2. **Start rental.** Renter pays rent + deposit into an escrow smart contract.
-   - Accepted payment: USDT (BSC testnet) and BNB.
-   - Rent and deposit are defined in fiat (THB/USD). For BNB, the contract converts using the
-     Atlas on-chain price feed and adds a risk buffer (see [Risk Engine](#risk-engine)).
-3. **Pickup inspection.** Renter takes guided photos: front, back, left, right, and a close-up
-   of the frame/plate number.
-   - Live camera capture only, no gallery uploads.
-   - Each photo is stamped with time and location.
-   - The agent rejects unclear photos and asks for a retake.
-4. **Return inspection.** Same guided capture as pickup.
-5. **AI verdict.** The AI inspector agent compares pickup vs return photos (vision-capable LLM)
-   and outputs a structured verdict:
-   ```json
-   { "new_damage": bool, "locations": [], "severity": ..., "confidence": ..., "explanation": "..." }
-   ```
-   It also checks the scooter's history in its persistent memory (**Living Brain**), so damage
-   that was already logged is never charged again.
-6. **On-chain verdict.** The agent's dedicated wallet submits the verdict on-chain. **Only the
-   agent wallet can do this.** Photo hashes + verdict hash are stored on-chain; images are
-   stored off-chain.
-7. **Dispute window (24h).** Owner or renter can challenge the verdict.
-8. **Settlement** after the window:
-   - No damage: rent goes to owner (or fleet vault), deposit fully returned to renter.
-   - Damage: part of the deposit proportional to severity goes to owner (or fleet vault), the
-     rest is returned to the renter.
+1. **Offer.** The owner creates a rental (`EscrowFactory.createLease`): renter, deposit, rent per period, rent period
+   (7, 14 or 30 days, default 30), number of periods (1–60), the hash of the rental agreement. The factory deploys an
+   EIP-1167 clone of `RentalEscrow` for this one rental. Amounts are typed and shown in baht first; the contract holds
+   a stablecoin (mUSDT test money on BSC testnet, BSC-USD on the mainnet pilot). The escrow takes no BNB: a renter who
+   pays in BNB swaps it into the stablecoin first ("Pay with BNB", guarded by Atlas, see below).
+2. **Fund.** The renter funds deposit + the first period's rent (`fund()`), and can prepay more periods
+   (`payRent`). The rent clock starts. The owner can withdraw an unfunded offer (`cancel()`).
+3. **Pickup photos.** Guided photo sets (labelled angles). The files stay off-chain (BNB Greenfield, R2 or local
+   disk); only their SHA-256 fingerprints go on-chain (`addEvidence`, `checkInHash`).
+4. **Rent.** Each funded period that is due can be released to the owner by anyone (keeper-friendly); the renter may
+   release early. The first payout also pays the one-time protocol fee (below).
+5. **Return photos + AI draft.** The same angles at drop-off. The inspector compares both sets, checks the scooter's
+   earlier inspections in its memory (Living Brain) so known damage is not charged again, and returns
+   `{tenantRefund, landlordClaim, reasons[], confidence, reportHash}`. Amounts never exceed the deposit. Without a
+   model key a deterministic *demo inspector* returns the same JSON, labelled in the UI.
+6. **Propose and accept.** Either party proposes a split on-chain with the report hash (`propose`); a new proposal
+   replaces the old one (counter-proposal). The other party accepts the exact proposal it reviewed (`accept(nonce)`)
+   and one transaction pays everyone. The rent clock stops at the first proposal or dispute.
+7. **Dispute.** Either party can escalate (`dispute()`). The dispute desk rules with a hash of its written ruling
+   (`resolve`). It sees each party's history card (on-chain facts + dispute memory per wallet).
+8. **Timeouts protect the renter.**
+   - The owner does not reply to a renter's proposal within the **response window (default 7 days)**: anyone can call
+     `claimTimeout()` and the **full deposit** goes back to the renter.
+   - The desk does not rule within the **arbiter window (default 14 days)**: anyone can call `claimArbiterTimeout()`
+     and the **full deposit** goes back to the renter.
+   - Both deadlines are hard: after them the late party can no longer act.
+9. **Settlement.** Funded rent that was due at move-out goes to the owner (or payee); prepaid rent not yet due goes back
+   to the renter; the deposit is paid as agreed, ruled or timed out.
 
-## Risk Engine
+Security model: no single party can move the deposit. It leaves only by agreement, a ruling, or a timeout. The
+contracts are not upgradeable and the factory owner has no power over funds already in escrow.
 
-The deposit must stay sufficient for the whole rental.
+## Business model
 
-### Before the rental (off-chain backend)
+- **Protocol fee:** 10 % of **one month's** rent, once per rental (`feeBps` 1000, hard cap 10 %), deducted from the
+  owner's first rent payout. Never taken from the deposit, never charged to the renter. Weekly or two-weekly rent uses
+  the monthly equivalent.
+- **Fleet Vault operator fee:** 10 % of vault income on testnet (hard cap 30 %).
+- **Dispute desk as a paid service:** planned. Details in [BUSINESS.md](BUSINESS.md).
 
-- **CoinMarketCap volatility:** the payment token's volatility sets the deposit buffer.
-  - Stablecoin: no buffer.
-  - BNB: moderate buffer.
-  - Highly volatile token: large buffer, or rejected.
-- **CoinMarketCap DEX data:** screen payment tokens (Go+ `security_scan`, holder concentration)
-  and reject scam/honeypot tokens. Only relevant if we accept tokens beyond BNB/USDT.
-- **Cournot:** ask a claim like "Will BNB fall below $X before <return date>?" and use the
-  returned probability to adjust the buffer. Probability, claim and evidence are shown in the UI.
+## Prices and risk (off-chain, display only)
 
-### On-chain (smart contract)
+The contracts work in token units and **never read a price**, so a price outage cannot block or move funds.
 
-- Atlas price feed converts fiat amounts to BNB at rental start.
-- **Deposit health check:** the contract can compare the current deposit value (Atlas price)
-  against the required coverage and flag the rental as under-collateralized, requesting a top-up.
-- **Always reject stale prices:** check `updatedAt` / `onchainTs` against a max age.
+- **Price for display** (`GET /api/price`): Atlas feed → CoinMarketCap → last good quote (marked stale) → labelled
+  *Demo rates*. Every amount is shown in baht first.
+- **Deposit risk buffer** (`GET /api/risk`): CoinMarketCap USD quotes (24h/7d/30d changes) give each token's volatility
+  and a buffer: stablecoin none, BNB moderate, too volatile rejected. Shown as advice next to the deposit; the escrow
+  itself takes the stablecoin only. Without `CMC_API_KEY` it says "not configured" and computes nothing.
+- **Cournot:** a claim like "Will BNB fall below $X before <date>?"; the latest stored probability scales the BNB
+  buffer. Live calls are off unless `COURNOT_LIVE=1`; built, waiting for a partner key / paid calls.
+- **Atlas:** BSC push feeds BNB/USD and USDT/USD (`decimals()` + `latestRoundData()`, 18 decimals, with a staleness
+  check) are the first USD price source on the testnet site and the mainnet pilot site; CoinMarketCap is the fallback
+  and supplies THB. With `ATLAS_API_KEY` the Pull API's signed report (verified against Atlas's official signer) and
+  its consensus guard **Pay with BNB** (amountOutMin = 99 % of the Atlas value; refused on a stale feed, a consensus
+  other than HEALTHY/DEGRADED or a swap quote > 2 % off Atlas; PancakeSwap V2 on the mainnet pilot, capped at 1 USDT,
+  the `AtlasSwapGuard` demo swap on testnet), and the report is the price proof on AI settlements that charge damage.
+- All sponsor calls are server-side and logged without keys (`/integrations`, `/sponsors`).
 
-### Display
+## Memory (Living Brain)
 
-- Owner dashboard shows amounts in THB (CoinMarketCap price conversion).
+- **Scooter memory:** earlier inspections of the scooter feed the AI draft ("already logged, do not charge again").
+- **Dispute memory per wallet:** after every settlement, one factual entry per party (outcome, amounts, transaction),
+  read back on the dispute desk next to facts folded from the chain. Wallet addresses only, no personal data.
+- Without Living Brain keys: a local file / Durable Object stand-in, labelled.
 
-**Core idea for judges:** "CoinMarketCap and Cournot decide how much risk a rental carries,
-Atlas enforces it on-chain."
+## Fleet Vault (testnet prototype)
 
-## Fleet Vault (minimal buildable version)
+Investors deposit the stablecoin and get `BKK-FLEET-1` shares 1:1. Rentals created with the vault as payee
+(`createLeaseWithPayee`) pay rent and damage payouts into it; the operator fee is taken, the rest is claimable pro
+rata. Not an offer of securities; not on mainnet.
 
-- Investors deposit USDT into a Fleet Vault and receive fleet share tokens (plain ERC-20,
-  e.g. "BKK-FLEET-1").
-- Completed rentals route the owner's cut into the vault, minus an operator fee for maintenance.
-- Damage payouts from slashed deposits also flow into the vault.
-- Shareholders claim their share of accumulated income.
-- Investor dashboard shows vault yield in USD/THB; non-stablecoin holdings are valued via Atlas.
-- Testnet prototype only. Revenue-sharing tokens can be securities; "compliant issuance" is a
-  next step for the pitch, not something we build.
+## Demo surfaces
 
-## Demo flow
-
-The one story that ties everything together:
-
-> Renter returns a scratched scooter → agent compares photos, checks memory, detects **new**
-> damage → verdict on-chain → deposit partially slashed → fleet vault balance increases →
-> investor dashboard updates.
+- `/demo`: one click plays a whole rental with real BSC testnet transactions, no wallet (server-side demo wallets,
+  gas-capped).
+- `/stage/<slug>` (big screen), `/r/<slug>` (the judge's phone), `/duo/<slug>` (both side by side): a judge rents the
+  Mystery Box with a guest wallet.
+- Demo world: 3 fictional shops, 10 fictional renters, 15 rentals (clean returns, damage by agreement, disputes, one
+  open dispute, active rentals, an unfunded offer): `pnpm testnet:world`.
+- Every rental action is one definition served as REST (OpenAPI 3.1), MCP / A2A tools on the agent, and Ask AI.
 
 ## Out of scope: pitch only, do not build
 
-- Physical smart lock / unlocking (mock it).
-- Secondary trading of fleet shares.
-- Insurance pools.
-- Pre-selling shares to finance new scooters.
-- Multiple fleets per city.
-
-## Suggested priority (adjust if behind schedule)
-
-| Priority | Scope |
-|---|---|
-| **P0** | Escrow contract (list, start rental, agent verdict, dispute window, settlement); guided photo capture; vision verdict; Atlas pricing with staleness check. |
-| **P1** | CoinMarketCap risk buffer + THB display; Living Brain memory; Fleet Vault. |
-| **P2** | Cournot probability in the buffer; deposit health check / top-up; token screening. |
+- A physical smart lock.
+- Secondary trading of fleet shares; compliant share issuance.
+- Asset pools (one big asset, many shareholders): roadmap only.
+- Insurance; a real PromptPay on-ramp (the app shows a labelled simulation that mints test money).
+- A KeyScrow token. There is none.
 
 ## Engineering rules
 
-- Deploy on BSC testnet (mainnet is a bonus, not required).
-- All API keys in `.env`, never committed, never in frontend code.
-- All CoinMarketCap calls go through our backend and are logged (judges verify usage via API logs).
-- Beginner-friendly, readable Solidity. Keep contracts small.
+- **BSC testnet (97) is the product.** Local anvil (31337) for development and tests.
+- **Capped BSC mainnet pilot** (56) for the jury demo only: factory `0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E`,
+  BSC-USD, at most 0.70 USDT deposit + 0.30 USDT rent per period (one rental ≤ 1 USD), 5 USDT in all escrows
+  together. Caps are owner-set on the factory and never block a payout. No Fleet Vault on mainnet.
+- No keys or `.env` content in commits or frontend code; no secret in a `NEXT_PUBLIC_` variable.
+- All sponsor API calls go through our backend and are logged (endpoint, status, time; never the key).
+- Small, readable, non-upgradeable Solidity.
