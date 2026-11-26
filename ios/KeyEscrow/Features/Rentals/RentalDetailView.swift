@@ -15,9 +15,9 @@ final class RentalDetailModel: ObservableObject {
     let api = APIClient()
 
     func load(_ address: String, viewer: String) async {
+        loadHistory(address)
         do {
             async let l = api.getLease(address)
-            async let ix = try? api.chainIndex()
             async let ex = try? api.explainStatus(lease: address, viewer: viewer)
             async let p = try? api.price()
             lease = try await l
@@ -28,12 +28,22 @@ final class RentalDetailModel: ObservableObject {
                let r = (try? await RPC().receipt(h)) ?? nil {
                 settledOutcome = RentalStory.settledFlow(from: r, lease: address)
             }
-            // Last: the index can take a while, and the page should not wait for it.
-            events = (await ix)?.events(of: address) ?? events
-            historyLoaded = true
         } catch {
             self.error = error.localizedDescription
-            historyLoaded = true
+        }
+    }
+
+    /// The timeline comes from KeyEscrow's chain index, which can take a while: it loads on the side (one request at
+    /// a time), so the page and pull-to-refresh never wait for it.
+    private var historyTask: Task<Void, Never>?
+    private func loadHistory(_ address: String) {
+        guard historyTask == nil else { return }
+        historyTask = Task { [weak self, api] in
+            let ix = try? await api.chainIndex()
+            guard let self else { return }
+            if let ix { self.events = ix.events(of: address) }
+            self.historyLoaded = true
+            self.historyTask = nil
         }
     }
 }
@@ -96,31 +106,29 @@ struct RentalDetailView: View {
 
     private func thb(_ u: BigUInt) -> String { Money.thb(u, rate: model.thbPerUsdt) }
 
-    /// The escrow has a past (it was paid into) but no events are here: the index is still loading or behind. The
-    /// numbers that come from events are then unknown, and the page says so instead of showing zero.
-    private var historyMissing: Bool {
-        guard let l = model.lease else { return false }
-        return model.events.isEmpty && l.status != "Created" && l.status != "Cancelled"
+    /// The index holds only part of this escrow's story: it was paid into but the index has no Funded event, or it is
+    /// settled but the index has no Settled event. Numbers that come from events are then unknown, and the page says
+    /// so instead of showing zero.
+    private var historyIncomplete: Bool {
+        guard let l = model.lease, l.startedAt != nil else { return false }
+        let names = Set(model.events.map(\.name))
+        return !names.contains("Funded") || (l.status == "Settled" && !names.contains("Settled"))
     }
 
+    /// The payout numbers (owner got, back to renter, fee) are known: the events are complete, or the settling
+    /// receipt was read.
+    private var payoutKnown: Bool { !historyIncomplete || model.settledOutcome != nil }
+
     /// Money that moved. From the indexed events; where those are missing, from what the chain itself still tells:
-    /// the settling receipt for the payout, the escrow's own terms for what was paid in.
+    /// the settling receipt for the payout, the escrow's own terms for what was paid in (deposit + rent for every
+    /// period paid, exactly what fund() and payRent() take).
     private func flow(_ l: Lease) -> RentalStory.Flow {
         var f = RentalStory.payout(events: model.events, receipt: model.settledOutcome)
-        if model.events.isEmpty, l.startedAt != nil {
+        if l.startedAt != nil, !model.events.contains(where: { $0.name == "Funded" }) {
             f.paidIn = l.deposit.units + l.rent.units.multiplied(by: UInt32(clamping: max(1, l.periodsFunded)))
         }
         return f
     }
-
-    /// The index holds only part of the story: nothing at all, or a settled escrow without its Settled event.
-    private var historyIncomplete: Bool {
-        guard let l = model.lease else { return false }
-        return historyMissing || (l.status == "Settled" && !model.events.contains { $0.name == "Settled" })
-    }
-
-    /// The payout numbers are known: the events are complete, or the settling receipt was read.
-    private var payoutKnown: Bool { !historyIncomplete || model.settledOutcome != nil }
 
     // MARK: Photo + banner
 
@@ -136,7 +144,7 @@ struct RentalDetailView: View {
                 }
                 .padding(16)
             }
-            .frame(height: 176)
+            .frame(minHeight: 176)
             .frame(maxWidth: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             .accessibilityElement(children: .combine)
@@ -144,7 +152,7 @@ struct RentalDetailView: View {
     }
 
     private func banner(_ l: Lease) -> some View {
-        let (tone, key, args) = RentalStory.banner(l, me: wallet.address, flow: flow(l), fmt: thb)
+        let (tone, key, args) = RentalStory.banner(l, me: wallet.address, flow: flow(l), payoutKnown: payoutKnown, fmt: thb)
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 IconBadge(symbol: symbol(forStatus: l.status), tint: tone.fg, fill: Color.KE.surface, size: 36)
@@ -167,13 +175,13 @@ struct RentalDetailView: View {
     private func moneyStrip(_ l: Lease) -> some View {
         let f = flow(l)
         let tiles = [
-            Tile(id: "money.paid", amount: f.paidIn, icon: "arrow.down.circle.fill", tint: .KE.info, fill: .KE.infoSoft, live: l.startedAt != nil),
+            Tile(id: "money.paid", amount: f.paidIn, icon: "arrow.down.circle.fill", tint: .KE.info, fill: .KE.infoSoft, live: true),
             Tile(id: "money.escrow", amount: l.escrowBalance.units, icon: "lock.fill", tint: .KE.warning, fill: .KE.warningSoft, live: true),
             Tile(id: "money.owner", amount: f.toOwner, icon: "storefront.fill", tint: .KE.mutedText, fill: .KE.muted),
             Tile(id: "money.back", amount: f.backToRenter, icon: "arrow.uturn.backward.circle.fill", tint: .KE.success, fill: .KE.successSoft),
         ]
         let unknown = !payoutKnown
-        let paidOut = f.backToRenter + f.toOwner + f.fee > BigUInt()
+        let paidOut = payoutKnown && f.backToRenter + f.toOwner + f.fee > BigUInt()
         return VStack(alignment: .leading, spacing: 10) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 ForEach(tiles) { t in
@@ -182,7 +190,7 @@ struct RentalDetailView: View {
                             IconBadge(symbol: t.icon, tint: t.tint, fill: t.fill, size: 30)
                             Text(settings.t(t.id)).font(.caption.weight(.semibold)).foregroundStyle(Color.KE.mutedText).lineLimit(2).minimumScaleFactor(0.85)
                         }
-                        Text(unknown && !t.live ? "–" : thb(t.amount)).font(Font.KE.amountSmall).monospacedDigit().foregroundStyle(Color.KE.foreground).minimumScaleFactor(0.7).lineLimit(1)
+                        Text(unknown && !t.live ? "–" : thb(t.amount)).font(Font.KE.amountSmall).monospacedDigit().foregroundStyle(Color.KE.foreground).minimumScaleFactor(0.5).lineLimit(1)
                         Text(unknown && !t.live ? " " : Money.usdt(t.amount)).font(.caption).monospacedDigit().foregroundStyle(Color.KE.subtle).lineLimit(1).minimumScaleFactor(0.8)
                     }
                     .padding(14)

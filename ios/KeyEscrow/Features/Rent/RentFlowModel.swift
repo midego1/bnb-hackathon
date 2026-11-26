@@ -24,9 +24,16 @@ final class RentFlowModel: ObservableObject {
     @Published var sent: [TxSender.Sent] = []
     @Published var thbPerUsdt = Money.fallbackThbPerUsdt
     @Published var loaded = false
-    /// What the escrow paid out, read from the receipt of the settling transaction this phone sent (display only:
-    /// the chain index can be behind, the receipt is on the chain).
-    @Published var settledOutcome: RentalStory.Flow?
+    /// What an escrow paid out, read from the receipt of the settling transaction this phone sent (display only: the
+    /// chain index can be behind, the receipt is on the chain). Kept with its escrow, so it can never be shown for
+    /// another rental.
+    @Published private var outcome: (lease: String, flow: RentalStory.Flow)?
+    var settledOutcome: RentalStory.Flow? {
+        guard let o = outcome, let now = leaseAddress, EthAddress.same(o.lease, now) else { return nil }
+        return o.flow
+    }
+    /// Escrows whose settling receipt was already asked for (once is enough: a receipt does not change).
+    private var receiptsTried: Set<String> = []
 
     init(listing: Listing, wallet: WalletStore) {
         self.listing = listing
@@ -89,15 +96,17 @@ final class RentFlowModel: ObservableObject {
                 await wallet.refresh()
             }
             if let a = leaseAddress {
-                lease = try await api.getLease(a)
+                let fresh = try await api.getLease(a)
+                // "Rent it again" may have moved on to a new rental while this was in flight: then drop the answer.
+                guard let now = leaseAddress, EthAddress.same(now, a) else { return }
+                if fresh.status == "Settled" { await readSettlingReceipt(of: a) }
+                guard let still = leaseAddress, EthAddress.same(still, a) else { return }
+                lease = fresh
                 refreshEvents(of: a)
-                if lease?.status == "Settled", settledOutcome == nil, let h = RentalAlbum.settleTx(forLease: a),
-                   let r = (try? await sender.rpc.receipt(h)) ?? nil {
-                    settledOutcome = RentalStory.settledFlow(from: r, lease: a)
-                }
             } else {
                 lease = nil
                 events = []
+                outcome = nil
             }
             if listing.kind == .stage { await wallet.refresh() }
             loaded = true
@@ -111,14 +120,34 @@ final class RentFlowModel: ObservableObject {
     /// The rental's events (timeline, settled amounts) come from KeyEscrow's chain index, which can be slow or behind.
     /// The step is derived from the escrow itself and never waits for it: one index request at a time, on the side.
     private var indexTask: Task<Void, Never>?
+    /// A refresh asked for the index while a request was in flight: ask once more when it lands, so the events are
+    /// never older than the last refresh.
+    private var indexAgain = false
     private func refreshEvents(of lease: String) {
-        guard indexTask == nil else { return }
+        guard indexTask == nil else { indexAgain = true; return }
         indexTask = Task { [weak self, api] in
             let ix = try? await api.chainIndex()
             guard let self else { return }
             if let ix, let now = self.leaseAddress, EthAddress.same(now, lease) { self.events = ix.events(of: lease) }
             self.indexTask = nil
+            if self.indexAgain, let now = self.leaseAddress {
+                self.indexAgain = false
+                self.refreshEvents(of: now)
+            }
         }
+    }
+
+    /// The payout of a settled escrow from the receipt of its settling transaction, when this phone sent it. Asked
+    /// once per escrow.
+    private func readSettlingReceipt(of lease: String) async {
+        let key = lease.lowercased()
+        guard outcome?.lease.lowercased() != key, !receiptsTried.contains(key), let hash = RentalAlbum.settleTx(forLease: lease) else { return }
+        receiptsTried.insert(key)
+        guard let r = (try? await sender.rpc.receipt(hash)) ?? nil else {
+            receiptsTried.remove(key) // the node did not answer: the next refresh asks again
+            return
+        }
+        if let flow = RentalStory.settledFlow(from: r, lease: lease) { outcome = (lease, flow) }
     }
 
     /// Runs one user action: shows progress, collects the transactions, refreshes from the chain afterwards.
@@ -301,7 +330,12 @@ final class RentFlowModel: ObservableObject {
         act("accept") { [self] in
             let p = try await api.prepare("accept", ["lease": l.address, "from": wallet.shop.address])
             let done = try await sender.run(p, key: wallet.shop, onSent: record)
-            if let hash = done.last?.hash { RentalAlbum.rememberSettle(lease: l.address, hash: hash) }
+            // Display only: remember which transaction settled it and read its payout now, so the settled card has
+            // the amounts the moment it appears.
+            if let hash = done.last?.hash {
+                RentalAlbum.rememberSettle(lease: l.address, hash: hash)
+                await readSettlingReceipt(of: l.address)
+            }
         }
     }
 
@@ -310,7 +344,8 @@ final class RentFlowModel: ObservableObject {
         ShopRentals.set(nil, for: listing.id, renter: me)
         lease = nil
         inspection = nil
-        settledOutcome = nil
+        outcome = nil
+        events = []
         sent = []
         Task { await refresh() }
     }

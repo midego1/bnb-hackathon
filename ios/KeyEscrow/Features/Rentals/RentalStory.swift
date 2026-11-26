@@ -69,7 +69,8 @@ enum RentalStory {
     }
 
     /// Banner: (tone, title key, args). Copy lives in L10n ("banner.*").
-    static func banner(_ l: Lease, me: String, flow: Flow, fmt: (BigUInt) -> String) -> (Tone, String, [String]) {
+    /// `payoutKnown`: the settled amounts are really known (the Settled event or the settling receipt was read).
+    static func banner(_ l: Lease, me: String, flow: Flow, payoutKnown: Bool = true, fmt: (BigUInt) -> String) -> (Tone, String, [String]) {
         let v = viewer(l, me: me)
         switch l.status {
         case "Created":
@@ -84,8 +85,7 @@ enum RentalStory {
         case "Disputed": return (.danger, "banner.disputed", [])
         case "Settled":
             // Without the Settled event (the chain index can be behind) the amount is unknown: say "Settled", not "฿0".
-            let known = flow.backToRenter + flow.toOwner + flow.fee > BigUInt()
-            return (.neutral, v == .renter && known ? "banner.settledRenter" : "banner.settled", [fmt(flow.backToRenter)])
+            return (.neutral, v == .renter && payoutKnown ? "banner.settledRenter" : "banner.settled", [fmt(flow.backToRenter)])
         default: return (.neutral, "banner.cancelled", [])
         }
     }

@@ -29,8 +29,24 @@ struct RentalsView: View {
     private var open: Int { model.items.filter { $0.status != "Settled" && $0.status != "Cancelled" }.count }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            list
+                // Screenshot deep link: `-scroll <escrow address>` scrolls the list to that rental.
+                .onChange(of: model.loaded) { _, loaded in
+                    if loaded, let target = UserDefaults.standard.string(forKey: "scroll") { proxy.scrollTo(target.lowercased(), anchor: .top) }
+                }
+        }
+        .keScreen()
+        .navigationTitle(settings.t("tab.rentals"))
+        .overlay { if !model.loaded { ProgressView() } }
+        .refreshable { await model.load(wallet.address) }
+        .task { await model.load(wallet.address) }
+        .navigationDestination(item: $linked) { RentalDetailView(address: $0) }
+    }
+
+    private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 14) {
                 if let e = model.error { Notice(text: e, tone: .danger) }
                 if model.loaded && model.items.isEmpty && model.error == nil { empty }
                 if !model.items.isEmpty {
@@ -41,6 +57,7 @@ struct RentalsView: View {
                 ForEach(model.items) { item in
                     NavigationLink { RentalDetailView(address: item.address) } label: { row(item) }
                         .buttonStyle(PressStyle())
+                        .id(item.address.lowercased())
                 }
                 if !model.items.isEmpty {
                     Text(settings.t("common.testnetOnly")).font(.footnote).foregroundStyle(Color.KE.subtle).padding(.top, 6)
@@ -50,12 +67,6 @@ struct RentalsView: View {
             .padding(.top, 8).padding(.bottom, 28)
             .kePage()
         }
-        .keScreen()
-        .navigationTitle(settings.t("tab.rentals"))
-        .overlay { if !model.loaded { ProgressView() } }
-        .refreshable { await model.load(wallet.address) }
-        .task { await model.load(wallet.address) }
-        .navigationDestination(item: $linked) { RentalDetailView(address: $0) }
     }
 
     private var empty: some View {

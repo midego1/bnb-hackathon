@@ -34,9 +34,12 @@ struct HomeView: View {
     /// The destination picked on the filter row (nil: everywhere).
     @State private var place: Place?
     @State private var heroUnderStatusBar = true
-    /// The window's top inset, read once: on some devices it shrinks while the status bar is hidden, and the layout
-    /// should not move with it.
+    /// The window's top inset, read once (the layout should not move when it changes).
     @State private var topInset: CGFloat = 0
+    /// The top inset belongs to a sensor housing (notch, Dynamic Island), so it stays when the status bar hides.
+    /// Without one (iPad, home-button iPhones) the inset is the status bar itself: there the bar stays hidden on
+    /// Home, so showing and hiding it never shifts the page.
+    @State private var sensorHousing = true
 
     private static func windowTopInset() -> CGFloat? {
         let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
@@ -64,7 +67,7 @@ struct HomeView: View {
             .overlay(alignment: .top) {
                 // Once the photo has scrolled away the page runs under the status bar: give the clock a backdrop.
                 Rectangle().fill(.bar).frame(height: top).ignoresSafeArea(edges: .top)
-                    .opacity(heroUnderStatusBar ? 0 : 1)
+                    .opacity(heroUnderStatusBar || !sensorHousing ? 0 : 1)
                     .animation(.easeInOut(duration: 0.2), value: heroUnderStatusBar)
                     .allowsHitTesting(false)
             }
@@ -74,14 +77,18 @@ struct HomeView: View {
                 let under = bottom - 28 > top
                 if under != heroUnderStatusBar { heroUnderStatusBar = under }
             }
-            .onAppear { if topInset == 0, let inset = Self.windowTopInset(), inset > 0 { topInset = inset } }
+            .onAppear {
+                guard topInset == 0, let inset = Self.windowTopInset() else { return }
+                sensorHousing = inset >= 44
+                if inset > 0 { topInset = inset }
+            }
         }
         .keScreen()
         .toolbar(.hidden, for: .navigationBar)
         .navigationTitle("KeyEscrow")
         // The photo is night in both themes and the status bar's dark text would be lost on it, so the clock steps
         // aside while the photo is up there and comes back with the page.
-        .statusBarHidden(heroUnderStatusBar)
+        .statusBarHidden(heroUnderStatusBar || !sensorHousing)
         .navigationDestination(for: Listing.self) { ListingDetailView(listing: $0, thbPerUsdt: model.thbPerUsdt) }
         .navigationDestination(item: $linkedListing) { ListingDetailView(listing: $0, thbPerUsdt: model.thbPerUsdt) }
         .navigationDestination(item: $linkedFlow) { RentFlowView(listing: $0, wallet: wallet) }
@@ -337,7 +344,7 @@ struct ListingCard: View {
 
     private var deposit: some View {
         Text(settings.t("card.deposit", Money.thb(baht: listing.depositThb)))
-            .font(.caption).monospacedDigit().foregroundStyle(Color.KE.subtle).lineLimit(1)
+            .font(.caption).monospacedDigit().foregroundStyle(Color.KE.subtle).fixedSize(horizontal: false, vertical: true)
     }
 }
 

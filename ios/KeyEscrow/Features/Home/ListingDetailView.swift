@@ -65,6 +65,7 @@ struct ListingDetailView: View {
                         Label(settings.t("credits.line", c.author, c.license), systemImage: "camera.aperture")
                             .font(.caption).foregroundStyle(Color.KE.subtle).multilineTextAlignment(.leading)
                             .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                 }
             }

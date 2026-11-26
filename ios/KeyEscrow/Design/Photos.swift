@@ -6,7 +6,7 @@ import UIKit
 struct PhotoCredit: Identifiable, Equatable {
     /// Asset catalog name.
     let asset: String
-    /// What it illustrates in the app: a listing name as it is, or an L10n key ("credits.use.*").
+    /// What it illustrates in the app: a listing name as it is, or an L10n key ("credits.use.*", "place.*").
     let use: String
     /// Title of the file on Wikimedia Commons.
     let title: String
@@ -22,7 +22,8 @@ struct PhotoCredit: Identifiable, Equatable {
     var id: String { asset }
 }
 
-/// The app's real photos, bundled (no image CDN at runtime), mapped by listing id.
+/// The app's real photos, bundled and mapped by listing id: they are never fetched at runtime. Only a listing the
+/// app has no photo for falls back to the catalogue's own picture URL (ListingPhoto).
 enum PhotoCatalog {
     static let hero = "photo-hero-street"
 
@@ -68,7 +69,7 @@ enum PhotoCatalog {
                     title: "2020 Yamaha NMAX 155 ABS (20200810) 01",
                     author: "オーバードライブ83", license: "CC BY-SA 4.0", licenseURL: bySA4,
                     source: "https://commons.wikimedia.org/wiki/File:2020_Yamaha_NMAX_155_ABS_(20200810)_01.jpg",
-                    changes: "credits.changes.cropped", note: nil),
+                    changes: "credits.changes.cropped", note: "credits.note.nmax"),
         PhotoCredit(asset: "photo-pcx-160-bkk", use: "Honda PCX 160",
                     title: "2025 Honda PCX 160 Roadsync Type",
                     author: "Chanokchon", license: "CC BY-SA 4.0", licenseURL: bySA4,

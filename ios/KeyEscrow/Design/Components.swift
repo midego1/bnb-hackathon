@@ -93,13 +93,15 @@ struct LivePill: View {
 // MARK: Buttons
 
 /// Press feedback shared by the app's buttons: a small dip, opacity only under Reduce Motion.
+/// The animation is scoped to the dip itself, so a button that moves because the page changed does not lag behind.
 struct PressStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed
         configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.12)) { label in
+                label.scaleEffect(pressed && !reduceMotion ? 0.98 : 1).opacity(pressed ? 0.85 : 1)
+            }
     }
 }
 

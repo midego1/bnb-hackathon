@@ -56,4 +56,28 @@ final class PhotoTests: XCTestCase {
         XCTAssertEqual(place("On stage, BNB Bangkok"), ["bangkok"])
         XCTAssertEqual(place("Krabi"), [])
     }
+
+    /// The three lists name the same photos with the same credit: the image sets in the asset folder, the list in code
+    /// (PhotoCatalog.credits) and the table in ios/CREDITS.md. This reads the source tree, which the Simulator can do
+    /// on the Mac the tests were built on; anywhere else it is skipped.
+    func testAssetFolderCodeAndCreditsFileAgree() throws {
+        let ios = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let folder = ios.appendingPathComponent("KeyEscrow/Resources/Assets.xcassets/Photos")
+        guard let sets = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
+              let text = try? String(contentsOf: ios.appendingPathComponent("CREDITS.md"), encoding: .utf8)
+        else { throw XCTSkip("the source tree is not readable from here") }
+
+        let assets = Set(sets.filter { $0.hasSuffix(".imageset") }.map { String($0.dropLast(".imageset".count)) })
+        XCTAssertEqual(assets, Set(PhotoCatalog.credits.map(\.asset)), "asset folder and PhotoCatalog.credits")
+
+        let rows = text.split(separator: "\n").map(String.init).filter { $0.hasPrefix("| ") && ($0.contains("`photo-") || $0.contains("`place-")) }
+        XCTAssertEqual(rows.count, PhotoCatalog.credits.count, "rows in CREDITS.md")
+        for c in PhotoCatalog.credits {
+            let row = rows.first { $0.contains("`\(c.asset)`") } ?? ""
+            XCTAssertFalse(row.isEmpty, "CREDITS.md has no row for \(c.asset)")
+            XCTAssertTrue(row.contains("[\(c.title)](\(c.source))"), "\(c.asset): title or source differs in CREDITS.md")
+            XCTAssertTrue(row.contains("| \(c.author)"), "\(c.asset): author differs in CREDITS.md")
+            XCTAssertTrue(row.contains("[\(c.license)](\(c.licenseURL))"), "\(c.asset): licence differs in CREDITS.md")
+        }
+    }
 }
