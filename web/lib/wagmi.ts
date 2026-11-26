@@ -1,7 +1,7 @@
 import { connectorsForWallets, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { anvil, anvilRpcUrl, bscTestnet, bscTestnetRpcUrl, opBNBTestnet, opBNBTestnetRpcUrl, supportedChains } from "./chains";
+import { anvil, anvilRpcUrl, bsc, bscRpcUrl, bscTestnet, bscTestnetRpcUrl, opBNBTestnet, opBNBTestnetRpcUrl, supportedChains } from "./chains";
 import { devAccountsConnector } from "./devAccounts";
 
 const appName = "KeyEscrow";
@@ -13,6 +13,7 @@ const transports: Record<number, ReturnType<typeof http>> = {
   [anvil.id]: http(anvilRpcUrl),
   [bscTestnet.id]: http(bscTestnetRpcUrl),
   [opBNBTestnet.id]: http(opBNBTestnetRpcUrl),
+  [bsc.id]: http(bscRpcUrl),
 };
 
 const walletConnectors = connectorsForWallets([{ groupName: "Browser wallet", wallets: [injectedWallet] }], {

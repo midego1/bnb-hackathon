@@ -29,12 +29,11 @@
 
 ## BNB Chain 合约与数据（BSC 测试网，chain 97）
 
-| 合约 | 地址 |
+`EscrowFactory`、`RentalEscrow` 实现合约（每笔租约一个 EIP-1167 克隆）、`MockUSDT`（测试用稳定币）和 `FleetVault`
+（BKK-FLEET-1 份额）均已在 BscScan 验证，地址见 [README 的合约表](../README.md#bsc-testnet-contracts-chain-97)。
+
+| 其他 | 地址 |
 |---|---|
-| EscrowFactory | [`0xd33b4dfF8C09e0079918fD987953c8f65F1363D8`](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8) |
-| RentalEscrow 实现合约（每笔租约一个 EIP-1167 克隆） | [`0x63f174fE3E80442c95b82a811a7D0d13f34D2314`](https://testnet.bscscan.com/address/0x63f174fE3E80442c95b82a811a7D0d13f34D2314) |
-| MockUSDT（测试用稳定币，6 位小数） | [`0x46e69984A52233980F1CAeABB4571555e4c8fE37`](https://testnet.bscscan.com/address/0x46e69984A52233980F1CAeABB4571555e4c8fE37) |
-| FleetVault（BKK-FLEET-1 份额） | [`0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB`](https://testnet.bscscan.com/address/0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB) |
 | ERC-8004 Identity Registry（验车代理 #2921） | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
 | Atlas 喂价 | _暂无：Atlas 未公布 BSC 测试网喂价地址，将在比赛现场补充_ |
 

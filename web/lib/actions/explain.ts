@@ -5,6 +5,7 @@
 import type { Address } from "viem";
 import { formatToken } from "./fields";
 import { isoTime, roleOf, type LeaseSnapshot, type Role } from "./lease";
+import { periodCount, periodName } from "../rentals";
 
 export type NextStep = {
   who: Role;
@@ -46,25 +47,26 @@ export function explainLease(l: LeaseSnapshot, viewer?: Address): Explanation {
   let headline: string;
   let where: string;
 
-  const rentLeft = l.monthsFunded - l.monthsReleased;
-  const releasable = Math.max(0, Math.min(l.monthsDue, l.monthsFunded) - l.monthsReleased);
+  const rentLeft = l.periodsFunded - l.periodsReleased;
+  const releasable = Math.max(0, Math.min(l.periodsDue, l.periodsFunded) - l.periodsReleased);
+  const per = periodName(l.terms.rentPeriod);
   const rent =
     l.startTime === BigInt(0)
-      ? `Rent ${formatToken(l.terms.rentAmount)} a month for ${l.terms.termMonths} month(s); nothing paid yet.`
-      : `Rent ${formatToken(l.terms.rentAmount)} a month: ${l.monthsFunded} of ${l.terms.termMonths} month(s) paid into escrow, ${l.monthsReleased} paid out to the owner, ${rentLeft} still held.` +
-        (releasable > 0 ? ` ${releasable} month(s) are due and can be paid out now.` : "");
+      ? `Rent ${formatToken(l.terms.rentAmount)} per ${per} for ${periodCount(l.terms.termPeriods, l.terms.rentPeriod)}; nothing paid yet.`
+      : `Rent ${formatToken(l.terms.rentAmount)} per ${per}: ${l.periodsFunded} of ${l.terms.termPeriods} rent periods paid into escrow, ${l.periodsReleased} paid out to the owner, ${rentLeft} still held.` +
+        (releasable > 0 ? ` ${periodCount(releasable, l.terms.rentPeriod)} of rent ${releasable > 1 ? "are" : "is"} due and can be paid out now.` : "");
 
   switch (l.status) {
     case "Created":
       headline = "Offer made, waiting for the renter to fund it.";
-      where = `Not paid yet. The renter pays the ${deposit} deposit plus the first month's rent into the escrow contract.`;
-      next.push({ who: "renter", action: "prepare_fund", what: `Approve and pay ${formatToken(l.terms.depositAmount + l.terms.rentAmount)} (deposit + first month) to start the rental.` });
+      where = `Not paid yet. The renter pays the ${deposit} deposit plus the first ${per}'s rent into the escrow contract.`;
+      next.push({ who: "renter", action: "prepare_fund", what: `Approve and pay ${formatToken(l.terms.depositAmount + l.terms.rentAmount)} (deposit + the first ${per}) to start the rental.` });
       next.push({ who: "owner", action: "prepare_cancel", what: "The owner can withdraw the offer while it is unfunded." });
       break;
     case "Active":
       headline = "Rental running.";
       where = `Held in the escrow contract ${l.address}. Neither side can take it alone: it only moves on agreement, a dispute-desk ruling or a timeout.`;
-      if (releasable > 0) next.push({ who: "anyone", action: "prepare_release_rent", what: `Pay ${releasable} due month(s) of rent out to the owner.` });
+      if (releasable > 0) next.push({ who: "anyone", action: "prepare_release_rent", what: `Pay ${periodCount(releasable, l.terms.rentPeriod)} of due rent out to the owner.` });
       next.push({ who: "renter", action: "prepare_propose_settlement", what: "At return, propose how the deposit is split (e.g. from the AI inspection)." });
       next.push({ who: "owner", action: "prepare_propose_settlement", what: "Or the owner proposes the split first." });
       next.push({ who: "renter", action: "prepare_dispute", what: "Either side can ask the dispute desk to decide." });

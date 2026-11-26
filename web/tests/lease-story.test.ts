@@ -30,9 +30,9 @@ function lease(p: Partial<LeaseData> = {}): LeaseData {
     address: "0x00000000000000000000000000000000000000a1",
     terms: {
       token: "0x00000000000000000000000000000000000000c1", landlord: OWNER, tenant: RENTER, arbiter: DESK, rentAmount: RENT, depositAmount: DEPOSIT,
-      termMonths: 3, responseWindow: 7 * 86_400, arbiterWindow: 14 * 86_400, leaseHash: zeroHash, feeBps: 1000, feeRecipient: DESK,
+      termPeriods: 3, rentPeriod: 30 * 86_400, responseWindow: 7 * 86_400, arbiterWindow: 14 * 86_400, leaseHash: zeroHash, feeBps: 1000, feeRecipient: DESK,
     },
-    status: LeaseStatus.Active, startTime: T0, monthsFunded: 1, monthsReleased: 0, monthsDue: 1, checkInHash: zeroHash, checkOutHash: zeroHash,
+    status: LeaseStatus.Active, startTime: T0, periodsFunded: 1, periodsReleased: 0, periodsDue: 1, checkInHash: zeroHash, checkOutHash: zeroHash,
     proposal: { tenantRefund: BigInt(0), landlordClaim: BigInt(0), reportHash: zeroHash, proposer: "0x0000000000000000000000000000000000000000", proposedAt: BigInt(0), nonce: 0 },
     timeoutAt: BigInt(0), arbiterDeadline: BigInt(0), disputedAt: BigInt(0), feeCharged: false, balance: DEPOSIT + RENT, chainNow: T0 + DAY, fetchedAt: 0,
     ...p,
@@ -48,14 +48,14 @@ describe("rental page banner: one honest action per role", () => {
   });
 
   it("owner with a due month: collect it in one tx, the one-time fee taken from the first payout", () => {
-    const b = banner(lease({ monthsDue: 2, monthsFunded: 2, chainNow: T0 + MONTH + DAY }), "landlord", [], fmt, rentalCopy);
+    const b = banner(lease({ periodsDue: 2, periodsFunded: 2, chainNow: T0 + MONTH + DAY }), "landlord", [], fmt, rentalCopy);
     expect(b.action).toMatchObject({ kind: "tx", tx: "releaseRent", label: "Collect month 1 rent · 190u" });
     expect(b.body).toContain("10u");
   });
 
   it("owner with nothing due: idle until the next due date", () => {
-    const b = banner(lease({ monthsReleased: 1, feeCharged: true }), "landlord", [ev("RentReleased", { toLandlord: BigInt(90_000_000) })], fmt, rentalCopy);
-    expect(b.title).toBe("1 month of rent paid: 90u is in your wallet.");
+    const b = banner(lease({ periodsReleased: 1, feeCharged: true }), "landlord", [ev("RentReleased", { toLandlord: BigInt(90_000_000) })], fmt, rentalCopy);
+    expect(b.title).toBe("1 rent period paid: 90u is in your wallet.");
     expect(b.action.kind).toBe("idle");
   });
 
@@ -99,7 +99,7 @@ describe("rental page in Chinese", () => {
 
 describe("months, money and the return plan", () => {
   it("months: paid out, paid in, due with dates", () => {
-    expect(monthCells(lease({ monthsReleased: 1, monthsFunded: 2 })).map((m) => m.state)).toEqual(["out", "in", "due"]);
+    expect(monthCells(lease({ periodsReleased: 1, periodsFunded: 2 })).map((m) => m.state)).toEqual(["out", "in", "due"]);
     expect(monthCells(lease({ startTime: BigInt(0) }))).toEqual([]);
   });
 
@@ -128,8 +128,10 @@ describe("months, money and the return plan", () => {
 });
 
 describe("renter card line", () => {
-  const r = (p: Partial<RentalSummary>) => ({ status: LeaseStatus.Active, depositAmount: DEPOSIT, rentAmount: RENT, monthsFunded: 1, termMonths: 3, returnPhotos: [], tenant: RENTER, responseWindow: 7 * 86_400, totals: { refunded: DEPOSIT }, ...p }) as unknown as RentalSummary;
-  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid through month 1 of 3.", action: "Pay month 2" }));
+  const r = (p: Partial<RentalSummary>) => ({ status: LeaseStatus.Active, depositAmount: DEPOSIT, rentAmount: RENT, periodsFunded: 1, termPeriods: 3, rentPeriod: 30 * 86_400, returnPhotos: [], tenant: RENTER, responseWindow: 7 * 86_400, totals: { refunded: DEPOSIT }, ...p }) as unknown as RentalSummary;
+  it("active: next month to pay", () => expect(renterLine(r({}), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid for 1 of 3 rent periods.", action: "Pay month 2" }));
+  it("weekly rent: the card speaks in weeks", () =>
+    expect(renterLine(r({ rentPeriod: 7 * 86_400 }), T0, fmt, renterCopy, true)).toEqual({ sentence: "Your 200u deposit is locked. Rent is paid for 1 of 3 rent periods.", action: "Pay week 2" }));
   it("owner silent past the window: claim", () => {
     const p = { proposer: RENTER, tenantRefund: DEPOSIT, landlordClaim: BigInt(0), reportHash: zeroHash, proposedAt: T0, nonce: 1 };
     expect(renterLine(r({ status: LeaseStatus.MoveOut, proposal: p }), T0 + 8n * DAY, fmt, renterCopy, true).action).toBe("Claim deposit");

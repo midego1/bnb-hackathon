@@ -109,25 +109,24 @@ vault. The operator takes 10 % (฿306) and shareholders share ฿2,754. A ฿1,
 
 ### 4. Monthly subscriptions (recurring rent)
 
-Long-stay riders (digital nomads, expats, students) want a scooter for months, paid month by month, without a
-passport held for the whole stay. A **subscription** is that offer, built on the current contracts with no change:
+Long-stay riders (digital nomads, expats, students) want a scooter for weeks or months, paid one period at a time,
+without a passport held for the whole stay. A **subscription** is that offer, built on the escrow contracts with no
+extra contract:
 
-- **Owner:** "Offer as subscription" on a listed scooter (`/landlord`): monthly price and deposit in THB, max
-  months (default 12). The plan is stored with the off-chain listing and shown as a plan card.
+- **Owner:** "Offer as subscription" on a listed scooter (`/landlord`): monthly price and deposit in THB, payment
+  rhythm (weekly, every 2 weeks or monthly) and max rent periods (default 12). The plan is stored with the off-chain listing and shown as a plan card.
 - **Renter:** `/app/subscriptions`: pick a plan and subscribe. The shop issues one normal rental with
-  `termMonths` = max months (`createLease`, or `createLeaseWithPayee` for Fleet Vault scooters). The renter funds
-  deposit + month 1, then pays each month with `payRent(1)`. The page shows a status sentence, the next due date and
+  `termPeriods` = max periods and `rentPeriod` = the plan's rhythm (`createLease`, or `createLeaseWithPayee` for Fleet
+  Vault scooters); rent per period = monthly price x days / 30, rounded down. The renter funds deposit + the first
+  period, then pays each period with `payRent(1)`. The page shows a status sentence, the next due date and
   the amount, baht first.
 - **Cancel** = the existing return flow: return photos, AI split proposal, settle. The deposit and any prepaid,
-  unused months come back after that return check. There is no separate cancel function to trust.
-- **Revenue:** the same one-time 10 % fee per rental (so a 12-month subscription pays it once). Owners and
+  unused periods come back after that return check. There is no separate cancel function to trust.
+- **Revenue:** the same one-time 10 % fee per rental (10 % of one month's rent, once, also for weekly plans). Owners and
   shareholders see **MRR** (monthly recurring revenue, THB and mUSDT) and the number of active subscribers.
 - Which rentals are subscriptions is off-chain (the booking carries the plan); money and state stay in the escrow.
 
-> **Status:** option A, built (web only). Roadmap:
-> - **Flexible rhythm (contract v2):** weekly and every-2-weeks plans need a per-rental period instead of the
->   fixed 30-day `RENT_PERIOD`. The plan data (`periodDays`: 7 / 14 / 30) and the rhythm selector are ready; only
->   "Monthly" is switched on.
+> **Status:** option A, built (web), with all three rhythms (weekly, every 2 weeks, monthly) live on contract v2: each rental has its own `rentPeriod` (7, 14 or 30 days); each payment is the monthly price × days / 30, and the one-time fee stays 10 % of the monthly equivalent. Roadmap:
 > - **Auto-renew via pull payments (option B):** the renter approves a capped allowance once, and a keeper pulls
 >   each month's rent when due (a `collectRent()` that anyone may call, bounded by the term and the allowance).
 >   Today the renter pays each month by hand. Auto-renew past the term also needs v2 (extendable term).
@@ -143,6 +142,7 @@ passport held for the whole stay. A **subscription** is that offer, built on the
 | Phase | When | Scope |
 | --- | --- | --- |
 | **1. Hackathon MVP (done)** | Nov 2026, BNB Bangkok | Contracts live and verified on BSC testnet. Web app and agent on Cloudflare Workers. Owner, renter, dispute desk, back office and shareholder views. AI inspection by an ERC-8004 agent (#2921). Guided live demo. REST + MCP + A2A actions. |
+| **1b. Contract v2 and a capped mainnet pilot** | 26–27 Nov 2026 | Contract v2 on BSC testnet (per-rental rent period, pilot caps, audit fixes), then, after a testnet pass, a capped BSC mainnet pilot for the jury demo with real USDT (BSC-USD): at most 5 USDT deposit and 2 USDT rent per period per rental, 25 USDT held in all escrows together. The caps are owner-set on the factory; payouts are never blocked by them. No Fleet Vault on mainnet. |
 | **2. Testnet pilot** | Q1 2027 | 10–20 real scooter rentals with friendly shops in Chiang Mai and Phuket, on testnet funds. Tune the inspector on real pickup and return photos. Staff the dispute desk. Thai and English renter guides. Evidence on BNB Greenfield in production. An independent security review of the contracts. |
 | **3. Mainnet on BNB Chain and opBNB** | Q2–Q3 2027 | Deploy on BSC mainnet and opBNB (cheaper monthly payouts) with a widely held stablecoin. Wallet onboarding for non-crypto users (embedded wallets, Binance Web3 Wallet). Legal review of the escrow, dispute-desk and vault roles under Thai law. A keeper for monthly rent releases. |
 | **4. Rental shops and partners** | 2027 → | Shop onboarding and multi-scooter tools (bulk listing, accounting exports) as a B2B subscription. Rental associations as named arbiters. Integrations with booking sites and AI travel agents through the MCP / REST actions. |
@@ -168,7 +168,7 @@ Other markets with the same passport-as-deposit problem (Bali, Vietnam) come aft
 
 | Risk | Mitigation |
 | --- | --- |
-| **Smart-contract bug** locks or misroutes funds | Small, non-upgradeable contracts. Funds only go to the parties set at creation. Each rental is isolated in its own clone. 105 Foundry tests, including fuzz tests of vault solvency. An external audit before mainnet. |
+| **Smart-contract bug** locks or misroutes funds | Small, non-upgradeable contracts. Funds only go to the parties set at creation. Each rental is isolated in its own clone. 120 Foundry tests (305 with contract v2), including fuzz and invariant tests of vault solvency. An external audit before mainnet. |
 | **Wrong or manipulated AI proposal** | The AI only proposes. Both parties have to agree on-chain, and either can dispute. Proposals carry reasons, refer to hashed photos and are bounded by the deposit. The report hash names the agent that made it. |
 | **Weak or partial evidence** (photos missing at pickup) | Guided pickup photos are anchored on-chain at pickup. A missing pickup record counts against the owner in arbitration. |
 | **Dispute-desk capacity or bias** | Owners can name another neutral arbiter. A missed deadline means a full refund for the renter. Rulings are hashed on-chain and open to audit. |

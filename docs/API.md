@@ -193,7 +193,7 @@ action, is on `/developers`; the machine-readable spec is `GET /api/v1/openapi.j
 ```bash
 curl -s "$BASE/api/v1/explain_status?lease=0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e&viewer=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
 curl -s -X POST "$BASE/api/v1/prepare_create_lease" -H 'content-type: application/json' \
-  -d '{"from":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","renter":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","rent":"3500","currency":"THB","depositMonths":2,"termMonths":6}'
+  -d '{"from":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","renter":"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC","rent":"3500","currency":"THB","depositMonths":2,"termPeriods":6}'
 ```
 
 A `prepare_*` answer:

@@ -2,6 +2,7 @@ import type { Address } from "viem";
 import { LeaseStatus } from "@/lib/contracts";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import type { T } from "@/lib/i18n/t";
+import { countIn, nthIn, perIn } from "@/lib/rentals";
 import { dateTimeIn } from "./copy";
 
 export type Viewer = "landlord" | "tenant" | "arbiter" | null;
@@ -24,20 +25,18 @@ export function roleOfAddress(lease: LeaseData, a: unknown, t: T): string {
   return roleName(viewerRole(lease, a as Address), t);
 }
 
-export const RENT_PERIOD = BigInt(30 * 24 * 3600);
-
-/** Month index the next release would cover, and when it is due. */
+/** When the rent period the next release would cover is due. */
 export function nextDue(lease: LeaseData): bigint | undefined {
-  if (lease.startTime === BigInt(0) || lease.monthsReleased >= lease.terms.termMonths) return undefined;
-  return lease.startTime + BigInt(lease.monthsReleased) * RENT_PERIOD;
+  if (lease.startTime === BigInt(0) || lease.periodsReleased >= lease.terms.termPeriods) return undefined;
+  return lease.startTime + BigInt(lease.periodsReleased) * BigInt(lease.terms.rentPeriod);
 }
 
-/** How many funded months `viewer` can release right now (renter may release early). */
-export function releasableMonths(lease: LeaseData, viewer: Viewer): number {
+/** How many funded rent periods `viewer` can release right now (renter may release early). */
+export function releasablePeriods(lease: LeaseData, viewer: Viewer): number {
   const live = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
   if (!live) return 0;
-  const upTo = viewer === "tenant" ? lease.monthsFunded : Math.min(lease.monthsDue, lease.monthsFunded);
-  return Math.max(0, upTo - lease.monthsReleased);
+  const upTo = viewer === "tenant" ? lease.periodsFunded : Math.min(lease.periodsDue, lease.periodsFunded);
+  return Math.max(0, upTo - lease.periodsReleased);
 }
 
 /** One-line "what happens next" for the person looking at the rental. */
@@ -45,13 +44,13 @@ export function nextStep(lease: LeaseData, viewer: Viewer, t: T): string {
   const p = lease.proposal;
   switch (lease.status) {
     case LeaseStatus.Created:
-      return t(viewer === "tenant" ? "rental.next.fundTenant" : "rental.next.fundOther");
+      return t(viewer === "tenant" ? "rental.next.fundTenant" : "rental.next.fundOther", { per: perIn(t, lease.terms.rentPeriod) });
     case LeaseStatus.Active: {
-      const r = releasableMonths(lease, viewer);
-      if (r > 0) return t(r > 1 ? "rental.next.ready.other" : "rental.next.ready.one", { n: r });
+      const r = releasablePeriods(lease, viewer);
+      if (r > 0) return t("rental.next.ready", { count: countIn(t, r, lease.terms.rentPeriod) });
       const due = nextDue(lease);
       return (
-        t("rental.next.month", { m: Math.min(lease.monthsDue, lease.terms.termMonths), term: lease.terms.termMonths }) +
+        t("rental.next.month", { m: nthIn(t, Math.min(lease.periodsDue, lease.terms.termPeriods), lease.terms.rentPeriod, true), term: lease.terms.termPeriods }) +
         (due ? t("rental.next.nextDue", { date: dateTimeIn(t)(due) }) : t("rental.next.allOut"))
       );
     }

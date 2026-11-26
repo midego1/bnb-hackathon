@@ -72,7 +72,7 @@ try {
     rent: "3500",
     currency: "THB",
     depositMonths: 2,
-    termMonths: 6,
+    termPeriods: 6,
   });
   console.log(indent(`summary: ${create.summary}\nsteps:   ${create.steps.map((s) => s.description).join(" -> ")}\nexpected rental: ${create.expected?.lease}`));
   await sign(create, ANVIL_DEV_KEYS.owner);
@@ -92,7 +92,7 @@ try {
 
   say("A mistake comes back as a plain reason before anyone signs (the simulation reverts):");
   console.log(`${D}> tools/call prepare_create_lease (owner rents to themselves)${N}`);
-  const bad = await mcp.callTool({ name: "prepare_create_lease", arguments: { from: owner.address, renter: owner.address, rent: "3500", depositMonths: 2, termMonths: 6 } });
+  const bad = await mcp.callTool({ name: "prepare_create_lease", arguments: { from: owner.address, renter: owner.address, rent: "3500", depositMonths: 2, termPeriods: 6 } });
   console.log(indent(JSON.stringify(bad.structuredContent)));
   console.log(`${D}> tools/call prepare_fund (renter funds twice)${N}`);
   const again = await mcp.callTool({ name: "prepare_fund", arguments: { lease, from: renter.address } });

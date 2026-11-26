@@ -81,6 +81,7 @@ export const body = {
       address: "Not a valid address (0x followed by 40 hex characters).",
       amount: "Enter an amount in {symbol}, e.g. \"441.18\" (at most {decimals} decimals).",
       moreThan0: "Must be more than 0.",
+      rentPeriod: "7, 14 or 30 days.",
       positive: "Enter a positive amount, e.g. \"18000\" or \"441.18\".",
       whole: "Enter a whole number.",
       range: "{min} to {max}.",

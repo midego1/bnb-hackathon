@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EscrowFactory} from "../../src/EscrowFactory.sol";
 import {RentalEscrow} from "../../src/RentalEscrow.sol";
 import {MockUSDT} from "../../src/mocks/MockUSDT.sol";
+import {MockBscUsd} from "../mocks/MockBscUsd.sol";
 
 /// @dev Drives one funded escrow with random calls from a configurable set of actors and random time jumps.
 /// Every call is made by a real role address (vm.prank); reverts are expected and swallowed. Ghost variables
@@ -25,14 +26,15 @@ contract EscrowHandler is Test {
     uint256 public feeOut;
     uint256 public landlordClaim; // the part of the deposit that went to the landlord
     uint256 public tenantRefund; // the part of the deposit that went back to the tenant
-    uint32 public maxDueSeen; // highest monthsDue() observed at any payout
-    uint32 public tenantEarlyRelease; // highest monthsFunded the tenant released early
+    uint32 public maxDueSeen; // highest periodsDue() observed at any payout
+    uint32 public tenantEarlyRelease; // highest periodsFunded the tenant released early
     bool public settled;
-    uint32 public dueAtSettle; // monthsDue() when the lease settled
+    uint32 public dueAtSettle; // periodsDue() when the lease settled
     bytes4 public settledBy; // selector of the call that settled the lease
     address public settledCaller;
     bool public tenantActed; // the tenant made a successful propose/accept
     bool public arbiterActed; // the arbiter made a successful resolve
+    uint256 public endedAt; // when the move-out started: the first successful propose/dispute (KE-14)
     uint256 public calls;
 
     constructor(RentalEscrow escrow_, MockUSDT usdt_, address treasury_, address[] memory actors_) {
@@ -64,8 +66,9 @@ contract EscrowHandler is Test {
         uint256 t0 = usdt.balanceOf(tenant);
         uint256 l0 = usdt.balanceOf(landlord);
         uint256 f0 = usdt.balanceOf(treasury);
-        uint32 due = escrow.monthsDue();
+        uint32 due = escrow.periodsDue();
         bool wasSettled = escrow.status() == RentalEscrow.Status.Settled;
+        bool wasActive = escrow.status() == RentalEscrow.Status.Active;
 
         vm.prank(who);
         (ok,) = address(escrow).call(data);
@@ -79,6 +82,9 @@ contract EscrowHandler is Test {
         if (usdt.balanceOf(landlord) > l0 || usdt.balanceOf(treasury) > f0) {
             if (due > maxDueSeen) maxDueSeen = due;
         }
+        if (wasActive && endedAt == 0 && escrow.status() != RentalEscrow.Status.Active) {
+            endedAt = block.timestamp;
+        }
         if (!wasSettled && escrow.status() == RentalEscrow.Status.Settled) {
             settled = true;
             dueAtSettle = due;
@@ -87,14 +93,14 @@ contract EscrowHandler is Test {
         }
     }
 
-    function payRent(uint32 months) external {
+    function payRent(uint32 periods) external {
         if (!_has(tenant)) return;
-        _run(tenant, abi.encodeCall(RentalEscrow.payRent, (uint32(bound(months, 1, 12)))));
+        _run(tenant, abi.encodeCall(RentalEscrow.payRent, (uint32(bound(periods, 1, 12)))));
     }
 
     function releaseRent(uint256 seed) external {
         address who = _actor(seed);
-        uint32 funded = escrow.monthsFunded();
+        uint32 funded = escrow.periodsFunded();
         if (_run(who, abi.encodeCall(RentalEscrow.releaseRent, ())) && who == tenant) {
             if (funded > tenantEarlyRelease) tenantEarlyRelease = funded;
         }
@@ -163,14 +169,17 @@ contract EscrowHandler is Test {
     }
 }
 
-/// @notice Invariants for one escrow driven by every role (landlord, tenant, arbiter, a keeper).
+/// @notice Invariants for one escrow driven by every role (landlord, tenant, arbiter, a keeper). Monthly rent with
+/// MockUSDT (6 decimals) here; the *Weekly18 suites below rerun every invariant with weekly rent and 18 decimals.
 contract RentalEscrowInvariantTest is Test {
-    uint256 internal constant RENT = 500e6;
-    uint256 internal constant DEPOSIT = 1_000e6;
+    uint256 internal RENT; // 500 tokens per period
+    uint256 internal DEPOSIT; // 1,000 tokens
     uint32 internal constant TERM = 12;
     uint16 internal constant FEE_BPS = 1_000;
+    uint256 internal constant NO_CAP = type(uint256).max;
 
     MockUSDT internal usdt;
+    EscrowFactory internal factory;
     RentalEscrow internal escrow;
     EscrowHandler internal handler;
     address internal landlord = makeAddr("landlord");
@@ -184,11 +193,21 @@ contract RentalEscrowInvariantTest is Test {
         (a[0], a[1], a[2], a[3]) = (landlord, tenant, arbiter, keeper);
     }
 
+    function _decimals() internal pure virtual returns (uint8) {
+        return 6;
+    }
+
+    function _rentPeriod() internal pure virtual returns (uint32) {
+        return 30 days;
+    }
+
     function setUp() public {
         vm.warp(1_790_000_000);
-        usdt = new MockUSDT();
-        EscrowFactory factory =
-            new EscrowFactory(IERC20(address(usdt)), address(this), FEE_BPS, treasury, address(0));
+        usdt = _decimals() == 6 ? new MockUSDT() : MockUSDT(address(new MockBscUsd()));
+        (RENT, DEPOSIT) = (500 * 10 ** _decimals(), 1_000 * 10 ** _decimals());
+        factory = new EscrowFactory(
+            IERC20(address(usdt)), address(this), FEE_BPS, treasury, address(0), NO_CAP, NO_CAP, NO_CAP
+        );
         vm.prank(landlord);
         escrow = RentalEscrow(
             factory.createLease(
@@ -197,14 +216,15 @@ contract RentalEscrowInvariantTest is Test {
                     arbiter: arbiter,
                     rentAmount: RENT,
                     depositAmount: DEPOSIT,
-                    termMonths: TERM,
+                    termPeriods: TERM,
+                    rentPeriod: _rentPeriod(),
                     responseWindow: 0,
                     arbiterWindow: 0,
                     leaseHash: keccak256("lease")
                 })
             )
         );
-        usdt.faucet(tenant, 10_000e6);
+        usdt.faucet(tenant, 10_000 * 10 ** _decimals());
         vm.startPrank(tenant);
         usdt.approve(address(escrow), type(uint256).max);
         escrow.fund();
@@ -229,21 +249,34 @@ contract RentalEscrowInvariantTest is Test {
         if (s == RentalEscrow.Status.Settled) {
             assertEq(bal, 0);
         } else {
-            assertEq(bal, DEPOSIT + uint256(escrow.monthsFunded() - escrow.monthsReleased()) * RENT);
+            assertEq(bal, DEPOSIT + uint256(escrow.periodsFunded() - escrow.periodsReleased()) * RENT);
         }
-        assertLe(escrow.monthsReleased(), escrow.monthsFunded());
-        assertLe(escrow.monthsFunded(), TERM);
+        assertEq(factory.activeValue(), bal); // the pilot-cap book matches what the escrow really holds
+        assertLe(escrow.periodsReleased(), escrow.periodsFunded());
+        assertLe(escrow.periodsFunded(), TERM);
     }
 
     /// Rent leaves only for released months, and only per schedule or by the tenant's own early release.
     function invariant_rentFollowsSchedule() public view {
         uint256 rentOut = handler.landlordOut() - handler.landlordClaim() + handler.feeOut();
-        assertEq(rentOut, uint256(escrow.monthsReleased()) * RENT);
+        assertEq(rentOut, uint256(escrow.periodsReleased()) * RENT);
         uint32 due = handler.maxDueSeen();
         uint32 cap = due > handler.tenantEarlyRelease() ? due : handler.tenantEarlyRelease();
-        assertLe(escrow.monthsReleased(), cap);
-        // One-time protocol fee: 10% of ONE month's rent, charged at most once.
-        assertEq(handler.feeOut(), escrow.feeCharged() ? (RENT * FEE_BPS) / 10_000 : 0);
+        assertLe(escrow.periodsReleased(), cap);
+        // One-time protocol fee: 10% of ONE month's rent (monthly equivalent of the period's rent), at most once.
+        uint256 fee = (RENT * 30 days * FEE_BPS) / (uint256(_rentPeriod()) * 10_000);
+        assertEq(handler.feeOut(), escrow.feeCharged() ? fee : 0);
+    }
+
+    /// KE-14: rent that falls due after the move-out started never goes to the landlord, however long settlement
+    /// takes (only the tenant's own early release can pay out more).
+    function invariant_rentClockStopsAtMoveOut() public view {
+        uint256 end = handler.endedAt();
+        if (end == 0) return;
+        uint256 due = (end - escrow.startTime()) / _rentPeriod() + 1;
+        if (due > TERM) due = TERM;
+        uint256 early = handler.tenantEarlyRelease();
+        assertLe(escrow.periodsReleased(), due > early ? due : early);
     }
 
     /// The deposit is split exactly once and only with the counterparty's or the arbiter's consent:
@@ -294,9 +327,9 @@ contract TenantAloneInvariantTest is RentalEscrowInvariantTest {
 
     function invariant_tenantAloneCannotSkipDueRent() public view {
         if (!handler.settled()) return;
-        uint32 funded = escrow.monthsFunded();
+        uint32 funded = escrow.periodsFunded();
         uint32 due = handler.dueAtSettle();
-        assertGe(escrow.monthsReleased(), due < funded ? due : funded);
+        assertGe(escrow.periodsReleased(), due < funded ? due : funded);
     }
 }
 
@@ -309,7 +342,51 @@ contract ArbiterAloneInvariantTest is RentalEscrowInvariantTest {
 
     function invariant_arbiterAloneCannotSettle() public view {
         assertFalse(handler.settled());
-        uint256 unreleased = uint256(escrow.monthsFunded() - escrow.monthsReleased()) * RENT;
+        uint256 unreleased = uint256(escrow.periodsFunded() - escrow.periodsReleased()) * RENT;
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT + unreleased);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The same invariants with weekly rent and an 18-decimal token (BSC-USD), the mainnet pilot's setup.
+// ---------------------------------------------------------------------------------------------------------
+
+contract RentalEscrowWeekly18InvariantTest is RentalEscrowInvariantTest {
+    function _decimals() internal pure override returns (uint8) {
+        return 18;
+    }
+
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 7 days;
+    }
+}
+
+contract LandlordAloneWeekly18InvariantTest is LandlordAloneInvariantTest {
+    function _decimals() internal pure override returns (uint8) {
+        return 18;
+    }
+
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 7 days;
+    }
+}
+
+contract TenantAloneWeekly18InvariantTest is TenantAloneInvariantTest {
+    function _decimals() internal pure override returns (uint8) {
+        return 18;
+    }
+
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 7 days;
+    }
+}
+
+contract ArbiterAloneWeekly18InvariantTest is ArbiterAloneInvariantTest {
+    function _decimals() internal pure override returns (uint8) {
+        return 18;
+    }
+
+    function _rentPeriod() internal pure override returns (uint32) {
+        return 7 days;
     }
 }

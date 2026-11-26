@@ -261,8 +261,10 @@ function stageService(cfg: StageConfig, env: Env, state: () => SharedState) {
                 arbiter: l.arbiter,
                 rentAmount: p.rent,
                 depositAmount: p.deposit,
-                // shortcut: the contract's shortest term is 1 month; the stage rental is "one day" in the UI and settles the same day.
-                termMonths: 1,
+                // One 30-day period: the stage rental is "one day" in the UI and settles the same day. 30 days (not 7)
+                // keeps the one-time fee at 10% of the rent, so the on-stage numbers stay as rehearsed.
+                termPeriods: 1,
+                rentPeriod: 30 * 86_400,
                 responseWindow: 0,
                 arbiterWindow: 0,
                 leaseHash: hashText(JSON.stringify({ listing: listing.slug, name: listing.name, rentThb: listing.rentThb, depositThb: listing.depositThb, renter, at: now })),

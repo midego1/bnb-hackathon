@@ -26,7 +26,7 @@ contract RentalEscrowTest is BaseTest {
 
         assertEq(uint8(escrow.status()), uint8(ACTIVE));
         assertEq(escrow.startTime(), block.timestamp);
-        assertEq(escrow.monthsFunded(), 1);
+        assertEq(escrow.periodsFunded(), 1);
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT + RENT);
         assertEq(usdt.balanceOf(tenant), tenantBefore - DEPOSIT - RENT);
     }
@@ -54,11 +54,12 @@ contract RentalEscrowTest is BaseTest {
 
     function test_fund_revertsOnFeeOnTransferToken() public {
         FeeOnTransferToken fot = new FeeOnTransferToken();
-        EscrowFactory f = new EscrowFactory(IERC20(address(fot)), owner, 0, address(0), address(0));
+        EscrowFactory f =
+            new EscrowFactory(IERC20(address(fot)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 
-        fot.mint(tenant, 10_000e6);
+        fot.mint(tenant, 10_000 * UNIT);
         vm.startPrank(tenant);
         fot.approve(address(escrow), type(uint256).max);
         uint256 amount = DEPOSIT + RENT;
@@ -108,7 +109,7 @@ contract RentalEscrowTest is BaseTest {
         RentalEscrow escrow = _createAndFund();
         vm.prank(tenant);
         escrow.payRent(3);
-        assertEq(escrow.monthsFunded(), 4);
+        assertEq(escrow.periodsFunded(), 4);
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT + 4 * RENT);
     }
 
@@ -138,7 +139,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(stranger);
         escrow.releaseRent();
 
-        assertEq(escrow.monthsReleased(), 1);
+        assertEq(escrow.periodsReleased(), 1);
         assertEq(usdt.balanceOf(landlord), RENT - FEE);
         assertEq(usdt.balanceOf(treasury), FEE);
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT);
@@ -156,7 +157,7 @@ contract RentalEscrowTest is BaseTest {
 
         vm.prank(tenant);
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 2);
+        assertEq(escrow.periodsReleased(), 2);
         assertEq(usdt.balanceOf(address(escrow)), DEPOSIT);
     }
 
@@ -165,11 +166,11 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(tenant);
         escrow.payRent(2);
 
-        vm.warp(block.timestamp + escrow.RENT_PERIOD());
-        assertEq(escrow.monthsDue(), 2);
+        vm.warp(block.timestamp + PERIOD);
+        assertEq(escrow.periodsDue(), 2);
         vm.prank(stranger);
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 2);
+        assertEq(escrow.periodsReleased(), 2);
 
         vm.warp(escrow.dueDate(2) - 1);
         vm.expectRevert(RentalEscrow.NothingToRelease.selector);
@@ -177,14 +178,14 @@ contract RentalEscrowTest is BaseTest {
 
         vm.warp(escrow.dueDate(2));
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 3);
+        assertEq(escrow.periodsReleased(), 3);
         assertEq(usdt.balanceOf(landlord), 3 * RENT - FEE);
     }
 
     function test_releaseRent_unfundedMonthsNeverReleased() public {
         RentalEscrow escrow = _createAndFund();
         escrow.releaseRent();
-        vm.warp(block.timestamp + 5 * escrow.RENT_PERIOD());
+        vm.warp(block.timestamp + 5 * PERIOD);
         vm.expectRevert(RentalEscrow.NothingToRelease.selector);
         escrow.releaseRent();
         // Deposit is untouched by rent logic.
@@ -202,11 +203,11 @@ contract RentalEscrowTest is BaseTest {
         escrow.releaseRent();
     }
 
-    function test_monthsDue_cappedAtTerm() public {
+    function test_periodsDue_cappedAtTerm() public {
         RentalEscrow escrow = _createAndFund();
-        vm.warp(block.timestamp + 100 * escrow.RENT_PERIOD());
-        assertEq(escrow.monthsDue(), TERM);
-        assertEq(_createLease().monthsDue(), 0);
+        vm.warp(block.timestamp + 100 * PERIOD);
+        assertEq(escrow.periodsDue(), TERM);
+        assertEq(_createLease().periodsDue(), 0);
     }
 
     // =============================================================================================
@@ -226,7 +227,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(stranger);
         escrow.releaseRent();
         assertTrue(escrow.feeCharged());
-        assertEq(FEE, 50e6); // 10% of one 500 mUSDT month
+        assertEq(FEE, (50 * UNIT * 30 days) / PERIOD); // 10% of 500 tokens per period, as a monthly equivalent
         assertEq(usdt.balanceOf(landlord), RENT - FEE);
         assertEq(usdt.balanceOf(treasury), FEE);
 
@@ -268,7 +269,7 @@ contract RentalEscrowTest is BaseTest {
 
     function test_fee_roundsDown() public {
         EscrowFactory.LeaseParams memory p = _params();
-        p.rentAmount = 441_180_001; // 10% = 44,118,000.1 -> 44,118,000
+        p.rentAmount = 441_180_001; // monthly: 10% = 44,118,000.1 -> 44,118,000
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(factory.createLease(p));
         vm.startPrank(tenant);
@@ -276,9 +277,13 @@ contract RentalEscrowTest is BaseTest {
         escrow.fund();
         vm.stopPrank();
 
+        // One division, rounded down: rent x 30 days x bps / (period x 10,000).
+        uint256 fee = (uint256(441_180_001) * 30 days * FEE_BPS) / (uint256(PERIOD) * 10_000);
+        if (PERIOD == 30 days) assertEq(fee, 44_118_000);
+        if (PERIOD == 7 days) assertEq(fee, 189_077_143); // 441.180001 x 30/7 x 10% = 189.0771432...
         escrow.releaseRent();
-        assertEq(usdt.balanceOf(treasury), 44_118_000);
-        assertEq(usdt.balanceOf(landlord), 441_180_001 - 44_118_000);
+        assertEq(usdt.balanceOf(treasury), fee);
+        assertEq(usdt.balanceOf(landlord), 441_180_001 - fee);
     }
 
     function test_fee_zero_noTransferNoEvent() public {
@@ -306,7 +311,7 @@ contract RentalEscrowTest is BaseTest {
         assertEq(usdt.balanceOf(stranger), 0);
 
         newLease.releaseRent();
-        assertEq(usdt.balanceOf(stranger), (RENT * 500) / 10_000);
+        assertEq(usdt.balanceOf(stranger), (RENT * 30 days * 500) / (uint256(PERIOD) * 10_000));
         assertEq(usdt.balanceOf(treasury), FEE);
     }
 
@@ -361,14 +366,14 @@ contract RentalEscrowTest is BaseTest {
     function test_propose_storesProposal() public {
         RentalEscrow escrow = _createAndFund();
         vm.expectEmit(true, false, false, true, address(escrow));
-        emit RentalEscrow.SettlementProposed(landlord, 1, 800e6, 200e6, REPORT_HASH);
+        emit RentalEscrow.SettlementProposed(landlord, 1, 800 * UNIT, 200 * UNIT, REPORT_HASH);
         vm.prank(landlord);
-        escrow.propose(800e6, REPORT_HASH);
+        escrow.propose(800 * UNIT, REPORT_HASH);
 
         RentalEscrow.Proposal memory p = escrow.proposal();
         assertEq(uint8(escrow.status()), uint8(MOVE_OUT));
-        assertEq(p.tenantRefund, 800e6);
-        assertEq(p.landlordClaim, 200e6);
+        assertEq(p.tenantRefund, 800 * UNIT);
+        assertEq(p.landlordClaim, 200 * UNIT);
         assertEq(p.reportHash, REPORT_HASH);
         assertEq(p.proposer, landlord);
         assertEq(p.nonce, 1);
@@ -396,15 +401,15 @@ contract RentalEscrowTest is BaseTest {
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         vm.prank(tenant);
-        escrow.propose(700e6, REPORT_HASH);
+        escrow.propose(700 * UNIT, REPORT_HASH);
         vm.prank(landlord);
         escrow.accept(1);
 
         assertEq(uint8(escrow.status()), uint8(SETTLED));
         // Month 0 rent was due -> landlord (minus fee), plus the 300 claim.
-        assertEq(usdt.balanceOf(landlord), RENT - FEE + 300e6);
+        assertEq(usdt.balanceOf(landlord), RENT - FEE + 300 * UNIT);
         assertEq(usdt.balanceOf(treasury), FEE);
-        assertEq(usdt.balanceOf(tenant), tenantBefore + 700e6);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + 700 * UNIT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -414,7 +419,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.payRent(3); // months 0..3 funded
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
-        vm.warp(block.timestamp + escrow.RENT_PERIOD()); // months 0 and 1 due
+        vm.warp(block.timestamp + PERIOD); // months 0 and 1 due
         _proposeAndAccept(escrow, DEPOSIT);
 
         assertEq(usdt.balanceOf(landlord), 2 * RENT - FEE);
@@ -428,7 +433,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.payRent(3);
         escrow.releaseRent(); // releases all 4 months early
         vm.stopPrank();
-        assertEq(escrow.monthsReleased(), 4);
+        assertEq(escrow.periodsReleased(), 4);
 
         uint256 tenantBefore = usdt.balanceOf(tenant);
         _proposeAndAccept(escrow, DEPOSIT);
@@ -471,7 +476,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(tenant);
         escrow.propose(DEPOSIT, REPORT_HASH); // nonce 1
         vm.prank(landlord);
-        escrow.propose(500e6, REPORT_HASH); // counter, nonce 2
+        escrow.propose(500 * UNIT, REPORT_HASH); // counter, nonce 2
 
         // Landlord can no longer accept the tenant's old offer it just replaced, and tenant can't accept nonce 1.
         vm.prank(tenant);
@@ -531,7 +536,7 @@ contract RentalEscrowTest is BaseTest {
 
         // Tenant generously offers the landlord 300; the landlord never answers.
         vm.prank(tenant);
-        escrow.propose(700e6, REPORT_HASH);
+        escrow.propose(700 * UNIT, REPORT_HASH);
         uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
         assertEq(escrow.timeoutAt(), deadline);
 
@@ -594,15 +599,16 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(tenant);
         escrow.propose(0, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + WINDOW);
+        assertEq(escrow.periodsDue(), 2); // the rent clock stopped at the move-out
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         escrow.claimTimeout();
 
-        // Month 2 became due -> landlord; month 3 is prepaid but not due -> tenant; full deposit -> tenant.
-        assertEq(usdt.balanceOf(landlord), landlordAfterRelease + RENT); // fee was taken once, on month 0
-        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        // Months 2 and 3 were not due at the move-out -> tenant; released rent stays; full deposit -> tenant.
+        assertEq(usdt.balanceOf(landlord), landlordAfterRelease); // fee was taken once, on month 0
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
         assertEq(usdt.balanceOf(treasury), FEE);
-        assertEq(escrow.monthsReleased(), 3);
+        assertEq(escrow.periodsReleased(), 2);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -615,7 +621,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.propose(0, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + 1 days);
         vm.prank(tenant);
-        escrow.propose(900e6, REPORT_HASH);
+        escrow.propose(900 * UNIT, REPORT_HASH);
         uint64 deadline = uint64(vm.getBlockTimestamp() + WINDOW);
         assertEq(escrow.timeoutAt(), deadline);
 
@@ -644,7 +650,7 @@ contract RentalEscrowTest is BaseTest {
         escrow.propose(DEPOSIT, REPORT_HASH);
         vm.warp(vm.getBlockTimestamp() + WINDOW - 1 hours);
         vm.prank(landlord);
-        escrow.propose(600e6, REPORT_HASH);
+        escrow.propose(600 * UNIT, REPORT_HASH);
 
         vm.warp(vm.getBlockTimestamp() + WINDOW);
         vm.expectRevert(RentalEscrow.TimeoutNotApplicable.selector);
@@ -677,11 +683,11 @@ contract RentalEscrowTest is BaseTest {
         assertEq(uint8(escrow.status()), uint8(DISPUTED));
 
         vm.prank(arbiter);
-        escrow.resolve(400e6, keccak256("ruling"));
+        escrow.resolve(400 * UNIT, keccak256("ruling"));
 
         assertEq(uint8(escrow.status()), uint8(SETTLED));
-        assertEq(usdt.balanceOf(tenant), tenantBefore + 400e6);
-        assertEq(usdt.balanceOf(landlord), RENT - FEE + 600e6);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + 400 * UNIT);
+        assertEq(usdt.balanceOf(landlord), RENT - FEE + 600 * UNIT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
@@ -707,7 +713,7 @@ contract RentalEscrowTest is BaseTest {
         vm.prank(landlord);
         escrow.dispute();
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 1);
+        assertEq(escrow.periodsReleased(), 1);
     }
 
     function test_dispute_reverts() public {
@@ -877,31 +883,29 @@ contract RentalEscrowTest is BaseTest {
         vm.warp(escrow.dueDate(2) - 5 days);
         vm.prank(landlord);
         escrow.dispute();
-        // Rent keeps flowing during the dispute: month 2 is released while the arbiter is silent.
+        // The rent clock stopped at the dispute: month 2 never becomes due, nothing more to release.
         vm.warp(escrow.dueDate(2));
+        vm.expectRevert(RentalEscrow.NothingToRelease.selector);
         escrow.releaseRent();
-        assertEq(escrow.monthsReleased(), 3);
-        uint256 landlordMid = usdt.balanceOf(landlord);
-        assertEq(landlordMid, landlordAfterRelease + RENT);
 
         vm.warp(escrow.arbiterDeadline());
         uint256 tenantBefore = usdt.balanceOf(tenant);
         escrow.claimArbiterTimeout();
 
-        // Released rent stays with the landlord; prepaid month 3 + the full deposit go back to the tenant.
-        assertEq(usdt.balanceOf(landlord), landlordMid);
-        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + RENT);
+        // Released rent stays with the landlord; prepaid months 2,3 + the full deposit go back to the tenant.
+        assertEq(usdt.balanceOf(landlord), landlordAfterRelease);
+        assertEq(usdt.balanceOf(tenant), tenantBefore + DEPOSIT + 2 * RENT);
         assertEq(usdt.balanceOf(address(escrow)), 0);
     }
 
-    function test_claimArbiterTimeout_paysDueButUnreleasedRentToLandlord() public {
+    function test_claimArbiterTimeout_paysRentDueAtDisputeToLandlord() public {
         RentalEscrow escrow = _createAndFund();
         vm.prank(tenant);
         escrow.payRent(1); // months 0,1 funded, nothing released
-        vm.warp(escrow.dueDate(1) - 2 days);
+        vm.warp(escrow.dueDate(1) + 2 days); // month 1 is due
         vm.prank(tenant);
         escrow.dispute();
-        vm.warp(escrow.arbiterDeadline()); // month 1 became due during the dispute
+        vm.warp(escrow.arbiterDeadline());
         uint256 tenantBefore = usdt.balanceOf(tenant);
 
         escrow.claimArbiterTimeout();
@@ -917,11 +921,12 @@ contract RentalEscrowTest is BaseTest {
 
     function test_reentrancy_blockedOnPayout() public {
         ReentrantToken re = new ReentrantToken();
-        EscrowFactory f = new EscrowFactory(IERC20(address(re)), owner, 0, address(0), address(0));
+        EscrowFactory f =
+            new EscrowFactory(IERC20(address(re)), owner, 0, address(0), address(0), NO_CAP, NO_CAP, NO_CAP);
         vm.prank(landlord);
         RentalEscrow escrow = RentalEscrow(f.createLease(_params()));
 
-        re.mint(tenant, 10_000e6);
+        re.mint(tenant, 10_000 * UNIT);
         vm.startPrank(tenant);
         re.approve(address(escrow), type(uint256).max);
         escrow.fund();
@@ -953,20 +958,20 @@ contract RentalEscrowTest is BaseTest {
     /// to exactly the landlord, tenant and fee recipient.
     function testFuzz_settlementConservesFunds(
         uint256 tenantRefund,
-        uint32 extraMonths,
+        uint32 extraPeriods,
         uint256 elapsed,
         uint8 path
     ) public {
         tenantRefund = bound(tenantRefund, 0, DEPOSIT);
-        extraMonths = uint32(bound(extraMonths, 0, TERM - 1));
+        extraPeriods = uint32(bound(extraPeriods, 0, TERM - 1));
         elapsed = bound(elapsed, 0, 400 days);
 
         RentalEscrow escrow = _createAndFund();
-        if (extraMonths > 0) {
+        if (extraPeriods > 0) {
             vm.prank(tenant);
-            escrow.payRent(extraMonths);
+            escrow.payRent(extraPeriods);
         }
-        uint256 tenantStart = usdt.balanceOf(tenant) + DEPOSIT + RENT * (1 + extraMonths);
+        uint256 tenantStart = usdt.balanceOf(tenant) + DEPOSIT + RENT * (1 + extraPeriods);
         vm.warp(vm.getBlockTimestamp() + elapsed);
 
         path = path % 4;
@@ -997,7 +1002,7 @@ contract RentalEscrowTest is BaseTest {
         uint256 out = usdt.balanceOf(landlord) + usdt.balanceOf(tenant) + usdt.balanceOf(treasury);
         assertEq(usdt.balanceOf(address(escrow)), 0);
         assertEq(out, tenantStart);
-        assertGe(usdt.balanceOf(tenant), tenantStart - DEPOSIT - RENT * (1 + extraMonths) + tenantRefund);
+        assertGe(usdt.balanceOf(tenant), tenantStart - DEPOSIT - RENT * (1 + extraPeriods) + tenantRefund);
     }
 
     // =============================================================================================

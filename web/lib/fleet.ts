@@ -25,15 +25,15 @@ export type Scooter = {
   plan?: Plan;
 };
 
-/** Rent rhythm in days. The escrow contract pays every 30 days; 7 and 14 arrive with contract v2. */
+/** Rent rhythm in days: the escrow's rent period (contract v2: weekly, every 2 weeks or monthly). */
 export type Rhythm = 7 | 14 | 30;
 
 /** A subscription offer: a long rental paid per period, cancelled any time through the normal return check. */
 export type Plan = {
-  /** Price per period (a month while the rhythm is 30 days), in THB. */
+  /** Monthly price in THB; each period pays monthly x days / 30 (lib/rentals rentPerPeriod). */
   priceThb: number;
   depositThb: number;
-  /** Rental term in periods: the escrow's termMonths. */
+  /** Rental term in periods: the escrow's termPeriods. */
   maxPeriods: number;
   periodDays: Rhythm;
 };

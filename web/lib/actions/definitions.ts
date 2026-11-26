@@ -19,6 +19,7 @@ import { ActionError, type ActionContext } from "./context";
 import { explainLease } from "./explain";
 import { field, formatToken, fromField, leaseField, parseTokenAmount, TOKEN, type StatusName } from "./fields";
 import { leaseJson, readLease, ROLE_LABEL, rpcError, type LeaseSnapshot, type Role } from "./lease";
+import { oneTimeFee, periodCount, periodName, rentPerPeriod } from "../rentals";
 import type { Call, Prepared } from "./simulate";
 
 // ---------------------------------------------------------------------------------------------------------
@@ -121,7 +122,7 @@ export const getLease = read({
   title: "Get a rental",
   description:
     "Read one KeyEscrow rental straight from the chain: owner, renter, dispute desk, rent and deposit (in mUSDT, with baht/dollar " +
-    "equivalents), status, months paid and paid out, the current deposit proposal and any running deadline. Use explain_status " +
+    "equivalents), rent period, periods paid and paid out, the current deposit proposal and any running deadline. Use explain_status " +
     "for a plain-language summary instead.",
   roles: ["anyone"],
   input: z.object({ lease: leaseField(), chainId: chainId() }).strict(),
@@ -168,7 +169,8 @@ export const listLeases = read({
             status: (["Created", "Active", "MoveOut", "Disputed", "Settled", "Cancelled"] as const)[status],
             rent: amount(terms.rentAmount),
             deposit: amount(terms.depositAmount),
-            termMonths: terms.termMonths,
+            termPeriods: terms.termPeriods,
+            rentPeriodDays: terms.rentPeriod / 86400,
           });
         }
       }
@@ -261,21 +263,27 @@ export const prepareCreateLease = prepare({
   title: "Create a rental",
   description:
     "Prepare the transaction that creates a rental offer, signed by the owner. Amounts can be given in baht, dollars or mUSDT; " +
-    "baht/dollars are converted at the current rate (see `summary`). The deposit is either an amount or a number of months of " +
-    "rent. The renter then funds it with prepare_fund. Returns the unsigned transaction and, in `expected.lease`, the rental's " +
+    "baht/dollars are converted at the current rate (see `summary`). `rent` is a monthly price; with weekly or two-weekly rent " +
+    "(`rentPeriodDays` 7 or 14) the rent per period is monthly x days / 30, rounded down. The deposit is either an amount or a " +
+    "number of months of rent. The renter then funds it with prepare_fund. Returns the unsigned transaction and, in `expected.lease`, the rental's " +
     "address if nobody else creates one first.",
   roles: ["owner"],
   input: z
     .object({
       from: fromField("the owner, who becomes the landlord on-chain"),
       renter: field.address({ title: "Renter wallet", description: "Wallet of the renter (tenant on-chain); it pays the deposit and rent." }),
-      rent: field.money({ title: "Monthly rent", description: 'Rent per 30-day month, in `currency`, e.g. "3000".', "x-unit": "currency" }),
+      rent: field.money({ title: "Monthly rent", description: 'Rent per 30-day month, in `currency`, e.g. "3000". Charged per rent period (see `rentPeriodDays`).', "x-unit": "currency" }),
+      rentPeriodDays: z.coerce
+        .number({ message: "Enter 7, 14 or 30." })
+        .refine((d) => d === 7 || d === 14 || d === 30, "7, 14 or 30 days.")
+        .default(30)
+        .meta({ title: "Rent period", description: "How often rent is paid: every 7, 14 or 30 days (default 30).", "x-unit": "days" }),
       currency: field.currency({ title: "Currency", description: "Currency of `rent` and `deposit`: THB (default), USD or USDT (= mUSDT, stored as is)." }).default("THB"),
       deposit: field.money({ title: "Deposit", description: "Security deposit, in `currency`. Give this or `depositMonths`." }).optional(),
       depositMonths: field
         .int(1, MAX_DEPOSIT_MONTHS, { title: "Deposit (months of rent)", description: "Security deposit as a number of months of rent, e.g. 2. Give this or `deposit`.", "x-unit": "months" })
         .optional(),
-      termMonths: field.int(1, 60, { title: "Term", description: "Length of the rental in 30-day months (1 to 60).", "x-unit": "months" }),
+      termPeriods: field.int(1, 60, { title: "Term", description: "Length of the rental in rent periods (1 to 60), e.g. 4 with weekly rent = 4 weeks.", "x-unit": "periods" }),
       responseWindowDays: field
         .int(1, 60, { title: "Owner's reply window", description: "Days the owner has to answer the renter's return proposal; if silent, the full deposit goes back to the renter.", "x-unit": "days" })
         .default(7),
@@ -291,11 +299,14 @@ export const prepareCreateLease = prepare({
     })
     .strict()
     .refine((v) => (v.deposit === undefined) !== (v.depositMonths === undefined), { message: "Give either `deposit` or `depositMonths`.", path: ["deposit"] }),
-  example: { from: EX.owner, renter: EX.renter, rent: "18000", currency: "THB", depositMonths: 2, termMonths: 12 },
+  example: { from: EX.owner, renter: EX.renter, rent: "18000", currency: "THB", depositMonths: 2, termPeriods: 12 },
   build: async (i, { ctx }) => {
     const q = i.currency === "USDT" ? undefined : await priceQuote(ctx);
-    const rent = toToken(i.rent, i.currency, q!);
-    const deposit = i.deposit !== undefined ? toToken(i.deposit, i.currency, q!) : rent * BigInt(i.depositMonths!);
+    const monthly = toToken(i.rent, i.currency, q!);
+    const period = i.rentPeriodDays * 86400;
+    const rent = rentPerPeriod(monthly, period);
+    if (rent === BigInt(0)) throw new ActionError(400, "invalid_input", "The rent per period rounds down to 0. Raise the rent.");
+    const deposit = i.deposit !== undefined ? toToken(i.deposit, i.currency, q!) : monthly * BigInt(i.depositMonths!);
     const desk = i.arbiter ?? ctx.deployment.disputeDesk;
     const rate = q ? ` (${i.currency} ${i.rent} at ${q.rates.USDT[i.currency as "THB" | "USD"].toFixed(2)} ${i.currency}/USDT${q.mock ? ", demo rate" : ""})` : "";
     const params = {
@@ -303,7 +314,8 @@ export const prepareCreateLease = prepare({
       arbiter: i.arbiter ?? zeroAddress,
       rentAmount: rent,
       depositAmount: deposit,
-      termMonths: i.termMonths,
+      termPeriods: i.termPeriods,
+      rentPeriod: period,
       responseWindow: i.responseWindowDays * 86400,
       arbiterWindow: i.arbiterWindowDays * 86400,
       leaseHash: i.leaseHash ?? ZERO_HASH,
@@ -315,11 +327,11 @@ export const prepareCreateLease = prepare({
           : { to: ctx.deployment.escrowFactory, abi: escrowFactoryAbi, functionName: "createLease", args: [params], description: "Create the rental offer" },
       ],
       summary:
-        `Create a ${i.termMonths}-month rental for renter ${i.renter}: rent ${formatToken(rent)} a month${rate}, deposit ` +
+        `Create a rental of ${periodCount(i.termPeriods, period)} for renter ${i.renter}: rent ${formatToken(rent)} per ${periodName(period)}${rate}, deposit ` +
         `${formatToken(deposit)}${i.depositMonths ? ` (${i.depositMonths} month${i.depositMonths > 1 ? "s" : ""} of rent)` : ""}. ` +
         `The owner has ${i.responseWindowDays} days to answer a return proposal; the dispute desk ${desk ?? "(factory default)"} has ` +
         `${i.arbiterWindowDays} days to rule on a dispute.${i.payee ? ` Rent and any deposit claim are paid to ${i.payee}.` : ""} KeyEscrow's one-time fee comes out of the owner's first rent payout, never the deposit. ` +
-        `Next: the renter funds ${formatToken(deposit + rent)} with prepare_fund.`,
+        `Next: the renter funds ${formatToken(deposit + rent)} (deposit + the first ${periodName(period)}) with prepare_fund.`,
       pick: (r) => (typeof r[0]?.result === "string" ? { lease: r[0].result as Address, rent: amount(rent), deposit: amount(deposit) } : undefined),
     };
   },
@@ -329,7 +341,7 @@ export const prepareFund = prepare({
   name: "prepare_fund",
   title: "Fund the rental (renter)",
   description:
-    "Prepare the renter's transactions to start the rental: approve the escrow to take deposit + first month's rent in mUSDT " +
+    "Prepare the renter's transactions to start the rental: approve the escrow to take deposit + the first period's rent " +
     "(skipped if already approved), then fund(). Sign them in order.",
   roles: ["renter"],
   statuses: ["Created"],
@@ -344,11 +356,11 @@ export const prepareFund = prepare({
     if (allowance < need) {
       calls.push({ to: l!.terms.token, abi: mockUsdtAbi, functionName: "approve", args: [lease, need], description: `Approve ${formatToken(need)} for the escrow` });
     }
-    calls.push({ to: lease, abi: rentalEscrowAbi, functionName: "fund", description: "Pay the deposit and first month's rent into escrow" });
+    calls.push({ to: lease, abi: rentalEscrowAbi, functionName: "fund", description: "Pay the deposit and the first period's rent into escrow" });
     return {
       calls,
       summary:
-        `Pay ${formatToken(need)} into escrow: ${formatToken(l!.terms.depositAmount)} deposit + ${formatToken(l!.terms.rentAmount)} first month. ` +
+        `Pay ${formatToken(need)} into escrow: ${formatToken(l!.terms.depositAmount)} deposit + ${formatToken(l!.terms.rentAmount)} rent for the first ${periodName(l!.terms.rentPeriod)}. ` +
         `The deposit stays locked until owner and renter agree, the dispute desk rules, or a deadline passes.`,
     };
   },
@@ -358,22 +370,23 @@ export const prepareReleaseRent = prepare({
   name: "prepare_release_rent",
   title: "Pay out due rent",
   description:
-    "Prepare the transaction that pays funded rent out to the owner. Anyone may release months that are due; the renter may also " +
-    "release prepaid months early.",
+    "Prepare the transaction that pays funded rent out to the owner. Anyone may release rent periods that are due; the renter may " +
+    "also release prepaid periods early.",
   roles: ["anyone"],
   statuses: ["Active", "MoveOut", "Disputed"],
   input: z.object({ lease: leaseField(), from: fromField("anyone; the renter may also release early"), chainId: chainId() }).strict(),
   example: { lease: EX.lease, from: EX.owner },
   build: async ({ lease, from }, { lease: l }) => {
     const isRenter = l!.terms.renter.toLowerCase() === from.toLowerCase();
-    const upTo = isRenter ? l!.monthsFunded : Math.min(l!.monthsDue, l!.monthsFunded);
-    const months = Math.max(0, upTo - l!.monthsReleased);
-    if (months === 0) throw new ActionError(409, "precondition_failed", "There is no funded rent due for release right now.");
-    const gross = BigInt(months) * l!.terms.rentAmount;
-    const fee = l!.feeCharged ? BigInt(0) : (l!.terms.rentAmount * BigInt(l!.terms.feeBps)) / BigInt(10_000);
+    const upTo = isRenter ? l!.periodsFunded : Math.min(l!.periodsDue, l!.periodsFunded);
+    const periods = Math.max(0, upTo - l!.periodsReleased);
+    if (periods === 0) throw new ActionError(409, "precondition_failed", "There is no funded rent due for release right now.");
+    const gross = BigInt(periods) * l!.terms.rentAmount;
+    const fee = l!.feeCharged ? BigInt(0) : oneTimeFee(l!.terms.rentAmount, l!.terms.rentPeriod, l!.terms.feeBps);
+    const what = `${periodCount(periods, l!.terms.rentPeriod)} of rent`;
     return {
-      calls: [{ to: lease, abi: rentalEscrowAbi, functionName: "releaseRent", description: `Pay ${months} month(s) of rent to the owner` }],
-      summary: `Pay ${months} month(s) of rent (${formatToken(gross)}) to the owner${fee > 0 ? `, minus KeyEscrow's one-time fee of ${formatToken(fee)}` : ""}.`,
+      calls: [{ to: lease, abi: rentalEscrowAbi, functionName: "releaseRent", description: `Pay ${what} to the owner` }],
+      summary: `Pay ${what} (${formatToken(gross)}) to the owner${fee > 0 ? `, minus KeyEscrow's one-time fee of ${formatToken(fee)}` : ""}.`,
     };
   },
 });

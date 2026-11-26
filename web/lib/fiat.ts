@@ -1,4 +1,5 @@
 import { formatUnits } from "viem";
+import { TOKEN } from "./contracts";
 
 /** Shape of GET /api/price (kept in sync with lib/server/price). Safe to import client-side. */
 export type Fiat = "USD" | "THB";
@@ -16,7 +17,7 @@ export interface PriceResponse {
 const LOCALE: Record<Fiat, string> = { USD: "en-US", THB: "th-TH" };
 
 /** Token amount (bigint base units, or a human number/string) -> plain number of tokens. */
-export function toTokenNumber(amount: bigint | number | string, decimals = 6): number {
+export function toTokenNumber(amount: bigint | number | string, decimals: number = TOKEN.decimals): number {
   if (typeof amount === "bigint") return Number(formatUnits(amount, decimals));
   return typeof amount === "number" ? amount : Number(amount);
 }
@@ -27,7 +28,7 @@ export function toFiat(
   asset: PricedAsset,
   fiat: Fiat,
   prices: PriceResponse | null | undefined,
-  decimals = asset === "BNB" ? 18 : 6,
+  decimals: number = asset === "BNB" ? 18 : TOKEN.decimals,
 ): number | null {
   const rate = prices?.rates[asset]?.[fiat];
   if (rate === undefined) return null;

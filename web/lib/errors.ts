@@ -17,11 +17,15 @@ const plain: Record<string, string> = {
   TransferShortfall: "The token transfer came up short.",
   ZeroAddress: "An address is missing.",
   RolesNotDistinct: "Owner, renter and arbiter must be three different addresses, and the payee cannot be the renter or the arbiter.",
-  InvalidTerm: "The term must be between 1 and 60 months.",
+  InvalidTerm: "The term must be between 1 and 60 rent periods.",
+  InvalidRentPeriod: "Rent is paid every 7, 14 or 30 days.",
   InvalidResponseWindow: "The response window must be between 1 and 60 days.",
   ERC20InsufficientAllowance: "Approve the USDT amount first.",
   ERC20InsufficientBalance: "Not enough USDT in this wallet. Use the test faucet on anvil.",
   FaucetLimitExceeded: "The faucet gives at most 10,000 test USDT per request.",
+  DepositAboveCap: "Pilot limit: this deposit is above KeyEscrow's maximum per rental. Lower it.",
+  RentAboveCap: "Pilot limit: this rent is above KeyEscrow's maximum per rent period. Lower it.",
+  ActiveValueAboveCap: "Pilot limit: KeyEscrow already holds as much as the pilot allows. Try again once other rentals have settled.",
 };
 
 const general = {

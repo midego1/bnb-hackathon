@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
 import type { Rhythm } from "@/lib/fleet";
+import { countIn, nthIn, perIn } from "@/lib/rentals";
 import type { SubState } from "@/lib/subscriptions";
+import { TOKEN } from "@/lib/contracts";
 
 /**
  * Every user-facing string of the subscription views, in the visitor's language (dictionaries/{en,zh}/subs.ts).
@@ -11,6 +13,7 @@ import type { SubState } from "@/lib/subscriptions";
 export function subsCopyFor(t: T) {
   const byRhythm = (k: "rhythm" | "per") => ({ 7: t(`subs.${k}.d7`), 14: t(`subs.${k}.d14`), 30: t(`subs.${k}.d30`) }) satisfies Record<Rhythm, string>;
   const plural = (n: number) => (n === 1 ? "one" : "other");
+  const secs = (r: Rhythm) => r * 86_400;
   return {
     pageTitle: t("subs.pageTitle"),
     pageIntro: t("subs.pageIntro"),
@@ -19,14 +22,15 @@ export function subsCopyFor(t: T) {
     rhythm: byRhythm("rhythm"),
     per: byRhythm("per"),
     rhythmLabel: t("subs.rhythmLabel"),
-    rhythmSoon: t("subs.rhythmSoon"),
+    rhythmHint: t("subs.rhythmHint"),
+    perPeriod: (amount: string, r: Rhythm) => t("subs.perPeriod", { amount, per: perIn(t, secs(r)) }),
 
     plans: {
       title: t.h("subs.plans"),
       empty: t("subs.plans.empty"),
       deposit: (thb: string) => t("subs.plans.deposit", { thb }),
-      term: (n: number) => t("subs.plans.term", { n }),
-      upfront: t("subs.plans.upfront"),
+      term: (n: number, r: Rhythm) => t("subs.plans.term", { count: countIn(t, n, secs(r)) }),
+      upfront: (r: Rhythm) => t("subs.plans.upfront", { first: nthIn(t, 1, secs(r)) }),
       subscribe: t("subs.plans.subscribe"),
       requested: t("subs.plans.requested"),
       notAvailable: t("subs.plans.notAvailable"),
@@ -37,14 +41,14 @@ export function subsCopyFor(t: T) {
       title: t.h("subs.mine"),
       empty: t("subs.mine.empty"),
       nextPayment: t("subs.mine.nextPayment"),
-      paidThrough: (n: number, of: number) => t("subs.mine.paidThrough", { n, of }),
+      paidThrough: (n: number, of: number, r: Rhythm) => t("subs.mine.paidThrough", { n, count: countIn(t, of, secs(r)) }),
       deposit: t("subs.mine.deposit"),
       open: t("subs.mine.open"),
       loading: t("subs.mine.loading"),
       getUsdt: t("subs.mine.getUsdt"),
       approve: t("subs.mine.approve"),
-      start: t("subs.mine.start"),
-      pay: (n: number) => t("subs.mine.pay", { n }),
+      start: (r: Rhythm) => t("subs.mine.start", { first: nthIn(t, 1, secs(r)) }),
+      pay: (n: number, r: Rhythm) => t("subs.mine.pay", { nth: nthIn(t, n, secs(r)) }),
       payHint: t("subs.mine.payHint"),
       notEnough: t("subs.mine.notEnough"),
       allPaid: t("subs.mine.allPaid"),
@@ -69,7 +73,7 @@ export function subsCopyFor(t: T) {
     owner: {
       title: t.h("subs.title"),
       mrr: t("subs.owner.mrr"),
-      mrrHint: (usdt: string) => t("subs.owner.mrrHint", { usdt }),
+      mrrHint: (usdt: string) => t("subs.owner.mrrHint", { usdt, symbol: TOKEN.symbol }),
       subscribers: t("subs.owner.subscribers"),
       offerTitle: t.h("subs.offerTitle"),
       scooter: t("subs.owner.scooter"),
@@ -82,7 +86,7 @@ export function subsCopyFor(t: T) {
       saved: (name: string) => t("subs.owner.saved", { name }),
       noScooters: t("subs.owner.noScooters"),
       plansEmpty: t("subs.owner.plansEmpty"),
-      planCard: (n: number) => t("subs.owner.planCard", { n }),
+      planCard: (n: number, r: Rhythm) => t("subs.owner.planCard", { count: countIn(t, n, secs(r)) }),
       subscriberOf: (n: number) => t(`subs.owner.subscriberOf.${n ? plural(n) : "none"}`, { n }),
     },
 

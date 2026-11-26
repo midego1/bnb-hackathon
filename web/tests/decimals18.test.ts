@@ -1,0 +1,43 @@
+import { describe, expect, it, vi } from "vitest";
+
+// A BSC mainnet build (NEXT_PUBLIC_CHAIN_ID=56, 18-decimal BSC-USD): amounts follow the token, only chain 56 is served.
+vi.stubEnv("NEXT_PUBLIC_CHAIN_ID", "56");
+vi.mock("@/lib/contracts/deployments.generated.json", () => ({
+  default: {
+    "56": {
+      escrowFactory: "0x00000000000000000000000000000000000000f1",
+      mockUsdt: "0x55d398326f99059fF775485246999027B3197955",
+      fromBlock: 0,
+      tokenDecimals: 18,
+      tokenSymbol: "USDT",
+    },
+  },
+}));
+
+describe("18-decimal token", () => {
+  it("parses, formats and prices amounts with 18 decimals", async () => {
+    const { TOKEN, parseTokenAmount, formatToken } = await import("@/lib/actions/fields");
+    const { usdtNumber } = await import("@/lib/format");
+    const { toFiat } = await import("@/lib/fiat");
+    expect(TOKEN).toEqual({ symbol: "USDT", decimals: 18 });
+    const hundred = BigInt(10) ** BigInt(20);
+    expect(parseTokenAmount("100")).toBe(hundred);
+    expect(parseTokenAmount("0.000000000000000001")).toBe(BigInt(1));
+    expect(parseTokenAmount("0.0000000000000000001")).toBeUndefined();
+    expect(formatToken(hundred + hundred / BigInt(200))).toBe("100.50 USDT");
+    expect(usdtNumber(hundred)).toBe(100);
+    const prices = { rates: { USDT: { THB: 33, USD: 1 }, BNB: { THB: 0, USD: 0 } } } as never;
+    expect(toFiat(hundred, "USDT", "THB", prices)).toBe(3300);
+  });
+
+  it("serves BSC mainnet only, with BscScan links", async () => {
+    const { SUPPORTED_CHAIN_IDS } = await import("@/lib/actions/fields");
+    const { rpcUrl, defaultChainId } = await import("@/lib/actions/context");
+    const { explorerLink, supportedChains } = await import("@/lib/chains");
+    expect(SUPPORTED_CHAIN_IDS).toEqual([56]);
+    expect(supportedChains.map((c) => c.id)).toEqual([56]);
+    expect(defaultChainId({})).toBe(56);
+    expect(rpcUrl(56, {})).toBe("https://bsc-rpc.publicnode.com");
+    expect(explorerLink(56, "tx", "0xabc")).toBe("https://bscscan.com/tx/0xabc");
+  });
+});

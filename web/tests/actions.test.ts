@@ -35,9 +35,9 @@ const DEPOSIT = RENT * BigInt(2);
 type State = {
   status: number;
   startTime?: bigint;
-  monthsFunded?: number;
-  monthsReleased?: number;
-  monthsDue?: number;
+  periodsFunded?: number;
+  periodsReleased?: number;
+  periodsDue?: number;
   proposal?: { tenantRefund: bigint; landlordClaim: bigint; reportHash: Hex; proposer: Address; proposedAt: bigint; nonce: number };
   timeoutAt?: bigint;
   arbiterDeadline?: bigint;
@@ -70,7 +70,8 @@ function fakeHost(state: State, simulate?: (calls: SimCall[]) => { ok: boolean; 
           arbiter: DESK,
           rentAmount: RENT,
           depositAmount: DEPOSIT,
-          termMonths: 12,
+          termPeriods: 12,
+          rentPeriod: 30 * 86400,
           responseWindow: 7 * 86400,
           arbiterWindow: 14 * 86400,
           leaseHash: `0x${"11".repeat(32)}`,
@@ -79,9 +80,9 @@ function fakeHost(state: State, simulate?: (calls: SimCall[]) => { ok: boolean; 
         },
         status: state.status,
         startTime: state.startTime ?? BigInt(0),
-        monthsFunded: state.monthsFunded ?? 0,
-        monthsReleased: state.monthsReleased ?? 0,
-        monthsDue: state.monthsDue ?? 0,
+        periodsFunded: state.periodsFunded ?? 0,
+        periodsReleased: state.periodsReleased ?? 0,
+        periodsDue: state.periodsDue ?? 0,
         checkInHash: `0x${"22".repeat(32)}`,
         checkOutHash: `0x${"00".repeat(32)}`,
         proposal: state.proposal ?? zero,
@@ -150,22 +151,22 @@ describe("action definitions", () => {
     expect(fieldError(s, "renter", RENTER.toLowerCase())).toBeUndefined();
     expect(fieldError(s, "rent", "abc")).toMatch(/positive amount/);
     expect(fieldError(s, "rent", "18,000")).toBeUndefined();
-    expect(fieldError(s, "termMonths", "0")).toBe("1 to 60.");
-    expect(fieldError(s, "termMonths", 61)).toBe("1 to 60.");
+    expect(fieldError(s, "termPeriods", "0")).toBe("1 to 60.");
+    expect(fieldError(s, "termPeriods", 61)).toBe("1 to 60.");
     expect(fieldError(s, "responseWindowDays", 7)).toBeUndefined();
     expect(fieldError(s, "arbiterWindowDays", 91)).toBe("1 to 90.");
     expect(fieldError(prepareResolve.input, "toRenter", "1.1234567")).toMatch(/at most 6 decimals/);
     // Optional fields still validate a present value (the web forms rely on this).
     expect(fieldError(s, "deposit", "")).toMatch(/positive amount/);
     expect(fieldError(prepareProposeSettlement.input, "toRenter", "abc")).toMatch(/Enter an amount in mUSDT/);
-    expect(fieldLabel(s, "termMonths")).toBe("Term");
+    expect(fieldLabel(s, "termPeriods")).toBe("Term");
     expect(fieldLabel(s, "payee")).toBe("Payout address");
 
-    const both = { from: OWNER, renter: RENTER, rent: "100", deposit: "200", depositMonths: 2, termMonths: 12 };
+    const both = { from: OWNER, renter: RENTER, rent: "100", deposit: "200", depositMonths: 2, termPeriods: 12 };
     expect(() => parseInput(prepareCreateLease, both)).toThrow(/either `deposit` or `depositMonths`/);
     expect(() => parseInput(prepareCreateLease, { ...both, extra: 1 })).toThrow(ActionError);
-    const ok = parseInput(prepareCreateLease, { from: OWNER.toLowerCase(), renter: RENTER, rent: 18000, depositMonths: "2", termMonths: "12" });
-    expect(ok).toMatchObject({ from: OWNER, currency: "THB", depositMonths: 2, termMonths: 12, responseWindowDays: 7, arbiterWindowDays: 14 });
+    const ok = parseInput(prepareCreateLease, { from: OWNER.toLowerCase(), renter: RENTER, rent: 18000, depositMonths: "2", termPeriods: "12" });
+    expect(ok).toMatchObject({ from: OWNER, currency: "THB", depositMonths: 2, termPeriods: 12, responseWindowDays: 7, arbiterWindowDays: 14 });
     expect(() => parseInput(prepareProposeSettlement, { lease: LEASE, from: RENTER })).toThrow(/either `toRenter` or `inspection`/);
   });
 
@@ -193,7 +194,7 @@ describe("action definitions", () => {
 describe("prepare_* calldata against the ABI", () => {
   it("prepare_create_lease converts baht and encodes createLease for the factory", async () => {
     const { host, simulated } = fakeHost({ status: 0 });
-    const r = (await runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "18000", currency: "THB", depositMonths: 2, termMonths: 12 }, host)) as {
+    const r = (await runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "18000", currency: "THB", depositMonths: 2, termPeriods: 12 }, host)) as {
       steps: { to: Address; data: Hex; value: string }[];
       summary: string;
       unsigned: boolean;
@@ -210,16 +211,28 @@ describe("prepare_* calldata against the ABI", () => {
       arbiter: "0x0000000000000000000000000000000000000000",
       rentAmount: BigInt(545_450_000),
       depositAmount: BigInt(1_090_900_000),
-      termMonths: 12,
+      termPeriods: 12,
+      rentPeriod: 30 * 86400,
       responseWindow: 7 * 86400,
       arbiterWindow: 14 * 86400,
     });
-    expect(r.summary).toMatch(/545\.45 mUSDT a month .*demo rate/);
+    expect(r.summary).toMatch(/rental of 12 months .*545\.45 mUSDT per month .*demo rate/);
+
+    // Weekly rent: the monthly price x 7 / 30, rounded down; the deposit stays in months of the monthly price.
+    const weekly = (await runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "18000", currency: "THB", rentPeriodDays: 7, depositMonths: 2, termPeriods: 8 }, host)) as { steps: { data: Hex }[]; summary: string };
+    expect(decodeStep(escrowFactoryAbi, weekly.steps[0].data).args![0]).toMatchObject({
+      rentAmount: BigInt(127_271_666),
+      depositAmount: BigInt(1_090_900_000),
+      termPeriods: 8,
+      rentPeriod: 7 * 86400,
+    });
+    expect(weekly.summary).toMatch(/rental of 8 weeks .*127\.271666 mUSDT per week/);
+    await expect(runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "100", currency: "USDT", rentPeriodDays: 10, depositMonths: 1, termPeriods: 3 }, host)).rejects.toMatchObject({ code: "invalid_input" });
     expect(simulated[0][0]).toMatchObject({ from: OWNER, to: D.escrowFactory, data: r.steps[0].data });
 
     // Optional payee (e.g. a Fleet Vault): same params, routed through createLeaseWithPayee.
     const vault = getDeployment(31337)!.fleetVault!;
-    const withPayee = (await runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "100", currency: "USDT", depositMonths: 1, termMonths: 3, payee: vault }, host)) as { steps: { data: Hex }[] };
+    const withPayee = (await runAction("prepare_create_lease", { from: OWNER, renter: RENTER, rent: "100", currency: "USDT", depositMonths: 1, termPeriods: 3, payee: vault }, host)) as { steps: { data: Hex }[] };
     const decoded = decodeStep(escrowFactoryAbi, withPayee.steps[0].data);
     expect(decoded.functionName).toBe("createLeaseWithPayee");
     expect(decoded.args![1]).toBe(vault);
@@ -239,7 +252,7 @@ describe("prepare_* calldata against the ABI", () => {
   });
 
   it("prepare_propose_settlement takes the AI inspection result as is", async () => {
-    const { host } = fakeHost({ status: 1, startTime: NOW, monthsFunded: 1, monthsDue: 1 });
+    const { host } = fakeHost({ status: 1, startTime: NOW, periodsFunded: 1, periodsDue: 1 });
     const reportHash = `0x${"ef".repeat(32)}` as Hex;
     const r = (await runAction(
       "prepare_propose_settlement",
@@ -306,7 +319,7 @@ describe("preconditions and simulation errors come back as plain reasons", () =>
   it("maps a reverting step to its decoded custom error", async () => {
     const revert = encodeErrorResult({ abi: escrowFactoryAbi, errorName: "RolesNotDistinct" });
     const { host } = fakeHost({ status: 0 }, () => [{ ok: false, data: revert }]);
-    const err = (await runAction("prepare_create_lease", { from: OWNER, renter: OWNER, rent: "100", currency: "USDT", depositMonths: 1, termMonths: 1 }, host).catch((e: unknown) => e)) as ActionError;
+    const err = (await runAction("prepare_create_lease", { from: OWNER, renter: OWNER, rent: "100", currency: "USDT", depositMonths: 1, termPeriods: 1 }, host).catch((e: unknown) => e)) as ActionError;
     expect(err).toBeInstanceOf(ActionError);
     expect(err.status).toBe(422);
     expect(err.code).toBe("simulation_reverted");
@@ -331,11 +344,11 @@ describe("explain_status", () => {
     address: LEASE,
     chainId: 31337,
     status: "Active",
-    terms: { token: D.mockUsdt, owner: OWNER, renter: RENTER, arbiter: DESK, rentAmount: RENT, depositAmount: DEPOSIT, termMonths: 12, responseWindow: 604800, arbiterWindow: 1209600, leaseHash: `0x${"00".repeat(32)}`, feeBps: 1000, feeRecipient: OWNER },
+    terms: { token: D.mockUsdt, owner: OWNER, renter: RENTER, arbiter: DESK, rentAmount: RENT, depositAmount: DEPOSIT, termPeriods: 12, rentPeriod: 2592000, responseWindow: 604800, arbiterWindow: 1209600, leaseHash: `0x${"00".repeat(32)}`, feeBps: 1000, feeRecipient: OWNER },
     startTime: NOW,
-    monthsFunded: 1,
-    monthsReleased: 0,
-    monthsDue: 1,
+    periodsFunded: 1,
+    periodsReleased: 0,
+    periodsDue: 1,
     checkInHash: `0x${"00".repeat(32)}`,
     checkOutHash: `0x${"00".repeat(32)}`,
     proposal: { tenantRefund: BigInt(0), landlordClaim: BigInt(0), reportHash: `0x${"00".repeat(32)}`, proposer: "0x0000000000000000000000000000000000000000", proposedAt: BigInt(0), nonce: 0 },
@@ -385,14 +398,15 @@ describe("REST + OpenAPI are generated from the definitions", () => {
     }
     const create = (doc.paths["/api/v1/prepare_create_lease"] as { post: { requestBody: { content: { "application/json": { schema: { properties: Record<string, { "x-unit"?: string }>; required: string[] } } } } } }).post;
     const schema = create.requestBody.content["application/json"].schema;
-    expect(schema.required).toEqual(expect.arrayContaining(["from", "renter", "rent", "termMonths"]));
-    expect(schema.properties.termMonths["x-unit"]).toBe("months");
+    expect(schema.required).toEqual(expect.arrayContaining(["from", "renter", "rent", "termPeriods"]));
+    expect(schema.properties.termPeriods["x-unit"]).toBe("periods");
+    expect(schema.properties.rentPeriodDays["x-unit"]).toBe("days");
     const get = (doc.paths["/api/v1/get_lease"] as { get: { parameters: { name: string; required: boolean }[] } }).get;
     expect(get.parameters).toEqual(expect.arrayContaining([expect.objectContaining({ name: "lease", required: true })]));
   });
 
   it("serves actions over standard Request/Response with consistent errors", async () => {
-    const { host } = fakeHost({ status: 1, startTime: NOW, monthsFunded: 1, monthsDue: 1 });
+    const { host } = fakeHost({ status: 1, startTime: NOW, periodsFunded: 1, periodsDue: 1 });
     const call = (method: string, path: string, body?: unknown) =>
       handleActionRequest(new Request(`http://x/api/v1/${path}`, { method, ...(body ? { body: JSON.stringify(body), headers: { "content-type": "application/json" } } : {}) }), path.split("?")[0], host);
 

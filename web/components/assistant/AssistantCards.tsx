@@ -10,6 +10,7 @@ import type { ApprovalCard as Approval, Card, DoneCard as Done, LeaseCard as Lea
 import { safeAppPath } from "@/lib/assistant/paths";
 import { useT } from "@/lib/i18n/client";
 import type { Key } from "@/lib/i18n/t";
+import { perIn } from "@/lib/rentals";
 
 /** Cards are server data rendered as plain text; every link is an in-app path checked again here (or BscScan). */
 
@@ -91,7 +92,7 @@ function LeaseCardView({ c }: { c: Lease }) {
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-subtle">{t("ai.rentMonth")}</dt>
+          <dt className="text-[11px] text-subtle">{t("ai.rentPeriod", { per: perIn(t, c.periods.rentPeriod) })}</dt>
           <dd>
             <Amount m={c.rent} />
           </dd>
@@ -106,7 +107,7 @@ function LeaseCardView({ c }: { c: Lease }) {
       <p className="mt-2 text-xs text-muted-foreground">
         {t("ai.parties", { owner: short(c.owner), renter: short(c.renter) })}
         {c.you ? t("ai.you", { you: c.you }) : ""}
-        {t("ai.monthsPaid", { funded: c.months.funded, term: c.months.term })}
+        {t("ai.periodsPaid", { funded: c.periods.funded, term: c.periods.term })}
       </p>
       {c.next && (
         <p className="mt-2 rounded-lg bg-muted px-2 py-1.5 text-xs" data-testid="assistant-card-next">

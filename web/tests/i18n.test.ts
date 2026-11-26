@@ -9,7 +9,7 @@ import { paths, propertyName, PROPERTIES, stepsFor, stepText, txLabel } from "@/
 import { prepareCreateLease, prepareResolve } from "@/lib/actions/definitions";
 import { fieldError, fieldErrorIn } from "@/lib/actions/fields";
 import { EN_ERRORS, friendlyError } from "@/lib/errors";
-import { describeEvent, type ChainEvent } from "@/lib/rentals";
+import { countIn, describeEvent, nthIn, perIn, type ChainEvent } from "@/lib/rentals";
 import { errorsIn, zhErrors } from "@/lib/errors.zh";
 import { en } from "@/lib/i18n/dictionaries/en";
 import { zh } from "@/lib/i18n/dictionaries/zh";
@@ -150,11 +150,11 @@ describe("shared lib sentences in the UI language", () => {
 
   it("form field errors: English as the API says it, Chinese in 中文", () => {
     const s = prepareCreateLease.input;
-    for (const [key, value] of [["renter", "0x123"], ["rent", "abc"], ["termMonths", 61], ["deposit", ""]] as const) {
+    for (const [key, value] of [["renter", "0x123"], ["rent", "abc"], ["termPeriods", 61], ["deposit", ""]] as const) {
       expect(fieldErrorIn(enT, s, key, value)).toBe(fieldError(s, key, value));
       expect(fieldErrorIn(zhT, s, key, value)).toMatch(/\p{Script=Han}|^1 到 60。$/u);
     }
-    expect(fieldErrorIn(zhT, s, "termMonths", 61)).toBe("1 到 60。");
+    expect(fieldErrorIn(zhT, s, "termPeriods", 61)).toBe("1 到 60。");
     expect(fieldErrorIn(zhT, prepareResolve.input, "toRenter", "1.1234567")).toMatch(/\p{Script=Han}/u);
     expect(fieldErrorIn(zhT, s, "rent", "18,000")).toBeUndefined();
   });
@@ -168,3 +168,16 @@ describe("shared lib sentences in the UI language", () => {
     expect(describeEvent(ev("Mystery", {}), money, zhT)).toBe("Mystery");
   });
 });
+
+describe("rent periods (contract v2) in both languages", () => {
+  it("week / 2 weeks / month: unit, count and ordinal", () => {
+    const [en, zh] = [makeT(stateFor("en")), makeT(stateFor("zh"))];
+    const D = [7, 14, 30].map((d) => d * 86_400);
+    expect(D.map((p) => perIn(en, p))).toEqual(["week", "2 weeks", "month"]);
+    expect(D.map((p) => perIn(zh, p))).toEqual(["周", "两周", "月"]);
+    expect(D.map((p) => nthIn(en, 2, p))).toEqual(["week 2", "period 2", "month 2"]);
+    expect(D.map((p) => nthIn(zh, 2, p))).toEqual(["第 2 周", "第 2 期", "第 2 个月"]);
+    expect([countIn(en, 1, D[0]), countIn(en, 12, D[0]), countIn(zh, 12, D[0]), countIn(en, 12, D[2])]).toEqual(["1 week", "12 weeks", "12 周", "12 months"]);
+  });
+});
+

@@ -198,7 +198,7 @@ function log(address: Address, abi: Abi, eventName: string, args: Record<string,
 const created = (escrow: Address, block: number) =>
   log(FACTORY, escrowFactoryAbi as Abi, "LeaseCreated", {
     escrow, landlord: OWNER, tenant: RENTER, arbiter: DESK, rentAmount: b(100), depositAmount: b(200),
-    termMonths: 1, responseWindow: 604_800, arbiterWindow: 1_209_600, leaseHash: pad("0x11"),
+    termPeriods: 1, rentPeriod: 2_592_000, responseWindow: 604_800, arbiterWindow: 1_209_600, leaseHash: pad("0x11"),
   }, block);
 const funded = (escrow: Address, block: number) =>
   log(escrow, rentalEscrowAbi as Abi, "Funded", { tenant: RENTER, deposit: b(200), firstRent: b(100), startTime: b(1_700_000_000 + block) }, block);
@@ -255,7 +255,7 @@ function setup(opts: { ttlMs?: number; now?: () => number } = {}) {
     log(FACTORY, escrowFactoryAbi as Abi, "PayeeSet", { escrow: LEASE_A, payee: VAULT }, 1_500),
     log(FACTORY, escrowFactoryAbi as Abi, "FeeUpdated", { feeBps: 1000, feeRecipient: OWNER }, 1_600),
     funded(LEASE_A, 7_000), // a later window than its creation
-    log(LEASE_A, rentalEscrowAbi as Abi, "RentReleased", { caller: OWNER, months: 1, toLandlord: b(90), fee: b(10) }, 12_000),
+    log(LEASE_A, rentalEscrowAbi as Abi, "RentReleased", { caller: OWNER, periods: 1, toLandlord: b(90), fee: b(10) }, 12_000),
     transfer(LEASE_A, VAULT, 12_000), // income into the vault
     transfer(INVESTOR, VAULT, 12_500), // principal, not income
     log(VAULT, fleetVaultAbi as Abi, "Deposited", { investor: INVESTOR, amount: b(500) }, 12_500),

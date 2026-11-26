@@ -1,5 +1,6 @@
 import type { EngineDeps } from "@/lib/assistant/engine";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
+import { TOKEN } from "@/lib/contracts";
 import { dailyTokenLimit, TokenBudget } from "@/lib/assistant/limits";
 import { modelFromEnv, resolveModel } from "@/lib/assistant/model";
 import { casStore, type AssistantStore } from "@/lib/assistant/store";
@@ -36,7 +37,7 @@ export function assistantDeps(req: Request, env: Record<string, string | undefin
         headers: { "content-type": "application/json", "x-forwarded-for": clientIp(req) },
         body: JSON.stringify({
           deposit: lease.terms.depositAmount.toString(),
-          decimals: 6,
+          decimals: TOKEN.decimals,
           currency: "USDT",
           checkIn: [{ hash: lease.checkInHash }],
           checkOut: [{ hash: lease.checkOutHash }],

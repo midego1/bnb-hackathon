@@ -1,4 +1,5 @@
 import type { Hex } from "viem";
+import { TOKEN } from "./contracts";
 
 /** Response of POST /api/settlement (amounts are integer strings in token base units). */
 export type InspectionResult = {
@@ -41,7 +42,7 @@ export async function runInspection(input: {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       deposit: input.deposit.toString(),
-      decimals: 6,
+      decimals: TOKEN.decimals,
       currency: "USDT",
       checkIn: input.checkIn.map(photoRef),
       checkOut: input.checkOut.map(photoRef),

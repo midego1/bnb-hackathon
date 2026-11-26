@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { parseUnits } from "viem";
 import { describe, expect, it } from "vitest";
 import { AI_LANDLORD_CLAIM, baht, ENDINGS, MONEY, RENTAL, RENTALS, story, totalDuration, type Ending } from "@/components/eli5/script";
 import { ANCHORS, coinsAt, holdingsAt } from "@/components/eli5/timeline";
+import { TOKEN } from "@/lib/contracts";
 import { newContext, PROPERTIES } from "@/lib/demo/script";
 import { formatFiat } from "@/lib/fiat";
 import { mockAssessment } from "@/lib/server/settlement/mock";
@@ -64,8 +66,9 @@ describe("ELI5 script (/how-it-works)", () => {
     expect(baht(MONEY.rent)).toBe(thb(PROPERTIES[0].rentThb));
     expect(baht(MONEY.deposit)).toBe(thb(PROPERTIES[0].rentThb * 2));
     expect(baht(MONEY.fee)).toBe(thb(PROPERTIES[0].rentThb / 10));
-    // 1.5x the AI estimate in whole mUSDT (lib/demo/script deskRuling).
-    expect(MONEY.deskLandlord).toBe(((AI_LANDLORD_CLAIM * BigInt(3)) / BigInt(2) / BigInt(1_000_000)) * BigInt(1_000_000));
+    // 1.5x the AI estimate in whole tokens (lib/demo/script deskRuling).
+    const unit = BigInt(10) ** BigInt(TOKEN.decimals);
+    expect(MONEY.deskLandlord).toBe(((AI_LANDLORD_CLAIM * BigInt(3)) / BigInt(2) / unit) * unit);
   });
 
   it("the AI suggestion is what the demo's inspector says about the bundled move-out photos", () => {
@@ -77,12 +80,12 @@ describe("ELI5 script (/how-it-works)", () => {
     const photo = (file: string) => ({ hash: `0x${createHash("sha256").update(readFileSync(path.join(dir, file))).digest("hex")}` });
     const raw = mockAssessment({
       deposit: MONEY.deposit.toString(),
-      decimals: 6,
+      decimals: TOKEN.decimals,
       currency: "USDT",
       checkIn: files("checkin").map(photo),
       checkOut: files("checkout").map(photo),
     } as Parameters<typeof mockAssessment>[0]);
-    expect(BigInt(Math.round(Number(raw.landlordClaim) * 1e6))).toBe(AI_LANDLORD_CLAIM);
+    expect(parseUnits(String(raw.landlordClaim), TOKEN.decimals)).toBe(AI_LANDLORD_CLAIM);
   });
 
   it("the rented thing comes from one variable, and both rentals are fully described", () => {

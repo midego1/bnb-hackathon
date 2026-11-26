@@ -23,6 +23,7 @@ export type { EvidenceStore } from "../../web/lib/server/evidence/types.ts";
 
 // The rental actions (web/lib/actions): one definition per action, served here as MCP tools and A2A skills.
 export { ACTIONS, findAction, toolDescription, type Action } from "../../web/lib/actions/definitions.ts";
+export { TOKEN } from "../../web/lib/actions/fields.ts";
 export { executeAction, errorBody, jsonSafe, parseInput, runAction } from "../../web/lib/actions/run.ts";
 export { ActionError, type ActionHost } from "../../web/lib/actions/context.ts";
 export { PriceService } from "../../web/lib/server/price/index.ts";

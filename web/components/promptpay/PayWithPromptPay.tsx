@@ -17,6 +17,7 @@ import { useLease } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
+import { perIn } from "@/lib/rentals";
 import { amountDue, promptPayPayload, QR_TTL_MS, thbFor } from "@/lib/promptpay";
 import { usePrices } from "@/lib/usePrices";
 
@@ -179,7 +180,7 @@ export function PayWithPromptPay({ address }: { address: Address }) {
                 onClick={pay}
                 data-testid="promptpay-fund"
               >
-                {due.what === "fund" ? t("promptpay.fundBoth") : t("promptpay.payMonth")}
+                {due.what === "fund" ? t("promptpay.fundBoth") : t("promptpay.payPeriod", { per: perIn(t, lease.terms.rentPeriod) })}
               </ActionButton>
             </div>
           </div>

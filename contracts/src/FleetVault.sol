@@ -201,6 +201,9 @@ contract FleetVault is ERC20, ReentrancyGuardTransient {
         if (from != address(0) && block.timestamp < lockedUntil[from]) {
             revert SharesLocked(lockedUntil[from]);
         }
+        // A transfer first credits income that arrived but was not synced yet, so the seller keeps it (audit #10).
+        // deposit and redeem sync themselves (a mint must not: its tokens are in the balance, not in principal yet).
+        if (from != address(0) && to != address(0)) _sync();
         if (from != address(0)) _accrue(from);
         if (to != address(0)) _accrue(to);
         super._update(from, to, value);

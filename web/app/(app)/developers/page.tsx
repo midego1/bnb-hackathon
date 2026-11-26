@@ -6,6 +6,7 @@ import { inputJsonSchema } from "@/lib/actions/openapi";
 import { API_BASE, methodOf } from "@/lib/actions/rest";
 import { getDictionary } from "@/lib/i18n/server";
 import type { T } from "@/lib/i18n/t";
+import { TOKEN } from "@/lib/contracts";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary())("dev.metaTitle") };
@@ -33,7 +34,7 @@ export default async function DevelopersPage() {
           </a>
           {t("dev.notes.mcp")}
           <code>POST /mcp</code>
-          {t("dev.notes.config")}
+          {t("dev.notes.config", { symbol: TOKEN.symbol, decimals: TOKEN.decimals })}
           <code>&quot;441.18&quot;</code>
           {t("dev.notes.outputs")}
           <code>units</code>

@@ -1,9 +1,10 @@
 import { formatUnits, parseUnits } from "viem";
 import { z } from "zod";
+import { TOKEN } from "../../contracts";
 import { BYTES32_RE } from "../hash";
 
-/** MockUSDT (and real USDT on BNB Chain testnets used here) has 6 decimals. */
-export const DEFAULT_DECIMALS = 6;
+/** The deployment's stablecoin decimals: MockUSDT 6, BSC-USD 18. */
+export const DEFAULT_DECIMALS = TOKEN.decimals;
 export const MAX_PHOTOS_PER_SET = 20;
 export const MAX_REASONS = 10;
 export const MAX_REASON_LENGTH = 300;
@@ -34,7 +35,7 @@ const photoSet = z.array(PhotoRefSchema).min(1).max(MAX_PHOTOS_PER_SET);
 
 export const SettlementRequestSchema = z
   .object({
-    /** Deposit held in escrow, as an integer string in token base units (MockUSDT: 6 decimals). */
+    /** Deposit held in escrow, as an integer string in token base units (decimals: the `decimals` field). */
     deposit: baseUnits.refine((s) => /^\d+$/.test(s) && BigInt(s) > BigInt(0), "deposit must be > 0"),
     decimals: z.number().int().min(0).max(36).default(DEFAULT_DECIMALS),
     currency: z.string().min(1).max(12).default("USDT"),

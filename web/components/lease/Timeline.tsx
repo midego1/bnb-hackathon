@@ -9,7 +9,8 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
-import { dateTimeIn, monthsIn, useRentalCopy } from "./copy";
+import { countIn, perIn } from "@/lib/rentals";
+import { dateTimeIn, useRentalCopy } from "./copy";
 import { roleOfAddress } from "./model";
 import { ARBITER_TIMEOUT_BASIS, LANDLORD_TIMEOUT_BASIS } from "./story";
 type Money = (v: bigint) => string;
@@ -18,18 +19,19 @@ const EVIDENCE_KINDS = ["pickup", "return", "document"] as const;
 function describe(e: TimelineEvent, lease: LeaseData, money: Money, t: T): { title: string; body?: ReactNode; tone: string } {
   const a = e.args;
   const usdt = (v: unknown) => money(v as bigint);
-  const months = (n: unknown) => monthsIn(t)(Number(n));
+  const per = perIn(t, lease.terms.rentPeriod);
+  const months = (n: unknown) => countIn(t, Number(n), lease.terms.rentPeriod);
   const role = (who: unknown) => roleOfAddress(lease, who, t);
   switch (e.name) {
     case "LeaseCreated":
-      return { title: t("rental.timeline.created"), body: t("rental.timeline.createdBody", { rent: usdt(a.rentAmount), deposit: usdt(a.depositAmount), months: String(a.termMonths) }), tone: "text-subtle" };
+      return { title: t("rental.timeline.created"), body: t("rental.timeline.createdBody", { rent: usdt(a.rentAmount), deposit: usdt(a.depositAmount), months: months(a.termPeriods), per }), tone: "text-subtle" };
     case "Funded":
-      return { title: t("rental.timeline.funded"), body: t("rental.timeline.fundedBody", { deposit: usdt(a.deposit), rent: usdt(a.firstRent) }), tone: "text-success" };
+      return { title: t("rental.timeline.funded"), body: t("rental.timeline.fundedBody", { deposit: usdt(a.deposit), rent: usdt(a.firstRent), per }), tone: "text-success" };
     case "RentPaid":
-      return { title: t("rental.timeline.rentPaid", { months: months(a.months) }), body: usdt(a.amount), tone: "text-success" };
+      return { title: t("rental.timeline.rentPaid", { months: months(a.periods) }), body: usdt(a.amount), tone: "text-success" };
     case "RentReleased":
       return {
-        title: t("rental.timeline.rentReleased", { months: months(a.months) }),
+        title: t("rental.timeline.rentReleased", { months: months(a.periods) }),
         body:
           (a.fee as bigint) > BigInt(0)
             ? t("rental.timeline.releasedBodyFee", { amount: usdt(a.toLandlord), fee: usdt(a.fee), role: role(a.caller) })

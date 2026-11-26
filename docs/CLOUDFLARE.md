@@ -153,12 +153,13 @@ names).
 
 ## Size
 
-Measured on the bundles wrangler built for the local previews (gzip level 9 of the uploaded modules):
+Measured on 26 Nov 2026 (main) on the bundles wrangler built for the local previews (gzip level 9 of the uploaded
+modules); `wrangler deploy --dry-run` reports `Total Upload` 2791 KiB gzip for the web Worker:
 
 | Worker | Raw | Gzip | Plan |
 | --- | --- | --- | --- |
-| `keyescrow-web` | 12.93 MiB | **2.59 MiB** | fits Free (3 MiB), 0.41 MiB headroom |
-| `keyescrow-agent` | 4.3 MiB | **0.75 MiB** | fits Free |
+| `keyescrow-web` | 13.58 MiB | **2.70 MiB** | fits Free (3 MiB), 0.30 MiB headroom |
+| `keyescrow-agent` | 4.34 MiB | **0.75 MiB** | fits Free |
 
 Before stubbing the Greenfield SDK the web Worker was 3.72 MiB gzip (Paid only). Cloudflare's own number at deploy
 time (`Total Upload ... gzip`) may differ slightly. It reached 2.97 MiB (3043 KiB) before the MetaMask and Base

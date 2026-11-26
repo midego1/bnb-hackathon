@@ -3,18 +3,20 @@
  * label, unit and an LLM-friendly description attached as metadata, so the same field shows up identically in the
  * REST API's OpenAPI document, the MCP tool schemas and the web forms' validation messages.
  *
- * Client-safe: zod + viem utils only.
+ * Client-safe: zod + viem utils + the deployment table only.
  */
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { z } from "zod";
+import { targetChainId } from "../chains";
+import { TOKEN } from "../contracts";
 import type { Translate } from "@/lib/i18n/keys";
 
-/** MockUSDT on anvil and BSC testnet: 6 decimals, symbol mUSDT. */
-export const TOKEN = { symbol: "mUSDT", decimals: 6 } as const;
+/** The target chain's stablecoin (decimals and symbol from its deployment file): MockUSDT (6) on testnets, BSC-USD (18) on 56. */
+export { TOKEN };
 
-/** Chains with a KeyEscrow deployment (contracts/deployments/*.json). Never a mainnet. */
-export const SUPPORTED_CHAIN_IDS = [31337, 97, 5611] as const;
-export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number];
+export type SupportedChainId = 31337 | 97 | 5611 | 56;
+/** Chains this server serves: BSC mainnet (56) only in a mainnet build, else the testnets and anvil, never both. */
+export const SUPPORTED_CHAIN_IDS: readonly SupportedChainId[] = targetChainId === 56 ? [56] : [31337, 97, 5611];
 
 /** Lease status names, index = RentalEscrow.Status. */
 export const STATUS_NAMES = ["Created", "Active", "MoveOut", "Disputed", "Settled", "Cancelled"] as const;
@@ -50,7 +52,7 @@ export const field = {
       .transform((s) => getAddress(s) as Address)
       .meta(meta),
 
-  /** Token amount typed by a person ("441.18" or 441.18), in mUSDT; output is bigint base units. */
+  /** Token amount typed by a person ("441.18" or 441.18), in the stablecoin; output is bigint base units. */
   tokenAmount: (meta: Meta, opts: { positive?: boolean } = {}) =>
     z
       .union([z.string(), z.number()])
@@ -107,11 +109,14 @@ export const field = {
 
   chainId: () =>
     z
-      .preprocess((v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v), z.union([z.literal(31337), z.literal(97)]))
+      .preprocess(
+        (v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v),
+        z.number().refine((id) => SUPPORTED_CHAIN_IDS.includes(id as SupportedChainId), `One of ${SUPPORTED_CHAIN_IDS.join(", ")}.`),
+      )
       .optional()
       .meta({
         title: "Chain",
-        description: "31337 = local anvil, 97 = BSC testnet. Defaults to the chain this server is configured for.",
+        description: `${SUPPORTED_CHAIN_IDS.join(", ")} (31337 = local anvil, 97 = BSC testnet, 5611 = opBNB testnet, 56 = BSC mainnet). Defaults to the chain this server is configured for.`,
       }),
 };
 
@@ -157,6 +162,7 @@ export function fieldErrorIn(t: Translate, schema: z.ZodObject, key: string, val
   if (msg.startsWith("Enter an amount in")) return t("ui.field.amount", { symbol: TOKEN.symbol, decimals: TOKEN.decimals });
   if (msg.startsWith("Enter a positive amount")) return t("ui.field.positive");
   if (msg === "Must be more than 0.") return t("ui.field.moreThan0");
+  if (msg === "7, 14 or 30 days.") return t("ui.field.rentPeriod");
   if (msg === "Enter a whole number.") return t("ui.field.whole");
   return msg;
 }

@@ -6,10 +6,12 @@
  * Client-safe types + pure builders (no server imports).
  */
 import type { Explanation } from "../actions/explain";
-import { formatToken, type StatusName } from "../actions/fields";
+import { formatUnits } from "viem";
+import { formatToken, TOKEN, type StatusName } from "../actions/fields";
 import type { LeaseSnapshot } from "../actions/lease";
 import { explorerLink, explorerName } from "../chains";
 import { formatFiat } from "../fiat";
+import { periodCount, periodName } from "../rentals";
 import { leasePath } from "./paths";
 
 /** USDT -> fiat rates of the current price quote; `mock` = clearly marked demo rates. */
@@ -34,7 +36,8 @@ export type LeaseCard = {
   rent: Money;
   deposit: Money;
   escrow: Money;
-  months: { term: number; funded: number; released: number };
+  /** Rent periods; `rentPeriod` in seconds (7, 14 or 30 days). */
+  periods: { term: number; funded: number; released: number; rentPeriod: number };
   next: { who: string; what: string; deadline?: string } | null;
   links: CardLink[];
 };
@@ -92,7 +95,7 @@ export const STATUS_LABEL: Record<StatusName, string> = {
 const OPEN: StatusName[] = ["Created", "Active", "MoveOut", "Disputed"];
 
 export function money(units: bigint, rates: Rates | undefined): Money {
-  const n = Number(units) / 1e6;
+  const n = Number(formatUnits(units, TOKEN.decimals));
   return {
     thb: rates ? formatFiat(n * rates.THB, "THB") : null,
     usd: rates ? formatFiat(n * rates.USD, "USD") : null,
@@ -129,7 +132,7 @@ export function leaseCard(l: LeaseSnapshot, explanation: Explanation, rates: Rat
     rent: money(l.terms.rentAmount, rates),
     deposit: money(l.terms.depositAmount, rates),
     escrow: money(l.balance, rates),
-    months: { term: l.terms.termMonths, funded: l.monthsFunded, released: l.monthsReleased },
+    periods: { term: l.terms.termPeriods, funded: l.periodsFunded, released: l.periodsReleased, rentPeriod: l.terms.rentPeriod },
     next: step ? { who: who[step.who], what: step.what, ...(step.deadline ? { deadline: step.deadline } : {}) } : null,
     links,
   };
@@ -216,11 +219,12 @@ export function approvalCard(a: ApprovalInput): ApprovalCard {
   switch (a.action) {
     case "prepare_create_lease": {
       const e = a.expected as { rent?: { units: string }; deposit?: { units: string } } | undefined;
+      const period = Number(a.input.rentPeriodDays ?? 30) * 86_400;
       status("Created");
       changes.push({ label: "Renter", after: String(a.input.renter) });
-      if (e?.rent) changes.push({ label: "Rent per month", after: m(BigInt(e.rent.units)) });
+      if (e?.rent) changes.push({ label: `Rent per ${periodName(period)}`, after: m(BigInt(e.rent.units)) });
       if (e?.deposit) changes.push({ label: "Deposit", after: m(BigInt(e.deposit.units)) });
-      changes.push({ label: "Term", after: `${a.input.termMonths} month(s)` });
+      changes.push({ label: "Term", after: periodCount(Number(a.input.termPeriods), period) });
       break;
     }
     case "prepare_fund":
@@ -228,16 +232,16 @@ export function approvalCard(a: ApprovalInput): ApprovalCard {
         status("Active");
         const pay = l.terms.depositAmount + l.terms.rentAmount;
         escrow(l.balance + pay);
-        changes.push({ label: "Renter pays", after: `${m(pay)} (deposit + first month)` });
+        changes.push({ label: "Renter pays", after: `${m(pay)} (deposit + the first ${periodName(l.terms.rentPeriod)})` });
       }
       break;
     case "prepare_release_rent":
       if (l) {
         const isRenter = l.terms.renter.toLowerCase() === a.signer.toLowerCase();
-        const upTo = isRenter ? l.monthsFunded : Math.min(l.monthsDue, l.monthsFunded);
-        const months = Math.max(0, upTo - l.monthsReleased);
-        const gross = BigInt(months) * l.terms.rentAmount;
-        changes.push({ label: "Rent paid out", before: `${l.monthsReleased} month(s)`, after: `${l.monthsReleased + months} month(s)` });
+        const upTo = isRenter ? l.periodsFunded : Math.min(l.periodsDue, l.periodsFunded);
+        const periods = Math.max(0, upTo - l.periodsReleased);
+        const gross = BigInt(periods) * l.terms.rentAmount;
+        changes.push({ label: "Rent paid out", before: periodCount(l.periodsReleased, l.terms.rentPeriod), after: periodCount(l.periodsReleased + periods, l.terms.rentPeriod) });
         escrow(l.balance - gross);
       }
       break;

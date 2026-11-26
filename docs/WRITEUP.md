@@ -27,12 +27,13 @@ CMC `credit_count` (never the key) to `web/.sponsor-logs/*.jsonl` and shown on `
 
 ## BNB Chain contracts and data (BSC testnet, chain 97)
 
-| Contract | Address |
+`EscrowFactory`, the `RentalEscrow` implementation (EIP-1167 clones per rental), `MockUSDT` (test stablecoin) and
+`FleetVault` (BKK-FLEET-1 shares), verified on BscScan: addresses in the
+[README contract table](../README.md#bsc-testnet-contracts-chain-97), from
+[contracts/deployments/97.json](../contracts/deployments/97.json).
+
+| Also used | Address |
 |---|---|
-| EscrowFactory | `0xd33b4dfF8C09e0079918fD987953c8f65F1363D8` |
-| RentalEscrow implementation (EIP-1167 clones per rental) | `0x63f174fE3E80442c95b82a811a7D0d13f34D2314` |
-| MockUSDT (test stablecoin, 6 decimals) | `0x46e69984A52233980F1CAeABB4571555e4c8fE37` |
-| FleetVault (BKK-FLEET-1 shares) | `0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB` |
 | ERC-8004 Identity Registry (inspector agent #2921) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Atlas feeds | _not yet: Atlas publishes no BSC testnet feed addresses; to be filled in at the venue_ |
 

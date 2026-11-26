@@ -114,9 +114,9 @@ describe("integration: prepare -> sign with an anvil dev key -> state changes (l
 
   it("creates, funds, proposes and settles a rental through the MCP tools", async () => {
     const client = await mcpClient(url);
-    const create = await tool<Prepared>(client, "prepare_create_lease", { from: owner.address, renter: renter.address, rent: "3300", currency: "THB", depositMonths: 2, termMonths: 3 });
+    const create = await tool<Prepared>(client, "prepare_create_lease", { from: owner.address, renter: renter.address, rent: "3300", currency: "THB", depositMonths: 2, termPeriods: 3 });
     expect(create.ok).toBe(true);
-    expect(create.data.summary).toMatch(/rent 100.00 mUSDT a month/);
+    expect(create.data.summary).toMatch(/rent 100.00 mUSDT per month/);
     await sign(create.data, ANVIL_DEV_KEYS.owner);
     const lease = create.data.expected!.lease!;
 

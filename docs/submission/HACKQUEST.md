@@ -82,11 +82,11 @@ run one risk quote; the call then shows on `/integrations`.
 ## Tech stack
 
 - **Contracts:** Solidity 0.8.28, Foundry, OpenZeppelin (`Clones`, `SafeERC20`, `ReentrancyGuardTransient`,
-  `Ownable2Step`). 105 tests including fuzz. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
+  `Ownable2Step`). 305 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
 - **Web:** Next.js (App Router), TypeScript, Tailwind, wagmi/viem, RainbowKit, on Cloudflare Workers (OpenNext)
-  with one Durable Object for shared state. Vitest (241 tests) and Playwright (50 tests on a throwaway anvil).
+  with one Durable Object for shared state. Vitest (393 tests) and Playwright (108 tests in 20 files on a throwaway anvil). The web Worker is 2.70 MiB gzip (Free plan limit 3 MiB).
 - **Agent:** TypeScript, ERC-8004 identity via the BNB Agent SDK, A2A + MCP (Streamable HTTP), Node server and
-  Cloudflare Worker. 20 tests.
+  Cloudflare Worker. 21 tests.
 - **AI:** a vision LLM for the return inspection (deterministic demo inspector without a key); Ask AI on Claude
   (Anthropic SDK), with an offline demo model.
 - **Data:** CoinMarketCap Pro API, Atlas push oracle, Cournot Intelligence Oracle, Living Brain memory (each with a
@@ -114,12 +114,11 @@ Upload the MP4s to YouTube or similar if the form wants a URL; GitHub links to t
 
 ### Contracts on BscScan (BSC testnet, chain 97)
 
-| Contract | Address |
+Paste the contract table from the [README](../../README.md#bsc-testnet-contracts-chain-97) when you fill in the form:
+it is the one place with the current addresses (contract v2, deployed Thu 26 Nov).
+
+| Also on BscScan | Address |
 | --- | --- |
-| `EscrowFactory` | [`0xd33b4dfF8C09e0079918fD987953c8f65F1363D8`](https://testnet.bscscan.com/address/0xd33b4dfF8C09e0079918fD987953c8f65F1363D8#code) |
-| `RentalEscrow` implementation | [`0x63f174fE3E80442c95b82a811a7D0d13f34D2314`](https://testnet.bscscan.com/address/0x63f174fE3E80442c95b82a811a7D0d13f34D2314#code) |
-| `FleetVault` (BKK-FLEET-1) | [`0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB`](https://testnet.bscscan.com/address/0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB#code) |
-| `MockUSDT` (test stablecoin) | [`0x46e69984A52233980F1CAeABB4571555e4c8fE37`](https://testnet.bscscan.com/address/0x46e69984A52233980F1CAeABB4571555e4c8fE37#code) |
 | ERC-8004 Identity Registry (agent #2921) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://testnet.bscscan.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) · [registration tx](https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0) |
 | Rental settled in the recorded demo | [`0x09adDfd6c49A066b7122Cc5A8048bEd5af74ebA6`](https://testnet.bscscan.com/address/0x09adDfd6c49A066b7122Cc5A8048bEd5af74ebA6) |
 
