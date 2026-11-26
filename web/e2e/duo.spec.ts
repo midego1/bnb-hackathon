@@ -21,8 +21,8 @@ async function step(phone: FrameLocator, name: string) {
 }
 
 async function resetStage(page: Page) {
-  page.once("dialog", (d) => d.accept());
   await page.getByTestId("stage-reset").click();
+  await page.getByTestId("confirm-ok").click(); // in-page dialog, not window.confirm
   await expect(page.getByTestId("duo-view")).toHaveAttribute("data-status", "none");
 }
 

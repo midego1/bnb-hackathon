@@ -1,7 +1,7 @@
 "use client";
 
-import { LogoMark } from "@/components/LogoMark";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { LogoMark } from "@/components/LogoMark";
 import { Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { formatFiat } from "@/lib/fiat";

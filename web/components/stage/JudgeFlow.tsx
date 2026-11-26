@@ -1,11 +1,11 @@
 "use client";
 
-import { LogoMark } from "@/components/LogoMark";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { type Address, type Hex, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
+import { LogoMark } from "@/components/LogoMark";
 import { ActionButton, Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { friendlyError } from "@/lib/errors";
