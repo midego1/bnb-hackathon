@@ -46,7 +46,8 @@ async function oneScreen(page: Page, at: string) {
   expect(m.sh, `page scroll at ${at}`).toBeLessThanOrEqual(m.h);
   const ids = ["duo-steps", "duo-renter", "duo-owner", "duo-phone", "duo-owner-phone", "stage-qr", "duo-board", "duo-pile", "duo-lock", "duo-paid", "duo-back", "duo-got", "duo-fee", "stage-timeline-box", "stage-reset"];
   if (await page.getByTestId("stage-accept").count()) ids.push("stage-accept");
-  for (const id of ids) await expect(page.getByTestId(id).first(), `${id} at ${at}`).toBeInViewport({ ratio: 1 });
+  // 0.999: Accept sits in the owner's scaled phone, whose sub-pixel edges round a hair under 1.
+  for (const id of ids) await expect(page.getByTestId(id).first(), `${id} at ${at}`).toBeInViewport({ ratio: 0.999 });
   // The lanes sit between the phones and the vault, not over either.
   const box = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
   const [phone, owner, laneL, laneR, vault] = await Promise.all(["[data-testid='duo-phone']", "[data-testid='duo-owner-phone']", ".duo-lane-l", ".duo-lane-r", ".duo-vault"].map(box));
