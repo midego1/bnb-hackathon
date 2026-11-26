@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import { DepositRiskForUsdt } from "@/components/risk/DepositRiskPanel";
-import { ActionButton, Amount, Card, PriceSourceBadge } from "@/components/ui";
+import { ActionButton, Card } from "@/components/ui";
 import { targetChainId } from "@/lib/chains";
 import { mockUsdtAbi, rentalEscrowAbi, TOKEN } from "@/lib/contracts";
-import { perIn } from "@/lib/rentals";
 import { formatUsdt } from "@/lib/format";
 import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
@@ -15,7 +13,7 @@ import { useT } from "@/lib/i18n/client";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
-/** Renter: get test USDT, approve, fund deposit + first month. */
+/** Renter: get test USDT, approve, fund deposit + first month. The amounts are in the Money card. */
 export function FundingPanel({ lease }: { lease: LeaseData }) {
   const { address } = useAccount();
   const { data: token } = useTokenState(address, lease.address);
@@ -29,13 +27,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
   const faucetAmount = short > FAUCET_LIMIT ? FAUCET_LIMIT : short;
 
   return (
-    <Card title={t.h("rental.fund")} aside={<PriceSourceBadge />}>
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label={t("rental.fund.deposit")}><Amount value={lease.terms.depositAmount} /></Stat>
-        <Stat label={t("rental.fund.firstRent", { per: perIn(t, lease.terms.rentPeriod) })}><Amount value={lease.terms.rentAmount} /></Stat>
-        <Stat label={t("rental.fund.total")}><Amount value={need} /></Stat>
-      </div>
-      <div className="mb-4"><DepositRiskForUsdt deposit={lease.terms.depositAmount} rentalDays={(lease.terms.termPeriods * lease.terms.rentPeriod) / 86400} /></div>
+    <Card title={t.h("rental.fund")}>
       <p className="mb-4 text-sm text-muted-foreground">
         {t("rental.fund.wallet", { balance: balance === undefined ? "…" : t("rental.fund.walletAmount", { amount: formatUsdt(balance) }) })}
       </p>

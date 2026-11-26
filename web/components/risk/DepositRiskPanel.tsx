@@ -5,7 +5,8 @@ import { useT } from "@/lib/i18n/client";
 import { usePrices } from "@/lib/usePrices";
 import { useRisk } from "@/lib/useRisk";
 import type { RiskAsset } from "@/lib/risk";
-import { Notice, Skeleton } from "@/components/ui";
+import { ChevronDown, ShieldCheck } from "lucide-react";
+import { Card, Notice, Skeleton } from "@/components/ui";
 import { CournotEvidence } from "./CournotEvidence";
 
 const pct = (f: number) => `${(f * 100).toFixed(f > 0 && f < 0.1 ? 1 : 0)}%`;
@@ -82,4 +83,61 @@ export function DepositRiskForUsdt({ deposit, rentalDays }: { deposit: bigint | 
   const { prices } = usePrices();
   const thb = deposit ? toFiat(deposit, "USDT", "THB", prices) : null;
   return <DepositRiskPanel depositThb={thb} rentalDays={Number.isFinite(rentalDays) && rentalDays > 0 ? rentalDays : 30} />;
+}
+
+/**
+ * The same numbers as one small card for the rental page: the buffer if the deposit is paid in USDT or in BNB, one line
+ * of why, the Cournot probability, and the whole panel (explanations, claim, evidence) on demand.
+ */
+export function DepositProtection({ deposit, rentalDays }: { deposit: bigint; rentalDays: number }) {
+  const { prices } = usePrices();
+  const depositThb = toFiat(deposit, "USDT", "THB", prices);
+  const { data, isLoading } = useRisk(depositThb, rentalDays);
+  const t = useT();
+  if (!depositThb) return null;
+  const o = data?.options;
+  const r = data?.cournot.result;
+  return (
+    <Card title={t.h("risk.protection")}>
+      {isLoading ? (
+        <Skeleton className="h-20" />
+      ) : !o ? (
+        // Not configured or a call failed: the full panel says which, and never shows made-up numbers.
+        <DepositRiskPanel depositThb={depositThb} rentalDays={rentalDays} />
+      ) : (
+        <div className="space-y-3 text-sm" data-testid="protection-summary">
+          <dl className="space-y-2">
+            {(["USDT", "BNB"] as const).map((a) => (
+              <div key={a} className="flex items-start justify-between gap-3" data-asset={a}>
+                <dt className="min-w-0">
+                  <span className="font-medium">{t("risk.paidIn", { asset: a })}</span>
+                  <span className="block text-xs text-subtle">{t(`risk.tier.${o[a].tier}`, { pct: `${(o[a].dailyVol * 100).toFixed(2)}%` })}</span>
+                </dt>
+                <dd className="shrink-0 text-right">
+                  <span className="font-semibold tabular-nums">{formatFiat(o[a].depositThb, "THB")}</span>
+                  <span className={`block text-xs tabular-nums ${o[a].buffer > 0 ? "font-medium text-warning-fg" : "text-success-fg"}`}>{t("risk.bufferPct", { pct: pct(o[a].buffer) })}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="flex items-start gap-2 text-muted-foreground">
+            <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
+            {t("risk.why")}
+          </p>
+          <p className="text-xs text-subtle">
+            {r ? t("risk.cournotLine", { p: `${(r.probability * 100).toFixed(1)}%`, added: pct(o.BNB.cournotBuffer) }) : t("risk.cournotNone")}
+          </p>
+          <details className="group -mb-2 border-t border-border">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+              {t("risk.details")}
+              <ChevronDown aria-hidden className="size-4 text-subtle transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+            </summary>
+            <div className="pt-1 pb-1">
+              <DepositRiskPanel depositThb={depositThb} rentalDays={rentalDays} />
+            </div>
+          </details>
+        </div>
+      )}
+    </Card>
+  );
 }

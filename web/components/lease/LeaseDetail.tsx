@@ -4,7 +4,9 @@ import Link from "next/link";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { ChainReadNotice } from "@/components/ChainReadNotice";
-import { ActionButton, AddressTag, Amount, Card, Countdown, Notice, Skeleton, useMoney } from "@/components/ui";
+import { CalendarDays, Receipt, Reply, Scale } from "lucide-react";
+import { DepositProtection } from "@/components/risk/DepositRiskPanel";
+import { ActionButton, AddressTag, Card, Countdown, Notice, Skeleton } from "@/components/ui";
 import { useFleet } from "@/components/roles/shared";
 import { chainName } from "@/lib/chains";
 import { LeaseStatus, rentalEscrowAbi } from "@/lib/contracts";
@@ -15,22 +17,23 @@ import { useLease, type LeaseData } from "@/lib/hooks/useLease";
 import { useLeaseEvents } from "@/lib/hooks/useLeaseEvents";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
-import { dateTimeIn } from "./copy";
+import { dateTimeIn, useRentalCopy } from "./copy";
 import { EvidencePanel } from "./EvidencePanel";
-import { FundingPanel, Stat } from "./FundingPanel";
+import { FundingPanel } from "./FundingPanel";
+import { Lifecycle } from "./Lifecycle";
 import { viewerRole, type Viewer } from "./model";
-import { countIn, oneTimeFee, perIn } from "@/lib/rentals";
+import { countIn, perIn } from "@/lib/rentals";
+import { MoneyCard } from "./MoneyCard";
 import { MoveOutPanel } from "./MoveOutPanel";
 import { RentPanel } from "./RentPanel";
-import { RentalHero } from "./RentalHero";
+import { RentalBanner, RentalHeader } from "./RentalHero";
 import { ResolvePanel } from "./ResolvePanel";
-import { ReturnPlan } from "./ReturnPlan";
-import { Timeline } from "./Timeline";
 
 /** Every escrow of the deployment (lowercase) and the newest rental: tells a stale link from a busy RPC. */
 const knownLeases = (ix: ChainIndexResponse) => ({ escrows: new Set(ix.escrows.map((a) => a.toLowerCase())), latest: latestLease(ix)?.lease });
 
-export function LeaseDetail({ address }: { address: Address }) {
+/** `pinAction`: on a phone the banner's action stays at the bottom of the screen (the rental page; not inside /demo). */
+export function LeaseDetail({ address, pinAction }: { address: Address; pinAction?: boolean }) {
   const { address: me } = useAccount();
   const { chainId, deployment } = useDeployment();
   const { data: lease, error, isLoading, refetch, isFetching } = useLease(deployment ? address : undefined);
@@ -75,22 +78,15 @@ export function LeaseDetail({ address }: { address: Address }) {
   const live = lease.status === LeaseStatus.Active || lease.status === LeaseStatus.MoveOut || lease.status === LeaseStatus.Disputed;
   const scooter = fleet?.scooters.find((x) => x.rentals.some((r) => r.toLowerCase() === address.toLowerCase()));
 
+  const deposited = lease.status !== LeaseStatus.Settled && lease.status !== LeaseStatus.Cancelled;
+
   return (
     <div className="space-y-6 @container">
-      <RentalHero lease={lease} viewer={viewer} events={events} chainId={chainId} scooter={scooter} wallet={!!me} />
-      <ChainReadNotice
-        error={eventsError}
-        hasData={!!events}
-        onRetry={() => refetchEvents()}
-        retrying={eventsFetching}
-        what={t("rental.detail.historyWhat")}
-      />
-      <div className="grid gap-6 @4xl:grid-cols-2">
-        <Timeline lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
-        <ReturnPlan lease={lease} events={events} />
-      </div>
-      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
+      <RentalHeader lease={lease} viewer={viewer} chainId={chainId} scooter={scooter} wallet={!!me} />
+      {/* Phone: one column in reading order. Desktop: the side column (money, protection, agreement) beside both main blocks. */}
+      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:grid-rows-[auto_1fr]">
+        <div className="@container flex min-w-0 flex-col gap-6 @4xl:col-start-1">
+          <RentalBanner lease={lease} viewer={viewer} events={events} pinAction={pinAction} />
           {lease.status === LeaseStatus.Created && viewer === "tenant" && (
             <div id="act-fund" className="scroll-mt-4">
               <FundingPanel lease={lease} />
@@ -103,7 +99,6 @@ export function LeaseDetail({ address }: { address: Address }) {
             </div>
           )}
           {lease.status === LeaseStatus.Disputed && <ArbiterDeadline lease={lease} viewer={viewer} />}
-          {lease.status === LeaseStatus.Settled && <SettledSummary events={events} />}
           {live && (
             <div id="act-rent" className="scroll-mt-4">
               <RentPanel lease={lease} viewer={viewer} />
@@ -112,43 +107,61 @@ export function LeaseDetail({ address }: { address: Address }) {
           <div id="act-return" className="scroll-mt-4 empty:hidden">
             <MoveOutPanel lease={lease} viewer={viewer} events={events} />
           </div>
+        </div>
+        <aside className="min-w-0 space-y-6 @4xl:col-start-2 @4xl:row-span-2 @4xl:row-start-1">
+          <MoneyCard lease={lease} viewer={viewer} events={events} />
+          {deposited && <DepositProtection deposit={lease.terms.depositAmount} rentalDays={(lease.terms.termPeriods * lease.terms.rentPeriod) / 86400} />}
+          <Agreement lease={lease} chainId={chainId} viewer={viewer} />
+        </aside>
+        <div className="min-w-0 space-y-6 @4xl:col-start-1">
+          <ChainReadNotice
+            error={eventsError}
+            hasData={!!events}
+            onRetry={() => refetchEvents()}
+            retrying={eventsFetching}
+            what={t("rental.detail.historyWhat")}
+          />
+          <Lifecycle lease={lease} events={events} chainId={chainId} unavailable={!!eventsError && !events} />
           <EvidencePanel lease={lease} viewer={viewer} events={events} />
         </div>
-        <aside className="space-y-6">
-          <Terms lease={lease} chainId={chainId} viewer={viewer} />
-        </aside>
       </div>
     </div>
   );
 }
 
-function Terms({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; viewer: Viewer }) {
+/** The agreement as it runs: how long, each deadline and what a missed one means, the fee, and who is who. */
+function Agreement({ lease, chainId, viewer }: { lease: LeaseData; chainId: number; viewer: Viewer }) {
   const t = lease.terms;
-  const money = useMoney();
   const i = useT();
-  const fee = oneTimeFee(t.rentAmount, t.rentPeriod, t.feeBps);
+  const c = useRentalCopy();
   const you = i("rental.terms.you");
+  const end = lease.startTime + BigInt(t.termPeriods) * BigInt(t.rentPeriod);
+  const clauses = [
+    { icon: CalendarDays, title: i("rental.terms.runs", { months: countIn(i, t.termPeriods, t.rentPeriod), per: perIn(i, t.rentPeriod) }), sub: lease.startTime > BigInt(0) ? c.period(lease.startTime, end) : c.notStarted },
+    { icon: Reply, title: i("rental.terms.reply", { n: t.responseWindow / 86400 }), sub: i("rental.terms.replySub") },
+    { icon: Scale, title: i("rental.terms.deskRule", { n: t.arbiterWindow / 86400 }), sub: i("rental.terms.deskSub") },
+    { icon: Receipt, title: i("rental.terms.feeRule", { pct: (t.feeBps / 100).toFixed(0) }), sub: i("rental.terms.feeSub") },
+  ];
   return (
-    <>
-      <Card title={i.h("rental.terms")}>
-        <dl className="space-y-3 text-sm">
-          <Row label={i("rental.terms.period")}>{i("rental.terms.periodValue", { n: t.termPeriods, months: countIn(i, t.termPeriods, t.rentPeriod), per: perIn(i, t.rentPeriod) })}</Row>
-          {lease.startTime > BigInt(0) && <Row label={i("rental.terms.started")}>{dateTimeIn(i)(lease.startTime)}</Row>}
-          <Row label={i("rental.terms.replyWindow")}>{i("rental.terms.days", { n: t.responseWindow / 86400 })}</Row>
-          <Row label={i("rental.terms.deskDeadline")}>{i("rental.terms.days", { n: t.arbiterWindow / 86400 })}</Row>
-          <div>
-            <Row label={i("rental.terms.fee")}>{money(fee)}</Row>
-            <p className="mt-0.5 text-right text-xs text-subtle">
-              {i(lease.feeCharged ? "rental.terms.feeOncePaid" : "rental.terms.feeOnce", { pct: (t.feeBps / 100).toFixed(0) })}
-            </p>
-          </div>
-          <Row label={i("rental.terms.owner")}><AddressTag address={t.landlord} chainId={chainId} label={viewer === "landlord" ? you : undefined} /></Row>
-          <Row label={i("rental.terms.renter")}><AddressTag address={t.tenant} chainId={chainId} label={viewer === "tenant" ? you : undefined} /></Row>
-          <Row label={i("rental.terms.desk")}><AddressTag address={t.arbiter} chainId={chainId} label={viewer === "arbiter" ? you : undefined} /></Row>
-          <Row label={i("rental.terms.escrow")}><AddressTag address={lease.address} chainId={chainId} /></Row>
-        </dl>
-      </Card>
-    </>
+    <Card title={i.h("rental.terms")}>
+      <ol className="space-y-3 text-sm" data-testid="agreement">
+        {clauses.map(({ icon: Icon, title, sub }) => (
+          <li key={title} className="grid grid-cols-[1rem_minmax(0,1fr)] gap-x-3">
+            <Icon aria-hidden className="mt-0.5 size-4 text-subtle" />
+            <div>
+              <p className="font-medium">{title}</p>
+              <p className="text-xs text-muted-foreground">{sub}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+        <Row label={i("rental.terms.owner")}><AddressTag address={t.landlord} chainId={chainId} label={viewer === "landlord" ? you : undefined} /></Row>
+        <Row label={i("rental.terms.renter")}><AddressTag address={t.tenant} chainId={chainId} label={viewer === "tenant" ? you : undefined} /></Row>
+        <Row label={i("rental.terms.desk")}><AddressTag address={t.arbiter} chainId={chainId} label={viewer === "arbiter" ? you : undefined} /></Row>
+        <Row label={i("rental.terms.escrow")}><AddressTag address={lease.address} chainId={chainId} /></Row>
+      </dl>
+    </Card>
   );
 }
 
@@ -206,25 +219,6 @@ function CancelOffer({ lease }: { lease: LeaseData }) {
       <ActionButton variant="danger" busy={pending === label} onClick={() => send(label, { address: lease.address, abi: rentalEscrowAbi, functionName: "cancel" })}>
         {t("rental.cancel.button")}
       </ActionButton>
-    </Card>
-  );
-}
-
-function SettledSummary({ events }: { events: ReturnType<typeof useLeaseEvents>["data"] }) {
-  const t = useT();
-  const s = events?.find((e) => e.name === "Settled");
-  if (!s) return null;
-  const a = s.args as Record<string, bigint>;
-  return (
-    <Card title={t.h("rental.settlement")}>
-      <div className="grid gap-3 sm:grid-cols-2" data-testid="settlement">
-        <Stat label={t("rental.settlement.renter")}>
-          <Amount value={a.tenantRefund + a.rentToTenant} />
-        </Stat>
-        <Stat label={t("rental.settlement.owner")}>
-          <Amount value={a.landlordClaim + a.rentToLandlord - a.fee} />
-        </Stat>
-      </div>
     </Card>
   );
 }

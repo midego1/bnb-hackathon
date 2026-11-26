@@ -6,7 +6,7 @@ import type { TimelineEvent } from "@/lib/hooks/useLeaseEvents";
 import { responseWindow } from "@/lib/windows";
 import type { RentalCopy } from "./copy";
 import { oneTimeFee } from "@/lib/rentals";
-import { releasablePeriods, viewerRole, type Viewer } from "./model";
+import { nextDue, releasablePeriods, viewerRole, type Viewer } from "./model";
 
 /**
  * The rental page as plain sentences (pure, tests/lease-story.test.ts): what state it is in, the ONE thing the viewer
@@ -211,4 +211,24 @@ export function returnPlan(lease: LeaseData, events: TimelineEvent[] = [], c: Re
   else back = step(r.back, r.backSub, "todo", r.afterDeadline);
 
   return { sub: planned ? r.planned(planned) : c.notStarted, steps: [photos, split, reply, desk, back] };
+}
+
+/**
+ * What is still ahead, in order, for the one timeline of the page: paying in and the rent while those are open, then the
+ * return steps after the last finished one. Exactly one step is "next" (or a "warn" leads). Empty once the rental is closed.
+ */
+export function upcoming(lease: LeaseData, events: TimelineEvent[] = [], c: RentalCopy): ReturnStep[] {
+  if (lease.status === LeaseStatus.Settled || lease.status === LeaseStatus.Cancelled) return [];
+  const steps = returnPlan(lease, events, c).steps;
+  const rest = steps.slice(steps.findLastIndex((s) => s.state === "done") + 1).filter((s) => s.state !== "skip");
+  const head: ReturnStep[] = [];
+  const due = nextDue(lease);
+  if (lease.status === LeaseStatus.Created) {
+    head.push({ title: c.life.payIn, sub: c.life.payInSub, state: "next", when: c.ret.now }, { title: c.life.rent, sub: c.life.rentSub, state: "todo", when: c.ret.later });
+  } else if (lease.status === LeaseStatus.Active && rest.length === steps.length && due !== undefined) {
+    head.push({ title: c.life.rent, sub: c.life.rentSub, state: "next", when: due > lease.chainNow ? c.monthDue(due) : c.ret.now });
+  }
+  const out = [...head, ...rest];
+  if (out[0]?.state === "todo" && !out.some((s) => s.state === "next")) out[0] = { ...out[0], state: "next" };
+  return out;
 }

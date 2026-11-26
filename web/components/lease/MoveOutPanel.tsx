@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Hex } from "viem";
-import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, PriceSourceBadge, useMoney } from "@/components/ui";
+import { ActionButton, Amount, Card, Countdown, Field, inputClass, Notice, useMoney } from "@/components/ui";
 import { photosForHash } from "@/lib/demoEvidence";
 import { prepareProposeSettlement } from "@/lib/actions/definitions";
 import { fieldErrorIn } from "@/lib/actions/fields";
@@ -37,7 +37,7 @@ export function MoveOutPanel({ lease, viewer, events }: { lease: LeaseData; view
     : null;
 
   return (
-    <Card title={t.h("rental.move")} aside={<PriceSourceBadge />}>
+    <Card title={t.h("rental.move")}>
       <div className="space-y-6">
         {window.closed && (
           <div data-testid="response-window-closed">
