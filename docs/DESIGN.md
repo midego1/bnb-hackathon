@@ -25,8 +25,8 @@ board (`MoneyFlow.tsx`). It renders per request because its words follow the lan
   artwork with Where (the four cities of the demo listings), When and How long, and an amber Search button. It is a
   plain GET form to `/#listings` inside a small island (`Search.tsx`), so the address carries the search and the
   server filters the grid. On phones the bar is one pill that sums up the choice and opens the fields when tapped.
-- **The listing grid.** Cards without ratings or reviews: an LED picture of the scooter in its city (our drawings,
-  `docs/marketing/scooters.py`), name, area, the price for the chosen length with the other price beside it, the
+- **The listing grid.** Cards without ratings or reviews: a real photo of the model (Wikimedia Commons, credited on
+  `/credits`; the LED look stays for the hero and the marketing tiles), name, area, the price for the chosen length with the other price beside it, the
   deposit, and a "Deposit protected by escrow" badge. One column on phones, two from 640 px, three from 1024 px. Each
   card is one link to the listing's page in the app, where "Rent it" starts a real testnet rental. Every card and the
   section say "demo listing".
