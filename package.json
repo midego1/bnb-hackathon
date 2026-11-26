@@ -25,6 +25,7 @@
     "deploy:mainnet:verify": "DEPLOY_CHAIN_ID=56 bash contracts/script/testnet.sh verify",
     "deploy:mainnet:rehearse": "DEPLOY_CHAIN_ID=56 bash contracts/script/testnet.sh rehearse",
     "e2e:chain": "node web/scripts/e2e-chain.mts",
+    "stage:mainnet:rehearse": "pnpm -C web stage:mainnet:rehearse",
     "e2e:testnet": "node web/scripts/testnet.mts e2e",
     "testnet:seed": "node web/scripts/testnet.mts seed",
     "testnet:status": "node web/scripts/testnet.mts status",

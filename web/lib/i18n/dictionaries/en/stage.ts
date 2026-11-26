@@ -6,6 +6,7 @@ export const body = {
     loading: "Loading…",
     disabled: "The live stage demo is not enabled on this server.",
     terms: "{rent} / day · {deposit} deposit",
+    realMoney: "Real money (BSC mainnet), max 1 USD",
     qr: "QR code: {url}",
     openHere: "or open on this device",
     timeline: "Timeline",
@@ -39,12 +40,17 @@ export const body = {
     connectFirst: "Connect your wallet first.",
     offline: "Connection is shaky. Your rental is safe on-chain; this screen catches up when the network is back.",
     guestWallet: "Testnet guest wallet, no real money",
+    guestWalletMainnet: "Guest wallet · real money (BSC mainnet), max 1 USD",
     yourWallet: "Your wallet",
     another: "Use another wallet",
     money: {
       body: "We send this wallet a little test BNB for gas and {amount} in test dollars (mUSDT) for the rent and the deposit. Testnet only, no real money.",
       button: "Get test money",
       sent: { one: "Test money sent ({n} transaction).", other: "Test money sent ({n} transactions)." },
+      bodyMainnet:
+        "We send this wallet {amount} in real USDT (BSC-USD on BSC mainnet), exactly the rent and the deposit, and a little BNB for gas. Real money, max 1 USD. The deposit comes back to this wallet.",
+      buttonMainnet: "Get 1 USD to rent with",
+      sentMainnet: { one: "Sent on BSC mainnet ({n} transaction).", other: "Sent on BSC mainnet ({n} transactions)." },
     },
     rent: {
       rent: "Rent (1 day)",
@@ -63,6 +69,7 @@ export const body = {
     wallet: {
       guest: "Use a guest wallet",
       guestHint: "Testnet guest wallet, no real money. A fresh key is made on this phone and never leaves it.",
+      guestHintMainnet: "Real money (BSC mainnet), max 1 USD. A fresh key is made on this phone and never leaves it.",
       metamask: "Connect MetaMask",
     },
     photos: {
@@ -109,6 +116,7 @@ export const head = {
   judge: {
     wallet: "Rent it with one tap",
     money: "Get test money",
+    moneyMainnet: "Get 1 USD to rent with",
     rent: "Rent it for {amount}",
     busy: "Someone else is renting it right now",
     pickup: "Take pickup photos",

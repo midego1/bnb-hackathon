@@ -11,7 +11,8 @@ import { formatFiat } from "@/lib/fiat";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import { LISTING_PHOTOS, photoSrcSet, type Listing } from "@/lib/listings";
-import { judgeStep, same, type StageStatus } from "@/lib/stage";
+import { targetChainId } from "@/lib/chains";
+import { judgeStep, same, stageTerms, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 
 const never = () => () => {};
@@ -41,6 +42,7 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
   // open all day, and every read is a Worker request plus chain reads).
   const { status, error, refresh } = useStageStatus(listing.slug, scooter ? me : undefined, scooter && enabled ? 60_000 : 3_600_000);
   const t = useT();
+  const terms = stageTerms(listing, targetChainId);
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8">
       <PageTitle title={listing.name}>{listing.description}</PageTitle>
@@ -68,7 +70,7 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
         <Card title={t.h(scooter ? "listing.rentScooter" : "listing.rentTitle")}>
           <dl className="grid grid-cols-2 gap-y-2 text-sm" data-testid="listing-terms">
             <dt className="text-muted-foreground">{t("listing.rent")}</dt>
-            <dd className="text-right font-semibold">{t("listing.perDay", { amount: formatFiat(listing.rentThb, "THB") })}</dd>
+            <dd className="text-right font-semibold">{t("listing.perDay", { amount: terms.rent })}</dd>
             {listing.monthThb !== undefined && (
               <>
                 <dt className="text-muted-foreground">{t("listing.month")}</dt>
@@ -76,7 +78,7 @@ export function ListingView({ listing, enabled }: { listing: Listing; enabled: b
               </>
             )}
             <dt className="text-muted-foreground">{t("listing.deposit")}</dt>
-            <dd className="text-right font-semibold">{formatFiat(listing.depositThb, "THB")}</dd>
+            <dd className="text-right font-semibold">{terms.deposit}</dd>
 
             <dt className="text-muted-foreground">{t("listing.where")}</dt>
             <dd className="text-right">{listing.location}</dd>

@@ -6,12 +6,11 @@ import { zeroHash } from "viem";
 import { ActionButton, Notice } from "@/components/ui";
 import { explorerLink } from "@/lib/chains";
 import { evidenceUrl } from "@/lib/evidence";
-import { formatFiat } from "@/lib/fiat";
 import { useT } from "@/lib/i18n/client";
 import type { T } from "@/lib/i18n/t";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
-import { eventLabel, same, thbText, type StageStatus } from "@/lib/stage";
+import { eventLabel, MAINNET_STAGE_CHAIN_ID, same, stageTerms, thbText, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { subscribeNothing } from "./wallet";
 
@@ -142,8 +141,13 @@ export function StageView({ listing, chainId }: { listing: Listing; chainId: num
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl wide:text-[clamp(1.875rem,0.8rem+1.9vw,4rem)] wide:leading-tight">{listing.name}</h1>
             <p className="text-base text-muted-foreground sm:text-lg wide:mt-1 wide:text-[clamp(1.125rem,0.5rem+1vw,2rem)]">
-              {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
+              {t("stage.terms", stageTerms(listing, chainId))}
             </p>
+            {chainId === MAINNET_STAGE_CHAIN_ID && (
+              <p className="text-sm font-semibold text-warning-fg sm:text-base wide:text-[clamp(1rem,0.4rem+0.8vw,1.75rem)]" data-testid="stage-real-money">
+                {t("stage.realMoney")}
+              </p>
+            )}
           </div>
         </header>
 

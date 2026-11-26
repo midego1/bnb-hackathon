@@ -10,18 +10,17 @@ import { explorerLink } from "@/lib/chains";
 import { friendlyError } from "@/lib/errors";
 import { errorsIn } from "@/lib/errors.zh";
 import { uploadEvidence } from "@/lib/evidence";
-import { formatFiat } from "@/lib/fiat";
 import { useT } from "@/lib/i18n/client";
 import { shortAddress } from "@/lib/format";
 import type { Listing } from "@/lib/listings";
 import { answeredBy, runInspection, type InspectionResult } from "@/lib/settlement";
-import { judgeStep, same, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
+import { judgeStep, MAINNET_STAGE_CHAIN_ID, same, stageTerms, thbText, type JudgeStep, type StageStatus } from "@/lib/stage";
 import { stageAction, useStageStatus } from "./client";
 import { anchorPhotos, fundLease, proposeSplit } from "./judgeTx";
 import { chooseExternal, createGuestKey, forgetGuestKey, guestWallet, loadExternal, loadGuestKey, stagePublicClient, subscribeGuestKey, subscribeNothing } from "./wallet";
 
 /**
- * The judge's phone (/r/<slug>): guest wallet -> test money -> rent (owner offers, judge funds) -> pickup photos ->
+ * The judge's phone (/r/<slug>): guest wallet -> test money (on BSC mainnet: real money, max 1 USD) -> rent (owner offers, judge funds) -> pickup photos ->
  * return photos -> AI inspection -> propose the split -> the presenter accepts on the big screen -> money back.
  * Every step is read back from the chain (via /api/stage), so reloading the phone continues where it was.
  */
@@ -65,6 +64,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
 
   const step: JudgeStep | undefined = ready && status ? judgeStep(status, me) : undefined;
   const thb = (units: bigint) => thbText(units, status?.price.thbPerUsdt ?? 33);
+  const mainnet = chainId === MAINNET_STAGE_CHAIN_ID;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]" data-testid="judge-flow" data-step={step ?? "loading"}>
@@ -74,8 +74,13 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold">{listing.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {t("stage.terms", { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") })}
+            {t("stage.terms", stageTerms(listing, chainId))}
           </p>
+          {mainnet && (
+            <p className="text-sm font-semibold text-warning-fg" data-testid="judge-real-money">
+              {t("stage.realMoney")}
+            </p>
+          )}
         </div>
       </header>
 
@@ -110,7 +115,7 @@ export function JudgeFlow({ listing, chainId }: { listing: Listing; chainId: num
       {me && (
         <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs text-subtle">
           <span>
-            {guestKey ? t("judge.guestWallet") : t("judge.yourWallet")} · <span className="font-mono">{shortAddress(me)}</span>
+            {guestKey ? t(mainnet ? "judge.guestWalletMainnet" : "judge.guestWallet") : t("judge.yourWallet")} · <span className="font-mono">{shortAddress(me)}</span>
           </span>
           {(guestKey || external) && (step === "wallet" || step === "money" || step === "settled" || step === "busy") && (
             <button
@@ -164,12 +169,13 @@ function Step(p: StepProps) {
 
   switch (p.step) {
     case "wallet":
-      return <WalletStep onGuest={p.onGuest} />;
+      return <WalletStep onGuest={p.onGuest} mainnet={p.chainId === MAINNET_STAGE_CHAIN_ID} />;
 
-    case "money":
+    case "money": {
+      const m = p.chainId === MAINNET_STAGE_CHAIN_ID ? "Mainnet" : "";
       return (
-        <Big title={t.h("judge.money")}>
-          <p className="text-muted-foreground">{t("judge.money.body", { amount: thb(status.price.rent + status.price.deposit) })}</p>
+        <Big title={t.h(`judge.money${m}`)}>
+          <p className="text-muted-foreground">{t(`judge.money.body${m}`, { amount: thb(status.price.rent + status.price.deposit) })}</p>
           <ActionButton
             className={bigButton}
             busy={busy === "drip"}
@@ -177,14 +183,15 @@ function Step(p: StepProps) {
             onClick={() =>
               p.act("drip", async () => {
                 const r = await stageAction<{ txs: string[] }>(status.listing.slug, { action: "drip", address: me });
-                p.setNote(r.txs.length ? t(r.txs.length > 1 ? "judge.money.sent.other" : "judge.money.sent.one", { n: r.txs.length }) : undefined);
+                p.setNote(r.txs.length ? t(`judge.money.sent${m}.${r.txs.length > 1 ? "other" : "one"}`, { n: r.txs.length }) : undefined);
               })
             }
           >
-            {t("judge.money.button")}
+            {t(`judge.money.button${m}`)}
           </ActionButton>
         </Big>
       );
+    }
 
     case "rent":
     case "fund":
@@ -257,7 +264,7 @@ function Step(p: StepProps) {
   }
 }
 
-function WalletStep({ onGuest }: { onGuest: () => void }) {
+function WalletStep({ onGuest, mainnet }: { onGuest: () => void; mainnet: boolean }) {
   const { openConnectModal } = useConnectModal();
   const t = useT();
   // WalletConnect needs a project id; without one only a browser wallet (MetaMask's in-app browser) can connect.
@@ -271,7 +278,7 @@ function WalletStep({ onGuest }: { onGuest: () => void }) {
       <ActionButton className={bigButton} onClick={onGuest} data-testid="judge-guest">
         {t("judge.wallet.guest")}
       </ActionButton>
-      <p className="-mt-2 text-sm text-muted-foreground">{t("judge.wallet.guestHint")}</p>
+      <p className="-mt-2 text-sm text-muted-foreground">{t(mainnet ? "judge.wallet.guestHintMainnet" : "judge.wallet.guestHint")}</p>
       {hasWallet && (
         <ActionButton
           variant="secondary"

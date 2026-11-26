@@ -11,6 +11,10 @@ import {
   dripDecision,
   dripPlan,
   FUNDER_FLOOR,
+  MAINNET_DRIP_BNB,
+  MAINNET_FUNDER_MIN_BNB,
+  MAINNET_FUNDER_MIN_USDT,
+  mainnetDripPlan,
   MAX_MUSDT_DRIP,
   presenterAllowed,
   StageError,
@@ -20,7 +24,8 @@ import {
 import { stateFor } from "@/lib/i18n/server";
 import { makeT } from "@/lib/i18n/t";
 import type { ChainEvent } from "@/lib/rentals";
-import { eventLabel, judgeStep, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, type StageStatus } from "@/lib/stage";
+import { TOKEN } from "@/lib/contracts";
+import { eventLabel, judgeStep, MAINNET_STAGE_PRICE, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, stageTerms, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -28,10 +33,11 @@ const LEASE = "0x00000000000000000000000000000000000000c3" as Address;
 const H = `0x${"ab".repeat(32)}` as const;
 
 describe("stage config", () => {
-  it("is off unless STAGE_DEMO=1 on chain 97 or 31337", () => {
+  it("is off unless STAGE_DEMO=1 on chain 97, 31337 or 56", () => {
     expect(stageConfig({})).toBeUndefined();
-    expect(stageConfig({ STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "56" })).toBeUndefined();
+    expect(stageConfig({ NEXT_PUBLIC_CHAIN_ID: "56" })).toBeUndefined();
     expect(stageConfig({ STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "5611" })).toBeUndefined();
+    expect(stageConfig({ STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "1" })).toBeUndefined();
     expect(stageConfig({ STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "97" })?.chainId).toBe(97);
     expect(stageConfig({ STAGE_DEMO: "1" })?.chainId).toBe(31337);
   });
@@ -39,6 +45,46 @@ describe("stage config", () => {
   it("clamps the hourly caps", () => {
     expect(stageConfig({ STAGE_DEMO: "1", STAGE_DRIPS_PER_HOUR: "100000" })?.dripsPerHour).toBe(200);
     expect(stageConfig({ STAGE_DEMO: "1", STAGE_LEASES_PER_HOUR: "0" })?.leasesPerHour).toBe(1);
+    expect(stageConfig({ STAGE_DEMO: "1" })?.dripsPerDay).toBeUndefined();
+  });
+
+  it("on BSC mainnet (real money): 10 phones an hour and 30 a day by default, never over 30 / 100", () => {
+    const main = { STAGE_DEMO: "1", NEXT_PUBLIC_CHAIN_ID: "56" };
+    expect(stageConfig(main)).toEqual({ chainId: 56, presenterCode: undefined, dripsPerHour: 10, dripsPerDay: 30, leasesPerHour: 10 });
+    expect(stageConfig({ ...main, STAGE_DRIPS_PER_HOUR: "200", STAGE_DRIPS_PER_DAY: "5000", STAGE_LEASES_PER_HOUR: "100" })).toMatchObject({ dripsPerHour: 30, dripsPerDay: 100, leasesPerHour: 30 });
+  });
+});
+
+describe("mainnet drip (real money, max 1 USD)", () => {
+  const usd = (v: string) => parseUnits(v, TOKEN.decimals);
+  const need = MAINNET_STAGE_PRICE.rent + MAINNET_STAGE_PRICE.deposit;
+  const funder = { funderBnb: parseEther("0.1"), funderUsdt: usd("50") };
+
+  it("prices the stage rental at 0.30 rent + 0.70 deposit = exactly 1 USDT, the default pilot caps", () => {
+    expect(MAINNET_STAGE_PRICE).toEqual({ rent: usd("0.3"), deposit: usd("0.7") });
+    expect(need).toBe(usd("1"));
+  });
+
+  it("sends exactly what the rental needs and ~0.0003 BNB, topping up, never more", () => {
+    expect(mainnetDripPlan({ bnb: BigInt(0), usdt: BigInt(0), need, ...funder })).toEqual({ bnb: MAINNET_DRIP_BNB, usdt: usd("1") });
+    expect(mainnetDripPlan({ bnb: parseEther("0.0001"), usdt: usd("0.25"), need, ...funder })).toEqual({ bnb: parseEther("0.0002"), usdt: usd("0.75") });
+    expect(mainnetDripPlan({ bnb: parseEther("1"), usdt: usd("3"), need, ...funder })).toEqual({ bnb: BigInt(0), usdt: BigInt(0) });
+    expect(MAINNET_DRIP_BNB).toBe(parseEther("0.0003"));
+  });
+
+  it("refuses over 1 USD, and stops when the funder has < 2 USDT or < 0.005 BNB", () => {
+    expect(() => mainnetDripPlan({ bnb: BigInt(0), usdt: BigInt(0), need: usd("1.01"), ...funder })).toThrow(/more than 1 USD/);
+    const at = (funderUsdt: bigint, funderBnb: bigint) => () => mainnetDripPlan({ bnb: BigInt(0), usdt: BigInt(0), need, funderUsdt, funderBnb });
+    expect(at(MAINNET_FUNDER_MIN_USDT - BigInt(1), parseEther("1"))).toThrow(StageError);
+    expect(at(usd("100"), MAINNET_FUNDER_MIN_BNB - BigInt(1))).toThrow(StageError);
+    expect(at(MAINNET_FUNDER_MIN_USDT, MAINNET_FUNDER_MIN_BNB)()).toEqual({ bnb: MAINNET_DRIP_BNB, usdt: need });
+    expect([MAINNET_FUNDER_MIN_USDT, MAINNET_FUNDER_MIN_BNB]).toEqual([usd("2"), parseEther("0.005")]);
+  });
+
+  it("labels the stage item in baht first with the USDT beside it on 56; testnet keeps the listing's baht", () => {
+    const box = getListing("mystery-box")!;
+    expect(stageTerms(box, 56)).toEqual({ rent: `฿10 (0.30 ${TOKEN.symbol})`, deposit: `฿23 (0.70 ${TOKEN.symbol})` });
+    expect(stageTerms(box, 97)).toEqual({ rent: "฿200", deposit: "฿1,000" });
   });
 });
 

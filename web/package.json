@@ -10,6 +10,7 @@
     "test": "vitest run",
     "sync:contracts": "node scripts/sync-contracts.mjs",
     "test:e2e": "playwright test",
+    "stage:mainnet:rehearse": "vitest run --config vitest.rehearsal.mts --reporter=verbose --silent=false",
     "cf:build": "node scripts/cf.mjs build",
     "cf:preview": "node scripts/cf.mjs preview",
     "cf:size": "node scripts/cf.mjs size",

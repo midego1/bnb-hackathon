@@ -2,7 +2,7 @@
  * BSC testnet (chainId 97) plumbing shared by the CLI (`scripts/testnet.mts`: pnpm e2e:testnet / testnet:seed /
  * testnet:fund / testnet:status) and the server-side live demo runner (lib/server/demoTestnet). Chain 97 only:
  * every helper refuses an RPC that answers another chain id, and every transaction is signed for chain 97 (EIP-155),
- * so it cannot be replayed on BSC mainnet.
+ * so it cannot be replayed on BSC mainnet. Only the stage demo passes another chain (anvil or 56, lib/server/stage).
  *
  * Server only, and runtime-neutral: viem and nothing else (no node:fs), so it also runs on Cloudflare Workers. Reading
  * keys from disk lives in chain97-keys.mts (Node only). No `@/` alias and no relative imports, so
@@ -66,7 +66,7 @@ export type Chain97 = ReturnType<typeof createChain97>;
  * gas), estimates gas, refuses anything over `maxGas`, then signs a legacy tx at the explicit gas price.
  */
 export function createChain97(opts: { rpc: string; gasPrice: bigint; receiptTimeoutMs?: number; chain?: Chain }) {
-  // `chain` = the local anvil for the stage demo on 31337 (lib/server/stage); everything else is chain 97.
+  // `chain` = the local anvil (31337) or BSC mainnet (56) for the stage demo (lib/server/stage); everything else is chain 97.
   const chain = { ...(opts.chain ?? bscTestnet), rpcUrls: { default: { http: [opts.rpc] } } };
   const transport = http(opts.rpc, { retryCount: 5, retryDelay: 750, timeout: 30_000 });
   const pub = createPublicClient({ chain, transport, pollingInterval: 1_500 }) as PublicClient;

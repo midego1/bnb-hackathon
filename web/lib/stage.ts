@@ -1,8 +1,9 @@
-import { formatUnits, zeroHash, type Address } from "viem";
+import { formatUnits, parseUnits, zeroHash, type Address } from "viem";
 import { TOKEN } from "@/lib/contracts";
 import type { LeaseSnapshot } from "@/lib/actions/lease";
 import type { Translate } from "@/lib/i18n/keys";
-import type { Listing } from "@/lib/listings";
+import { formatFiat } from "@/lib/fiat";
+import { LISTING_THB_PER_USDT, type Listing } from "@/lib/listings";
 import type { ChainEvent } from "@/lib/rentals";
 
 /**
@@ -44,6 +45,25 @@ export const same = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() ==
 export const STALE_OFFER_MS = 5 * 60_000;
 /** Below this the guest wallet cannot pay for its ~8 transactions (approve, fund, photos, propose). */
 export const MIN_GAS_WEI = BigInt(300_000_000_000_000); // 0.0003 tBNB
+
+/** BSC mainnet (56) runs the stage with real BSC-USD, so everything there stays at most 1 USD. */
+export const MAINNET_STAGE_CHAIN_ID = 56;
+/**
+ * The stage item's price on BSC mainnet, whatever the listing says in THB: one 30-day period of 0.30 rent (the
+ * one-time fee is 10 % of it, 0.03) and 0.70 deposit. Exactly the default pilot caps of Deploy.s.sol on 56.
+ */
+export const MAINNET_STAGE_PRICE = { rent: parseUnits("0.30", TOKEN.decimals), deposit: parseUnits("0.70", TOKEN.decimals) } as const;
+
+/** "฿10 (0.30 USDT)": baht first, the token amount beside it (real money on mainnet). */
+export const thbUsdText = (units: bigint, thbPerUsdt: number) => `${thbText(units, thbPerUsdt)} (${Number(formatUnits(units, TOKEN.decimals)).toFixed(2)} ${TOKEN.symbol})`;
+
+/** The item's rent and deposit as the screens show them: the listing's baht, or on BSC mainnet the fixed 1 USD price. */
+export function stageTerms(listing: Listing, chainId: number): { rent: string; deposit: string } {
+  if (chainId === MAINNET_STAGE_CHAIN_ID && listing.stage) {
+    return { rent: thbUsdText(MAINNET_STAGE_PRICE.rent, LISTING_THB_PER_USDT), deposit: thbUsdText(MAINNET_STAGE_PRICE.deposit, LISTING_THB_PER_USDT) };
+  }
+  return { rent: formatFiat(listing.rentThb, "THB"), deposit: formatFiat(listing.depositThb, "THB") };
+}
 
 /** What the phone of `me` should do next. Pure: tests/stage.test.ts walks every state. */
 export function judgeStep(s: StageStatus, me: Address | undefined, now = Date.now()): JudgeStep {

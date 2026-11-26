@@ -2,11 +2,11 @@
 
 import { createPublicClient, createWalletClient, http, type Hex, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { anvil, bscTestnet } from "@/lib/chains";
+import { anvil, bsc, bscTestnet } from "@/lib/chains";
 
 /**
- * The judge's guest wallet: a fresh key made in this browser and kept in its localStorage. Testnet only; the key never
- * leaves the phone (the server only ever sees the address).
+ * The judge's guest wallet: a fresh key made in this browser and kept in its localStorage. On BSC mainnet (56) it holds
+ * real money, at most 1 USD; the key never leaves the phone (the server only ever sees the address).
  */
 const KEY = "keyescrow.stage.guestKey.v1";
 const listeners = new Set<() => void>();
@@ -15,7 +15,7 @@ export const subscribeGuestKey = (f: () => void) => (listeners.add(f), () => voi
 /** For useSyncExternalStore subscriptions to values that never change after hydration. */
 export const subscribeNothing = () => () => {};
 
-export const stageChain = (chainId: number) => (chainId === anvil.id ? anvil : bscTestnet);
+export const stageChain = (chainId: number) => (chainId === anvil.id ? anvil : chainId === bsc.id ? bsc : bscTestnet);
 
 export function loadGuestKey(): Hex | undefined {
   try {
