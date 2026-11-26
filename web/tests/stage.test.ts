@@ -20,7 +20,7 @@ import {
 import { stateFor } from "@/lib/i18n/server";
 import { makeT } from "@/lib/i18n/t";
 import type { ChainEvent } from "@/lib/rentals";
-import { eventLabel, judgeStep, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, type StageStatus } from "@/lib/stage";
+import { duoStep, eventLabel, judgeStep, mirroredRenter, MIN_GAS_WEI, replaceable, STALE_OFFER_MS, type StageStatus } from "@/lib/stage";
 
 const ME = "0x00000000000000000000000000000000000000a1" as Address;
 const OTHER = "0x00000000000000000000000000000000000000b2" as Address;
@@ -120,6 +120,38 @@ describe("judge steps (resume from chain state)", () => {
     expect(replaceable(mine(lease("Created"), now - STALE_OFFER_MS - 1), now)).toBe(true);
     expect(replaceable(mine(lease("Created"), now), now)).toBe(false);
     expect(replaceable(mine(lease("Active"), now - 10 * STALE_OFFER_MS), now)).toBe(false);
+  });
+});
+
+describe("duo: step bar and the mirrored phone", () => {
+  const base = { chainId: 31337, listing: getListing("mystery-box")!, owner: OTHER, events: [], presenterLocked: false } as unknown as StageStatus;
+  const lease = (status: string, more: Record<string, unknown> = {}) =>
+    ({ address: LEASE, status, checkInHash: zeroHash, checkOutHash: zeroHash, proposal: {}, terms: {}, ...more }) as unknown as StageStatus["lease"];
+  const theirs = (l: StageStatus["lease"], createdAt = Date.now()) => ({ ...base, rental: { lease: LEASE, renter: OTHER, createdAt }, lease: l });
+
+  it("lights the step the rental is at", () => {
+    expect(duoStep(undefined)).toBe(1);
+    expect(duoStep(base)).toBe(1);
+    expect(duoStep(theirs(lease("Created")))).toBe(1);
+    expect(duoStep(theirs(lease("Cancelled")))).toBe(1);
+    expect(duoStep(theirs(lease("Active")))).toBe(2);
+    expect(duoStep(theirs(lease("Active", { checkInHash: H })))).toBe(3);
+    expect(duoStep(theirs(lease("Active", { checkInHash: H, checkOutHash: H })))).toBe(4);
+    expect(duoStep(theirs(lease("MoveOut")))).toBe(4);
+    expect(duoStep(theirs(lease("Disputed")))).toBe(4);
+    expect(duoStep(theirs(lease("Settled")))).toBe(5);
+  });
+
+  it("mirrors another wallet's rental until it is reset or goes stale", () => {
+    const now = Date.now();
+    expect(mirroredRenter(base, ME)).toBeUndefined();
+    expect(mirroredRenter(theirs(lease("Active")), ME)).toBe(OTHER);
+    expect(mirroredRenter(theirs(lease("Active")), undefined)).toBe(OTHER);
+    expect(mirroredRenter(theirs(lease("Settled")), ME)).toBe(OTHER);
+    expect(mirroredRenter(theirs(lease("Active")), OTHER)).toBeUndefined();
+    expect(mirroredRenter(theirs(lease("Cancelled")), ME)).toBeUndefined();
+    expect(mirroredRenter(theirs(lease("Created"), now), ME, now)).toBe(OTHER);
+    expect(mirroredRenter(theirs(lease("Created"), now - STALE_OFFER_MS - 1), ME, now)).toBeUndefined();
   });
 });
 

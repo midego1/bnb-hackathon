@@ -34,8 +34,16 @@ export const body = {
       code: "Presenter code",
     },
   },
+  /** The split screen (/duo/<slug>, components/stage/DuoView.tsx): the renter's phone left, the owner's view right. */
+  duo: {
+    best: "Best on a laptop or a big screen: the renter's phone and the owner's view side by side.",
+    phone: "The renter's phone",
+    scan: "Rent it on your own phone",
+    steps: "Rental steps",
+  },
   /** The judge's phone (/r/<slug>, components/stage/JudgeFlow.tsx). */
   judge: {
+    mirror: "Showing a judge's phone ({address}), read-only.",
     connectFirst: "Connect your wallet first.",
     offline: "Connection is shaky. Your rental is safe on-chain; this screen catches up when the network is back.",
     guestWallet: "Testnet guest wallet, no real money",
@@ -104,6 +112,13 @@ export const head = {
     proposed: "AI split proposed: {back} back, {kept} to the owner",
     disputed: "In dispute: the dispute desk decides",
     settled: "Settled: both sides agreed, the money is paid out",
+  },
+  /** /duo: the two pane labels and the step bar. */
+  duo: {
+    title: "One rental, both sides, live",
+    renter: "Renter (phone)",
+    owner: "Rental company (owner)",
+    step: { rent: "Rent", pickup: "Pickup photos", return: "Return", split: "AI split", settled: "Settled" },
   },
   /** The judge's phone: one title per step. */
   judge: {

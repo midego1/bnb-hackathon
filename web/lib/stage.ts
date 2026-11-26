@@ -71,6 +71,26 @@ export function replaceable(s: Pick<StageStatus, "rental" | "lease">, now = Date
   return s.lease.status === "Created" && now - s.rental.createdAt > STALE_OFFER_MS;
 }
 
+/** /duo's step bar, 1 Rent, 2 Pickup photos, 3 Return, 4 AI split, 5 Settled: where the current rental is. */
+export function duoStep(s: StageStatus | undefined): 1 | 2 | 3 | 4 | 5 {
+  const l = s?.lease;
+  if (!l || l.status === "Created" || l.status === "Cancelled") return 1;
+  if (l.status === "Settled") return 5;
+  if (l.status === "MoveOut" || l.status === "Disputed") return 4;
+  if (l.checkInHash === zeroHash) return 2;
+  return l.checkOutHash === zeroHash ? 3 : 4;
+}
+
+/**
+ * /duo's phone pane: a judge renting on their own phone (another wallet than `me`) is shown read-only, until the
+ * presenter resets the stage or the offer goes stale. Returns that judge's address, or undefined for the own flow.
+ */
+export function mirroredRenter(s: StageStatus, me: Address | undefined, now = Date.now()): Address | undefined {
+  const r = s.rental;
+  if (!r || !s.lease || same(r.renter, me) || s.lease.status === "Cancelled") return undefined;
+  return s.lease.status === "Settled" || !replaceable(s, now) ? r.renter : undefined;
+}
+
 /** The stage timeline in plain words, one line per event of the rental, in the active language (stage.event). */
 export function eventLabel(e: ChainEvent, t: Translate): string {
   switch (e.name) {

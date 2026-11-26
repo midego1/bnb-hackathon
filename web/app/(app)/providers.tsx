@@ -13,7 +13,7 @@ import { wagmiConfig } from "@/lib/wagmi";
 const rkLight = lightTheme();
 const rkDark = darkTheme();
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, assistant = true }: { children: ReactNode; assistant?: boolean }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }));
   // Server render and hydration use the light theme; the real one (set on <html> before paint) follows at once.
   const theme = useSyncExternalStore(subscribeTheme, getResolvedThemeSnapshot, () => "light" as const);
@@ -21,9 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={theme === "dark" ? rkDark : rkLight}>
-          <ToastProvider>
-            <AssistantProvider>{children}</AssistantProvider>
-          </ToastProvider>
+          <ToastProvider>{assistant ? <AssistantProvider>{children}</AssistantProvider> : children}</ToastProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
