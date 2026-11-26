@@ -17,7 +17,8 @@
 |---|---|---|---|
 | CoinMarketCap Pro API | `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 用 `percent_change_24h/7d/30d` 计算每种支付代币的日波动率 → **押金风险缓冲**（稳定币 0 %；BNB 30 天约 15–25 %；超过 60 % 拒绝该代币） | `web/lib/risk.ts`、`web/lib/server/risk`、`GET /api/risk` |
 | CoinMarketCap Pro API | 同上，`convert=THB` | USDT 和 BNB 的泰铢价格：所有金额优先以泰铢显示；把以泰铢计的押金换算成代币数量 | `GET /api/price`、`GET /api/risk` |
-| Atlas 推送式预言机 | SingleFeed `decimals()` + `latestRoundData()`（兼容 AggregatorV3，18 位小数），喂价 `ATLAS_FEED_BNB_USD`、`ATLAS_FEED_USDT_USD` | 显示金额和押金估值的**首选美元价格来源**（`GET /api/price` 返回 `"source":"atlas"`），并按 Atlas 的方式做过期检查：从未更新过的喂价，或早于 `ATLAS_MAX_AGE_SECONDS`（默认 1 小时；USDT 喂价心跳为 24 小时，允许到 25 小时）的报价一律拒绝，由 CoinMarketCap 接替 | `web/lib/server/price`（`readFeed`） |
+| Atlas 推送式预言机 | SingleFeed `decimals()` + `latestRoundData()`（兼容 AggregatorV3，18 位小数），喂价 `ATLAS_FEED_BNB_USD`、`ATLAS_FEED_USDT_USD` | 显示金额和押金估值的**首选美元价格来源**（`GET /api/price` 返回 `"source":"atlas"`），并按 Atlas 的方式做过期检查：从未更新过的喂价，或早于 `ATLAS_MAX_AGE_SECONDS`（默认 1 小时；USDT 喂价心跳为 24 小时，允许到 25 小时）的报价一律拒绝，由 CoinMarketCap 接替；BNB/USD 还为"用 BNB 支付"把关（超过心跳 60 秒的 2 倍即拒绝） | `web/lib/server/price`（`readFeed`）、`web/lib/server/price/atlas.ts` |
+| Atlas Pull API | `POST https://api.atlasoracle.io/report/v1/price/latest` `{feedIds: [633, 649], signed: true}`，请求头 `X-API-KEY`（仅服务器端） | 每个喂价的共识状态：BNB/USD 不是 HEALTHY 或 DEGRADED 时拒绝"用 BNB 支付"；**签名报告**经服务器按官方签名者验证后，作为 AI 结算报告（有损坏扣款时）的价格证明 | `web/lib/server/price/atlas.ts`、`POST /api/settlement` |
 | Cournot（加分项） | `POST /intelligence/v1/probability` | “BNB 会在还车日前跌破覆盖底价吗？” → 缓冲 × (1 + p) | `GET /api/risk`、`POST /api/cournot` |
 
 **核心思路：** CoinMarketCap（以及 Cournot）决定一笔租约承担多大风险；Atlas 提供为押金估值的链上价格。
@@ -39,8 +40,15 @@
 | Atlas USDT/USD 喂价，BSC 测试网（心跳 24 小时） | [`0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b`](https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b) |
 | Atlas BNB/USD 喂价，BSC 主网（主网试点站点；心跳 60 秒） | [`0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`](https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438) |
 | Atlas USDT/USD 喂价，BSC 主网（主网试点站点；心跳 24 小时） | [`0x9fc000fc9c17578b49853278a517e357201d01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4) |
+| Atlas Pull API 喂价 ID · 官方签名者 | BNB/USD 633、USDT/USD 649 · `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600` |
 
 地址来自 [contracts/deployments/97.json](../contracts/deployments/97.json)。
+
+**Atlas 在产品中的用法：** (1) "用 BNB 支付"：只兑换差额，`amountOutMin` = Atlas BNB/USD 价值的 99 %；喂价超过心跳 2 倍、
+共识不是 HEALTHY/DEGRADED、签名报告验证失败，或池子报价与 Atlas 相差超过 2 % 时一律拒绝（"当前价格不可信"）。主网走
+PancakeSwap V2，上限 1 USDT；测试网没有 MockUSDT 的池子，由标注清楚的 `AtlasSwapGuard` 合约按 Atlas 价格出售测试 mUSDT。
+(2) 金额卡片上的徽章："Atlas 定价 · N 秒前更新 · 共识 0.94 HEALTHY"。(3) AI 结算有损坏扣款时，附上经服务器验证的 Atlas
+签名价格报告及其哈希（"价格证明：Atlas 签名报告"），无需改动合约。
 
 ## 当前状态（如实告知评委）
 
@@ -49,7 +57,7 @@
 - **已上线：** 合约和交易。托管、租金发放、AI 验车和结算都在 BSC 测试网上真实运行，每一步都可在 BscScan 查到。
 - **Atlas：** 已上线。上面的 Atlas 推送式喂价是测试网站点和主网试点站点的首选美元价格来源（`GET /api/price` 返回 `"source":"atlas"`）。
 - **CoinMarketCap：** 已上线，作为备用价格来源，并提供泰铢汇率和押金波动缓冲。
-- **Atlas Pull API**（带 `consensusScore` 的签名报告）：我们已有密钥，代码尚未调用。
+- **Atlas Pull API、"用 BNB 支付"和价格证明：** 已实现并测试（模拟 API、测试密钥签名的样例）；在站点设置 `ATLAS_API_KEY`（我们已有密钥）后上线；测试网兑换还需部署 `AtlasSwapGuard`。
 - **Cournot：** 实时调用默认关闭，尚未发起过概率调用；只有一次免费的 `resolve` 调用成功（2026-11-25）。
 
 **已完成并测试：** CMC 波动率缓冲 + 泰铢换算（基于录制数据的测试）、带过期检查的 Atlas 读取路径（用 8 位和 18 位小数的模拟喂价做了单元测试）、调用日志、`/integrations` 和 `/sponsors` 证据页面。

@@ -10,6 +10,7 @@ import type { LeaseData } from "@/lib/hooks/useLease";
 import { useTokenState } from "@/lib/hooks/useToken";
 import { useTx } from "@/lib/hooks/useTx";
 import { useT } from "@/lib/i18n/client";
+import { PayWithBnb } from "./PayWithBnb";
 
 const FAUCET_LIMIT = BigInt(10_000) * BigInt(10) ** BigInt(TOKEN.decimals); // MockUSDT.FAUCET_LIMIT
 
@@ -70,6 +71,7 @@ export function FundingPanel({ lease }: { lease: LeaseData }) {
           {t("rental.fund.fund")}
         </ActionButton>
       </div>
+      <PayWithBnb lease={lease} short={balance === undefined ? undefined : short} />
       <Link href={`/app/pay/${lease.address}`} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium hover:border-border-hover" data-testid="pay-promptpay">
         {t("rental.fund.promptpay")}
       </Link>

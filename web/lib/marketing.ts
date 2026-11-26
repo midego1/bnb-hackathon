@@ -29,7 +29,7 @@ export const INSPECTOR_AGENT = {
 } as const;
 
 /** `forge test` in contracts/ (unit, fuzz, invariants), as the README's test section states it. */
-export const CONTRACT_TESTS = 308;
+export const CONTRACT_TESTS = 314;
 export const TESTS_URL = `${REPO_URL}/tree/main/contracts/test`;
 
 /** Protocol fee and default deadlines, as deployed (EscrowFactory: feeBps, DEFAULT_RESPONSE_WINDOW, DEFAULT_ARBITER_WINDOW). */

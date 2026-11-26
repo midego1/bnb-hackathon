@@ -80,7 +80,8 @@ What is **built** (in the repo, tested) versus what is **live** on the deployed 
 | --- | --- | --- |
 | CoinMarketCap Pro API `GET /v2/cryptocurrency/quotes/latest?symbol=USDT,BNB&convert=USD` | 24h/7d/30d percent changes → daily volatility → the **deposit risk buffer** (stablecoin 0 %, BNB moderate, > 60 % rejected). Server-side only, cached, every call logged (endpoint, status, credits, never the key) and shown on `/integrations`. | **Live.** `CMC_API_KEY` is set on the live site; every call shows on `/integrations`. |
 | CoinMarketCap Pro API, same endpoint with `convert=THB` | THB price of USDT and BNB: every amount shown in baht first; the USD fallback when Atlas fails. | **Live.** |
-| Atlas push oracle, SingleFeed `latestRoundData()` | First price source for THB/USD amounts, with Atlas's staleness check (never-updated, negative or older than `ATLAS_MAX_AGE_SECONDS` is rejected). | **Live** on the testnet site and the mainnet pilot site: BSC push feeds BNB/USD + USDT/USD (18 decimals), `GET /api/price` returns `"source":"atlas"`. Feed addresses in [WRITEUP.md](../WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97). The Atlas Pull API key is available; not called yet. |
+| Atlas push oracle, SingleFeed `latestRoundData()` | First price source for THB/USD amounts, with Atlas's staleness check (never-updated, negative or older than `ATLAS_MAX_AGE_SECONDS` is rejected); BNB/USD also guards Pay with BNB (refused beyond 2x its heartbeat). | **Live** on the testnet site and the mainnet pilot site: BSC push feeds BNB/USD + USDT/USD (18 decimals), `GET /api/price` returns `"source":"atlas"`. Feed addresses in [WRITEUP.md](../WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97). |
+| Atlas Pull API, `POST /report/v1/price/latest` (feeds 633, 649, signed) | Consensus guard for Pay with BNB (refused unless HEALTHY/DEGRADED, or when the swap quote is more than 2 % off Atlas; amountOutMin = 99 % of the Atlas value), the "Priced by Atlas" badge, and the signed report (verified against the official signer) as the price proof on AI settlements that charge damage. | **Built, tested with a mocked API**; live once `ATLAS_API_KEY` is set on the site (the key is available). Testnet swap needs the `AtlasSwapGuard` deploy. |
 
 The contracts themselves never read a price: they hold a stablecoin, so a price-feed outage cannot move funds. The
 one-page write-up is [docs/WRITEUP.md](../WRITEUP.md); every CMC call is logged on `/integrations`.
@@ -98,9 +99,9 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 ## Tech stack
 
 - **Contracts:** Solidity 0.8.28, Foundry, OpenZeppelin (`Clones`, `SafeERC20`, `ReentrancyGuardTransient`,
-  `Ownable2Step`). 308 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
+  `Ownable2Step`). 314 tests including fuzz and invariants. Internal pre-audit review in [docs/SECURITY.md](../SECURITY.md).
 - **Web:** Next.js (App Router), TypeScript, Tailwind, wagmi/viem, RainbowKit, on Cloudflare Workers (OpenNext)
-  with one Durable Object for shared state. Vitest (544 tests in 39 files) and Playwright (152 tests in 26 spec files on a throwaway anvil). The web Worker is 2.88 MiB
+  with one Durable Object for shared state. Vitest (558 tests in 40 files) and Playwright (154 tests in 27 spec files on a throwaway anvil). The web Worker is 2.89 MiB
   gzip (Free plan limit 3 MiB).
 - **Agent:** TypeScript, ERC-8004 identity via the BNB Agent SDK, A2A + MCP (Streamable HTTP), Node server and
   Cloudflare Worker. 24 tests.

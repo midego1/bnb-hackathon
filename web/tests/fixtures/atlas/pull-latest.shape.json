@@ -1,0 +1,39 @@
+{
+  "_note": "Shape of POST /report/v1/price/latest (signed: true). Signed by a TEST key (0x0A85565b5a1BAb83CFCc7493764c8e6d197Aa263), not by Atlas: the official signer must reject it.",
+  "_testSigner": "0x0A85565b5a1BAb83CFCc7493764c8e6d197Aa263",
+  "data": {
+    "payload": "0x00000279001dfb6522201ab3436000006b0805500000028900000ddc22df8d34928600006b08055002",
+    "signature": "0xc5ac226c36872aa837355f18a903c28781ef9e5fd654a18ac5859553e302492b3963278b163d02b1064e02b614b498b04c14458b6177694e7b1d477a8913864f1b",
+    "magicMarker": "0x7096",
+    "parsedPayload": [
+      {
+        "feedId": 633,
+        "price": "553.07050073502693872",
+        "timestamp": 1795687760
+      },
+      {
+        "feedId": 649,
+        "price": "0.998711560911491718",
+        "timestamp": 1795687760
+      }
+    ],
+    "consensusScores": [
+      {
+        "feedId": 633,
+        "consensusScore": 0.94,
+        "consensusStatus": "HEALTHY",
+        "twapPrice": 553.01,
+        "medianPrice": 553.05,
+        "priceVolatility": 0.0012
+      },
+      {
+        "feedId": 649,
+        "consensusScore": 0.99,
+        "consensusStatus": "HEALTHY",
+        "twapPrice": 0.9987,
+        "medianPrice": 0.9987,
+        "priceVolatility": 0.0001
+      }
+    ]
+  }
+}

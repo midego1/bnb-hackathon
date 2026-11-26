@@ -146,6 +146,8 @@ export const body: DeepPartial<typeof enBody> = {
       start: "开始租赁需付",
       startNote: "押金 + 首{per}租金",
       rate: "1 USDT = {thb} = {usd} · {source}，{time}",
+      atlas: "Atlas 定价 · {age} 秒前更新",
+      atlasConsensus: " · 共识 {score} {status}",
     },
 
     life: {
@@ -241,6 +243,20 @@ export const body: DeepPartial<typeof enBody> = {
       approve: "授权 {amount} USDT",
       fund: "支付押金 + 租金",
       promptpay: "用 PromptPay 支付（演示）",
+      bnb: {
+        button: "用 BNB 支付（{amount} USDT）",
+        tx: "将 BNB 兑换为 USDT",
+        notePancake: "没有 USDT？用 BNB 支付：差额通过 PancakeSwap V2 兑换，由 Atlas 预言机（CoinMarketCap）把关。之后照常授权并注资。",
+        noteGuard: "没有 USDT？用 BNB 支付（测试网演示兑换）：PancakeSwap 没有测试 USDT 的池子，因此由 AtlasSwapGuard 合约按 Atlas BNB/USD 价格卖给你。之后照常授权并注资。",
+        min: "发送 {bnb} BNB · 至少得到 {min} USDT（Atlas {price} USD/BNB − 1 %），否则兑换回滚。",
+        enough: "你的 USDT 已经足够。",
+        quoting: "正在查询兑换价格…",
+        untrusted: "当前价格不可信：{why}。",
+        noAtlas: "没有 Atlas 价格",
+        noQuote: "没有兑换报价",
+        deviation: "兑换报价与 Atlas 相差超过 2 %",
+        cap: "BSC 主网试点：每次 BNB 兑换最多买 1 USDT。",
+      },
     },
 
     rent: {
@@ -316,6 +332,8 @@ export const body: DeepPartial<typeof enBody> = {
       },
       signer: "签名者 {address}",
       signedBy: "由 {name} 签名",
+      priceProof: "价格证明：Atlas 签名报告",
+      priceProofHint: "Atlas Pull API 报告（BNB/USD、USDT/USD），服务器已按 Atlas 官方签名者 {signer} 验证签名。哈希 {hash}。",
       agentId: "，ERC-8004 智能体 #{id}",
       signedAfter: "。它的身份登记在 BNB Chain 上，任何人都可以核实这个提议来自它。",
       submitAiTx: "提交 AI 提议",

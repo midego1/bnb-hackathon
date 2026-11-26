@@ -96,6 +96,7 @@ flowchart TB
 | `RentalEscrow` | `contracts/src/RentalEscrow.sol` | Holds one rental's deposit and rent. Releases rent per period on the rental's own schedule (`rentPeriod`: 7, 14 or 30 days), charges the one-time fee (10 % of the monthly-equivalent rent) on the first rent payout, stops the rent clock at the move-out (`moveOutAt`), anchors evidence hashes, and settles the deposit by agreement, ruling or timeout. Initialised once, not upgradeable, no admin functions. |
 | `FleetVault` | `contracts/src/FleetVault.sol` | Testnet prototype. Investors deposit the stablecoin and get ERC-20 fleet shares 1:1 (`BKK-FLEET-1`). Rentals created with `createLeaseWithPayee(params, vault)` pay the owner's rent and any deposit claim into it. `sync()` splits new income into the operator fee (immutable, max 30 %; 10 % on testnet) and a per-share accumulator that holders `claim()`. Shares redeem 1:1. |
 | `MockUSDT` | `contracts/src/mocks/MockUSDT.sol` | Testnet-only stablecoin: 6 decimals, faucet capped at 10,000 per call. Not a project token. |
+| `AtlasSwapGuard` | `contracts/src/AtlasSwapGuard.sol` | Testnet/anvil demo swap behind "Pay with BNB" (never on mainnet). PancakeSwap has no pool for MockUSDT on BSC testnet, so this contract exposes the two PancakeSwap V2 router functions the app calls (`getAmountsOut`, `swapExactETHForTokens`) and sells test BNB for mUSDT (minted through the faucet) at the Atlas BNB/USD push-feed price, 1 mUSDT = 1 USD. Reverts on a stale (`maxAge`, 120 s = 2x the 60 s heartbeat), never-updated or non-positive Atlas answer and below `amountOutMin`. Not part of the escrow: rentals never read a price. Deployed by `script/DeployAtlasSwapGuard.s.sol` (anvil: with a `MockAtlasFeed`, from dev account 9, fixed addresses). |
 
 Safety properties enforced in code:
 
@@ -263,7 +264,7 @@ inspection (ERC-8183 / x402) is roadmap.
 | AI inspection | `POST /api/settlement` (web), `inspect_move_out` (agent) | pickup + return photo sets and the deposit → `{tenantRefund, landlordClaim, reasons[], confidence}` and `reportHash` | `ANTHROPIC_API_KEY`, `VISION_LLM_MODEL` (Sonnet 5.5, or Haiku 5.5), `SETTLEMENT_DAILY_CALLS`, `INSPECTOR_PRIVATE_KEY` | Deterministic demo inspector, labelled in the UI; also when the model is busy (429/5xx/529/out of credit), refuses, cannot get the photo bytes, or the daily cap is used up (`fallback` in the report says which) |
 | Scooter memory | inside the inspection | earlier inspections of the scooter → "do not charge again" notes in the report; the web route writes the new one only for a rental verified on-chain (agent: read-only) | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/inspections.jsonl` (none on Workers) |
 | Dispute memory per wallet | `GET /api/v1/wallet_history`, `POST /api/history` | a wallet → on-chain facts + remembered entries; a settled rental → one factual entry per party | `LIVING_BRAIN_*` | Local file `web/.sponsor-logs/wallets.jsonl` (Workers: the Durable Object); a Living Brain error shows the facts only, labelled |
-| Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates* |
+| Price | `GET /api/price` | → THB and USD per USDT and BNB, with source and time; `atlas`: the Atlas guard status ([Atlas guard](#atlas-guard-pay-with-bnb-and-price-proof)) | `CMC_API_KEY`; `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY`, `ATLAS_HEARTBEAT_SECONDS` | Atlas feed → CoinMarketCap → last good quote (marked stale) → *Demo rates*; `atlas.ok = false` (Pay with BNB refused) |
 | Deposit risk | `GET /api/risk`, `POST /api/cournot` | deposit, days → buffer from CMC volatility × (1 + Cournot p) | `CMC_API_KEY`, `COURNOT_LIVE` | "not configured", no buffer shown |
 | Evidence | `POST /api/evidence`, `GET /api/evidence/<hash>` | file → SHA-256 `contentHash` (bytes32) + a stored copy | `GREENFIELD_*` | Node: local `web/.evidence/`. Workers: R2 bucket `EVIDENCE` if bound, else small photos (≤ 256 KB, 500 files, 7 days) in the Durable Object |
 | Listing catalogue | `GET /api/listings[/<slug>]` | → the listings of the web and the iOS app, prices in THB, photos with credits | none | static (`web/data/listings.json`) |
@@ -280,8 +281,8 @@ Design rules:
   the `basis` of the `Settled` event. Anyone holding the files can check them against these hashes.
 - **The AI output is a proposal, not an oracle.** It follows a strict JSON schema, its amounts never exceed the
   deposit, and its reasons cite the photos. A person on each side still decides.
-- **Prices are for display and fair value only.** The contracts work in token units and never read a price, so a
-  price outage cannot block a rental ([WRITEUP.md](WRITEUP.md)).
+- **Prices are for display and fair value only.** The escrow contracts work in token units and never read a price, so a
+  price outage cannot block a rental (only the testnet `AtlasSwapGuard` demo swap reads Atlas, before funding) ([WRITEUP.md](WRITEUP.md)).
 - **Secrets stay on the server.** No secret uses a `NEXT_PUBLIC_` variable. Every sponsor call is server-side and
   logged without its key.
 
@@ -289,6 +290,48 @@ Design rules:
 delegated upload) is built and is used on a Node server with `GREENFIELD_*` set. The live Cloudflare deploy cannot
 load that SDK and has no R2 bucket bound yet, so its evidence is hashed in the browser. The demo's photos are static
 files.
+
+### Atlas guard: Pay with BNB and price proof
+
+Atlas (CoinMarketCap's oracle) is read two ways, server-side only (`web/lib/server/price/atlas.ts`, cached 30 s per
+isolate), and served as `atlas` on `GET /api/price`:
+
+- **Push:** the BNB/USD SingleFeed (`latestRoundData()`, 18 decimals; BSC testnet
+  `0x3957d289ee9c38272377786787ea34f9dd29788d`, mainnet `0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438`), refused when
+  older than 2x its heartbeat (`ATLAS_HEARTBEAT_SECONDS`, default 60 s).
+- **Pull:** `POST https://api.atlasoracle.io/report/v1/price/latest` `{feedIds: [633, 649], signed: true}` with
+  `X-API-KEY` (`ATLAS_API_KEY`, never in the browser). The signed payload (`[feedId 4 B][price 10 B][timestamp 6 B]` ×
+  n, then a count byte) is checked as Atlas's consumer contract does: keccak256 without an EIP-191 prefix, low-s,
+  `ecrecover` == the official signer `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600`. Each response also carries a
+  consensus per feed (HEALTHY / DEGRADED / WARNING / CRITICAL / SPLIT_MARKET).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor R as Renter
+    participant W as Web app
+    participant P as GET /api/price
+    participant A as Atlas (push feed + Pull API)
+    participant S as Router (PancakeSwap V2 on 56, AtlasSwapGuard on 97/anvil)
+    W->>P: prices + atlas
+    P->>A: latestRoundData(BNB/USD), POST /report/v1/price/latest
+    P-->>W: atlas {ok, bnbUsdE18, updatedAt, maxAgeSec, consensus}
+    W->>S: getAmountsOut(bnbIn, [WBNB, stablecoin])
+    Note over W: refuse unless atlas.ok, age ≤ maxAgeSec now,<br/>pool quote within 2 % of Atlas, (56) ≤ 1 USDT
+    R->>S: swapExactETHForTokens(amountOutMin = 99 % of the Atlas value)
+    S-->>R: stablecoin, then approve + fund() as usual
+```
+
+- **Pay with BNB** (`components/lease/PayWithBnb.tsx`, math in `lib/atlas.ts`): swaps only what the renter is short,
+  `bnbIn` sized so that `amountOutMin` still covers it. Fails closed: no Atlas price, a stale feed, a consensus other
+  than HEALTHY/DEGRADED, an unverified report or no Pull API key, a quote more than 2 % off Atlas, or (mainnet pilot)
+  more than 1 USDT all refuse with "Price not trustworthy right now". On testnet the guard contract re-checks the feed
+  on-chain; on mainnet PancakeSwap enforces `amountOutMin`.
+- **Badge:** the money card's rate line reads "Priced by Atlas · updated N s ago · consensus 0.94 HEALTHY" (en + zh).
+- **Price proof:** when the AI inspection charges damage, `POST /api/settlement` attaches the verified signed report
+  (`priceProof`: payload, signature, signer, decoded prices and its keccak256 `hash`) to the report before
+  `reportHash` is computed, so the price is bound to the settlement. Shown as "Price proof: Atlas signed report" with
+  the hash. No contract change: the escrow still never reads a price.
 
 ### Dispute memory per wallet
 
@@ -552,11 +595,11 @@ sequenceDiagram
 
 | Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 308 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 544 in 39 files |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT, AtlasSwapGuard) | `cd contracts && forge test` | 314 |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 558 in 40 files |
 | Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 24 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
-| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 152 tests in 26 files |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo, Pay with BNB (Atlas guard) | `cd web && npx playwright test` | 154 tests in 27 files |
 
 CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
 secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.

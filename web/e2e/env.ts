@@ -73,6 +73,8 @@ export const E2E_WEB_ENV: Record<string, string> = {
   ATLAS_FEED_USDT_USD: "",
   ATLAS_FEED_BNB_USD: "",
   ATLAS_FEED_USD_THB: "",
+  ATLAS_API_KEY: "",
+  ATLAS_HEARTBEAT_SECONDS: "",
   PRICE_CACHE_TTL_SECONDS: "",
   GREENFIELD_RPC_URL: "",
   GREENFIELD_CHAIN_ID: "",

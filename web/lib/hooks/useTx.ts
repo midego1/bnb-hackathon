@@ -17,6 +17,8 @@ type Call = {
   abi: Abi;
   functionName: string;
   args?: readonly unknown[];
+  /** Native BNB sent with the call (payable functions). */
+  value?: bigint;
 };
 
 /**

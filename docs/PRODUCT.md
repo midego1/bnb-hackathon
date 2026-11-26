@@ -34,7 +34,8 @@ on-chain, and a neutral dispute desk rules when they disagree.
 1. **Offer.** The owner creates a rental (`EscrowFactory.createLease`): renter, deposit, rent per period, rent period
    (7, 14 or 30 days, default 30), number of periods (1–60), the hash of the rental agreement. The factory deploys an
    EIP-1167 clone of `RentalEscrow` for this one rental. Amounts are typed and shown in baht first; the contract holds
-   a stablecoin (mUSDT test money on BSC testnet, BSC-USD on the mainnet pilot). No BNB payments.
+   a stablecoin (mUSDT test money on BSC testnet, BSC-USD on the mainnet pilot). The escrow takes no BNB: a renter who
+   pays in BNB swaps it into the stablecoin first ("Pay with BNB", guarded by Atlas, see below).
 2. **Fund.** The renter funds deposit + the first period's rent (`fund()`), and can prepay more periods
    (`payRent`). The rent clock starts. The owner can withdraw an unfunded offer (`cancel()`).
 3. **Pickup photos.** Guided photo sets (labelled angles). The files stay off-chain (BNB Greenfield, R2 or local
@@ -83,7 +84,10 @@ The contracts work in token units and **never read a price**, so a price outage 
   buffer. Live calls are off unless `COURNOT_LIVE=1`; built, waiting for a partner key / paid calls.
 - **Atlas:** BSC push feeds BNB/USD and USDT/USD (`decimals()` + `latestRoundData()`, 18 decimals, with a staleness
   check) are the first USD price source on the testnet site and the mainnet pilot site; CoinMarketCap is the fallback
-  and supplies THB. The Pull API (signed reports, `ATLAS_API_KEY`) is available with our key; no code calls it yet.
+  and supplies THB. With `ATLAS_API_KEY` the Pull API's signed report (verified against Atlas's official signer) and
+  its consensus guard **Pay with BNB** (amountOutMin = 99 % of the Atlas value; refused on a stale feed, a consensus
+  other than HEALTHY/DEGRADED or a swap quote > 2 % off Atlas; PancakeSwap V2 on the mainnet pilot, capped at 1 USDT,
+  the `AtlasSwapGuard` demo swap on testnet), and the report is the price proof on AI settlements that charge damage.
 - All sponsor calls are server-side and logged without keys (`/integrations`, `/sponsors`).
 
 ## Memory (Living Brain)

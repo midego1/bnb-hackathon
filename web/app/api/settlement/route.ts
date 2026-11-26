@@ -6,6 +6,7 @@ import { getEvidenceStore } from "@/lib/server/evidence";
 import { recordAiClaim } from "@/lib/server/history";
 import { clientIp, jsonError, zodIssues } from "@/lib/server/http";
 import { cloudflareBinding } from "@/lib/server/platform";
+import { getAtlas } from "@/lib/server/price/atlas";
 import { inspectionMemoryFromEnv } from "@/lib/server/sponsors/livingbrain";
 import { getSharedState, hitRateLimit } from "@/lib/server/state";
 import { inspectorFromEnv, proposeSettlement, visionProviderFromEnv, type PhotoSource } from "@/lib/server/settlement";
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
       inspector: inspectorFromEnv(),
       memory: inspectionMemoryFromEnv(),
       rememberAs: verified,
+      priceProof: async () => (await getAtlas()).proof,
     });
     // The AI's proposal for this verified rental, so the dispute desk can compare it with the owner's claim.
     if (verified) {

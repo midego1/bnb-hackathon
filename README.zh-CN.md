@@ -78,7 +78,7 @@ flowchart LR
 | 主网试点（BSC 主网，chain 56） | <https://keyescrow-mainnet.mdgooijer.workers.dev>：工厂合约 [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E)，真实 BSC-USD，链上上限：押金 0.70 + 每期租金 0.30（每笔租约最多 1 美元），所有未结租约合计 5 美元 |
 | 赞助商赛道与实时状态 | [/sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors)（状态来自 `/api/integrations`；技术细节见 [/integrations](https://keyscrow.mdgooijer.workers.dev/integrations)） |
 | 视频（本地链，已填充演示世界） | [duo](docs/submission/duo.mp4)（59 秒）· [引导式 /demo](docs/submission/demo-guided.mp4)（90 秒）· [ELI5](docs/submission/eli5.mp4)（71 秒）· [应用导览](docs/submission/tour.mp4)（77 秒）· [路演幻灯片](docs/submission/deck.pdf) |
-| 测试（11 月 26 日） | Foundry 308 · vitest 544（39 个文件）· 代理 24 · Playwright 152（26 个 spec 文件） |
+| 测试（11 月 26 日） | Foundry 314 · vitest 558（40 个文件）· 代理 24 · Playwright 154（27 个 spec 文件） |
 | 规模 | 约 74,000 行代码 + 约 5,300 行 Markdown 文档（已跟踪文件；不含锁文件、`contracts/lib`、生成的 ABI、JSON 数据和二进制文件） |
 | 构建方式 | Claude Code：共 24.7 亿 token（输出 813 万），paseo-box + 10 台 boat 虚拟机，按 11 月 26 日约 15:50（泰国时间）的 Claude Code 记录统计 |
 
@@ -186,15 +186,15 @@ pnpm dev                                             # 打开 http://localhost:3
 不做部署：合约、Web（lint、单元测试、构建）、代理，以及端到端测试（`e2e:chain` + 在临时 anvil 上跑 Playwright）。
 
 ```bash
-cd contracts && forge build && forge test   # 308 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 39 个文件共 544 个 vitest 测试（服务端路由、操作、演示、赞助商、多语言；离线）
+cd contracts && forge build && forge test   # 314 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT、AtlasSwapGuard
+pnpm -C web lint && pnpm -C web test        # eslint + 40 个文件共 558 个 vitest 测试（服务端路由、操作、演示、赞助商、多语言；离线）
 pnpm -C web build                           # 生产构建
 pnpm agent:test                             # 24 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign
 pnpm e2e:chain                              # 用真实交易 + 时间快进跑完每条结算路径，独立 anvil :28545
-cd web && npx playwright test               # 26 个文件共 152 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
+cd web && npx playwright test               # 27 个文件共 154 个浏览器测试，2 个 worker；独立 anvil :28546 + 服务器 :3150
 ```
 
-数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.88 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
+数字与体积截至 2026 年 11 月 26 日（main）。Cloudflare Web Worker 为 2.89 MiB gzip（免费版上限 3 MiB），代理 Worker 为 0.75 MiB（`pnpm cf:build`、运行一次 `pnpm cf:preview` 后 `pnpm cf:size`）。
 
 ---
 

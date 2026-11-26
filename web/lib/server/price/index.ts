@@ -84,7 +84,7 @@ export async function readFeed(client: Pick<ReturnType<typeof createPublicClient
     const age = nowSeconds - updatedAt;
     if (age > maxAgeSeconds) throw new StalePriceError(`feed ${address} is stale: updated ${age}s ago (max ${maxAgeSeconds}s)`);
     await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: 200, ok: true, ms: Date.now() - started, note: `age=${age}s` });
-    return { value: Number(answer) / 10 ** decimals, updatedAt };
+    return { value: Number(answer) / 10 ** decimals, updatedAt, answer, decimals };
   } catch (err) {
     await logSponsorCall({ sponsor: "atlas", endpoint: `eth_call latestRoundData() ${address}`, at: new Date(started).toISOString(), status: null, ok: false, ms: Date.now() - started, note: (err as Error).message.slice(0, 160) });
     throw err;

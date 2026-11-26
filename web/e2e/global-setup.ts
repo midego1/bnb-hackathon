@@ -68,6 +68,8 @@ export default async function globalSetup() {
     const env = { DEPLOYMENTS_DIR, PRIVATE_KEY: ANVIL_DEFAULT_KEY_0, ALLOW_NON_LOCAL_BROADCAST: "false" };
     forge(["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast"], env);
     forge(["script", "script/Seed.s.sol", "--rpc-url", RPC, "--broadcast"], env);
+    // Pay with BNB: the AtlasSwapGuard demo swap + a MockAtlasFeed (anvil account 9, so fixed addresses).
+    forge(["script", "script/DeployAtlasSwapGuard.s.sol", "--rpc-url", RPC, "--broadcast"], env);
 
     // The web server is built with E2E_WEB_ENV (explicit addresses, see e2e/env.ts) and, as a fallback, bakes in
     // lib/contracts/deployments.generated.json. The fresh deploy must land on exactly those addresses.
@@ -87,6 +89,9 @@ export default async function globalSetup() {
       if (actual !== getAddress(inBundle)) {
         throw new Error(`deployed ${k} ${actual} != lib/contracts/deployments.generated.json (${inBundle}); run \`pnpm -C web sync:contracts\``);
       }
+    }
+    if (getAddress(deployed.atlasSwapGuard) !== getAddress(baked.atlasSwapGuard)) {
+      throw new Error(`deployed atlasSwapGuard ${deployed.atlasSwapGuard} != lib/contracts/deployments.generated.json (${baked.atlasSwapGuard})`);
     }
     console.log(`[e2e] anvil ${RPC}: deployed + seeded (factory ${deployed.escrowFactory})`);
   } catch (e) {

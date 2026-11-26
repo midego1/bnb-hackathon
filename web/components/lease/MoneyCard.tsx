@@ -3,6 +3,7 @@
 import { ArrowDown, Lock, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { Amount, Card, PriceSourceBadge, useBaht } from "@/components/ui";
+import { atlasBadge } from "@/lib/atlas";
 import { LeaseStatus } from "@/lib/contracts";
 import { formatFiat } from "@/lib/fiat";
 import type { LeaseData } from "@/lib/hooks/useLease";
@@ -120,6 +121,22 @@ function Rate() {
   return (
     <p className="mt-4 border-t border-border pt-3 text-xs text-subtle tabular-nums" data-testid="money-rate">
       {t("rental.money.rate", { thb: formatFiat(rate.THB, "THB"), usd: formatFiat(rate.USD, "USD"), source: t(`ui.source.${prices.source}.text`), time })}
+      <AtlasLine />
     </p>
+  );
+}
+
+/** "Priced by Atlas · updated N s ago · consensus 0.94 HEALTHY": the Atlas BNB/USD feed that guards Pay with BNB. */
+function AtlasLine() {
+  const { prices } = usePrices();
+  const t = useT();
+  const a = prices?.atlas;
+  if (!a?.updatedAt) return null;
+  const b = atlasBadge(a);
+  return (
+    <span className="block" data-testid="atlas-badge" data-ok={a.ok} title={a.reason}>
+      {t("rental.money.atlas", { age: b.age ?? 0 })}
+      {b.score && b.status && t("rental.money.atlasConsensus", { score: b.score, status: b.status })}
+    </span>
   );
 }

@@ -86,7 +86,7 @@ flowchart LR
 | Mainnet pilot (BSC mainnet, chain 56) | <https://keyescrow-mainnet.mdgooijer.workers.dev>: factory [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E), real BSC-USD, capped on-chain at 0.70 deposit + 0.30 rent per period (max 1 USD per rental) and 5 USD across all open rentals |
 | Sponsor tracks, live state | [/sponsors](https://keyscrow.mdgooijer.workers.dev/sponsors) (status from `/api/integrations`; technical detail on [/integrations](https://keyscrow.mdgooijer.workers.dev/integrations)) |
 | Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (59 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
-| Tests (26 Nov) | 308 Foundry · 544 vitest (39 files) · 24 agent · 152 Playwright tests in 26 spec files |
+| Tests (26 Nov) | 314 Foundry · 558 vitest (40 files) · 24 agent · 154 Playwright tests in 27 spec files |
 | Size | ~74,000 lines of code + ~5,300 lines of Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries) |
 | Built with | Claude Code: 2.47 billion tokens in total (8.13M output), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~15:50 ICT |
 
@@ -225,14 +225,14 @@ artifact; `pnpm coverage` measures all three locally and rewrites the coverage b
 number covers `lib/` and the API routes, the pages are covered by Playwright).
 
 ```bash
-cd contracts && forge build && forge test   # 308 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT
-pnpm -C web lint && pnpm -C web test        # eslint + 544 vitest tests in 39 files (server routes, actions, demo, sponsors, i18n; offline)
+cd contracts && forge build && forge test   # 314 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT, AtlasSwapGuard
+pnpm -C web lint && pnpm -C web test        # eslint + 558 vitest tests in 40 files (server routes, actions, demo, sponsors, i18n; offline)
 pnpm -C web build                           # production build
 pnpm agent:test                             # 24 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil
 pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
-cd web && npx playwright test               # 152 browser tests in 26 files, 2 workers; own anvil :28546 + server :3150
+cd web && npx playwright test               # 154 browser tests in 27 files, 2 workers; own anvil :28546 + server :3150
 pnpm coverage                               # forge coverage + vitest v8 coverage, lcov in <part>/coverage/
-pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.88 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
+pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.89 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
 ```
 
 Counts and sizes as of 26 Nov 2026 (main).
@@ -296,7 +296,7 @@ never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 |---|---|---|---|
 | CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Built; live calls off, no probability call made yet |
-| Atlas | `latestRoundData()` with a staleness check is the first price source | `ATLAS_RPC_URL`, `ATLAS_FEED_*` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)) |
+| Atlas | `latestRoundData()` with a staleness check is the first price source; push feed + Pull API consensus guard Pay with BNB; the signed report is the settlement price proof | `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)). Pull API guard + price proof: built, tested with a mocked API, live once `ATLAS_API_KEY` is set |
 | Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
 
 ### CoinMarketCap
@@ -322,8 +322,16 @@ it is the first price source for every THB/USD amount; CoinMarketCap is the fall
 BSC testnet BNB/USD [`0x3957…788d`](https://testnet.bscscan.com/address/0x3957d289ee9c38272377786787ea34f9dd29788d),
 USDT/USD [`0x9dfd…4e8b`](https://testnet.bscscan.com/address/0x9dfd7992952bb9e8fb4bc6065fdc3518addc4e8b); BSC mainnet
 BNB/USD [`0x9c05…6438`](https://bscscan.com/address/0x9c0517f5b4c8657c7f18d68d2d79e2b3b1cd6438), USDT/USD
-[`0x9fc0…01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4). The Atlas Pull API (signed
-reports with a `consensusScore`) is available with our key; no code calls it yet.
+[`0x9fc0…01e4`](https://bscscan.com/address/0x9fc000fc9c17578b49853278a517e357201d01e4).
+
+`web/lib/server/price/atlas.ts` adds the Atlas Pull API (`POST https://api.atlasoracle.io/report/v1/price/latest`,
+feeds 633 BNB/USD and 649 USDT/USD, `ATLAS_API_KEY` server-side only): the signed report is verified against the
+official signer `0x59eD4701224fD9e2a85Ef2946c2ab828C1dDC600` and its consensus per feed is read. Together with the
+BNB/USD push feed they guard **Pay with BNB** on the funding panel (amountOutMin = 99 % of the Atlas value; refused on
+a feed older than 2x its heartbeat, a consensus other than HEALTHY/DEGRADED, or a swap quote more than 2 % off Atlas),
+show the badge "Priced by Atlas · updated N s ago · consensus 0.94 HEALTHY", and attach the signed report as the price
+proof of an AI settlement that charges damage. Details:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#atlas-guard-pay-with-bnb-and-price-proof).
 
 ### Living Brain (ChatAndBuild)
 
