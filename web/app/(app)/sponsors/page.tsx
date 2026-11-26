@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { demoAvailable } from "@/components/shell/nav";
 import { sponsorsCopy, type SponsorsCopy } from "@/components/sponsors/copy";
+import { RecipeGrid } from "@/components/RecipeGrid";
 import { Card, PageTitle } from "@/components/ui";
 import { getDictionary } from "@/lib/i18n/server";
 import { docsUrl, REPO_URL } from "@/lib/links";
 import { integrationStatus } from "@/lib/server/sponsors/status";
+import { SPONSOR_RECIPE } from "@/lib/recipes";
 import { SPONSOR_CHECKLIST, type CheckNeeds } from "@/lib/sponsorChecklist";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -168,7 +170,8 @@ export default async function SponsorsPage() {
           {c.media}
         </Link>
       </p>
-      <div className="grid gap-4 md:grid-cols-2">
+      <RecipeGrid id="recipe" recipe={SPONSOR_RECIPE} text={c.recipe} title={t.head(sponsorsCopy, (x) => x.recipe.title)} labels={c.recipeLabels} />
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
         {tracks.map((tr) => (
           <Card key={tr.id} title={c.tracks[tr.id].name} aside={chip(tr.state, `sponsor-${tr.id}-state`)} className="flex flex-col">
             <div data-testid="sponsor-track" data-track={tr.id}>

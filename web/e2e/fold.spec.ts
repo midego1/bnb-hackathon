@@ -112,6 +112,11 @@ for (const vp of FOLDS) {
         await expect(page.getByTestId("sidebar")).toBeVisible();
         await expect(page.getByTestId("mobile-nav")).toBeHidden();
       }
+      // The recipe card keeps its grid (the list is for phones only).
+      if (url === "/sponsors" || url === "/media") {
+        await expect(page.getByTestId("recipe-grid")).toBeVisible();
+        await expect(page.getByTestId("recipe-list")).toBeHidden();
+      }
       if (url === "/tenant") {
         const cards = page.getByTestId("book-card");
         await expect(cards.first()).toBeVisible();

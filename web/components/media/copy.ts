@@ -1,4 +1,5 @@
 import { localized } from "@/lib/i18n/locales";
+import type { RentalRecipeText } from "@/lib/recipes";
 import { zh } from "./copy.zh";
 
 /** Every word of /media (app/(app)/media/page.tsx); file names, sizes and addresses live in the page. */
@@ -10,6 +11,32 @@ const en = {
   zipNote: "{n} files in folders: videos/, deck/, screenshots/web/, screenshots/ios/, brand/, docs/. The .webm and .gif videos the iOS .jpg copies and the older development screenshots are separate downloads only.",
   download: "Download",
   github: "On GitHub",
+  recipeLabels: { ingredients: "Ingredients", steps: "Steps", combines: "Combines" },
+  recipe: {
+    title: "KeyScrow: one rental, step by step",
+    sub: "A Honda Click for one day: ฿250 rent, ฿6,800 deposit. Read left to right: each box combines everything to its left.",
+    ingredients: {
+      deposit: ["฿6,800", "deposit"],
+      rent: ["฿250", "rent (1 day)"],
+      escrow: ["1", "escrow contract (EIP-1167 clone, BNB Chain)"],
+      pickup: ["1–3", "pickup photos"],
+      return: ["1–3", "return photos"],
+      inspector: ["1", "AI inspector (ERC-8004 #2921)"],
+      price: ["1", "Atlas BNB/USD price"],
+      owner: ["1", "owner (accepts)"],
+      timeout: ["7 days", "owner timeout"],
+      fee: ["10 %", "fee (of the rent, once)"],
+    },
+    steps: {
+      offer: ["Offer", "the owner creates the escrow"],
+      fund: ["Fund", "deposit + rent into the escrow"],
+      anchor: ["Anchor", "photo fingerprints on-chain"],
+      inspect: ["Inspect", "AI compares pickup vs return"],
+      propose: ["Propose", "the split on-chain, at the Atlas price, with the report hash"],
+      accept: ["Accept", "the owner, or after the timeout the full deposit goes back"],
+      settle: ["Settle", "one transaction pays everyone, e.g. ฿6,206 back to the renter, ฿819 to the owner, ฿25 fee"],
+    },
+  } satisfies RentalRecipeText,
   sections: {
     videos: "Videos",
     deck: "Pitch deck",
