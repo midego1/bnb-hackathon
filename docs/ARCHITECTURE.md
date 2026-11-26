@@ -107,7 +107,7 @@ Safety properties enforced in code:
 - **Isolated terms:** each escrow copies the fee, the arbiter and both windows at creation. Later factory changes
   never reach an existing rental.
 
-**Status:** on `main` and deployed on BSC testnet (verified on BscScan). 105 Foundry tests (unit + fuzz), see
+**Status:** on `main` and deployed on BSC testnet (verified on BscScan). 120 Foundry tests (unit, fuzz, invariants; 305 with contract v2), see
 [§12](#12-testing).
 
 ## 3. Web app
@@ -497,13 +497,13 @@ sequenceDiagram
 
 ## 12. Testing
 
-| Suite | Command | Count (25 Nov 2026) |
+| Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit + fuzz (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 105 |
-| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 241 |
-| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 20 |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 120 (305 with contract v2) |
+| Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 393 in 30 files |
+| Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 21 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
-| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page | `cd web && npx playwright test` | 50 tests in 11 files |
+| Browser (Playwright): rental flow, guided demo (all stories), demo fits one screen, role views, ELI5, `/api/v1`, theme, secrets page, languages, `/stage` judge demo, subscriptions, PromptPay demo | `cd web && npx playwright test` | 108 tests in 20 files |
 
 CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs all of them on every push and pull request with no
 secrets, no testnet and no deploys; the chain tests use a throwaway local anvil.
