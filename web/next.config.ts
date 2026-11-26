@@ -36,6 +36,15 @@ const SECRETS_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // `next dev` (keyescrow-web on :3000) is opened by tailnet IP or MagicDNS name. Next blocks its dev resources
+  // (/_next/hmr) for any other host than the bind address, the page never hydrates, and client-only pages such as
+  // /settings/secrets stay empty. Same hosts as the secrets page guard: Tailscale's 100.64.0.0/10, *.ts.net,
+  // SETTINGS_SECRETS_HOSTS. Dev only.
+  allowedDevOrigins: [
+    ...Array.from({ length: 64 }, (_, i) => `100.${64 + i}.*.*`),
+    "**.ts.net",
+    ...(process.env.SETTINGS_SECRETS_HOSTS ?? "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean),
+  ],
   async headers() {
     return ["/settings/secrets", "/settings/secrets/:path*", "/api/settings/:path*"].map((source) => ({ source, headers: SECRETS_HEADERS }));
   },

@@ -32,11 +32,14 @@ const FORMATS: Record<SecretFormat, { re: RegExp; hint: string }> = {
   bucket: { re: /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/, hint: "a bucket name (lowercase letters, digits, -)" },
   hex32: { re: /^[0-9a-fA-F]{32}$/, hint: "32 hex characters" },
   anthropic: { re: /^sk-ant-[A-Za-z0-9_-]{20,}$/, hint: "an Anthropic key (sk-ant-...)" },
-  cournot: { re: /^ck_[A-Za-z0-9_]{8,}$/, hint: "a Cournot key (ck_...)" },
+  // As lib/server/sponsors/cournot.ts reads them: other keys and bases are ignored or refused there.
+  cournot: { re: /^ck_live_[A-Za-z0-9_-]{1,256}$/, hint: "a Cournot key (ck_live_...)" },
+  cournotBase: { re: /^https:\/\/(dev-)?interface\.cournot\.ai\/?$/, hint: "https://interface.cournot.ai or https://dev-interface.cournot.ai" },
 };
 
 /** What the value should look like, for the UI and the error message. Never derived from the value. */
 export const formatHint = (format: SecretFormat) => FORMATS[format].hint;
+export const matchesFormat = (format: SecretFormat, value: string) => FORMATS[format].re.test(value);
 
 /** Validates a submitted value and returns it without surrounding spaces. Throws SecretValueError (no value in it). */
 export function validateSecretValue(spec: SecretSpec, raw: unknown): string {

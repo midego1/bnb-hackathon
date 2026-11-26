@@ -3,7 +3,7 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { isTestable, testSecret, type TestResult } from "./testers";
 import { envValue, isEnvSet, readEnvText, setEnvValue, validateSecretValue, writeEnvFileAtomic, formatHint } from "./envFile";
-import { GROUP_LABEL, restartUnits, secretSpec, SECRETS, UNIT_NAMES, UNITS, type SecretTarget, type UnitName } from "./registry";
+import { restartUnits, secretSpec, SECRETS, UNIT_NAMES, UNITS, type SecretGroup, type SecretTarget, type UnitName } from "./registry";
 
 type Env = Record<string, string | undefined>;
 
@@ -44,8 +44,7 @@ const BACKUP_LABEL: Record<SecretTarget, string> = { root: "root.env", web: "web
 
 export type SecretStatus = {
   name: string;
-  group: string;
-  groupLabel: string;
+  group: SecretGroup;
   purpose: string;
   source: { label: string; url?: string };
   format: string;
@@ -54,6 +53,8 @@ export type SecretStatus = {
   files: { target: SecretTarget; label: string; set: boolean }[];
   set: boolean;
   restart: { unit: UnitName; label: string }[];
+  /** A public NEXT_PUBLIC_* value: used after a rebuild, not a restart. */
+  rebuild: boolean;
   /** Whether a free, read-only key test exists for this name. */
   testable: boolean;
 };
@@ -66,7 +67,6 @@ export async function listSecrets(cfg: SecretsConfig): Promise<SecretStatus[]> {
     return {
       name: s.name,
       group: s.group,
-      groupLabel: GROUP_LABEL[s.group],
       purpose: s.purpose,
       source: s.source,
       format: formatHint(s.format),
@@ -74,6 +74,7 @@ export async function listSecrets(cfg: SecretsConfig): Promise<SecretStatus[]> {
       files,
       set: files.every((f) => f.set),
       restart: restartUnits(s).map((u) => ({ unit: u, label: UNITS[u].label })),
+      rebuild: !!s.public,
       testable: isTestable(s.name),
     };
   });
@@ -159,7 +160,7 @@ export async function testStoredOrTyped(
   else {
     const cache = new Map<string, string | undefined>();
     const stored = (n: string) => cache.get(n);
-    for (const n of ["CLOUDFLARE_API_TOKEN", "GREENFIELD_RPC_URL", "INSPECTOR_SIGNER_ADDRESS"]) cache.set(n, await storedValue(cfg, n));
+    for (const n of ["CLOUDFLARE_API_TOKEN", "GREENFIELD_RPC_URL", "INSPECTOR_SIGNER_ADDRESS", "LIVING_BRAIN_API_KEY", "LIVING_BRAIN_SUBJECT_ID"]) cache.set(n, await storedValue(cfg, n));
     result = await testSecret(spec.name, value, {
       fetch: fetchImpl,
       stored,

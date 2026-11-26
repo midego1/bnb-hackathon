@@ -1,4 +1,5 @@
 import { privateKeyToAccount } from "viem/accounts";
+import { matchesFormat } from "./envFile";
 
 /**
  * Key tests of the secrets page: one FREE, read-only call per name (no credits, no writes, 10 s timeout), or a local
@@ -177,6 +178,57 @@ async function rpc(value: string, ctx: TestCtx, expect?: number): Promise<TestRe
   }
 }
 
+/** Cournot: a key has no free check (its free calls are limited), so only the format our client accepts. */
+async function cournotKey(value: string) {
+  return matchesFormat("cournot", value) ? valid("Valid format: a ck_live_ key (no free Cournot key check)") : invalid("Invalid: expected a ck_live_ key");
+}
+
+/** One of the two bases our client allows, and a GET of it answers (any HTTP status: it is a web front, not an API). */
+async function cournotBase(value: string, ctx: TestCtx) {
+  if (!matchesFormat("cournotBase", value)) return invalid("Invalid: expected https://interface.cournot.ai or https://dev-interface.cournot.ai");
+  return apiTest(async () => {
+    const r = await call(ctx, apiUrl(ctx, value));
+    return r.status < 500 ? valid(`Valid: answers ${statusText(r.status)}`) : untestable(`Can't test: ${statusText(r.status)}`);
+  });
+}
+
+/** Living Brain (as lib/server/sponsors/livingbrain.ts calls it): x-api-key, plus x-subject-id when one is stored. */
+function livingBrainHeaders(key: string, ctx: TestCtx): Record<string, string> {
+  const subject = ctx.stored("LIVING_BRAIN_SUBJECT_ID");
+  return { "x-api-key": key, ...(subject ? { "x-subject-id": subject } : {}) };
+}
+
+async function livingBrainKey(value: string, ctx: TestCtx) {
+  return apiTest(async () => {
+    const r = await call(ctx, apiUrl(ctx, "https://api.livingbrain.com/v1/brains"), { headers: livingBrainHeaders(value, ctx) });
+    if (r.status === 200) {
+      const list = Array.isArray(r.json) ? r.json : obj(r.json).data;
+      const n = Array.isArray(list) ? list.length : null;
+      return valid(n === null ? "Valid: brains listed" : `Valid: ${n} brain${n === 1 ? "" : "s"} listed`);
+    }
+    if (r.status === 401 || r.status === 403) return invalid(`Invalid: ${statusText(r.status)}`);
+    if (r.status === 429) return untestable("Can't test: rate limited, try again later");
+    return untestable(`Can't test: ${statusText(r.status)}`);
+  });
+}
+
+async function livingBrainBrain(value: string, ctx: TestCtx) {
+  const key = ctx.stored("LIVING_BRAIN_API_KEY");
+  if (!key) return matchesFormat("token", value) ? valid("Valid format (save LIVING_BRAIN_API_KEY to check the brain exists)") : invalid("Invalid: not a brain id");
+  return apiTest(async () => {
+    const r = await call(ctx, apiUrl(ctx, `https://api.livingbrain.com/v1/brains/${encodeURIComponent(value)}`), { headers: livingBrainHeaders(key, ctx) });
+    if (r.status === 200) return valid("Valid: brain found with the stored key");
+    if (r.status === 401) return untestable("Can't test: the stored LIVING_BRAIN_API_KEY is not valid");
+    if (r.status === 403 || r.status === 404) return invalid(`Invalid: ${statusText(r.status)} for the stored key`);
+    return untestable(`Can't test: ${statusText(r.status)}`);
+  });
+}
+
+/** WalletConnect project ids are public and have no free check: the format only. */
+async function walletConnectId(value: string) {
+  return matchesFormat("hex32", value) ? valid("Valid format: 32 hex characters (no free WalletConnect check)") : invalid("Invalid: expected 32 hex characters");
+}
+
 /** Tendermint /status of a Greenfield full node (free, read-only). Returns the network name, e.g. greenfield_5600-1. */
 async function greenfieldNetwork(url: string, ctx: TestCtx): Promise<string | TestResult> {
   try {
@@ -236,19 +288,22 @@ const TESTERS: Record<string, (value: string, ctx: TestCtx) => Promise<TestResul
   CLOUDFLARE_ACCOUNT_ID: cloudflareAccount,
   PINATA_JWT: pinata,
   BSC_TESTNET_RPC_URL: (v, c) => rpc(v, c, 97),
+  BSC_MAINNET_RPC_URL: (v, c) => rpc(v, c, 56),
   ATLAS_RPC_URL: (v, c) => rpc(v, c),
   INSPECTOR_PRIVATE_KEY: inspectorKey,
   GREENFIELD_RPC_URL: greenfieldRpc,
   GREENFIELD_CHAIN_ID: greenfieldChainId,
   GREENFIELD_PRIVATE_KEY: greenfieldKey,
+  COURNOT_API_KEY: cournotKey,
+  COURNOT_API_BASE: cournotBase,
+  LIVING_BRAIN_API_KEY: livingBrainKey,
+  LIVING_BRAIN_BRAIN_ID: livingBrainBrain,
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: walletConnectId,
 };
 
-/** Names with no free, read-only check (Cournot's free calls are limited; Living Brain has no free auth endpoint). */
+/** Names with no free, read-only check. */
 const UNTESTABLE_REASON: Record<string, string> = {
-  COURNOT_API_KEY: `${NO_FREE_TEST} (Cournot's free calls are limited)`,
-  LIVING_BRAIN_API_KEY: NO_FREE_TEST,
   LIVING_BRAIN_SUBJECT_ID: "Can't test: any UUID works",
-  LIVING_BRAIN_BRAIN_ID: NO_FREE_TEST,
   GREENFIELD_BUCKET: NO_FREE_TEST,
   GREENFIELD_SP_ENDPOINT: "Can't test: no free health check",
 };
