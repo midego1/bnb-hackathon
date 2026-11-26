@@ -42,7 +42,7 @@ export function AppShell({ children, footer, settings }: { children: ReactNode; 
       </a>
       {drawerOpen && <button type="button" aria-label={t("shell.closeMenu")} tabIndex={-1} className="fixed inset-0 z-40 bg-overlay/40 lg:hidden" onClick={closeDrawer} />}
       <Sidebar drawerOpen={drawerOpen} closeDrawer={closeDrawer} settings={settings} />
-      <div data-app-content className="flex min-w-0 flex-1 flex-col">
+      <div data-app-content className="flex min-w-0 flex-1 flex-col max-sm:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
         <MobileBar menuOpen={drawerOpen} openMenu={() => setDrawerOpen(true)} />
         <DevAccountSwitcher />
         <main id="main" className="flex flex-1 flex-col">
@@ -198,11 +198,11 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
-/** Phones and tablets: logo, rates, theme, and the menu button that opens the sidebar as a drawer. */
+/** Phones and tablets: logo, rates, theme, and the menu button that opens the sidebar as a drawer (below the notch). */
 function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => void }) {
   const t = useT();
   return (
-    <div className="flex items-center gap-2 border-b border-border bg-surface px-4 py-2 lg:hidden" data-testid="mobile-nav">
+    <div className="flex items-center gap-2 border-b border-border bg-surface px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:hidden" data-testid="mobile-nav">
       <Button
         variant="ghost"
         size="icon-lg"
@@ -215,9 +215,9 @@ function MobileBar({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => 
       >
         <Icon name="menu" className="size-5" />
       </Button>
-      <Link href="/app" className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
-        <LogoMark className="h-6 w-6" />
-        KeyEscrow
+      <Link href="/app" className="flex min-h-11 min-w-11 items-center gap-2 text-base font-semibold tracking-tight">
+        <LogoMark className="h-6 w-6 shrink-0" />
+        <span className="truncate">KeyEscrow</span>
       </Link>
       <span className="ml-auto flex shrink-0 items-center gap-2">
         <PriceSourceBadge />

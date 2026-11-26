@@ -160,7 +160,7 @@ export function Pitch() {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <ol className="flex items-center gap-1" aria-label={sceneOf}>
+              <ol className="flex items-center gap-1" aria-label={sceneOf} data-phone-audit="skip">
                 {SCENES.map((x, i) => (
                   <li key={x.id}>
                     <button
@@ -169,6 +169,7 @@ export function Pitch() {
                       aria-label={t("pitch.goTo", { n: i + 1, mark: mmss(x.at) })}
                       aria-current={i === s.index ? "step" : undefined}
                       data-testid="pitch-dot"
+                      data-hit=""
                       className={`relative block h-3 overflow-hidden rounded-full transition-all ${i === s.index ? "w-8 bg-surface-strong" : i < s.index ? "w-3 bg-amber-400" : "w-3 bg-surface-strong hover:bg-border-hover"}`}
                     >
                       {i === s.index && <span className="absolute inset-y-0 left-0 bg-amber-400" style={{ width: `${Math.min(100, (s.t / x.duration) * 100)}%` }} />}

@@ -21,10 +21,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <footer className="border-t border-border text-xs text-subtle">
             <div className="mx-auto flex max-w-5xl flex-wrap gap-x-4 gap-y-1 px-4 py-4">
               <span>{t("shell.footer.about")}</span>
-              <Link href="/" className="underline-offset-2 hover:underline" data-testid="footer-website">{t("shell.footer.website")}</Link>
-              <a href={REPO_URL} className="underline-offset-2 hover:underline">GitHub</a>
-              <a href={docsUrl("README.md")} className="underline-offset-2 hover:underline">{t("shell.footer.docs")}</a>
-              <Link href="/how-it-works" className="underline-offset-2 hover:underline" data-testid="footer-eli5">{t("shell.footer.eli5")}</Link>
+              <Link href="/" className="inline-flex items-center underline-offset-2 hover:underline" data-testid="footer-website">{t("shell.footer.website")}</Link>
+              <a href={REPO_URL} className="inline-flex items-center underline-offset-2 hover:underline">GitHub</a>
+              <a href={docsUrl("README.md")} className="inline-flex items-center underline-offset-2 hover:underline">{t("shell.footer.docs")}</a>
+              <Link href="/how-it-works" className="inline-flex items-center underline-offset-2 hover:underline" data-testid="footer-eli5">{t("shell.footer.eli5")}</Link>
               <Suspense fallback={null}>
                 <SettingsGear variant="footer" />
               </Suspense>

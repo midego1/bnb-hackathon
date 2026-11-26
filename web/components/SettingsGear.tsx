@@ -14,7 +14,7 @@ export async function SettingsGear({ variant = "sidebar" }: { variant?: "sidebar
   if (variant === "footer") {
     const t = await getDictionary();
     return (
-      <Link href="/settings/secrets" prefetch={false} data-testid="footer-settings" className="underline-offset-2 hover:underline">
+      <Link href="/settings/secrets" prefetch={false} data-testid="footer-settings" className="inline-flex items-center underline-offset-2 hover:underline">
         {t("shell.footer.secrets")}
       </Link>
     );

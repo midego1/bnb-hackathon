@@ -115,7 +115,7 @@ export function AssistantPanel({
         data-testid="assistant-panel"
         data-open={open || undefined}
         data-assistant-state={run.state}
-        className={`fixed inset-0 z-[75] flex origin-bottom-right flex-col overflow-hidden bg-background text-foreground transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none sm:inset-auto sm:right-4 sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:border sm:border-border sm:shadow-xl ${
+        className={`fixed inset-0 z-[75] flex origin-bottom-right pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:p-0 flex-col overflow-hidden bg-background text-foreground transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none sm:inset-auto sm:right-4 sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:border sm:border-border sm:shadow-xl ${
           small ? "sm:bottom-14 sm:h-[min(560px,62dvh)]" : "sm:bottom-[5.5rem] sm:h-[min(640px,80vh,calc(100dvh-7rem))]"
         } ${open ? "visible scale-100 opacity-100" : "pointer-events-none invisible translate-y-2 scale-90 opacity-0"}`}
       >
