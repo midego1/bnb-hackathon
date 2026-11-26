@@ -226,6 +226,11 @@ function ProposeForms({ lease, events }: { lease: LeaseData; events: TimelineEve
                 {t("rental.move.signedAfter")}
               </p>
             )}
+            {report.priceProof && (
+              <p className="mt-2 text-xs text-subtle" data-testid="price-proof" title={t("rental.move.priceProofHint", { signer: report.priceProof.signer, hash: report.priceProof.hash })}>
+                {t("rental.move.priceProof")} · <code className="break-all">{report.priceProof.hash}</code>
+              </p>
+            )}
             <ActionButton
               className="mt-4"
               busy={pending === tx.ai}

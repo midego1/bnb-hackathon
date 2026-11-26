@@ -11,15 +11,15 @@ async function fetchPrices(): Promise<PriceResponse> {
 }
 
 /**
- * Fiat prices from /api/price (server caches upstream for 60 s; we refetch every 60 s too).
+ * Fiat prices from /api/price (server caches upstream for 60 s, the Atlas guard data 30 s; we refetch every 30 s).
  * `format(amount, asset)` -> "฿16,500 · $500.00".
  */
 export function usePrices() {
   const query = useQuery({
     queryKey: ["prices"],
     queryFn: fetchPrices,
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const prices = query.data;
   const format = useCallback(

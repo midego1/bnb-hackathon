@@ -13,7 +13,7 @@ test("integrations page shows honest not-configured states and no fake risk numb
   await expect(page.getByTestId("cournot-ask")).toHaveCount(0); // live calls are off
   await expect(page.getByTestId("integration-cmc")).toHaveAttribute("data-state", "not-configured");
   await expect(page.getByTestId("integration-cournot")).toHaveAttribute("data-state", "off");
-  await expect(page.getByTestId("integration-atlas")).toHaveAttribute("data-state", "blocked");
+  await expect(page.getByTestId("integration-atlas")).toHaveAttribute("data-state", "not-configured");
   await expect(page.getByTestId("integration-livingbrain")).toHaveAttribute("data-state", "not-configured");
 });
 

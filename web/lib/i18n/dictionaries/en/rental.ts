@@ -147,6 +147,8 @@ export const body = {
       start: "To start",
       startNote: "Deposit + rent for the first {per}",
       rate: "1 USDT = {thb} = {usd} · {source}, {time}",
+      atlas: "Priced by Atlas · updated {age} s ago",
+      atlasConsensus: " · consensus {score} {status}",
     },
 
     life: {
@@ -243,6 +245,20 @@ export const body = {
       approve: "Approve {amount} USDT",
       fund: "Fund deposit + rent",
       promptpay: "Pay with PromptPay (demo)",
+      bnb: {
+        button: "Pay with BNB ({amount} USDT)",
+        tx: "Swap BNB to USDT",
+        notePancake: "No USDT? Pay in BNB: it is swapped on PancakeSwap V2 for what is missing, guarded by the Atlas oracle (CoinMarketCap). Then approve and fund as usual.",
+        noteGuard: "No USDT? Pay in BNB (testnet demo swap): PancakeSwap has no pool for test USDT, so the AtlasSwapGuard contract sells it to you at the Atlas BNB/USD price. Then approve and fund as usual.",
+        min: "Sends {bnb} BNB · you get at least {min} USDT (Atlas {price} USD/BNB − 1 %), or the swap reverts.",
+        enough: "You already have enough USDT.",
+        quoting: "Checking the swap price…",
+        untrusted: "Price not trustworthy right now: {why}.",
+        noAtlas: "no Atlas price",
+        noQuote: "no swap quote",
+        deviation: "the swap quote is more than 2 % away from Atlas",
+        cap: "BSC mainnet pilot: one BNB swap buys at most 1 USDT.",
+      },
     },
 
     rent: {
@@ -318,6 +334,8 @@ export const body = {
       },
       signer: "Signer {address}",
       signedBy: "Signed by {name}",
+      priceProof: "Price proof: Atlas signed report",
+      priceProofHint: "Atlas Pull API report (BNB/USD, USDT/USD), signature verified server-side against the official Atlas signer {signer}. Hash {hash}.",
       agentId: ", ERC-8004 agent #{id}",
       signedAfter: ". Its identity is registered on BNB Chain, so anyone can check this proposal came from it.",
       submitAiTx: "Submit AI proposal",
