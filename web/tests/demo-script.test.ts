@@ -40,6 +40,8 @@ describe("guided demo script", () => {
     expect(ledger(c)).toMatchObject({ paidIn, tenantBack: BigInt(170) * U, treasury: BigInt(10) * U, balanced: true });
     // Fleet Vault path: the owner's cut lands in the vault and still counts on the owner's side.
     expect(ledger({ ...c, after: { ...c.after, landlord: BigInt(0), vault: paidIn - BigInt(180) * U } })?.balanced).toBe(true);
+    // The shared treasury wallet also received another rental's fee in the same window: this rental's own fee counts.
+    expect(ledger({ ...c, fee: BigInt(10) * U, after: { ...c.after, treasury: BigInt(20) * U } })).toMatchObject({ treasury: BigInt(10) * U, balanced: true });
     c.after = { ...c.after, escrow: BigInt(1) };
     expect(ledger(c)?.balanced).toBe(false);
   });

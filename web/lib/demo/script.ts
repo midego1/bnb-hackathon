@@ -511,7 +511,9 @@ export function ledger(ctx: DemoCtx) {
   const tenantBack = ctx.after.tenant - ctx.before.tenant + paidIn;
   // The owner's side: the owner's wallet plus the Fleet Vault (which receives the owner's cut on the Fleet Vault path).
   const landlord = ctx.after.landlord - ctx.before.landlord + (ctx.after.vault - ctx.before.vault);
-  const treasury = ctx.after.treasury - ctx.before.treasury;
+  // The treasury wallet is shared by every rental, so another rental's fee can land in the same window: use this
+  // rental's own ProtocolFeePaid amount when the run saw it, the wallet delta otherwise.
+  const treasury = ctx.fee ?? ctx.after.treasury - ctx.before.treasury;
   const escrowLeft = ctx.after.escrow;
   const balanced = escrowLeft === BigInt(0) && tenantBack + landlord + treasury === paidIn;
   return { paidIn, tenantBack, landlord, treasury, escrowLeft, balanced };
