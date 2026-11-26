@@ -58,7 +58,7 @@ export function PayWithBnb({ lease, short }: { lease: LeaseData; short: bigint |
       <p className="mb-2 text-xs text-muted-foreground">{t(route.pancake ? "rental.fund.bnb.notePancake" : "rental.fund.bnb.noteGuard")}</p>
       {plan.ok && !!short && (
         <p className="mb-2 text-xs text-subtle tabular-nums" data-testid="pay-bnb-min">
-          {t("rental.fund.bnb.min", { bnb: formatEther(plan.bnbIn), min: formatUsdt(plan.amountOutMin), price: prices?.atlas?.bnbUsd?.toFixed(2) ?? "?" })}
+          {t("rental.fund.bnb.min", { bnb: Number(formatEther(plan.bnbIn)).toFixed(6), min: formatUsdt(plan.amountOutMin), price: prices?.atlas?.bnbUsd?.toFixed(2) ?? "?" })}
         </p>
       )}
       <ActionButton
