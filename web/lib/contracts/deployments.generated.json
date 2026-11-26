@@ -1,11 +1,11 @@
 {
   "97": {
-    "escrowFactory": "0xd33b4dfF8C09e0079918fD987953c8f65F1363D8",
-    "mockUsdt": "0x46e69984A52233980F1CAeABB4571555e4c8fE37",
+    "escrowFactory": "0x04D7dDCb72802aF82296110A90526342C1249315",
+    "mockUsdt": "0x7aF0035c254bC760231BCcFF3403A714611c35B1",
     "disputeDesk": "0xf8A49f0E08F1EeC5AC0543FFc7145D9f50ddBe0D",
-    "fleetVault": "0xd046308Bf53752B79B9d62cD206fA0eB6a824ecB",
-    "rentalEscrowImplementation": "0x63f174fE3E80442c95b82a811a7D0d13f34D2314",
-    "fromBlock": 144828181,
+    "fleetVault": "0x2EB2CDAc4868798Af22e64ad70D433f28E422eA4",
+    "rentalEscrowImplementation": "0xEAaDe62c3255dAc5EB38952a80fa375618c34E53",
+    "fromBlock": 144891362,
     "tokenDecimals": 6,
     "tokenSymbol": "mUSDT"
   },

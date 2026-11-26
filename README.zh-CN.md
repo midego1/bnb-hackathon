@@ -89,8 +89,7 @@ curl -s -X POST https://keyescrow-agent.mdgooijer.workers.dev/mcp \
 ### BSC 测试网合约（chain 97）
 
 地址只列在一处：[英文 README 的合约表](README.md#bsc-testnet-contracts-chain-97)（数据来自
-[contracts/deployments/97.json](contracts/deployments/97.json)）。**合约 v2**（按租约设定的租期周期、试点上限、审计修复）
-将于 11 月 26 日（周四）约 13:00（泰国时间）替换这些地址，届时只需更新那张表和 `97.json`。
+[contracts/deployments/97.json](contracts/deployments/97.json)）。现在是 **合约 v2**（按租约设定的租期周期：7、14 或 30 天；试点上限；审计修复），于 2026 年 11 月 26 日（周四）部署。
 
 ### 为什么说它是 BNB 原生的
 
@@ -131,7 +130,7 @@ pnpm dev                                             # 打开 http://localhost:3
 不做部署：合约、Web（lint、单元测试、构建）、代理，以及端到端测试（`e2e:chain` + 在临时 anvil 上跑 Playwright）。
 
 ```bash
-cd contracts && forge build && forge test   # 120 个测试（单元、模糊、不变量测试；合约 v2 为 305 个）：工厂、托管、Fleet Vault、MockUSDT
+cd contracts && forge build && forge test   # 305 个测试（单元、模糊、不变量测试）：工厂、托管、Fleet Vault、MockUSDT
 pnpm -C web lint && pnpm -C web test        # eslint + 30 个文件共 393 个 vitest 测试（服务端路由、操作、演示、赞助商、多语言；离线）
 pnpm -C web build                           # 生产构建
 pnpm agent:test                             # 21 个测试：代理名片、A2A、MCP、Worker、在 anvil 上 prepare -> sign

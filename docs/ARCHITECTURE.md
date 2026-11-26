@@ -499,7 +499,7 @@ sequenceDiagram
 
 | Suite | Command | Count (26 Nov 2026) |
 | --- | --- | --- |
-| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 120 (305 with contract v2) |
+| Contracts: unit, fuzz and invariants (factory, escrow lifecycle, rent schedule, fee, settlement, timeouts, access control, Fleet Vault solvency, MockUSDT) | `cd contracts && forge test` | 305 |
 | Web: server routes, actions, risk, sponsors, demo script and guards, secrets page (offline, no keys) | `pnpm -C web test` | 393 in 30 files |
 | Agent: card, A2A, MCP, Worker, prepare → sign → state change on anvil | `pnpm agent:test` | 21 |
 | Chain end-to-end: happy path, dispute, owner timeout, arbiter fallback with real txs and time travel | `pnpm e2e:chain` | every path, balances asserted |
