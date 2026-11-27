@@ -1,11 +1,25 @@
 English | [简体中文](README.zh-CN.md)
 
+<div align="center">
+
+<img src="web/public/icons/icon-512.png" width="96" alt="KeyScrow logo">
+
 # KeyScrow
 
-KeyScrow (called KeyEscrow during the build: the agent URL, the iOS project folder and some older screenshots still say keyescrow).
+### Rent the motorbike. Keep your passport.
+
+The deposit sits in its own smart contract on BNB Chain, an AI inspector drafts the split at return,
+and nobody can move the money alone.
+
+[![BNB Chain](https://img.shields.io/badge/BNB%20Chain-testnet%20%2B%20mainnet%20pilot-F0B90B?logo=bnbchain&logoColor=white)](#bsc-testnet-contracts-chain-97)
+[![Solidity](https://img.shields.io/badge/Solidity-Foundry-363636?logo=solidity&logoColor=white)](contracts/README.md)
+[![Next.js](https://img.shields.io/badge/Next.js-App%20Router-000000?logo=nextdotjs&logoColor=white)](web)
+[![Swift iOS](https://img.shields.io/badge/Swift-iOS%20app-F05138?logo=swift&logoColor=white)](#by-the-numbers)
+[![Tests](https://img.shields.io/badge/tests-1%2C100%2B%20passing-brightgreen)](#tests-and-ci)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Built with Claude Code](https://img.shields.io/badge/Built%20with%20Claude%20Code-%E2%89%883.1B%20tokens-D97757?logo=claude&logoColor=white)](#by-the-numbers)
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 <!-- coverage:start -->
 ![contracts coverage](https://img.shields.io/badge/coverage%20contracts-100%25-brightgreen.svg)
 ![web coverage](https://img.shields.io/badge/coverage%20web-66.2%25-yellow.svg)
@@ -13,25 +27,22 @@ KeyScrow (called KeyEscrow during the build: the agent URL, the iOS project fold
 <!-- coverage:end -->
 [![BSC testnet](https://img.shields.io/badge/BSC%20testnet-live-F0B90B.svg)](#bsc-testnet-contracts-chain-97)
 
-**Rent a motorbike in Thailand without leaving your passport.**
+**[Live app](https://keyscrow.app)** · **[Split-screen demo](https://keyscrow.app/duo/honda-click-125i)** · **[Media kit & videos](https://keyscrow.app/media)** · **[Sponsor tracks](https://keyscrow.app/sponsors)** · **[Mainnet pilot](https://mainnet.keyscrow.app)** · **[AI agent](https://agent.keyscrow.app)**
 
-Motorbike rental shops in Thailand usually keep the tourist's passport as the deposit, and the shop alone decides what each
-scratch costs at return. KeyScrow replaces the passport with a deposit held in a small smart contract on BNB Chain,
-one contract per rental. Rent is paid out to the shop month by month. At return, an AI inspector compares the pickup
-and return photos and drafts a deposit split. One side proposes it on-chain, the other accepts, and the money moves at
-once. If they disagree, a neutral dispute desk rules. Neither party can move the deposit alone, and timeouts protect
-the renter. Every amount is shown in baht first.
+<a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the owner's phone on the right, the escrow vault between them. Choose a scooter, pay (the vault fills), pickup photo, return photo, AI split (the coins take its colours), the owner accepts, settled (the vault drains to both sides, one coin is the fee)"></a><br>
+<sub>One whole rental in 64 seconds: the renter's phone on the left, the owner's phone on the right, the escrow vault in the middle.</sub>
 
-Built for BNB Bangkok 2026 (Developer Track, CoinMarketCap x Atlas, ChatAndBuild / Living Brain, Cournot, AWS pitch:
-[one card per track on /sponsors](https://keyscrow.app/sponsors)). Open source (MIT), BSC testnet
-plus a capped mainnet pilot, no token.
+▶ **[Watch the pitch video (1080p)](https://keyscrow.app/media/videos/pitch-1080.mp4)** · ▶ **[64 s split-screen duo video with voice-over](docs/submission/duo.mp4)**
+
+</div>
+
+<sub>The agent URL, the iOS project folder and some older screenshots still use the build-time name `keyescrow`.</sub>
+
+Built for **BNB Bangkok 2026** (Developer Track, CoinMarketCap x Atlas, ChatAndBuild / Living Brain, Cournot, AWS pitch:
+[one card per track on /sponsors](https://keyscrow.app/sponsors)). Open source (MIT), BSC testnet plus a capped
+mainnet pilot, no token. Every amount is shown in baht first.
 
 ## KeyScrow in pictures
-
-<p align="center">
-  <a href="docs/submission/duo.mp4"><img src="docs/submission/duo.gif" width="720" alt="One rental from start to finish: the renter's phone on the left, the owner's phone on the right, the escrow vault between them. Choose a scooter, pay (the vault fills), pickup photo, return photo, AI split (the coins take its colours), the owner accepts, settled (the vault drains to both sides, one coin is the fee)"></a><br>
-  <sub>One whole rental in 64 seconds: the renter's phone on the left, the owner's phone on the right, the escrow vault in the middle (<a href="docs/submission/duo.mp4">full video with voice-over</a>).</sub>
-</p>
 
 <table>
   <tr>
@@ -48,7 +59,27 @@ plus a capped mainnet pilot, no token.
   </tr>
 </table>
 
-### How it works, in one diagram
+## Why it matters
+
+- **The passport is held hostage.** Motorbike rental shops in Thailand usually keep the tourist's passport as the
+  deposit, and you need it back to leave the country.
+- **The shop alone decides the damage.** At return, the shop decides what each scratch costs, and there is no record
+  of what the bike looked like at pickup.
+- **No neutral party for small amounts.** A 3,000 THB deposit is too small for a lawyer, a court or a classic escrow
+  agent, so the tourist pays or walks away.
+
+## How it works
+
+1. **The shop offers the scooter.** The owner sets the monthly rent, the deposit and the rental period in THB.
+2. **The renter funds the escrow.** The deposit plus the first month's rent go into that rental's own escrow clone
+   (EIP-1167), instead of a passport left at the counter. Rent is paid out to the owner month by month.
+3. **Photos are fingerprinted on-chain.** The rental agreement and the guided pickup and return photos (front, back,
+   left, right, plate close-up) stay off-chain. Only their SHA-256 fingerprints go on-chain.
+4. **The AI inspector proposes the split.** The KeyScrow Inspector, ERC-8004 agent **#2921** on BSC testnet, compares
+   the pickup and return photos and drafts a deposit split. It only drafts: a party proposes it with their own wallet.
+5. **Accept, dispute or time out.** The other side accepts and the money moves at once. If they disagree, the neutral
+   dispute desk rules. If the owner stays silent for 7 days, or the desk misses its 14-day deadline, the full deposit
+   goes back to the renter.
 
 ```mermaid
 flowchart LR
@@ -64,6 +95,44 @@ flowchart LR
   PAY -->|"deposit back"| R
   PAY -->|"repairs"| S
 ```
+
+**Fee:** 10 % of one month's rent, once per rental, taken from the owner's first rent payout and never from the
+deposit. A scooter at 3,400 THB a month pays ฿340, once. See [docs/BUSINESS.md](docs/BUSINESS.md).
+
+> **Naming:** the UI and docs say rental shop *owner*, *renter*, *scooter rental*, *pickup* and *return*. The
+> contracts, ABIs and APIs keep their original identifiers: `landlord` = owner, `tenant` = renter, `lease` = rental,
+> `CheckIn` / `CheckOut` = pickup / return, `MoveOut` = return proposal.
+
+## By the numbers
+
+| | |
+| --- | --- |
+| **76,000** | lines of code (web, contracts, agent, iOS) |
+| **1,100+** | tests: 590 unit (vitest), 314 contract (Foundry), ~160 Playwright, 39 iOS, 24 agent |
+| **463** | commits in 2.5 days |
+| **≈3.1 billion** | Claude Code tokens, across 11 machines |
+| **2 networks** | contracts live on BSC testnet (chain 97) + a capped BSC mainnet pilot (chain 56, max $1 per rental) |
+
+## Sponsor tracks at a glance
+
+| Track | What is LIVE | Proof |
+| --- | --- | --- |
+| **Developer Track** (BNB Chain) | One escrow clone per rental on BSC testnet + capped mainnet pilot; ERC-8004 agent #2921 with A2A + MCP (17 tools) | [contracts](#bsc-testnet-contracts-chain-97) · [agent card](https://agent.keyscrow.app/.well-known/agent-card.json) · [/demo](https://keyscrow.app/demo) |
+| **CoinMarketCap x Atlas** | Atlas push feeds are the first price source on testnet and mainnet; Atlas Pull API consensus HEALTHY guards Pay with BNB; `AtlasSwapGuard` [`0xD26dBba1eE904c95d3467F479FC4410b0400b6bA`](https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA) on testnet; CMC volatility sets the deposit buffer and THB rate | [/integrations](https://keyscrow.app/integrations) · [WRITEUP.md](docs/WRITEUP.md) |
+| **ChatAndBuild / Living Brain** | Scooter memory for the AI inspector, and dispute memory per wallet for the dispute desk | [3:54 video](https://keyscrow.app/media/videos/livingbrain.mp4) · [details](#living-brain-chatandbuild) |
+| **Cournot** | Live probability call, request id `7dcbb40bfbfdebad018e9bcad0d70c51`, p = 0.30, scales the BNB deposit buffer | [Cournot Integration](#cournot-integration) · [stored answer](web/data/cournot-results.json) |
+| **AWS** (pitch session) | Startup pitch: business model, fee, Fleet Vault, roadmap | [/pitch](https://keyscrow.app/pitch) · [pitch video](https://keyscrow.app/media/videos/pitch-1080.mp4) · [BUSINESS.md](docs/BUSINESS.md) |
+
+Full requirements and evidence per track: [docs/SPONSORS.md](docs/SPONSORS.md).
+
+## Contents
+
+[For judges](#for-judges) · [Contracts](#bsc-testnet-contracts-chain-97) · [BNB-native](#what-makes-it-bnb-native) ·
+[Quick start](#quick-start-local-no-wallet-or-keys) · [Tests and CI](#tests-and-ci) · [Features](#features) ·
+[Sponsor integrations](#sponsor-integrations) · [Cournot Integration](#cournot-integration) · [Networks](#networks) ·
+[Repo layout](#repo-layout) · [Docs](#docs) · [Run locally](#run-locally-details)
+
+---
 
 ## For judges
 
@@ -86,9 +155,9 @@ flowchart LR
 | Mainnet pilot (BSC mainnet, chain 56) | <https://mainnet.keyscrow.app>: factory [`0x8d70…2d3E`](https://bscscan.com/address/0x8d708713C2a9da93450F224f35eF7FA15c0a2d3E), real BSC-USD, capped on-chain at 0.70 deposit + 0.30 rent per period (max 1 USD per rental) and 5 USD across all open rentals |
 | Sponsor tracks, live state | [/sponsors](https://keyscrow.app/sponsors) (status from `/api/integrations`; technical detail on [/integrations](https://keyscrow.app/integrations)) |
 | Videos (local chain, seeded demo world) | [duo](docs/submission/duo.mp4) (64 s) · [guided /demo](docs/submission/demo-guided.mp4) (90 s) · [ELI5](docs/submission/eli5.mp4) (71 s) · [app tour](docs/submission/tour.mp4) (77 s) · [deck](docs/submission/deck.pdf) |
-| Tests (26 Nov) | 314 Foundry · 558 vitest (40 files) · 24 agent · 154 Playwright tests in 27 spec files |
-| Size | ~74,000 lines of code + ~5,300 lines of Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries) |
-| Built with | Claude Code: ≈2.68 billion tokens in total (8.74M output, 10,441 messages), on paseo-box + 10 boat VMs, counted from the Claude Code transcripts on 26 Nov at ~19:00 ICT |
+| Tests (27 Nov) | 1,100+: 314 Foundry · 590 vitest · 24 agent · ~160 Playwright · 39 iOS ([by the numbers](#by-the-numbers)) |
+| Size | ~76,000 lines of code + Markdown docs (tracked files; excludes lockfiles, `contracts/lib`, generated ABIs, JSON data and binaries); 463 commits in 2.5 days |
+| Built with | Claude Code: ≈3.1 billion tokens in total across 11 machines (paseo-box + 10 boat VMs), counted from the Claude Code transcripts (≈2.68 billion, 8.74M output, 10,441 messages on 26 Nov at ~19:00 ICT) |
 
 The AI inspector is ERC-8004 agent **#2921** on BSC testnet:
 [agent card](https://agent.keyscrow.app/.well-known/agent-card.json). The contracts are in
@@ -226,37 +295,17 @@ number covers `lib/` and the API routes, the pages are covered by Playwright).
 
 ```bash
 cd contracts && forge build && forge test   # 314 tests (unit, fuzz, invariants): factory, escrow, Fleet Vault, MockUSDT, AtlasSwapGuard
-pnpm -C web lint && pnpm -C web test        # eslint + 558 vitest tests in 40 files (server routes, actions, demo, sponsors, i18n; offline)
+pnpm -C web lint && pnpm -C web test        # eslint + 590 vitest tests (server routes, actions, demo, sponsors, i18n; offline)
 pnpm -C web build                           # production build
 pnpm agent:test                             # 24 tests: agent card, A2A, MCP, Worker, prepare -> sign on anvil
 pnpm e2e:chain                              # every settlement path with real txs + time travel, own anvil :28545
-cd web && npx playwright test               # 154 browser tests in 27 files, 2 workers; own anvil :28546 + server :3150
+cd web && npx playwright test               # ~160 browser tests, 2 workers; own anvil :28546 + server :3150
 pnpm coverage                               # forge coverage + vitest v8 coverage, lcov in <part>/coverage/
 pnpm cf:build && pnpm cf:size                # after one pnpm cf:preview: web Worker 2.89 MiB gzip (Free limit 3 MiB), agent 0.75 MiB
 ```
 
-Counts and sizes as of 26 Nov 2026 (main).
+Counts as of 27 Nov 2026 (main); the iOS app adds 39 XCTest tests.
 
----
-
-## How it works
-
-1. **The shop offers the scooter.** The owner sets the monthly rent, the deposit and the rental period in THB. The
-   rental agreement and the guided pickup photos (front, back, left, right, plate close-up) stay off-chain. Only
-   their SHA-256 fingerprints go on-chain.
-2. **The renter funds the escrow.** The deposit plus the first month's rent go into that rental's own contract,
-   instead of a passport left at the counter. Rent is paid out to the owner month by month.
-3. **Return the scooter, settle in minutes.** An AI inspection compares the pickup and return photos and proposes a
-   split. One side proposes it, the other accepts, and the money moves at once. If they disagree, the dispute desk
-   rules. If the owner stays silent for 7 days, or the desk misses its 14-day deadline, the full deposit goes back to
-   the renter.
-
-**Fee:** 10 % of one month's rent, once per rental, taken from the owner's first rent payout and never from the
-deposit. A scooter at 3,400 THB a month pays ฿340, once. See [docs/BUSINESS.md](docs/BUSINESS.md).
-
-> **Naming:** the UI and docs say rental shop *owner*, *renter*, *scooter rental*, *pickup* and *return*. The
-> contracts, ABIs and APIs keep their original identifiers: `landlord` = owner, `tenant` = renter, `lease` = rental,
-> `CheckIn` / `CheckOut` = pickup / return, `MoveOut` = return proposal.
 
 ## Features
 
@@ -292,12 +341,12 @@ card. All sponsor calls are **server-side only** (`web/app/api/*`) and are logge
 `web/.sponsor-logs/<sponsor>.jsonl` (gitignored). On Workers, which have no disk, the log is kept in memory. Tests
 never call a sponsor: they replay fixtures in `web/tests/fixtures/`.
 
-| Sponsor | What it does in KeyScrow | Turn it on | State on the live site (25 Nov) |
+| Sponsor | What it does in KeyScrow | Turn it on | State on the live site (27 Nov) |
 |---|---|---|---|
-| CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | Built; no key on the live site yet, so it shows *Demo rates* |
+| CoinMarketCap | Volatility of USDT/BNB (`quotes/latest`) sets the deposit buffer. THB quotes convert and display every amount | `CMC_API_KEY` | **Live**: `CMC_API_KEY` is set on keyscrow.app; USD + THB quotes show on `/integrations` and `/api/integrations` |
 | Cournot | The probability that BNB breaks the deposit's coverage floor before the return date scales the buffer | `COURNOT_LIVE=1` | Live call made 26 Nov (request id `7dcbb40b…0c51`, p = 0.30); the stored answer is shown on keyscrow.app |
-| Atlas | `latestRoundData()` with a staleness check is the first price source; push feed + Pull API consensus guard Pay with BNB; the signed report is the settlement price proof | `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)). Pull API guard + price proof: built, tested with a mocked API, live once `ATLAS_API_KEY` is set |
-| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | Built; a local memory file stands in until it is configured |
+| Atlas | `latestRoundData()` with a staleness check is the first price source; push feed + Pull API consensus guard Pay with BNB; the signed report is the settlement price proof | `ATLAS_RPC_URL`, `ATLAS_FEED_*`, `ATLAS_API_KEY` | **Live** (26 Nov): BSC push feeds BNB/USD + USDT/USD on the testnet and mainnet pilot sites, `GET /api/price` → `"source":"atlas"` ([addresses](docs/WRITEUP.md#bnb-chain-contracts-and-data-bsc-testnet-chain-97)). Pull API signed reports (feeds 633/649) give the consensus badge (HEALTHY), the Pay with BNB guard and the settlement price proof; `AtlasSwapGuard` [`0xD26d…b6bA`](https://testnet.bscscan.com/address/0xD26dBba1eE904c95d3467F479FC4410b0400b6bA) on BSC testnet |
+| Living Brain | The AI inspector recalls a scooter's earlier inspections before judging; the web app stores each new one for a rental it verified on-chain; dispute memory per wallet for the dispute desk | `LIVING_BRAIN_API_KEY`, `LIVING_BRAIN_SUBJECT_ID`, `LIVING_BRAIN_BRAIN_ID` | **Live** on keyscrow.app: scooter memory + dispute memory per wallet ([3:54 video](https://keyscrow.app/media/videos/livingbrain.mp4)); a local memory file stands in only where the keys are not set |
 
 ### CoinMarketCap
 
