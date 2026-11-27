@@ -11,13 +11,13 @@ English | [简体中文](README.zh-CN.md)
 The deposit sits in its own smart contract on BNB Chain, an AI inspector drafts the split at return,
 and nobody can move the money alone.
 
-[![BNB Chain](https://img.shields.io/badge/BNB%20Chain-testnet%20%2B%20mainnet%20pilot-F0B90B?logo=bnbchain&logoColor=white)](#bsc-testnet-contracts-chain-97)
+[![BNB Chain](https://img.shields.io/badge/BNB_Chain-testnet_and_mainnet_pilot-F0B90B?logo=binance&logoColor=white)](#bsc-testnet-contracts-chain-97)
 [![Solidity](https://img.shields.io/badge/Solidity-Foundry-363636?logo=solidity&logoColor=white)](contracts/README.md)
 [![Next.js](https://img.shields.io/badge/Next.js-App%20Router-000000?logo=nextdotjs&logoColor=white)](web)
-[![Swift iOS](https://img.shields.io/badge/Swift-iOS%20app-F05138?logo=swift&logoColor=white)](#by-the-numbers)
-[![Tests](https://img.shields.io/badge/tests-1%2C100%2B%20passing-brightgreen)](#tests-and-ci)
+[![Swift iOS](https://img.shields.io/badge/Swift-iOS_app-F05138?logo=swift&logoColor=white)](#by-the-numbers)
+[![Tests](https://img.shields.io/badge/tests-1100_passing-brightgreen)](#tests-and-ci)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Built with Claude Code](https://img.shields.io/badge/Built%20with%20Claude%20Code-%E2%89%883.1B%20tokens-D97757?logo=claude&logoColor=white)](#by-the-numbers)
+[![Built with Claude Code](https://img.shields.io/badge/Built_with_Claude_Code-3.1B_tokens-D97757?logo=anthropic&logoColor=white)](#by-the-numbers)
 
 [![CI](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/midego1/bnb-hackathon/actions/workflows/ci.yml)
 <!-- coverage:start -->
