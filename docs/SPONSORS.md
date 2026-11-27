@@ -139,8 +139,7 @@ Docs: <https://coinmarketcap.com/api/documentation/>
 State on 26 Nov 2026. The same list, per track with evidence links, is on <https://keyscrow.app/sponsors>
 (data: `web/lib/sponsorChecklist.ts`).
 
-- [ ] Repo access for judges: README with setup + "Sponsor integrations" is done; the repo is private and goes public
-      on Fri 27 Nov in the morning, before the deadline
+- [x] Repo access for judges: public (MIT) since 27 Nov 07:25 ICT, README with setup + "Sponsor integrations"
 - [x] Contract addresses on BSC testnet listed in README and write-up
 - [x] CMC API call logs: `CMC_API_KEY` is set on <https://keyscrow.app>; live calls (USD + THB quotes) show on
       `/integrations` and `/api/integrations`
