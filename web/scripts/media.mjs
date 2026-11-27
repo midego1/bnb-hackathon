@@ -29,6 +29,7 @@ const FILES = [
   ["videos", "docs/submission/duo.gif", false],
   // The pitch (4:46, 720p) alone is ~23 MB: a separate download, kept out of the zip so the zip stays under 25 MiB.
   ["videos", "docs/submission/pitch.mp4", false],
+  ["videos", "docs/submission/pitch-1080.mp4", false],
   ["videos", "docs/submission/pitch-poster.jpg", false],
   ["deck", "docs/submission/deck.pdf", true],
   ["deck", "docs/submission/deck-cover.jpg", true],

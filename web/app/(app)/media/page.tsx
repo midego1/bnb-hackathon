@@ -107,6 +107,7 @@ export default async function MediaPage() {
               <p className="mt-3 text-sm text-muted-foreground">{c.videos[id].body}</p>
               <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
                 {dl(file(`videos/${id}.mp4`))}
+                {maybe(`videos/${id}-1080.mp4`) && dl(maybe(`videos/${id}-1080.mp4`)!)}
                 {maybe(`videos/${id}.webm`) && dl(maybe(`videos/${id}.webm`)!)}
               </p>
             </Card>
