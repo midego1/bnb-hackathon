@@ -153,8 +153,8 @@ State on 26 Nov 2026. The same list, per track with evidence links, is on <https
       key / paid calls), so no proof
 - [x] One-page write-up (CMC x Atlas): [WRITEUP.md](WRITEUP.md), team KeyScrow
 - [ ] Videos in [submission/](submission/): ≤ 3 min for CMC x Atlas done (`duo.mp4` 64 s, `demo-guided.mp4` 90 s,
-      `tour.mp4` 77 s, `eli5.mp4` 71 s); the 3–5 min Living Brain memory video and a Cournot live-call recording are
-      not made yet
+      `tour.mp4` 77 s, `eli5.mp4` 71 s); the 3–5 min Living Brain memory video done (`livingbrain.mp4` 3:54); a
+      Cournot live-call recording is not made yet
 - [ ] Project submitted on HackQuest with all tracks selected: not submitted yet; fields ready in
       [submission/HACKQUEST.md](submission/HACKQUEST.md)
 

@@ -26,7 +26,7 @@ test("landing footer → /media: the zip and every download respond 200", async 
   await expect(page.getByRole("heading", { level: 1, name: "Media kit" })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/media$/);
   await expect(page.getByTestId("media-zip")).toHaveText(/^Download everything \(\.zip, \d+\.\d MB\)$/);
-  await expect(page.getByTestId("media-video")).toHaveCount(5);
+  await expect(page.getByTestId("media-video")).toHaveCount(6);
   // The rental as a recipe, before the videos: 10 ingredients, 7 steps; Settle spans every row.
   const recipe = page.getByTestId("recipe");
   await expect(recipe.getByRole("heading", { level: 2, name: "KeyScrow: one rental, step by step" })).toBeVisible();
