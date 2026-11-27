@@ -21,16 +21,16 @@ Screenshots:
 
 | File | What |
 | --- | --- |
-| `01-landing.png` | Landing: the LED hero and the search |
+| `01-landing.png` | Landing: the LED hero ("Rent the motorbike. Keep your passport.") and the search, live keyscrow.app, 27 Nov |
 | `02-duo.png` | `/duo/honda-click-125i`, settled: the renter's phone (iPhone app look) with "Your ฿6,206 are back" and the split bar, the empty vault with ฿6,206 back to the renter, ฿819 to the owner, KeyScrow fee ฿25, the on-chain receipt, and the owner's phone |
 | `02-duo-dark.png` | The same, dark |
-| `03-rental.png` | Rental page: a rental in dispute, money in baht, the next step |
+| `03-rental.png` | Rental page: a demo rental in dispute on live keyscrow.app (27 Nov), money in baht, the next step |
 | `04-arbiter-history.png` | Dispute desk: the case with the renter's and the owner's history cards |
-| `05-backoffice.png` | Back office: the demo shops' rentals read from the chain |
+| `05-backoffice.png` | Back office: the rentals read from the chain (live keyscrow.app, 27 Nov) |
 | `06-mobile-r.png` | `/r/mystery-box` on a phone: the AI inspection's split, ready to propose |
 | `07-ios.png` | The iOS app in its LED sign design (Settings > Design), four Simulator screens in CSS phone frames: browse the catalogue (prices in LED digits), a listing in 中文, pay into escrow, settled (from [ios/screenshots](../../ios/screenshots)) |
 | `ios/*.jpg` | JPEG copies of those four screens for the deck (Chromium embeds JPEGs as they are; the PNGs made deck.pdf 5 MB instead of 3) |
-| `08-sponsors.png` | `/sponsors`: one card per sponsor track with its live state (a local Worker preview with the public Atlas feeds and no CMC key, so the CMC sub-chip says *Waiting for key*; the live site has CMC live) |
+| `08-sponsors.png` | `/sponsors` on live keyscrow.app (27 Nov): "The sponsors in one recipe" grid (what each sponsor brings and where it goes), above one card per sponsor track with its live state and checklist |
 | `09-landing-dark.png` | Landing, dark |
 | `10-rental-dark.png` | Rental page, dark |
 | `11-sponsors-dark.png` | `/sponsors`, dark |
