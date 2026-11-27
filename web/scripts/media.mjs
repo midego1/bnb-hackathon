@@ -3,7 +3,7 @@
 // public/media/keyscrow-media.zip and writes public/media/manifest.json (path + bytes of each file, read by the page).
 // All three are build outputs (gitignored). Runs before every next build: package.json build, cf.mjs, testnet-web.sh,
 // playwright.config.ts. Node only: the zip is written here (the production build server has no `zip` binary).
-import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
@@ -30,6 +30,9 @@ const FILES = [
   // The pitch (4:46, 720p) alone is ~23 MB: a separate download, kept out of the zip so the zip stays under 25 MiB.
   ["videos", "docs/submission/pitch.mp4", false],
   ["videos", "docs/submission/pitch-1080.mp4", false],
+  // Overlay kit for video editors (keyable overlay + sound stem): kept out of git in media/overlay-kit (git-excluded),
+  // published only by builds that have it; separate downloads, not in the zip.
+  ...(existsSync(join(REPO, "media/overlay-kit")) ? ls("media/overlay-kit", /\.(mp4|webm|flac|m4a|csv|txt)$/).map((f) => ["overlay-kit", f, false]) : []),
   ["videos", "docs/submission/pitch-poster.jpg", false],
   ["deck", "docs/submission/deck.pdf", true],
   ["deck", "docs/submission/deck-cover.jpg", true],

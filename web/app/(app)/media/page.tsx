@@ -118,6 +118,19 @@ export default async function MediaPage() {
         {c.gif}: {dl(file("videos/duo.gif"))}
       </p>
 
+      {inFolder("overlay-kit").length > 0 &&
+        section(
+          "kit",
+          <Card>
+            <p className="text-sm text-muted-foreground">{c.kitBody}</p>
+            <p className="mt-3 flex flex-wrap gap-x-4 text-sm">
+              {inFolder("overlay-kit").map((f) => (
+                <span key={f.path}>{dl(f)}</span>
+              ))}
+            </p>
+          </Card>,
+        )}
+
       {section(
         "deck",
         <Card>

@@ -45,7 +45,9 @@ const en = {
     brand: "Brand",
     docs: "Documents",
     links: "Links",
+    kit: "Overlay kit (for video editors)",
   },
+  kitBody: "The pitch video's drawn-on overlay alone, to blend in your own edit: on chroma green or magenta (key it), or as WebM with real alpha; plus the sound-design stem (FLAC lossless or AAC) with its cue list, and a preview with everything mixed in. 1920x1080, 23.976 fps, 4:46.37; every file starts at 00:00. See README.txt.",
   videos: {
     pitch: { title: "The pitch: KeyScrow in 5 minutes", body: "Our submission video: the problem, the renter's side, the owner's side and the sponsors, with a drawn-on explanation while we talk." },
     duo: { title: "Renter and rental company, side by side", body: "The hero video. The renter's phone on the left, the rental company on the right: rent, pickup photo, return photo, the AI's split, the owner accepts, settled. With an English voice-over." },
