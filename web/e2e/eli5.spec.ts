@@ -165,6 +165,41 @@ test("phone: stacks and scrolls, nothing sticks out sideways, amounts readable b
   await page.screenshot({ path: path.join(SHOTS, "390x844-mobile-happy.png"), fullPage: true });
 });
 
+test("the night stage and the real-rental strip: links to /duo/honda-click-125i and /app, 1440x900 light + dark and a 390 phone", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/app");
+    await page.evaluate((t) => localStorage.setItem("keyescrow-theme", t), theme);
+    await page.goto("/how-it-works?autoplay=0&scene=3&t=2000");
+    await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${theme}\\b`));
+    await expect(root(page)).toHaveAttribute("data-scene", "fund");
+    // The cartoon is a picture of night: the same indigo in both themes.
+    expect(await page.getByTestId("eli5-cartoon").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(13, 11, 42)");
+    const cta = page.getByTestId("eli5-cta");
+    await expect(cta).toBeInViewport({ ratio: 1 });
+    await expect(cta).toContainText("Honda Click 125i");
+    await expect(cta).toContainText("฿250");
+    await expect(cta).toContainText("฿6,800");
+    await expect(cta).toContainText("฿25");
+    await expect(page.getByTestId("eli5-cta-duo")).toHaveAttribute("href", "/duo/honda-click-125i");
+    await expect(page.getByTestId("eli5-cta-app")).toHaveAttribute("href", "/app");
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(400); // narration pop-in
+    await page.screenshot({ path: path.join(SHOTS, `1440x900-${theme}.png`), fullPage: true });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/how-it-works?autoplay=0&scene=3&t=2000");
+    await expect(root(page)).toHaveAttribute("data-scene", "fund");
+    expect(await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    for (const id of ["eli5-cta-duo", "eli5-cta-app"]) {
+      const b = (await page.getByTestId(id).boundingBox())!;
+      expect(b.height, `${id} tap height`).toBeGreaterThanOrEqual(44);
+    }
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(SHOTS, `390x844-${theme}.png`), fullPage: true });
+  }
+});
+
 test.describe("screenshots", () => {
   test.use({ viewport: { width: 1470, height: 830 } });
 
