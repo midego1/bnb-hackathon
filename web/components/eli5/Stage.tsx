@@ -208,7 +208,7 @@ export function Stage({ scene, t, reduced, ending }: { scene: Scene; t: number; 
           </Enter>
         ))}
       {clickP > 0 && (
-        <text x={600} y={290} textAnchor="middle" fontSize={24} fontWeight={800} fill={COLORS.goldDark} className="demo-pop" data-testid="eli5-click">
+        <text x={600} y={290} textAnchor="middle" fontSize={24} fontWeight={800} fill={COLORS.gold} className="demo-pop" data-testid="eli5-click">
           {copy.bubbles.click}
         </text>
       )}

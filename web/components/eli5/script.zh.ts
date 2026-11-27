@@ -100,6 +100,7 @@ export function zhEli5(kind: RentalKind, M: Money, baht: (v: bigint) => string) 
     realDemo: "在真实的链上看一遍 →",
     tryIt: "亲自试试 →",
     recapTitle: "最后谁拿到了什么",
+    cta: { title: "来看真的", perDay: "每天", deposit: "押金，锁在它自己的合约里", fee: "一次性手续费", duo: "看一笔真实的租赁", app: "打开应用" },
     names: { tenant: renter, landlord: owner, safe: "保险箱", jar: "KeyScrow 罐子", robot: "AI 验车员", referee: "裁判" },
     bubbles: {
       worry: "我能拿回来吗？",

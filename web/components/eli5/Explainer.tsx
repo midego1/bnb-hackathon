@@ -1,16 +1,20 @@
 "use client";
 
-import { ChevronLeft, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowRight, ChevronLeft, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useReducer, useSyncExternalStore } from "react";
 import { useT } from "@/lib/i18n/client";
 import { baht, dollars, eli5Copy, ENDINGS, endingsText, sceneText, story, type Ending, type Scene } from "./script";
 import { Stage } from "./Stage";
 import { holdingsAt } from "./timeline";
+import "@/components/marketing/board.css";
+import "./eli5.css";
 
 /**
  * The /how-it-works player: no wallet, no chain, just a clock. A reducer owns (ending, scene, t, playing); the stage
  * draws itself from (scene, t). Space plays / pauses, arrow keys step through scenes, the dots jump.
+ * The cartoon plays on the landing page's night band (eli5.css); the strip under the controls is the way to the real
+ * thing: the Honda Click rental on /duo and the app.
  *
  * Test hooks (query string, read after mount so the page stays static): ?speed=20 runs the clock 20x, ?ending=,
  * ?scene= (1-based), ?t= (ms into that scene) and ?autoplay=0 start paused at an exact frame for screenshots.
@@ -159,10 +163,10 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
     >
       {/* Title row: what this is, the ending picker, the way to the real thing. */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">{copy.heading}</h1>
+        <h1 className="hiw-title text-xl font-semibold tracking-tight sm:text-2xl">{copy.heading}</h1>
         <div className="flex items-center gap-2" role="radiogroup" aria-label={copy.ending}>
           <span className="text-sm font-medium text-subtle">{copy.ending}</span>
-          <div className="inline-flex rounded-xl border border-border-strong bg-surface p-0.5">
+          <div className="inline-flex rounded-full border border-border-strong bg-surface p-1 shadow-sm">
             {t.of(endingsText).map((e) => (
               <button
                 key={e.id}
@@ -171,7 +175,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
                 aria-checked={s.ending === e.id}
                 onClick={() => dispatch({ type: "ending", ending: e.id })}
                 data-testid={`eli5-ending-${e.id}`}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${s.ending === e.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition max-sm:min-h-11 ${s.ending === e.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
                 <span aria-hidden>{e.short}</span> {e.label}
               </button>
@@ -188,7 +192,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       </div>
 
       {/* The cartoon. */}
-      <div className="relative aspect-[1200/560] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-sm stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="eli5-cartoon">
+      <div className="mk-night hiw-night relative aspect-[1200/560] w-full overflow-hidden rounded-[1.75rem] border stage:aspect-auto stage:min-h-0 stage:flex-1" data-testid="eli5-cartoon">
         <div className="absolute inset-0 p-2">
           <Stage scene={scene} t={s.t} reduced={reduced} ending={s.ending} />
         </div>
@@ -197,7 +201,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       {/* Phones: the amounts again, big enough to read. */}
       <dl className="grid grid-cols-2 gap-2 text-sm sm:hidden" data-testid="eli5-balances">
         {(["tenant", "landlord", "safe", "jar"] as const).map((h) => (
-          <div key={h} className="rounded-xl border border-border bg-surface px-3 py-2">
+          <div key={h} className="rounded-2xl border border-border bg-surface px-3 py-2">
             <dt className="text-subtle">{copy.names[h]}</dt>
             <dd className="font-semibold tabular-nums">
               {baht(held[h])} <span className="text-xs font-normal text-subtle">{dollars(held[h])}</span>
@@ -207,7 +211,7 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
       </dl>
 
       {/* Narration + controls. */}
-      <div className="grid shrink-0 gap-3 rounded-2xl border border-border bg-surface px-5 py-3 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <div className="hiw-card grid shrink-0 gap-3 rounded-[1.75rem] border border-border bg-surface px-5 py-3 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div key={`${s.ending}-${scene.id}`} className="demo-pop min-w-0" data-testid="eli5-narration" aria-live="polite">
           <p className="text-xl font-semibold leading-tight tracking-tight text-balance sm:text-3xl tall:text-[2.1rem]">{t.head(sceneText, (x) => x[scene.id].text)}</p>
           <p className="mt-1.5 text-sm text-subtle">
@@ -260,6 +264,39 @@ export function Explainer({ realDemo }: { realDemo: boolean }) {
           <span className="hidden text-xs text-subtle lg:block">{copy.keys}</span>
         </div>
       </div>
+
+      {/* The real one, in the landing page's night colours: the Honda Click on /duo, and the app. */}
+      <aside className="mk-night hiw-cta" data-testid="eli5-cta" aria-label={copy.cta.title}>
+        <p className="hiw-cta-title">
+          <span aria-hidden className="text-2xl">
+            🛵
+          </span>
+          <span>
+            <small>{copy.cta.title}</small>
+            Honda Click 125i
+          </span>
+        </p>
+        <ul className="hiw-facts">
+          <li data-tone="teal">
+            <b>฿250</b> {copy.cta.perDay}
+          </li>
+          <li data-tone="amber">
+            <b>฿6,800</b> {copy.cta.deposit}
+          </li>
+          <li data-tone="pink">
+            <b>฿25</b> {copy.cta.fee}
+          </li>
+        </ul>
+        <div className="hiw-cta-go">
+          <Link href="/duo/honda-click-125i" className="hiw-btn hiw-btn-primary" data-testid="eli5-cta-duo">
+            {copy.cta.duo}
+            <ArrowRight aria-hidden className="size-4" />
+          </Link>
+          <Link href="/app" className="hiw-btn" data-testid="eli5-cta-app">
+            {copy.cta.app}
+          </Link>
+        </div>
+      </aside>
     </div>
   );
 }

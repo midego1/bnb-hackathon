@@ -335,6 +335,15 @@ export const copy = {
   realDemo: "See it on a real chain →",
   tryIt: "Try it yourself →",
   recapTitle: "Who ended up with what",
+  /** The strip under the story: the real Honda Click rental (/duo/honda-click-125i), its price in baht. */
+  cta: {
+    title: "Now the real one",
+    perDay: "a day",
+    deposit: "deposit, locked in its own contract",
+    fee: "one-time fee",
+    duo: "Watch a live rental",
+    app: "Open the app",
+  },
   names: {
     tenant: R.renter,
     landlord: R.owner,
