@@ -32,6 +32,8 @@ const FILES = [
   ["videos", "docs/submission/pitch-1080.mp4", false],
   // Overlay kit for video editors (keyable overlay + sound stem): kept out of git in media/overlay-kit (git-excluded),
   // published only by builds that have it; separate downloads, not in the zip.
+  // Booth-quality 1080p renders (git-excluded media/booth), separate downloads, only on builds that have them.
+  ...(existsSync(join(REPO, "media/booth")) ? ls("media/booth", /\.mp4$/).map((f) => ["videos", f, false]) : []),
   ...(existsSync(join(REPO, "media/overlay-kit")) ? ls("media/overlay-kit", /\.(mp4|webm|flac|m4a|csv|txt)$/).map((f) => ["overlay-kit", f, false]) : []),
   ["videos", "docs/submission/pitch-poster.jpg", false],
   // The Living Brain memory video (3:54, ~14 MB): a separate download, not in the zip.
