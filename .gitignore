@@ -54,3 +54,7 @@ contracts/broadcast/**/*.recovery.lock
 web/.open-next/
 .dev.vars*
 !.dev.vars.example
+
+# Keystores anywhere in the tree (the real ones live in .orca/secrets)
+*.keystore
+*.keystore.json
