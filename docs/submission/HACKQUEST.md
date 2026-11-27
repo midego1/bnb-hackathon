@@ -132,8 +132,8 @@ Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own)
 - **CI:** GitHub Actions: contracts, web, agent and end-to-end, with no secrets and no testnet.
 - **Size:** ~74,000 lines of code and ~5,300 lines of Markdown docs (tracked files, without lockfiles, `contracts/lib`,
   generated ABIs, JSON data and binaries).
-- **Built with Claude Code:** ≈2.68 billion tokens in total (8.74M output, 10,441 messages), on paseo-box + 10 boat
-  VMs, counted from the Claude Code transcripts on 26 Nov at ~19:00 ICT.
+- **Built with Claude Code:** ≈3.11 billion tokens in total (10.55M output, 12,116 messages), on paseo-box + 10 boat
+  VMs, counted from the Claude Code transcripts on 27 Nov at ~08:15 ICT (the iOS app session on a Mac not included); ≈76,000 lines of code, 1,100+ tests, 463 commits.
 
 ## Links
 
