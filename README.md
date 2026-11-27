@@ -437,6 +437,20 @@ curl -s -X POST https://api.livingbrain.com/v1/brains -H "x-api-key: $LIVING_BRA
   the free quota (1 of 3 used, nothing charged). The full answer with Cournot's evidence is committed in
   [`web/data/cournot-results.json`](web/data/cournot-results.json) and shown on `/integrations`. Earlier, one `resolve` call (free) succeeded on 2026-11-25 12:44:29 UTC, `x-trace-id`
   `4dbc8496d005d7971986d3123fe7dadd`. Its response is `web/tests/fixtures/cournot/resolve.recorded-2026-11-25.json`.
+- **Three live probability calls in total** (all committed in `web/data/cournot-results.json`, shown on `/integrations`):
+
+  | When (UTC) | Claim | Reference market | p | Request id |
+  | --- | --- | --- | --- | --- |
+  | 2026-11-26 13:06 | BNB below $470 before 2026-12-26 | 18090 (below $480 before 2027-01-01) | 0.30 | `7dcbb40bfbfdebad018e9bcad0d70c51` |
+  | 2026-11-27 02:50 | BNB below $450 before 2026-12-04 | below $450 before 2026-12-01 | 0.08 | `467f201b372d047af80878686de1c55c` |
+  | 2026-11-27 02:51 | BNB below $500 before 2026-12-11 | 111338 (below $500 before 2026-12-01) | 0.266 | `7a56a2cf4a4897c67f5507a57f055d39` |
+
+- **x402 paid call (attempted).** After the 3 free calls Cournot answered HTTP 402 with two x402 v2 routes ($0.01): USDC on
+  Base (`eip155:8453`) and USD1 on BNB Chain (`eip155:56`, EIP-3009). We bought 0.05 USD1 on BSC mainnet
+  (PancakeSwap, tx `0xce2bd48e1432b11d07ee2db3c29753e6b9500f6ddebe023f769bf22a5e0b26e9`) and sent a signed EIP-3009
+  `PAYMENT-SIGNATURE` for the BNB Chain route; Cournot accepted the signature but its settlement answered
+  `22000 "settle payment failed: payment network not supported"` (trace `12d75891a98dda52fedcad212cdde14e`), so no funds
+  moved. The Base route needs USDC on Base, which our wallets do not hold.
 
 ## Networks
 
