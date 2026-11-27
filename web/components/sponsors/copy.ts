@@ -111,7 +111,7 @@ const en = {
       lbMemory: { ask: "Living Brain as its persistent memory (API)", how: "Before judging, the inspector searches the scooter's earlier inspections, so logged damage is not charged twice; new ones are captured.", link: "Call log" },
       lbWallet: { ask: "Remembers, retrieves and connects", how: "One factual entry per wallet after every settled rental, read back on the dispute desk next to the on-chain facts.", link: "Dispute desk" },
       lbDescription: { ask: "Short description: problem, solution, what is unique", how: "Written in the HackQuest fields.", link: "HACKQUEST.md" },
-      lbVideo: { ask: "Demo video, 3 to 5 minutes, on memory", how: "Not yet: our videos run 59 to 90 s; a 3 to 5 minute memory walkthrough is still to record.", link: "Videos" },
+      lbVideo: { ask: "Demo video, 3 to 5 minutes, on memory", how: "Recorded on the live site (3:54): the dispute desk's history cards, Ask AI retrieving and connecting the remembered entries, and how one entry per party is written after each settlement.", link: "Video" },
       cournotCall: { ask: "A successful live call to the Cournot oracle", how: "Live call on 26 Nov: p = 0.30 for \"Will BNB fall below $470 before 2026-12-26?\", request id 7dcbb40bfbfdebad018e9bcad0d70c51; the stored answer drives the BNB buffer.", link: "/integrations" },
       cournotDecision: { ask: "The probability drives a decision", how: "Built and tested: the BNB deposit buffer is scaled by (1 + p) in /api/risk.", link: "risk.ts" },
       cournotClaim: { ask: "Show the exact claim and the evidence", how: "Built: claim, probability and evidence are shown on /integrations; our own explanation is labelled.", link: "/integrations" },

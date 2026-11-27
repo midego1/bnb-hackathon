@@ -96,6 +96,22 @@ one-page write-up is [docs/WRITEUP.md](../WRITEUP.md); every CMC call is logged 
 | Cournot | A prediction-market probability that BNB falls below a threshold before the return date raises the deposit buffer; the exact claim and the evidence are shown. | **Live call made** 26 Nov 13:06 UTC: p = 0.30, request id `7dcbb40bfbfdebad018e9bcad0d70c51` (proof in the README "Cournot Integration") |
 | AWS startup pitch | A fee from day one (10 % of one month's rent, once per rental) and a roadmap from a testnet pilot to mainnet, asset pools, opBNB and native apps ([BUSINESS.md](../BUSINESS.md)). | Pitch |
 
+### ChatAndBuild / Living Brain: short description and demo video
+
+**Problem.** A deposit dispute desk sees one rental at a time. It cannot tell whether this renter has returned scooters
+clean before, or whether this shop already lost two disputes with inflated claims, so every case starts from zero and
+the desk has to guess. **Solution.** After every settled rental (by agreement, a desk ruling or a timeout) KeyScrow's
+server reads the settlement from its own chain index and writes one factual entry per party into Living Brain, keyed by
+wallet and transaction. The next time either wallet is in a dispute, the desk sees a history card per party with the
+on-chain facts and the remembered entries, and Ask AI retrieves the same memory to answer "what is this renter's
+history?" or "how does this claim compare with the shop's past claims?". The AI inspector also reads each scooter's
+earlier inspections before judging. **What makes it unique.** The memory is written by code from on-chain events, never
+from free text or the AI's opinion: wallet addresses only, every entry carries its transaction hash so it can be
+checked on BscScan, and an entry can be deleted on request. The AI summarises; the dispute desk decides.
+
+Demo video (3:54, recorded on the live testnet site, English voice-over):
+[livingbrain.mp4](livingbrain.mp4), script in [livingbrain-voiceover.md](livingbrain-voiceover.md).
+
 Not entered: Four.meme / OpenFour (no testnet; KeyScrow has no token of its own) and Flap.
 
 ## Tech stack

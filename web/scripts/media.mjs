@@ -34,6 +34,9 @@ const FILES = [
   // published only by builds that have it; separate downloads, not in the zip.
   ...(existsSync(join(REPO, "media/overlay-kit")) ? ls("media/overlay-kit", /\.(mp4|webm|flac|m4a|csv|txt)$/).map((f) => ["overlay-kit", f, false]) : []),
   ["videos", "docs/submission/pitch-poster.jpg", false],
+  // The Living Brain memory video (3:54, ~14 MB): a separate download, not in the zip.
+  ["videos", "docs/submission/livingbrain.mp4", false],
+  ["videos", "docs/submission/livingbrain-poster.jpg", false],
   ["deck", "docs/submission/deck.pdf", true],
   ["deck", "docs/submission/deck-cover.jpg", true],
   ...ls("docs/submission/screenshots", /\.png$/).map((f) => ["screenshots/web", f, true]),

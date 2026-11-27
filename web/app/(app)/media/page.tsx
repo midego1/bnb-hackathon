@@ -29,6 +29,7 @@ const maybe = (path: string) => manifest.files.find((f) => f.path === path);
 const VIDEOS = [
   ["pitch", "4:46", "videos/pitch-poster.jpg"],
   ["duo", "1:04", "screenshots/web/02-duo.png"],
+  ["livingbrain", "3:54", "videos/livingbrain-poster.jpg"],
   ["demo-guided", "1:30", "screenshots/web/demo-mid-run.png"],
   ["eli5", "1:11", "screenshots/web/how-it-works.png"],
   ["tour", "1:17", "screenshots/web/01-landing.png"],

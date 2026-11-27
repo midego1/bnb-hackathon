@@ -17,9 +17,9 @@ describe("/sponsors checklist", () => {
     for (const r of rows) expect(r.href, r.id).toMatch(/^(https:\/\/[^\s/]+\.[^\s/]+(\/\S*)?|\/[a-z][^\s]*)$/);
   });
 
-  it("claims nothing that is not met: Cournot's live call and the 3-5 minute memory video stay pending", () => {
+  it("claims nothing that is not met: the 3-5 minute memory video is done, the HackQuest entry stays pending", () => {
     const state = Object.fromEntries(rows.map((r) => [r.id, r.state]));
-    expect(state).toMatchObject({ lbVideo: "pending", bnbHackquest: "pending" });
+    expect(state).toMatchObject({ lbVideo: "done", bnbHackquest: "pending" });
     for (const r of rows.filter((r) => r.state === "pending")) expect(r.needs).toBeUndefined();
   });
 });

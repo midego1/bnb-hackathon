@@ -43,7 +43,7 @@ export const SPONSOR_CHECKLIST: Record<keyof SponsorsCopy["tracks"], CheckRow[]>
     { id: "lbMemory", state: "live", needs: "livingbrain", href: "/integrations" },
     { id: "lbWallet", state: "live", needs: "livingbrain", href: "/arbiter" },
     { id: "lbDescription", state: "done", href: docsUrl("submission/HACKQUEST.md#other-sponsor-tracks") },
-    { id: "lbVideo", state: "pending", href: `${REPO_URL}/tree/main/docs/submission` },
+    { id: "lbVideo", state: "done", href: "/media#videos" },
   ],
   cournot: [
     { id: "cournotCall", state: "done", href: "/integrations" },
