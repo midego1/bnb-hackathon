@@ -24,7 +24,7 @@ export const SPONSOR_CHECKLIST: Record<keyof SponsorsCopy["tracks"], CheckRow[]>
     { id: "bnbRwa", state: "live", href: testnet("fleetVault") },
     { id: "bnbAgent", state: "live", href: "https://testnet.bscscan.com/tx/0x40c7cf2008857eabb197df1453e33b3b45760fdec8e7f846ac23a4c2e73328c0" },
     { id: "bnbVideo", state: "done", href: docsUrl("submission/duo.mp4") },
-    { id: "bnbRepo", state: "pending", href: REPO_URL },
+    { id: "bnbRepo", state: "done", href: REPO_URL },
     { id: "bnbHackquest", state: "pending", href: docsUrl("submission/HACKQUEST.md") },
   ],
   cmcAtlas: [
@@ -35,7 +35,7 @@ export const SPONSOR_CHECKLIST: Record<keyof SponsorsCopy["tracks"], CheckRow[]>
     { id: "cmcKeys", state: "done", href: "/api/integrations" },
     { id: "cmcWriteup", state: "done", href: docsUrl("WRITEUP.md") },
     { id: "cmcVideo", state: "done", href: docsUrl("submission/demo-guided.mp4") },
-    { id: "cmcRepo", state: "pending", href: `${REPO_URL}#sponsor-integrations` },
+    { id: "cmcRepo", state: "done", href: `${REPO_URL}#sponsor-integrations` },
     { id: "cmcTeam", state: "done", href: docsUrl("WRITEUP.md") },
   ],
   livingBrain: [
